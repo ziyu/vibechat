@@ -62,4 +62,4 @@ Plain-language 场景记录在 [`tests/e2e/TEST-CATALOG.md`](../../../tests/e2e/
 
 ## 下一出口
 
-先形成真实 Synapse device/access token 签发决策和本地 Synapse 合约测试，再实现 production adapter 与 outbox worker。Admin “login as user”不在候选方案中，因为它不会创建真实设备。
+[Synapse Appservice Adapter](./synapse-appservice-adapter.md) 已用标准 `m.login.application_service` 完成真实 device/access token 签发与本地合约测试。下一步实现 Better Auth session 撤销 hook 和 outbox worker；Admin “login as user”继续排除，因为它不会创建真实设备。

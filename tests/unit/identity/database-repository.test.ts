@@ -83,14 +83,16 @@ describe("DatabaseIdentityRepository on SQLite", () => {
       revokedAt: null,
     };
 
-    const firstBinding = await repository.ensureSessionBinding(binding);
-    const repeatedBinding = await repository.ensureSessionBinding({
+    const firstResult = await repository.ensureSessionBinding(binding);
+    const repeatedResult = await repository.ensureSessionBinding({
       ...binding,
       matrixDeviceId: "DEVICE_SHOULD_NOT_REPLACE",
       matrixAccessTokenCiphertext: "plaintext-should-not-win",
     });
-    expect(repeatedBinding).toEqual(firstBinding);
-    expect(repeatedBinding.matrixAccessTokenCiphertext).toBe("v1.iv.ciphertext");
+    expect(firstResult.created).toBe(true);
+    expect(repeatedResult.created).toBe(false);
+    expect(repeatedResult.binding).toEqual(firstResult.binding);
+    expect(repeatedResult.binding.matrixAccessTokenCiphertext).toBe("v1.iv.ciphertext");
 
     const event = {
       id: "outbox-event-1",

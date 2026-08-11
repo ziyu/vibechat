@@ -75,14 +75,14 @@ export class IdentityService {
       };
     }
 
-    const credentials = await this.synapse.ensureSessionDevice({
+    const credentials = await this.synapse.createSessionDevice({
       matrixUserId: identity.matrixUserId,
       authSessionId,
       displayName: `VibeChat · ${profile.username}`,
     });
     const protectedToken = await this.tokenProtector.protect(credentials.accessToken);
     const now = this.now();
-    const binding = await this.repository.ensureSessionBinding({
+    const ensured = await this.repository.ensureSessionBinding({
       authSessionId,
       userId: profile.userId,
       matrixUserId: identity.matrixUserId,
@@ -92,17 +92,27 @@ export class IdentityService {
       revokedAt: null,
     });
 
-    const accessToken = binding.matrixAccessTokenCiphertext === protectedToken
+    if (!ensured.created && ensured.binding.matrixDeviceId !== credentials.deviceId) {
+      await this.synapse.revokeDevice({
+        matrixUserId: identity.matrixUserId,
+        deviceId: credentials.deviceId,
+        accessToken: credentials.accessToken,
+      });
+    }
+
+    const accessToken = ensured.created
       ? credentials.accessToken
-      : await this.tokenProtector.unprotect(binding.matrixAccessTokenCiphertext);
+      : await this.tokenProtector.unprotect(
+          ensured.binding.matrixAccessTokenCiphertext,
+        );
 
     return {
       profile,
       matrix: {
         status: "ready",
         homeserverUrl: availability.homeserverUrl,
-        userId: binding.matrixUserId,
-        deviceId: binding.matrixDeviceId,
+        userId: ensured.binding.matrixUserId,
+        deviceId: ensured.binding.matrixDeviceId,
         accessToken,
       },
     };

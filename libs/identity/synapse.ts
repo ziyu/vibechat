@@ -12,7 +12,7 @@ export class UnavailableSynapseAdapter implements SynapseAdapter {
     throw new Error("Synapse is not configured");
   }
 
-  async ensureSessionDevice(): Promise<never> {
+  async createSessionDevice(): Promise<never> {
     throw new Error("Synapse is not configured");
   }
 

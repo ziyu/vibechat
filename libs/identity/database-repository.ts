@@ -50,10 +50,17 @@ export class DatabaseIdentityRepository implements IdentityRepository {
   }
 
   async ensureSessionBinding(binding: MatrixSessionBindingRecord) {
-    await db.insert(matrixSessionBinding).values(binding).onConflictDoNothing();
+    const inserted = await db
+      .insert(matrixSessionBinding)
+      .values(binding)
+      .onConflictDoNothing()
+      .returning({ authSessionId: matrixSessionBinding.authSessionId });
     const stored = await this.getSessionBinding(binding.authSessionId);
     if (!stored) throw new Error("Matrix session binding could not be persisted");
-    return stored;
+    return {
+      binding: stored,
+      created: inserted.length > 0,
+    };
   }
 
   async revokeSessionBinding(

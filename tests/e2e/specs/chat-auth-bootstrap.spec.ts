@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('Vibe Chat Email OTP and session bootstrap', () => {
+  const matrixExpectedReady = process.env.E2E_MATRIX_EXPECT_READY === '1'
+
   test('rejects unauthenticated bootstrap requests with the product error contract', async ({
     request,
   }) => {
@@ -54,22 +56,34 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
       user: {
         email,
       },
-      matrix: {
-        status: 'unavailable',
-        reason: 'SYNAPSE_NOT_CONFIGURED',
-      },
     })
     expect(bootstrap.user.id).toEqual(expect.any(String))
     expect(bootstrap.user.username).toEqual(expect.any(String))
     expect(bootstrap.user.displayName).toBe(email.split('@')[0])
-    expect(JSON.stringify(bootstrap)).not.toContain('accessToken')
+    if (matrixExpectedReady) {
+      expect(bootstrap.matrix).toMatchObject({
+        status: 'ready',
+        homeserverUrl: 'http://localhost:8008',
+        userId: expect.stringMatching(/^@vibe_.*:localhost$/),
+        deviceId: expect.stringMatching(/^VIBE_[A-F0-9]{24}$/),
+        accessToken: expect.any(String),
+      })
+    } else {
+      expect(bootstrap.matrix).toEqual({
+        status: 'unavailable',
+        reason: 'SYNAPSE_NOT_CONFIGURED',
+      })
+      expect(JSON.stringify(bootstrap)).not.toContain('accessToken')
+    }
 
     const repeatedResponse = await page.request.get('/v1/session/bootstrap')
     expect(repeatedResponse.ok()).toBeTruthy()
     const repeatedBootstrap = await repeatedResponse.json()
     expect(repeatedBootstrap.user).toEqual(bootstrap.user)
     expect(repeatedBootstrap.matrix).toEqual(bootstrap.matrix)
-    expect(JSON.stringify(repeatedBootstrap)).not.toContain('accessToken')
+    if (!matrixExpectedReady) {
+      expect(JSON.stringify(repeatedBootstrap)).not.toContain('accessToken')
+    }
   })
 
   test('keeps password sign-in available during the migration', async ({ page }) => {

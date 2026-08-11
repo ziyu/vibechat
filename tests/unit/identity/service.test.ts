@@ -39,9 +39,10 @@ class MemoryIdentityRepository implements IdentityRepository {
   }
 
   async ensureSessionBinding(binding: MatrixSessionBindingRecord) {
-    const stored = this.bindings.get(binding.authSessionId) || binding;
+    const existing = this.bindings.get(binding.authSessionId);
+    const stored = existing || binding;
     this.bindings.set(binding.authSessionId, stored);
-    return stored;
+    return { binding: stored, created: !existing };
   }
 
   async revokeSessionBinding(
@@ -80,7 +81,8 @@ class PrefixTokenProtector implements MatrixTokenProtector {
 
 class FakeSynapseAdapter implements SynapseAdapter {
   readonly users = new Map<string, string>();
-  readonly devices = new Map<string, { deviceId: string; accessToken: string }>();
+  readonly devices: Array<{ deviceId: string; accessToken: string }> = [];
+  readonly revokedDevices: Array<{ deviceId: string; accessToken: string }> = [];
   failDeviceProvision = false;
 
   availability() {
@@ -97,17 +99,19 @@ class FakeSynapseAdapter implements SynapseAdapter {
     return { matrixUserId };
   }
 
-  async ensureSessionDevice(input: { authSessionId: string }) {
+  async createSessionDevice(input: { authSessionId: string }) {
     if (this.failDeviceProvision) throw new Error("device provision failed");
-    const stored = this.devices.get(input.authSessionId) || {
-      deviceId: `DEVICE_${input.authSessionId}`,
-      accessToken: `secret_${input.authSessionId}`,
+    const stored = {
+      deviceId: `DEVICE_${input.authSessionId}_${this.devices.length + 1}`,
+      accessToken: `secret_${input.authSessionId}_${this.devices.length + 1}`,
     };
-    this.devices.set(input.authSessionId, stored);
+    this.devices.push(stored);
     return stored;
   }
 
-  async revokeDevice() {}
+  async revokeDevice(input: { deviceId: string; accessToken: string }) {
+    this.revokedDevices.push(input);
+  }
 }
 
 const authenticatedUser = {
@@ -154,7 +158,7 @@ describe("IdentityService", () => {
       synapse: {
         availability: () => ({ available: false, reason: "SYNAPSE_NOT_CONFIGURED" }),
         ensureUser: async () => { throw new Error("must not be called"); },
-        ensureSessionDevice: async () => { throw new Error("must not be called"); },
+        createSessionDevice: async () => { throw new Error("must not be called"); },
         revokeDevice: async () => { throw new Error("must not be called"); },
       },
       tokenProtector: {
@@ -183,12 +187,17 @@ describe("IdentityService", () => {
 
     expect(first).toEqual(second);
     expect(synapse.users.size).toBe(1);
-    expect(synapse.devices.size).toBe(1);
+    expect(synapse.devices).toHaveLength(2);
+    expect(synapse.revokedDevices).toHaveLength(1);
     expect(repository.identities.size).toBe(1);
     expect(repository.bindings.size).toBe(1);
     const [binding] = repository.bindings.values();
     expect(binding.matrixAccessTokenCiphertext).not.toContain("secret_session-1");
-    expect(tokenProtector.protectedValues).toContain("secret_session-1");
+    expect(tokenProtector.protectedValues).toEqual([
+      "secret_session-1_1",
+      "secret_session-1_2",
+    ]);
+    expect(synapse.revokedDevices[0].deviceId).not.toBe(binding.matrixDeviceId);
   });
 
   it("does not persist a half-active binding when device provisioning fails", async () => {
@@ -215,7 +224,7 @@ describe("IdentityService", () => {
       eventType: "matrix.device.revoke",
       aggregateId: "session-1",
       payload: {
-        matrixDeviceId: "DEVICE_session-1",
+        matrixDeviceId: "DEVICE_session-1_1",
       },
     });
   });

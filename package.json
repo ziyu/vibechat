@@ -28,6 +28,10 @@
     "db:migrate:sqlite": "node libs/database/scripts.js migrate:sqlite",
     "db:seed:sqlite": "node libs/database/scripts.js seed:sqlite",
     "db:studio:sqlite": "node libs/database/scripts.js studio:sqlite",
+    "matrix:dev:init": "docker compose --profile matrix-init run --rm synapse-init",
+    "matrix:dev:up": "docker compose --profile matrix up -d synapse",
+    "matrix:dev:down": "docker compose --profile matrix down",
+    "matrix:dev:logs": "docker compose --profile matrix logs -f synapse",
     "test": "vitest run",
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:watch": "vitest",
@@ -35,6 +39,7 @@
     "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:cf": "E2E_DB_DIALECT=d1 npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:ui": "npx playwright test --config=tests/e2e/playwright.config.ts --ui",
+    "test:matrix:integration": "RUN_SYNAPSE_INTEGRATION=1 vitest run tests/integration/synapse-appservice.integration.test.ts",
     "typecheck": "turbo run typecheck --filter=@vibechat/web-app",
     "email:compile": "tsx libs/email/templates/compile.ts",
     "email:test": "tsx libs/email/scripts.ts"

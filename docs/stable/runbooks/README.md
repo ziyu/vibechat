@@ -2,6 +2,8 @@
 
 Runbook 是可执行的操作文档，包含前置条件、步骤、验证和故障处理。原 `user-guide` 内容统一归入此类型。
 
+- [本地 Synapse 开发环境](./local-synapse.md)
+
 主要入口：
 
 - [快速开始](./get-started.md)

@@ -10,7 +10,10 @@ export interface IdentityRepository {
   getMatrixIdentity(userId: string): Promise<MatrixIdentityRecord | null>;
   ensureMatrixIdentity(identity: MatrixIdentityRecord): Promise<MatrixIdentityRecord>;
   getSessionBinding(authSessionId: string): Promise<MatrixSessionBindingRecord | null>;
-  ensureSessionBinding(binding: MatrixSessionBindingRecord): Promise<MatrixSessionBindingRecord>;
+  ensureSessionBinding(binding: MatrixSessionBindingRecord): Promise<{
+    binding: MatrixSessionBindingRecord;
+    created: boolean;
+  }>;
   revokeSessionBinding(
     authSessionId: string,
     revokedAt: Date,
@@ -40,7 +43,7 @@ export interface SynapseAdapter {
     localpart: string;
     displayName: string;
   }): Promise<{ matrixUserId: string }>;
-  ensureSessionDevice(input: {
+  createSessionDevice(input: {
     matrixUserId: string;
     authSessionId: string;
     displayName: string;
@@ -48,5 +51,6 @@ export interface SynapseAdapter {
   revokeDevice(input: {
     matrixUserId: string;
     deviceId: string;
+    accessToken: string;
   }): Promise<void>;
 }

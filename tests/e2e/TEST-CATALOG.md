@@ -34,11 +34,12 @@
 - [24. 管理员动态定价管理测试](#24-管理员动态定价管理测试)
 - [25. 聊天宿主基础功能](#25-聊天宿主基础功能)
 - [26. Email OTP 与产品 Session Bootstrap](#26-email-otp-与产品-session-bootstrap)
+- [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
+- [28. Synapse Appservice Adapter](#28-synapse-appservice-adapter)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
 - [20. 博客功能测试](#20-博客功能测试)
-- [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
 
 ### 追踪
 
@@ -1055,9 +1056,27 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | 2 | 产品资料成为权威 | 首次 bootstrap 从 Better Auth session 创建 profile → 后续 bootstrap 读取已持久化 profile，不重复创建或覆盖产品字段 |
 | 3 | Synapse 未配置安全降级 | 本地未配置 Synapse adapter → 验证 Matrix 状态为 unavailable → 数据库中不创建 session binding → 响应不含 access token |
 | 4 | Matrix user 幂等 provision | 使用 fake adapter 并发 bootstrap 同一用户 → 验证只形成一个 Matrix identity，重复调用返回同一 Matrix user ID |
-| 5 | Session-device 幂等绑定 | 同一 Better Auth session 重复 bootstrap → adapter 只创建一次设备 session → token 经 protector 后才写入 repository |
+| 5 | Session-device 幂等绑定 | 同一 Better Auth session 顺序重复 bootstrap 不再创建 device；并发 bootstrap 由 repository 选出唯一 binding，loser device 立即注销；token 经 protector 后才写入 repository |
 | 6 | Session 撤销进入 outbox | 撤销已绑定 session → binding 标记 revoked → 写入幂等 `matrix.device.revoke` outbox 事件，供后续 worker 处理 |
 | 7 | Adapter 失败不泄漏凭据 | Matrix adapter 抛错 → route 映射稳定产品错误 → 不写入明文 token 或半成品 active binding |
+
+---
+
+## 28. Synapse Appservice Adapter
+
+**文件：** `tests/unit/identity/synapse-appservice.test.ts` + `specs/chat-auth-bootstrap.spec.ts` ｜ **优先级：** P0 ｜ **mock HTTP / 本地 Synapse**
+
+产品服务作为 Matrix Application Service 管理专属用户 namespace。用户使用 `m.login.application_service` 注册为无密码 Matrix 用户，再通过标准 `/login` 获取绑定真实 device 的单用户 scoped token；Synapse Admin “login as user”和自建 Matrix 密码均不进入该链路。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 配置全有或全无 | Matrix 环境变量全部缺失 → adapter unavailable；只配置一部分 → 启动/请求明确失败且不回退到伪 token |
+| 2 | 无密码用户幂等注册 | adapter 使用 appservice token 调用标准注册端点并设置 `inhibit_login` → 首次创建成功；`M_USER_IN_USE` 视为已存在并返回同一 Matrix user ID |
+| 3 | Scoped device login | adapter 使用 `m.login.application_service` 登录已注册用户 → 请求携带唯一 device ID 与显示名 → 校验响应 user/device/token 后才返回凭据 |
+| 4 | 并发 winner/loser 回收 | 同一 Better Auth session 并发 bootstrap → repository 只保留一个 binding → loser 立即用自己的 token 调用 `/logout`，两个响应都返回 winner 凭据 |
+| 5 | 标准注销撤销 device | outbox worker/adapter 使用待撤销 binding 的 access token 调用 Matrix `/logout` → token 失效且 device session 不再可用 |
+| 6 | 错误与 secret 隔离 | Synapse 返回非 2xx、无效 JSON 或字段不匹配 → 抛出稳定 adapter error → 日志/异常不包含 appservice token 或 Matrix access token |
+| 7 | 真实本地联调 | 启动固定版本 Synapse + appservice registration → Email OTP 登录并 bootstrap → 返回 ready、真实 Matrix user/device/token → 重复 bootstrap 保持 binding 稳定 |
 
 ---
 
@@ -1070,6 +1089,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | ✅ | 25 | 聊天宿主基础功能 | 无（使用本地 fixture 数据） | 8 |
 | ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
 | ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
+| ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
 
 ---
 
@@ -1079,6 +1099,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-11 | TanStack + Vitest + Synapse | 24 | 0 | 0 | Synapse Appservice Adapter（identity unit/mock/SQLite 17 项 + 真实 Synapse 合约 1 项 + Matrix ready/unavailable bootstrap E2E 各 3 项） |
 | 2026-08-11 | TanStack + Vitest | 17 | 0 | 0 | Matrix Identity 生命周期（identity 单测 9 项 + `chat-auth-bootstrap` / `chat-foundation` 浏览器回归 8 项） |
 | 2026-08-11 | TanStack | 3 | 0 | 0 | Email OTP 与产品 Session Bootstrap（`chat-auth-bootstrap.spec.ts`，覆盖 5 项验收场景） |
 | 2026-08-11 | TanStack | 5 | 0 | 0 | 聊天宿主基础功能（`chat-foundation.spec.ts`，覆盖 8 项验收场景） |

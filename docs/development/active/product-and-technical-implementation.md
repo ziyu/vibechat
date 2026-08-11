@@ -25,10 +25,10 @@
 - `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 fixture 数据。
 - `tests/e2e/specs/chat-foundation.spec.ts` 已覆盖桌面/移动宿主、房间、新建聊天、联系人和发现流程，最近一次结果为 5/5。
 - [聊天宿主基础实现](../../stable/references/chat-host-foundation.md)记录了已实现边界与真实服务接入顺序。
-- Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding schema、Synapse adapter 合约和 integration outbox 已形成可执行实现。
-- identity 单元/SQLite 集成测试 9/9，通过 OTP/bootstrap 与聊天宿主浏览器回归 8/8；Cloudflare build 与 Workers 运行态探测通过。
+- Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding schema、Synapse Appservice adapter 和 integration outbox 已形成可执行实现。
+- identity unit/SQLite/mock HTTP 测试 17/17、固定版本 Synapse 合约 1/1、真实 Matrix ready bootstrap E2E 3/3；Cloudflare build 与 Workers 运行态探测通过。
 
-尚未实现的核心范围包括真实 Synapse device 凭据签发与 timeline、社交数据、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。聊天宿主不等于真实消息服务；A2 必须继续逐步替换 fixture timeline。
+尚未实现的核心范围包括 Matrix session 撤销 worker 与 timeline、社交数据、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。聊天宿主不等于真实消息服务；A2 必须继续逐步替换 fixture timeline。
 
 ## 3. 状态定义
 
@@ -47,7 +47,7 @@
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
 | A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | [Email OTP 与产品 Session Bootstrap](../../stable/references/identity-session-bootstrap.md)、[Matrix Identity 生命周期](./matrix-identity-lifecycle.md)、identity 测试 9/9、浏览器回归 8/8 | 决定真实设备凭据签发方式，并以本地 Synapse 合约测试验证 adapter |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | [Email OTP 与产品 Session Bootstrap](../../stable/references/identity-session-bootstrap.md)、[Matrix Identity 生命周期](./matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./synapse-appservice-adapter.md)、真实 Synapse/ready bootstrap 通过 | 接入 Better Auth session 撤销 outbox worker，再替换 fixture timeline |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |
@@ -91,8 +91,8 @@ A2 第一条切片遵循[实现参考](../../stable/references/identity-session-
 | 产品后端框架与部署目标 | 首轮采用 TanStack Start server routes + Cloudflare Workers；worker/reconciler 前复审 | A2 outbox worker 实现前 |
 | Product PostgreSQL 与 Matrix 数据权威边界 | 产品 profile/identity mapping 属于产品库；Matrix device/room/timeline 属于 Synapse | 真实 adapter 联调时复核 |
 | Better Auth 用户与 Matrix user/device 映射 | 一个 Better Auth user 对应一个 Matrix identity；每个 auth session 对应独立 binding | 已落 schema 与 service，注销链路接入时复核 |
-| Synapse device access token 正式签发方式 | 待决策；Admin “login as user”不可作为设备签发 | 真实 adapter 开码前 |
-| Synapse 本地与生产拓扑 | 待设计 | A2 真实 adapter 合约测试前 |
+| Synapse device access token 正式签发方式 | 已决定使用标准 `m.login.application_service` scoped device login | 已通过固定版本 Synapse 合约测试 |
+| Synapse 本地与生产拓扑 | 本地固定 Synapse 1.157.0 + appservice profile；生产拓扑待设计 | A2 生产部署前 |
 | 氛围空间包格式、签名与版本不可变 | 待设计 | A3 实现前 |
 | iframe sandbox、CSP 与外部联网授权 | 待设计 | A3 安全实现前 |
 | SDK/CLI 包边界与公开仓库策略 | 待设计 | A4 开始前 |
