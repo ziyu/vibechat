@@ -35,7 +35,7 @@ Vibe Chat 是一个以“氛围”为核心的消费级即时聊天平台。传�
 - 使用 **Matrix 协议、`matrix-js-sdk` 和独立部署的 Synapse** 复用成熟的即时通信能力，包括同步、本地回显、发送队列、失败重试、消息关系、已读、正在输入、媒体和房间成员关系。
 - 使用自研闭源 React 宿主客户端，不 fork AGPL/商业双许可的 Element Web。
 - 使用 **Better Auth + Email OTP plugin** 负责邮箱验证码注册登录、用户身份、Cookie 会话和会话管理，不自研认证系统。
-- 产品业务后端选型暂缓；本文保留 **Fastify 5 + TypeScript + TypeBox** 作为原候选方案记录，待前端项目骨架建立后重新评审，不作为当前工程实现约束。
+- 产品业务后端选型暂缓；API schema 统一使用 **Zod 4**，不作为后端框架选型约束。
 - 氛围空间的微 App 代码在隔离 iframe 中运行，永远不能直接取得 Matrix access token、宿主 DOM、Cookie 或宿主存储。
 - 每个房间只有一个氛围空间，不能叠加其他空间。更换氛围通过“克隆迁移”创建新房间，旧房间与历史保持不变。
 - V1 面向熟人私聊和小群，首发 Web/PWA，不包含 E2EE、音视频、公共聊天室、原生移动端和无代码编辑器。
@@ -161,7 +161,7 @@ Vibe Chat 是一个以“氛围”为核心的消费级即时聊天平台。传�
 
 - Better Auth 负责用户、验证码、自动注册、会话 Cookie、会话查询/撤销和认证端点限流。
 - React 宿主只通过 `better-auth/client` 和 `emailOTPClient()` 发起认证，不自行调用认证数据表。
-- Fastify 仅挂载 Better Auth handler，并在业务 route 中通过 `auth.api.getSession()` 验证身份。
+- 产品 API 仅挂载 Better Auth handler，并在业务 route 中通过 `auth.api.getSession()` 验证身份。
 - Product PostgreSQL 使用 Better Auth 官方 schema 与 CLI migration；产品代码不得自行写入其核心认证表。
 - V1 将 Better Auth `user`、`session`、`account` 持久化在 PostgreSQL，并显式启用 `session.storeSessionInDatabase: true`；Redis secondary storage 只承载短期 verification 和认证限流数据。
 - 邮件服务只实现 `sendVerificationOTP()` 投递适配器，不参与 OTP 生成、保存、过期或校验。
@@ -169,7 +169,6 @@ Vibe Chat 是一个以“氛围”为核心的消费级即时聊天平台。传�
 
 官方文档：
 
-- <https://better-auth.com/docs/integrations/fastify>
 - <https://better-auth.com/docs/plugins/email-otp>
 - <https://better-auth.com/docs/concepts/session-management>
 - <https://better-auth.com/docs/concepts/database>
@@ -194,8 +193,8 @@ Element Web 功能成熟，但当前采用 AGPL/GPL/商业多重许可，不符�
 | 用户认证       | Better Auth + Email OTP plugin          | 邮箱验证码注册登录、用户、Cookie session 和会话撤销             |
 | 认证客户端     | `better-auth/client` + `emailOTPClient` | 登录状态、OTP、退出和设备会话管理                               |
 | Matrix 客户端  | `matrix-js-sdk`                         | Matrix 同步、消息、媒体和成员关系                               |
-| 产品 API       | 待定（Fastify 5、TypeScript 为候选）    | Better Auth 挂载、Matrix 身份桥接、社交、房间、市场、审核、推送 |
-| API schema     | 待定（TypeBox 为候选）                  | 类型、校验、序列化、OpenAPI                                     |
+| 产品 API       | 待定（TypeScript 为候选）               | Better Auth 挂载、Matrix 身份桥接、社交、房间、市场、审核、推送 |
+| API schema     | Zod 4                                   | 类型、校验、序列化、OpenAPI                                     |
 | 主数据库       | PostgreSQL                              | 产品业务数据                                                    |
 | 缓存与队列     | Redis、BullMQ                           | Better Auth 短期 verification/限流、扫描、邮件、推送、发布任务  |
 | 消息服务       | Synapse                                 | Matrix room、事件、同步、媒体元数据                             |
@@ -203,10 +202,7 @@ Element Web 功能成熟，但当前采用 AGPL/GPL/商业多重许可，不符�
 | 静态分发       | CDN                                     | 宿主静态资源和已签名空间版本                                    |
 | 可观测性       | Pino、OpenTelemetry、Prometheus         | 日志、追踪、指标和告警                                          |
 
-候选方案中，Fastify 的 schema 验证、插件封装、TypeScript Type Provider 和 LTS 策略适合本项目的模块化 API；最终后端选型将在前端骨架建立后重新评审：
-
-- <https://fastify.dev/docs/latest/Reference/Type-Providers/>
-- <https://fastify.dev/docs/latest/Reference/Principles/>
+候选方案应提供 schema 验证、模块封装、TypeScript 类型集成和明确的 LTS 策略；最终后端选型将在前端骨架建立后重新评审。
 
 ### 4.3 系统结构
 
@@ -229,7 +225,7 @@ flowchart LR
     end
 
     subgraph Product["产品平台"]
-        API["Fastify API + Better Auth"]
+        API["产品 API + Better Auth"]
         Workers["BullMQ Workers"]
         Push["Web Push Gateway"]
         Scanner["空间扫描与审核服务"]
@@ -267,14 +263,14 @@ flowchart LR
 ```text
 apps/
   web-host/              用户端宿主 PWA
-  api/                   Fastify 产品 API
+  api/                   待定产品 API
   admin-review/          内部审核后台
   docs-site/             SDK 与 CLI 文档
 packages/
   auth/                  Better Auth 服务端配置、客户端和邮件适配器
   sdk/                   @vibechat/sdk
   protocol/              postMessage 与 Matrix 事件契约
-  api-contracts/         TypeBox schema 与生成客户端
+  api-contracts/         Zod schema 与生成客户端
   design-system/         宿主设计系统
   cli/                   create/dev/validate/publish CLI
   test-harness/          空间微 App 模拟宿主与测试工具
@@ -798,7 +794,7 @@ unloaded
 
 - 验证 `event.source === iframe.contentWindow`。
 - 每个 iframe 使用独立 session nonce。
-- 所有 payload 使用共享 TypeBox schema 验证。
+- 所有 payload 使用共享 Zod schema 验证。
 - 忽略未知字段，拒绝未知方法。
 - request ID 在当前 session 内唯一。
 - 写操作需要幂等 transaction ID。
@@ -1000,24 +996,24 @@ flowchart LR
 
 ## 8. 后端服务设计（候选方案，待重新评审）
 
-本章记录此前基于 Fastify + TypeBox 的候选设计，用于保留领域边界和接口需求；在后端选型完成前，不作为当前脚手架的实现要求。
+本章记录此前的产品 API 候选设计，用于保留领域边界和接口需求；在后端选型完成前，不作为当前脚手架的实现要求。
 
-### 8.1 Fastify 架构原则
+### 8.1 产品 API 架构原则
 
-- 每个业务域注册为独立 Fastify plugin。
+- 每个业务域注册为独立模块。
 - 产品 route 只处理 HTTP、Better Auth session guard、schema 和错误映射。
 - service 承担业务规则和事务边界。
 - repository 封装 SQL，不跨域直接查询其他模块表。
 - adapter 封装 Synapse、邮件、对象存储、扫描和 Web Push。
 - 依赖通过显式 composition root 注入，不使用全局容器或反射装饰器。
-- 产品业务请求和响应由 TypeBox 定义；Better Auth 路由使用其官方 handler 与客户端类型，不重复包装 schema。
+- 产品业务请求和响应由 Zod 定义；Better Auth 路由使用其官方 handler 与客户端类型，不重复包装 schema。
 - 产品 OpenAPI、前端客户端和 CLI 客户端从同一 contract 生成；认证客户端由 Better Auth 生成。
 
 ### 8.2 领域模块
 
 | 模块          | 责任                                                                                |
 | ------------- | ----------------------------------------------------------------------------------- |
-| `auth`        | Better Auth 配置、Fastify handler、session guard、Email OTP plugin 和生命周期 hooks |
+| `auth`        | Better Auth 配置、handler、session guard、Email OTP plugin 和生命周期 hooks         |
 | `identity`    | Better Auth 用户/session 到 Matrix 用户/设备的幂等 provision 与撤销                 |
 | `profiles`    | 昵称、用户名、头像和账号状态                                                        |
 | `social`      | 好友请求、联系人、备注和屏蔽                                                        |
@@ -1056,14 +1052,14 @@ flowchart LR
 - ID 使用 UUIDv7 或 ULID，Matrix ID 保留原格式。
 - 浏览器身份统一来自 Better Auth Cookie session；产品 API 不签发第二套 session。
 - Better Auth 显式配置 `baseURL`、`basePath: "/v1/auth"`、`trustedOrigins`、生产 Cookie 属性和可信代理 IP 头。
-- Fastify CORS 只允许宿主 origin 并启用 credentials；认证路由直接透传 Better Auth 的状态码、响应头和 `Set-Cookie`。
+- 产品 API CORS 只允许宿主 origin 并启用 credentials；认证路由直接透传 Better Auth 的状态码、响应头和 `Set-Cookie`。
 - API access token 只用于 CLI，不用于用户浏览器 session。
 
 ### 8.4 Better Auth 与 Matrix 身份桥接
 
 | Method     | Path                                    | 用途                                               |
 | ---------- | --------------------------------------- | -------------------------------------------------- |
-| `GET/POST` | `/auth/*`                               | Fastify 透传给 Better Auth handler                 |
+| `GET/POST` | `/auth/*`                               | 产品 API 透传给 Better Auth handler                |
 | `POST`     | `/auth/email-otp/send-verification-otp` | Better Auth Email OTP plugin 发送登录验证码        |
 | `POST`     | `/auth/sign-in/email-otp`               | Better Auth 验证 OTP，自动注册或登录并创建 session |
 | `GET`      | `/auth/get-session`                     | Better Auth 获取当前用户和 session                 |
@@ -1077,7 +1073,7 @@ flowchart LR
 1. React 宿主使用 Better Auth client 请求 `sign-in` 类型的 Email OTP。
 2. Better Auth 负责邮箱规范化、验证码生成与哈希保存、有效期、尝试次数、重发策略和认证限流；平台只通过 `sendVerificationOTP()` 把邮件任务交给发送服务。
 3. Better Auth 校验 OTP；邮箱首次出现时自动创建 Better Auth user，随后创建 Cookie session。
-4. 宿主调用 `/v1/session/bootstrap`；Fastify 使用 `auth.api.getSession()` 验证当前身份，不解析或复制 session token。
+4. 宿主调用 `/v1/session/bootstrap`；产品 API 使用 `auth.api.getSession()` 验证当前身份，不解析或复制 session token。
 5. identity service 以 Better Auth `user.id` 幂等创建产品资料和 Matrix 用户映射。
 6. identity service 以 Better Auth `session.id` 幂等建立 Matrix device/access token，并写入 session binding。
 7. bootstrap 返回产品资料、homeserver、Matrix user ID、device ID 和 Matrix session 数据。
@@ -1659,7 +1655,7 @@ Docker Compose 启动：
 - Redis。
 - S3 兼容对象存储。
 - Mail catcher。
-- 挂载 Better Auth 的 Fastify API。
+- 挂载 Better Auth 的产品 API。
 - Workers。
 - Web host。
 - 空间 CDN 模拟服务。
@@ -1670,7 +1666,7 @@ Docker Compose 启动：
 
 - CDN 分发宿主和氛围空间静态资源，使用不同域名。
 - Ingress 分离 `/v1` 产品 API 和 `/_matrix` Matrix 流量。
-- Fastify API 至少 2 个无状态实例。
+- 产品 API 至少 2 个无状态实例。
 - BullMQ workers 独立部署，可按邮件、扫描、推送拆队列。
 - Synapse 采用适合当前版本的 worker 拓扑，并使用独立 PostgreSQL。
 - Product PostgreSQL 与 Matrix PostgreSQL 使用不同数据库和权限账号。
@@ -1691,7 +1687,7 @@ V1 目标：
 
 ### 12.4 可观测性
 
-#### Fastify 指标
+#### 产品 API 指标
 
 - 请求量、状态码和延迟。
 - 按 route 和 error code 分组。
@@ -1765,10 +1761,10 @@ V1 目标：
 
 ### 13.1 单元测试
 
-- Fastify service、repository 和错误映射。
+- 产品 API service、repository 和错误映射。
 - Better Auth 配置、邮件投递适配器、session guard 和生命周期 hook；不重复测试 Better Auth 内部算法。
 - Matrix identity bootstrap、session binding、撤销 outbox 和 reconciler 的幂等性。
-- TypeBox schema 和生成类型。
+- Zod schema 和推导类型。
 - Matrix event 到 SDK model 的转换。
 - capability 决策和敏感操作确认。
 - 房间创建、版本升级和克隆迁移规则。
@@ -1777,11 +1773,11 @@ V1 目标：
 
 ### 13.2 API 合约测试
 
-- 产品 OpenAPI 与 TypeBox route schema 一致。
+- 产品 OpenAPI 与 Zod route schema 一致。
 - `/v1/auth/*` 使用 Better Auth 官方客户端做黑盒合约测试，不复制其 schema 到产品 OpenAPI。
 - Web、CLI 和 SDK 生成客户端通过编译。
 - 错误码和幂等语义稳定。
-- Fastify 使用 `inject()` 测试，不依赖真实监听端口。
+- 产品 API 使用进程内请求测试，不依赖真实监听端口。
 
 ### 13.3 集成测试
 
@@ -1841,7 +1837,7 @@ Playwright 使用至少三个账号测试：
 
 - 1,000 并发 Matrix 同步连接。
 - 100 消息/秒突发。
-- Fastify 实例滚动重启。
+- 产品 API 实例滚动重启。
 - Synapse worker 重启。
 - PostgreSQL 主从切换或短时不可用。
 - Redis 重启和 BullMQ 重试。
@@ -1868,7 +1864,7 @@ Playwright 使用至少三个账号测试：
 - Monorepo、CI、代码规范和环境配置。
 - Docker Compose 本地栈。
 - Synapse、PostgreSQL、Redis 和对象存储。
-- Fastify 基础框架、TypeBox、OpenAPI、日志和追踪。
+- 产品 API 基础框架、Zod、OpenAPI、日志和追踪。
 - Better Auth、Email OTP plugin、官方 schema migration、Redis secondary storage 和邮件适配器。
 - React 宿主、设计 token 和响应式壳。
 
@@ -1958,7 +1954,7 @@ Playwright 使用至少三个账号测试：
 - V1 无 E2EE、音视频和联邦。
 - Matrix + `matrix-js-sdk` + Synapse。
 - Better Auth 管理用户身份、OTP、Cookie session 和会话撤销。
-- 产品后端选型待定；Fastify + TypeBox 仅保留为候选方案。
+- 产品后端选型待定；API schema 统一使用 Zod 4。
 - 闭源宿主和产品服务；公开 SDK、protocol、CLI 和文档。
 
 ### 16.2 后续独立设计项目
