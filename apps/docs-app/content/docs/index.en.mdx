@@ -1,0 +1,33 @@
+---
+title: Vibe Chat Documentation
+description: Product and engineering documentation
+full: true
+---
+
+import { DynamicLink } from 'fumadocs-core/dynamic-link';
+
+This site records the Vibe Chat engineering baseline, development workflow, and future public interfaces.
+
+<div className="flex flex-wrap gap-4 mt-8">
+  <Card className="flex-1 min-w-[300px]">
+    <CardHeader>
+      <CardTitle>
+        <DynamicLink href="/[lang]/docs/getting-started" className="hover:underline">Getting Started</DynamicLink>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      Learn how to run the product web app and documentation site.
+    </CardContent>
+  </Card>
+
+  <Card className="flex-1 min-w-[300px]">
+    <CardHeader>
+      <CardTitle>
+        <DynamicLink href="/[lang]/docs/api" className="hover:underline">API Reference</DynamicLink>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      Stable public contracts will be documented here after the backend stack is selected.
+    </CardContent>
+  </Card>
+</div>

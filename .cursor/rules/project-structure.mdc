@@ -1,0 +1,46 @@
+---
+description: Project Structure Guidelines
+globs: 
+alwaysApply: false
+---
+vibechat/
+├── apps/                       # Application directory
+│   ├── web-app/               # Product web app (TanStack Start, TanStack Router, Vite)
+│   │   ├── src/
+│   │   │   ├── routes/       # File-based routes ($lang param for i18n)
+│   │   │   │   ├── api/     # API routes (server handlers)
+│   │   │   │   └── $lang/   # Localized page routes
+│   │   │   ├── lib/         # Auth guards, utilities
+│   │   │   └── styles/      # CSS and Tailwind styles
+│   │   ├── app.config.ts     # TanStack Start app config
+│   │   └── vite.config.ts    # Vite configuration
+│   └── docs-app/              # Documentation site
+├── libs/                      # Libraries directory
+│   ├── database/             # Database related code
+│   │   ├── migrations/      # Database migrations
+│   │   └── schema/         # Database schema definitions
+│   ├── auth/                 # Authentication library
+│   ├── email/                # Email service library
+│   ├── i18n/                 # Internationalization
+│   ├── permissions/          # Permission management
+│   ├── react-shared/         # Shared React components & hooks
+│   │   ├── components/      # UI components, layouts
+│   │   ├── hooks/           # Shared React hooks
+│   │   └── ui/              # shadcn/ui components
+│   ├── sms/                  # SMS service
+│   ├── storage/              # Storage abstraction (S3/OSS/R2)
+│   ├── ui/                   # Framework-agnostic UI utilities
+│   └── validators/           # Data validation library
+├── docs/                      # Project documentation
+│   ├── arch.md              # Architecture documentation
+│   ├── database-schema.md   # Database schema documentation
+│   └── framework-setup.md   # Framework setup guide
+├── tests/                     # Test directory
+│   ├── e2e/                 # End-to-end tests
+│   └── unit/                # Unit tests
+├── public/                    # Public assets
+├── package.json              # Root package configuration
+├── pnpm-workspace.yaml       # PNPM workspace configuration
+├── tsconfig.json            # TypeScript configuration
+├── drizzle.config.ts        # Drizzle ORM configuration
+└── turbo.json               # Turborepo configuration

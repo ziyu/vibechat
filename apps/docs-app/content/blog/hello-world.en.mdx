@@ -1,0 +1,30 @@
+---
+title: Vibe Chat Engineering Baseline
+description: The frontend stack and current implementation boundary for the project scaffold.
+author: Vibe Chat Team
+authorRole: Engineering
+date: 2026-08-11
+category: Engineering
+---
+
+## Current Baseline
+
+Vibe Chat now has a frontend scaffold based on TinyShip. The product web application lives in `apps/web-app` and uses React, TanStack Start, TanStack Router, Vite, and a PWA-oriented architecture.
+
+### Current Scope
+
+- One product web application and a separate documentation site.
+- pnpm workspaces and Turborepo for project orchestration.
+- Type checking, production builds, Docker, and CI baselines.
+- Backend, database, authentication, and pricing integrations are deferred until the frontend scaffold is reviewed.
+
+### Common Commands
+
+```bash
+pnpm dev
+pnpm typecheck
+pnpm build
+pnpm dev:docs
+```
+
+Feature work follows the boundaries defined in `docs/PRODUCT_AND_TECH_DESIGN.md`.

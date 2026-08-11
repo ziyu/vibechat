@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Vibe Chat atmosphere bubble</title>
+  <desc id="desc">A calm blue chat bubble with a soft wave cut through its center.</desc>
+  <g id="icon">
+    <rect x="24" y="24" width="464" height="464" rx="120" fill="#F8F9FC"/>
+    <path
+      fill="#5F7FDC"
+      d="M140 104h232c38.66 0 70 31.34 70 70v132c0 38.66-31.34 70-70 70H268l-104.83 63.53c-10.57 6.41-22.92-4.52-17.85-15.81L166.76 376H140c-38.66 0-70-31.34-70-70V174c0-38.66 31.34-70 70-70Z"
+    />
+    <path
+      fill="#F8F9FC"
+      d="M102 224c47.24-27.71 96.27-27.22 144.92.78 48.22 27.76 94.43 31.46 163.08-7.4v55.83c-63.09 34.54-114.84 33.05-163.08 5.29-47.09-27.1-94.73-27.5-144.92-.39V224Z"
+    />
+    <circle cx="348" cy="166" r="26" fill="#2F3340"/>
+  </g>
+</svg>
