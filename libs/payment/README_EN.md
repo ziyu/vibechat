@@ -283,7 +283,7 @@ Sync redirect to returnUrl → Webhook async notification → Order status updat
 
 ## 📚 Reference Documentation
 
-- [Payment Configuration Guide](../../docs/user-guide/payment.md) - Complete environment variable configuration and application process
+- [Payment Runbook](../../docs/stable/runbooks/payment/overview.md) - Payment configuration and operations
 - [WeChat Pay Developer Documentation](https://pay.weixin.qq.com/wiki/doc/api/index.html)
 - [Alipay Open Platform](https://open.alipay.com/)
 - [Stripe Developer Documentation](https://stripe.com/docs)

@@ -517,7 +517,8 @@ rateLimit: {
 - [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) - Captcha service documentation
 
 ### Project Documentation
-- [Database Configuration Guide](../../docs/user-guide/database.md) - Database setup instructions
-- [Authentication Configuration Guide](../../docs/user-guide/auth.md) - Detailed authentication configuration steps
+- [Database Library Documentation](../database/README_EN.md) - Current database implementation notes
+- [Database Runbook](../../docs/stable/runbooks/database.md) - Database configuration procedures
+- [Authentication Runbook](../../docs/stable/runbooks/auth/overview.md) - Authentication configuration procedures
 - [Email Service Documentation](../email/README.md) - Email sending configuration
-- [SMS Service Documentation](../sms/README.md) - SMS sending configuration 
+- [SMS Service Documentation](../sms/README.md) - SMS sending configuration

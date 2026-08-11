@@ -19,7 +19,7 @@ apps/
   docs-app/    文档站
 libs/          共享能力与界面基础
 config/        共享配置
-docs/          产品与技术文档
+docs/          按分类与生命周期治理的产品与技术文档
 tests/         单元、API 与端到端测试
 ```
 
@@ -34,4 +34,4 @@ pnpm dev:docs
 pnpm build:docs
 ```
 
-产品范围与架构决策见 [`docs/PRODUCT_AND_TECH_DESIGN.md`](docs/PRODUCT_AND_TECH_DESIGN.md)。
+文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。

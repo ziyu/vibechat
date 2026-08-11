@@ -174,7 +174,7 @@ tests/payment/
 - [支付功能完整测试计划](./payment-test-plan.md)
 - [手动测试详细指南](./manual-test-guide.md)
 - [Stripe 集成文档](../../libs/payment/providers/stripe.ts)
-- [Creem 集成文档](../../libs/payment/CREEM.md)
+- [Creem 集成实现](../../libs/payment/providers/creem.ts)
 - [WeChat Pay 集成文档](../../libs/payment/providers/wechat.ts)
 
 ## 🔄 定期测试建议
@@ -232,4 +232,4 @@ tests/payment/
 1. 检查故障排除部分
 2. 查看相关文档和支付提供商仪表板
 3. 查看浏览器开发者工具的网络和控制台
-4. 记录详细的错误信息和重现步骤 
+4. 记录详细的错误信息和重现步骤

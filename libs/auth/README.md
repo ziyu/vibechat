@@ -517,7 +517,8 @@ rateLimit: {
 - [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) - 验证码服务文档
 
 ### 项目文档
-- [数据库配置指南](../../docs/user-guide/database.md) - 数据库设置说明
-- [认证配置指南](../../docs/user-guide/auth.md) - 详细的认证配置步骤
+- [数据库库文档](../database/README.md) - 当前数据库实现说明
+- [数据库 Runbook](../../docs/stable/runbooks/database.md) - 数据库配置步骤
+- [认证 Runbook](../../docs/stable/runbooks/auth/overview.md) - 认证配置步骤
 - [邮件服务文档](../email/README.md) - 邮件发送配置
-- [短信服务文档](../sms/README.md) - 短信发送配置 
+- [短信服务文档](../sms/README.md) - 短信发送配置
