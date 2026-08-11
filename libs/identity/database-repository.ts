@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNull, lte } from "drizzle-orm";
 import {
   db,
   integrationOutbox,
@@ -86,6 +86,46 @@ export class DatabaseIdentityRepository implements IdentityRepository {
       .where(eq(matrixSessionBinding.authSessionId, authSessionId));
 
     return this.getSessionBinding(authSessionId);
+  }
+
+  async listPendingOutboxEvents(availableAt: Date, limit: number) {
+    const rows = await db
+      .select()
+      .from(integrationOutbox)
+      .where(and(
+        isNull(integrationOutbox.processedAt),
+        lte(integrationOutbox.availableAt, availableAt),
+      ))
+      .orderBy(asc(integrationOutbox.availableAt), asc(integrationOutbox.id))
+      .limit(limit);
+
+    return rows.map((row) => ({
+      id: row.id,
+      eventType: row.eventType as IntegrationOutboxRecord["eventType"],
+      aggregateId: row.aggregateId,
+      payload: row.payloadJson as IntegrationOutboxRecord["payload"],
+      attempts: row.attempts,
+      availableAt: row.availableAt,
+      processedAt: row.processedAt,
+    }));
+  }
+
+  async markOutboxEventProcessed(eventId: string, processedAt: Date) {
+    await db
+      .update(integrationOutbox)
+      .set({ processedAt })
+      .where(eq(integrationOutbox.id, eventId));
+  }
+
+  async rescheduleOutboxEvent(
+    eventId: string,
+    attempts: number,
+    availableAt: Date,
+  ) {
+    await db
+      .update(integrationOutbox)
+      .set({ attempts, availableAt })
+      .where(eq(integrationOutbox.id, eventId));
   }
 
   private async getProfile(userId: string) {

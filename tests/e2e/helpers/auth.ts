@@ -30,6 +30,10 @@ const RETRY_CONFIG = {
   initialDelay: 2000,
 };
 
+const E2E_ORIGIN = new URL(
+  process.env.E2E_BASE_URL || 'http://localhost:7001',
+).origin;
+
 /**
  * Sleep for a given number of milliseconds.
  */
@@ -50,7 +54,7 @@ export async function signUpViaAPI(page: Page, options: SignUpOptions) {
         email: options.email,
         password: options.password,
       },
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: E2E_ORIGIN },
       timeout: TIMEOUTS.auth,
     });
 
@@ -82,7 +86,7 @@ export async function signInViaAPI(page: Page, options: SignInOptions) {
         password: options.password,
         rememberMe: true,
       },
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: E2E_ORIGIN },
       timeout: TIMEOUTS.auth,
     });
 
@@ -107,7 +111,8 @@ export async function signInViaAPI(page: Page, options: SignInOptions) {
  */
 export async function signOutViaAPI(page: Page) {
   const response = await page.request.post(API.signOut, {
-    headers: { Origin: 'http://localhost:7001' },
+    data: {},
+    headers: { Origin: E2E_ORIGIN },
     timeout: TIMEOUTS.auth,
   });
 

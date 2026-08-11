@@ -64,6 +64,28 @@ class MemoryIdentityRepository implements IdentityRepository {
     this.bindings.set(authSessionId, revoked);
     return revoked;
   }
+
+  async listPendingOutboxEvents(availableAt: Date, limit: number) {
+    return [...this.outbox.values()]
+      .filter((event) => !event.processedAt && event.availableAt <= availableAt)
+      .slice(0, limit);
+  }
+
+  async markOutboxEventProcessed(eventId: string, processedAt: Date) {
+    for (const [key, event] of this.outbox) {
+      if (event.id === eventId) {
+        this.outbox.set(key, { ...event, processedAt });
+      }
+    }
+  }
+
+  async rescheduleOutboxEvent(eventId: string, attempts: number, availableAt: Date) {
+    for (const [key, event] of this.outbox) {
+      if (event.id === eventId) {
+        this.outbox.set(key, { ...event, attempts, availableAt });
+      }
+    }
+  }
 }
 
 class PrefixTokenProtector implements MatrixTokenProtector {

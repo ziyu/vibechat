@@ -36,6 +36,7 @@
 - [26. Email OTP 与产品 Session Bootstrap](#26-email-otp-与产品-session-bootstrap)
 - [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
 - [28. Synapse Appservice Adapter](#28-synapse-appservice-adapter)
+- [29. Session 撤销与 Matrix Device 回收](#29-session-撤销与-matrix-device-回收)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1080,6 +1081,24 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 ---
 
+## 29. Session 撤销与 Matrix Device 回收
+
+**文件：** `tests/unit/identity/device-revocation-worker.test.ts` + `specs/chat-session-revocation.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse**
+
+Better Auth session 是产品会话权威。任何单会话或批量 session 删除都先把对应 Matrix binding 标记为 revoked 并写入幂等 outbox；删除完成后 worker 立即尝试注销 scoped Matrix device。远端失败不得丢事件或泄漏 token，后续 drain 可安全重试。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 登出先持久化撤销意图 | 已 bootstrap 的 Better Auth session 调用 sign-out → session delete hook 将 binding 标记 revoked → 同一 session 只形成一个 `matrix.device.revoke` 事件 |
+| 2 | Worker 回收真实 device | worker 读取 binding 并解密 token → 调用 Matrix `/logout` → 标记 outbox processed → 原 token 请求 `/account/whoami` 返回 401 |
+| 3 | 重复处理保持幂等 | 重复触发 session delete 或重复 drain → 不新增事件、不重复保留 pending 状态，已失效 token 被视为成功 |
+| 4 | 远端失败可重试 | Synapse 暂时不可用 → attempts 增加、availableAt 延后且 processedAt 仍为空 → 下次到期 drain 成功 |
+| 5 | 无 binding 安全跳过 | 删除从未 bootstrap 的 Better Auth session → hook 和 worker 无错误完成且不创建空 outbox |
+| 6 | 凭据与日志隔离 | outbox payload、worker result 与错误日志均不包含 Matrix access token 或加密 key |
+| 7 | 真实端到端撤销 | Email OTP 登录 → bootstrap → token whoami 为 200 → sign-out → drain → 同 token whoami 为 401 → bootstrap 再请求为 401 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1090,6 +1109,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
 | ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
 | ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
+| ✅ | 29 | Session 撤销与 Matrix Device 回收 | SQLite 与本地 Synapse | 7 |
 
 ---
 
@@ -1099,6 +1119,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-11 | TanStack + Vitest + Synapse | 4 | 0 | 0 | Session 撤销与 Matrix Device 回收（worker 单测 3 项 + 真实 sign-out/token 失效 E2E 1 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 24 | 0 | 0 | Synapse Appservice Adapter（identity unit/mock/SQLite 17 项 + 真实 Synapse 合约 1 项 + Matrix ready/unavailable bootstrap E2E 各 3 项） |
 | 2026-08-11 | TanStack + Vitest | 17 | 0 | 0 | Matrix Identity 生命周期（identity 单测 9 项 + `chat-auth-bootstrap` / `chat-foundation` 浏览器回归 8 项） |
 | 2026-08-11 | TanStack | 3 | 0 | 0 | Email OTP 与产品 Session Bootstrap（`chat-auth-bootstrap.spec.ts`，覆盖 5 项验收场景） |

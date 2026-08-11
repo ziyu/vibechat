@@ -2,6 +2,7 @@ export * from "./contracts";
 export * from "./config";
 export * from "./database-repository";
 export * from "./default-service";
+export * from "./device-revocation-worker";
 export * from "./service";
 export * from "./synapse";
 export * from "./synapse-appservice";

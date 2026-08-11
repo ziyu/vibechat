@@ -121,5 +121,17 @@ describe("DatabaseIdentityRepository on SQLite", () => {
       aggregateId: "auth-session-1",
       payloadJson: event.payload,
     });
+
+    const pending = await repository.listPendingOutboxEvents(now, 10);
+    expect(pending).toHaveLength(1);
+    expect(pending[0]).toMatchObject(event);
+
+    const retryAt = new Date(now.getTime() + 1_000);
+    await repository.rescheduleOutboxEvent(event.id, 1, retryAt);
+    expect(await repository.listPendingOutboxEvents(now, 10)).toHaveLength(0);
+    expect(await repository.listPendingOutboxEvents(retryAt, 10)).toHaveLength(1);
+
+    await repository.markOutboxEventProcessed(event.id, retryAt);
+    expect(await repository.listPendingOutboxEvents(retryAt, 10)).toHaveLength(0);
   });
 });

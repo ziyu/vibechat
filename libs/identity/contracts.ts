@@ -19,6 +19,16 @@ export interface IdentityRepository {
     revokedAt: Date,
     outboxEvent: IntegrationOutboxRecord,
   ): Promise<MatrixSessionBindingRecord | null>;
+  listPendingOutboxEvents(
+    availableAt: Date,
+    limit: number,
+  ): Promise<IntegrationOutboxRecord[]>;
+  markOutboxEventProcessed(eventId: string, processedAt: Date): Promise<void>;
+  rescheduleOutboxEvent(
+    eventId: string,
+    attempts: number,
+    availableAt: Date,
+  ): Promise<void>;
 }
 
 export interface MatrixTokenProtector {

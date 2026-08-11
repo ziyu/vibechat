@@ -12,6 +12,7 @@ import { wechatPlugin } from './plugins/wechat'
 import { sendAuthenticationOtpEmail, sendVerificationEmail, sendResetPasswordEmail } from '@libs/email'
 import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@libs/i18n'
 import { config } from '@config'
+import { drainMatrixSessionRevocations, enqueueMatrixSessionRevocation } from './session-lifecycle'
 export { toNextJsHandler } from "better-auth/next-js";
 /**
  * 从 referer URL 中提取信息
@@ -55,6 +56,18 @@ export const auth = betterAuth({
       verification
     }
   }),
+  databaseHooks: {
+    session: {
+      delete: {
+        before: async (deletedSession) => {
+          await enqueueMatrixSessionRevocation(deletedSession.id)
+        },
+        after: async () => {
+          await drainMatrixSessionRevocations()
+        },
+      },
+    },
+  },
   
   // Development hooks for returning verification links and OTP codes
   hooks: {
