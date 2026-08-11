@@ -2,14 +2,14 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 事实来源：仓库根目录 `README.md` 与长期稳定设计
 
 ## 当前阶段
 
-仓库已经完成 Vibe Chat 产品 Web 前端宿主的首轮验收，正在把 fixture 身份逐步替换为真实产品 session，并继续隔离未经产品评审的旧 SaaS 能力。
+仓库已经完成 Vibe Chat 产品 Web 前端宿主的首轮验收，并已用真实产品 session、Synapse room 与 Matrix timeline 替换身份和消息主链路；未经产品评审的旧 SaaS 能力继续隔离。
 
-当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A2“身份、社交与 Matrix 消息底座”。Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)和[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)切片已经完成；下一步把 Better Auth session 退出/撤销接入 outbox worker，再让宿主 Matrix client 逐步替换 fixture timeline。A0 的脚手架清理与追踪矩阵仍作为并行工程治理工作保留。
+当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A2“身份、社交与 Matrix 消息底座”。Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)、session 撤销 worker 和[真实 Matrix 房间与 Timeline](./active/matrix-room-timeline.md)切片已经完成；下一步实现产品层好友请求/联系人，并用双用户 Matrix 邀请跑通会话。A0 的脚手架清理与追踪矩阵仍作为并行工程治理工作保留。
 
 ## 当前约束
 

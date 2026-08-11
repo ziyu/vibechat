@@ -19,6 +19,11 @@ import { aiConfig } from './config/ai';
 import { aiImageConfig } from './config/aiImage';
 import { aiVideoConfig } from './config/aiVideo';
 import { affiliateConfig } from './config/affiliate';
+export {
+  builtInChatSpaces,
+  getBuiltInChatSpace,
+  type BuiltInChatSpaceConfig,
+} from './config/chat';
 
 // Re-export types for backwards compatibility
 export type { RecurringPlan, OneTimePlan, CreditPlan, Plan } from './config/types';

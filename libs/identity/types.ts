@@ -37,6 +37,13 @@ export interface MatrixSessionBindingRecord {
   revokedAt: Date | null;
 }
 
+export interface ActiveMatrixSessionCredentials {
+  authSessionId: string;
+  matrixUserId: string;
+  matrixDeviceId: string;
+  accessToken: string;
+}
+
 export interface IntegrationOutboxRecord {
   id: string;
   eventType: "matrix.device.revoke";

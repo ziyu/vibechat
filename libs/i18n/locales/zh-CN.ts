@@ -1978,6 +1978,10 @@ export const zhCN: Locale = {
       title: "本地预览",
       description: "交互数据保存在当前浏览器，暂未连接 Matrix 与正式账号服务。"
     },
+    matrix: {
+      title: "Synapse 已连接",
+      description: "房间与消息由 Matrix 同步；当前浏览器只保存 SDK 缓存和界面偏好。"
+    },
     presence: {
       online: "在线",
       away: "暂离",
@@ -1999,6 +2003,7 @@ export const zhCN: Locale = {
       noResults: "这里没有会话",
       noResultsDescription: "试试其他搜索词，或关闭未读筛选。",
       synced: "本地时间线已就绪",
+      matrixSynced: "Matrix 时间线已同步",
       today: "今天的 Vibe Chat",
       welcomeBack: "很高兴你又回来了。",
       unreadSummary: "还有 {count} 个未读片段，散落在你的氛围空间里。",
@@ -2019,6 +2024,7 @@ export const zhCN: Locale = {
       hideControls: "收起房间控制",
       showControls: "显示房间控制",
       fixtureSpace: "官方 fixture 氛围空间",
+      matrixSpace: "Matrix 实时氛围空间",
       memberCount: "{count} 位成员在这个氛围里",
       sending: "发送中…",
       sent: "已发送",
@@ -2030,7 +2036,8 @@ export const zhCN: Locale = {
       emoji: "选择表情",
       messagePlaceholder: "写进这个氛围里…",
       send: "发送消息",
-      composerHint: "Enter 发送 · Shift + Enter 换行"
+      composerHint: "Enter 发送 · Shift + Enter 换行",
+      sendFailed: "消息发送失败，请重试。"
     },
     newChat: {
       peopleTitle: "这一刻想和谁分享？",
@@ -2047,7 +2054,10 @@ export const zhCN: Locale = {
       permissions: "能力权限",
       permissionSummary: "声明 {count} 项能力 · 不连接外部网络",
       localNotice: "当前预览会创建本地房间；接入服务后，同一操作将成为幂等的 Matrix 建房请求。",
-      create: "创建房间"
+      matrixNotice: "将创建私有 Matrix 房间、幂等产品索引和不可变氛围快照。",
+      create: "创建房间",
+      creating: "正在创建…",
+      createFailed: "房间创建失败，请检查所选联系人后重试。"
     },
     contacts: {
       kicker: "你认识的人",
@@ -2115,7 +2125,9 @@ export const zhCN: Locale = {
       privacyDescription: "好友请求、权限与屏蔽用户",
       localData: "本地预览数据",
       localDataDescription: "当前浏览器保存的消息与偏好",
+      matrixDataDescription: "当前浏览器保存的 Matrix 时间线缓存与界面偏好",
       resetDemo: "重置预览",
+      clearPreferences: "清除偏好",
       about: "关于",
       hostSafety: "宿主安全边界",
       hostSafetyDescription: "系统控制始终位于氛围画布之外",

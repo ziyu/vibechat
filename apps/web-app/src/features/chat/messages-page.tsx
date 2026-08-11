@@ -12,7 +12,7 @@ import { NewChatDialog } from './new-chat-dialog'
 
 export function MessagesPage() {
   const { t, locale } = useTranslation()
-  const { state } = useChatDemo()
+  const { state, mode } = useChatDemo()
   const [createOpen, setCreateOpen] = useState(false)
   const rooms = sortRooms(state.rooms)
   const featuredSpace = state.spaces[0]
@@ -29,10 +29,10 @@ export function MessagesPage() {
       <section className="vc-inbox-overview" data-testid="messages-overview">
         <header className="vc-overview-header">
           <span className="vc-live-indicator">
-            <i /> {t.chatApp.messages.synced}
+            <i /> {mode === 'matrix' ? t.chatApp.messages.matrixSynced : t.chatApp.messages.synced}
           </span>
           <div className="vc-overview-actions">
-            <span>{t.chatApp.demo.title}</span>
+            <span>{mode === 'matrix' ? t.chatApp.matrix.title : t.chatApp.demo.title}</span>
             <button
               type="button"
               className="vc-button vc-button-primary"
@@ -143,4 +143,3 @@ export function MessagesPage() {
     </div>
   )
 }
-

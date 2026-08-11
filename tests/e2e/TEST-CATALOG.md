@@ -37,6 +37,7 @@
 - [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
 - [28. Synapse Appservice Adapter](#28-synapse-appservice-adapter)
 - [29. Session 撤销与 Matrix Device 回收](#29-session-撤销与-matrix-device-回收)
+- [30. 真实 Matrix 房间与消息 Timeline](#30-真实-matrix-房间与消息-timeline)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1099,6 +1100,25 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 
 ---
 
+## 30. 真实 Matrix 房间与消息 Timeline
+
+**文件：** `tests/unit/rooms/*.test.ts` + `specs/chat-matrix-room.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / Chromium**
+
+本组场景把聊天宿主的 room/timeline 权威从 fixture 切换到 Matrix。产品 API 校验会话、参与人和内置氛围版本后创建私有 room 与产品索引；浏览器单例 `matrix-js-sdk` 负责 `/sync`、IndexedDB timeline 缓存、local echo、transaction ID 和恢复。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 幂等创建氛围房间 | 已 bootstrap 用户以固定 `clientRequestId` 两次调用 `POST /v1/rooms` → 返回同一 Matrix room ID → `room_index` 只有一条记录 |
+| 2 | 房间状态写入 Matrix | 创建 room → 读取 `io.vibechat.space.instance.v1` → 验证 space/version/integrity/权限快照和创建人完整 |
+| 3 | 浏览器真实同步 | 启动单例 matrix-js-sdk → `/sync` PREPARED 后宿主会话列表显示新 room → 页面刷新后由 IndexedDB + 增量 sync 恢复同一 room |
+| 4 | Local echo 到远端确认 | 在房间发送文字 → timeline 立即显示 sending → Matrix 返回 event ID 后显示 sent → 刷新后消息仍来自远端 timeline |
+| 5 | Transaction ID 幂等 | 相同 transaction ID 重试同一发送 → Synapse 返回同一 event ID，timeline 不重复消息 |
+| 6 | 回复与回应使用标准关系 | 回复消息写入 `m.in_reply_to`；回应写入 `m.reaction` → 宿主投影 reply/reactions 且恢复视图可读 |
+| 7 | 鉴权与参与人约束 | 未登录建房返回 401；未 bootstrap 或 participant Matrix identity 未 ready 返回稳定 409；不存在的空间返回 404 |
+| 8 | 凭据不落 localStorage | access token 仅存在于内存 client；localStorage 不包含 token，IndexedDB 只保存 SDK sync/timeline 缓存 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1110,6 +1130,7 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 | ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
 | ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
 | ✅ | 29 | Session 撤销与 Matrix Device 回收 | SQLite 与本地 Synapse | 7 |
+| ✅ | 30 | 真实 Matrix 房间与消息 Timeline | SQLite、本地 Synapse、Chromium | 8 |
 
 ---
 
@@ -1119,6 +1140,7 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | TanStack + Vitest + Synapse | 8 | 0 | 0 | 真实 Matrix 房间与 Timeline（rooms 单测 6 项 + 本地 Synapse/Chromium E2E 2 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 4 | 0 | 0 | Session 撤销与 Matrix Device 回收（worker 单测 3 项 + 真实 sign-out/token 失效 E2E 1 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 24 | 0 | 0 | Synapse Appservice Adapter（identity unit/mock/SQLite 17 项 + 真实 Synapse 合约 1 项 + Matrix ready/unavailable bootstrap E2E 各 3 项） |
 | 2026-08-11 | TanStack + Vitest | 17 | 0 | 0 | Matrix Identity 生命周期（identity 单测 9 项 + `chat-auth-bootstrap` / `chat-foundation` 浏览器回归 8 项） |

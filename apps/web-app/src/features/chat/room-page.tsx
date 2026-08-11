@@ -45,6 +45,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
   const { t, locale } = useTranslation()
   const {
     state,
+    mode,
     markRoomRead,
     sendMessage,
     toggleReaction,
@@ -55,6 +56,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
   const [replyToId, setReplyToId] = useState<string>()
   const [controlsVisible, setControlsVisible] = useState(true)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [sendError, setSendError] = useState(false)
   const timelineRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
@@ -109,7 +111,8 @@ export function RoomPage({ roomId }: { roomId: string }) {
 
   const submit = () => {
     if (!draft.trim()) return
-    sendMessage(room.id, draft, replyToId)
+    setSendError(false)
+    void sendMessage(room.id, draft, replyToId).catch(() => setSendError(true))
     setDraft('')
     setReplyToId(undefined)
   }
@@ -124,7 +127,8 @@ export function RoomPage({ roomId }: { roomId: string }) {
   const onFileSelected = (file?: File) => {
     if (!file) return
     const fallback = t.chatApp.room.attachmentFallback.replace('{name}', file.name)
-    sendMessage(room.id, fallback)
+    setSendError(false)
+    void sendMessage(room.id, fallback).catch(() => setSendError(true))
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -223,7 +227,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
         <div className="vc-room-intro">
           <SpaceGlyph space={space} />
           <span>{space.name}</span>
-          <small>{t.chatApp.room.fixtureSpace}</small>
+          <small>{mode === 'matrix' ? t.chatApp.room.matrixSpace : t.chatApp.room.fixtureSpace}</small>
         </div>
 
         <div className="vc-timeline" ref={timelineRef} data-testid="message-timeline">
@@ -275,7 +279,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
                           <span>{repliedMessage.text}</span>
                         </blockquote>
                       ) : null}
-                      <p>{message.text}</p>
+                      <p data-testid="message-body">{message.text}</p>
                       {own ? (
                         <small className="vc-delivery-status">
                           {message.status === 'sending' ? (
@@ -404,6 +408,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
             </button>
           </div>
           <small className="vc-composer-hint">{t.chatApp.room.composerHint}</small>
+          {sendError ? <small role="alert">{t.chatApp.room.sendFailed}</small> : null}
         </footer>
       </section>
     </div>

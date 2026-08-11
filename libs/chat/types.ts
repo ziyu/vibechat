@@ -23,6 +23,7 @@ export interface ChatReaction {
 
 export interface ChatMessage {
   id: string
+  transactionId?: string
   roomId: string
   senderId: string
   text: string
@@ -81,4 +82,3 @@ export interface CreateRoomInput {
   participantIds: string[]
   spaceId: string
 }
-

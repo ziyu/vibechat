@@ -27,11 +27,13 @@ export function NewChatDialog({
 }) {
   const { t, locale } = useTranslation()
   const navigate = useNavigate()
-  const { state, createRoom } = useChatDemo()
+  const { state, mode, createRoom } = useChatDemo()
   const [step, setStep] = useState(initialSpaceId ? 0 : 0)
   const [query, setQuery] = useState('')
   const [participantIds, setParticipantIds] = useState<string[]>(initialParticipantIds ?? [])
   const [spaceId, setSpaceId] = useState(initialSpaceId ?? '')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -39,6 +41,8 @@ export function NewChatDialog({
     setQuery('')
     setParticipantIds(initialParticipantIds ?? [])
     setSpaceId(initialSpaceId ?? '')
+    setCreating(false)
+    setCreateError(false)
   }, [initialParticipantIds, initialSpaceId, open])
 
   const contacts = useMemo(() => {
@@ -66,14 +70,22 @@ export function NewChatDialog({
     )
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!participantIds.length || !spaceId) return
-    const roomId = createRoom({ participantIds, spaceId })
-    onOpenChange(false)
-    navigate({
-      to: '/$lang/rooms/$roomId',
-      params: { lang: locale, roomId },
-    })
+    setCreating(true)
+    setCreateError(false)
+    try {
+      const roomId = await createRoom({ participantIds, spaceId })
+      onOpenChange(false)
+      navigate({
+        to: '/$lang/rooms/$roomId',
+        params: { lang: locale, roomId },
+      })
+    } catch {
+      setCreateError(true)
+    } finally {
+      setCreating(false)
+    }
   }
 
   const titles = [
@@ -208,7 +220,12 @@ export function NewChatDialog({
                   </strong>
                 </span>
               </div>
-              <p>{t.chatApp.newChat.localNotice}</p>
+              <p>
+                {mode === 'matrix'
+                  ? t.chatApp.newChat.matrixNotice
+                  : t.chatApp.newChat.localNotice}
+              </p>
+              {createError ? <p role="alert">{t.chatApp.newChat.createFailed}</p> : null}
             </div>
           ) : null}
         </div>
@@ -232,8 +249,13 @@ export function NewChatDialog({
               {t.actions.next}
             </button>
           ) : (
-            <button type="button" className="vc-button vc-button-primary" onClick={handleCreate}>
-              {t.chatApp.newChat.create}
+            <button
+              type="button"
+              className="vc-button vc-button-primary"
+              onClick={handleCreate}
+              disabled={creating}
+            >
+              {creating ? t.chatApp.newChat.creating : t.chatApp.newChat.create}
             </button>
           )}
         </footer>

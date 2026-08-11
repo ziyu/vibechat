@@ -22,6 +22,7 @@ import { Route as LangAdminRouteImport } from './routes/$lang/admin'
 import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
 import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
 import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
+import { Route as V1RoomsIndexRouteImport } from './routes/v1/rooms/index'
 import { Route as ApiVideoGenerateIndexRouteImport } from './routes/api/video-generate/index'
 import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as LangAdminIndexRouteImport } from './routes/$lang/admin/index'
@@ -168,6 +169,11 @@ const LangchatRouteRoute = LangchatRouteRouteImport.update({
 const LangauthRouteRoute = LangauthRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => LangRoute,
+} as any)
+const V1RoomsIndexRoute = V1RoomsIndexRouteImport.update({
+  id: '/v1/rooms/',
+  path: '/v1/rooms/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVideoGenerateIndexRoute = ApiVideoGenerateIndexRouteImport.update({
   id: '/api/video-generate/',
@@ -657,6 +663,7 @@ export interface FileRoutesByFullPath {
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/v1/rooms/': typeof V1RoomsIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -750,6 +757,7 @@ export interface FileRoutesByTo {
   '/$lang/admin': typeof LangAdminIndexRoute
   '/api/blog': typeof ApiBlogIndexRoute
   '/api/video-generate': typeof ApiVideoGenerateIndexRoute
+  '/v1/rooms': typeof V1RoomsIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -850,6 +858,7 @@ export interface FileRoutesById {
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/v1/rooms/': typeof V1RoomsIndexRoute
   '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -948,6 +957,7 @@ export interface FileRouteTypes {
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/v1/rooms/'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1041,6 +1051,7 @@ export interface FileRouteTypes {
     | '/$lang/admin'
     | '/api/blog'
     | '/api/video-generate'
+    | '/v1/rooms'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1140,6 +1151,7 @@ export interface FileRouteTypes {
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/v1/rooms/'
     | '/$lang/(chat)/rooms/$roomId'
     | '/$lang/(root)/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1215,6 +1227,7 @@ export interface RootRouteChildren {
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   ApiBlogIndexRoute: typeof ApiBlogIndexRoute
   ApiVideoGenerateIndexRoute: typeof ApiVideoGenerateIndexRoute
+  V1RoomsIndexRoute: typeof V1RoomsIndexRoute
   ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
   ApiAdminPricingPlansImportRoute: typeof ApiAdminPricingPlansImportRoute
   ApiAdminPricingPlansReorderRoute: typeof ApiAdminPricingPlansReorderRoute
@@ -1333,6 +1346,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$lang'
       preLoaderRoute: typeof LangauthRouteRouteImport
       parentRoute: typeof LangRoute
+    }
+    '/v1/rooms/': {
+      id: '/v1/rooms/'
+      path: '/v1/rooms'
+      fullPath: '/v1/rooms/'
+      preLoaderRoute: typeof V1RoomsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/video-generate/': {
       id: '/api/video-generate/'
@@ -2099,6 +2119,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   ApiBlogIndexRoute: ApiBlogIndexRoute,
   ApiVideoGenerateIndexRoute: ApiVideoGenerateIndexRoute,
+  V1RoomsIndexRoute: V1RoomsIndexRoute,
   ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,
   ApiAdminPricingPlansImportRoute: ApiAdminPricingPlansImportRoute,
   ApiAdminPricingPlansReorderRoute: ApiAdminPricingPlansReorderRoute,

@@ -29,6 +29,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
   const { t, locale } = useTranslation()
   const {
     state,
+    mode,
     markRoomRead,
     toggleRoomMuted,
     toggleRoomPinned,
@@ -164,8 +165,8 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
       <div className="vc-demo-status">
         <span />
         <p>
-          <strong>{t.chatApp.demo.title}</strong>
-          {t.chatApp.demo.description}
+          <strong>{mode === 'matrix' ? t.chatApp.matrix.title : t.chatApp.demo.title}</strong>
+          {mode === 'matrix' ? t.chatApp.matrix.description : t.chatApp.demo.description}
         </p>
       </div>
 
@@ -173,4 +174,3 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
     </aside>
   )
 }
-

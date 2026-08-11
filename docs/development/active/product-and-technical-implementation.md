@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
 > 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -22,13 +22,14 @@
 截至 2026-08-11，已经形成以下实现证据：
 
 - `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构已在 TanStack Start 中实现。
-- `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 fixture 数据。
+- `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 Matrix 投影；未配置环境保留显式 fixture 预览。
 - `tests/e2e/specs/chat-foundation.spec.ts` 已覆盖桌面/移动宿主、房间、新建聊天、联系人和发现流程，最近一次结果为 5/5。
 - [聊天宿主基础实现](../../stable/references/chat-host-foundation.md)记录了已实现边界与真实服务接入顺序。
-- Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding schema、Synapse Appservice adapter 和 integration outbox 已形成可执行实现。
-- identity unit/SQLite/mock HTTP 测试 17/17、固定版本 Synapse 合约 1/1、真实 Matrix ready bootstrap E2E 3/3；Cloudflare build 与 Workers 运行态探测通过。
+- Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding、session revoke worker、Synapse Appservice adapter、room index 和 integration outbox 已形成可执行实现。
+- 浏览器 `matrix-js-sdk` 已接管 room/timeline，同步缓存、local echo、消息、回复、回应和 transaction ID 幂等均通过本地 Synapse/Chromium 验证。
+- identity/rooms unit/SQLite/mock HTTP 测试 26/26、真实 room/timeline E2E 2/2；此前固定版本 Synapse 合约、ready bootstrap、Cloudflare build 与 Workers 探测均通过。
 
-尚未实现的核心范围包括 Matrix session 撤销 worker 与 timeline、社交数据、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。聊天宿主不等于真实消息服务；A2 必须继续逐步替换 fixture timeline。
+尚未实现的核心范围包括社交数据、双用户联系人邀请、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。A2 下一步把当前 Matrix 单用户房间链路扩展到产品好友关系与小群成员邀请。
 
 ## 3. 状态定义
 
@@ -47,7 +48,7 @@
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
 | A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | [Email OTP 与产品 Session Bootstrap](../../stable/references/identity-session-bootstrap.md)、[Matrix Identity 生命周期](./matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./synapse-appservice-adapter.md)、真实 Synapse/ready bootstrap 通过 | 接入 Better Auth session 撤销 outbox worker，再替换 fixture timeline |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)均通过本地 Synapse 验证 | 实现好友请求/联系人并跑通双用户邀请与对端 timeline |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |

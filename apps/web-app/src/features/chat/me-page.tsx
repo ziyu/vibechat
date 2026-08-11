@@ -22,7 +22,7 @@ import { PersonAvatar } from './chat-primitives'
 export function MePage() {
   const { t, locale, changeLocale } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const { state, resetDemo } = useChatDemo()
+  const { state, mode, resetDemo } = useChatDemo()
   const [notifications, setNotifications] = useState(true)
   const currentUser = state.people.find((person) => person.id === state.currentUserId)!
 
@@ -103,10 +103,16 @@ export function MePage() {
             <SettingsRow icon={<LockKeyhole />} title={t.chatApp.me.privacy} description={t.chatApp.me.privacyDescription}>
               <ChevronRight />
             </SettingsRow>
-            <SettingsRow icon={<Database />} title={t.chatApp.me.localData} description={t.chatApp.me.localDataDescription}>
+            <SettingsRow
+              icon={<Database />}
+              title={t.chatApp.me.localData}
+              description={mode === 'matrix'
+                ? t.chatApp.me.matrixDataDescription
+                : t.chatApp.me.localDataDescription}
+            >
               <button type="button" className="vc-reset-button" onClick={resetDemo}>
                 <RefreshCcw size={14} />
-                {t.chatApp.me.resetDemo}
+                {mode === 'matrix' ? t.chatApp.me.clearPreferences : t.chatApp.me.resetDemo}
               </button>
             </SettingsRow>
           </SettingsGroup>
@@ -156,4 +162,3 @@ function SettingsRow({
     </div>
   )
 }
-

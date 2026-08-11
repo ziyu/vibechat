@@ -5,6 +5,7 @@ import type {
 } from "./contracts";
 import type {
   AuthenticatedUserIdentity,
+  ActiveMatrixSessionCredentials,
   IdentityBootstrapResult,
   IntegrationOutboxRecord,
   MatrixIdentityRecord,
@@ -141,6 +142,23 @@ export class IdentityService {
       revokedAt,
       outboxEvent,
     );
+  }
+
+  async getActiveSessionCredentials(
+    authSessionId: string,
+  ): Promise<ActiveMatrixSessionCredentials | null> {
+    if (!this.synapse.availability().available) return null;
+    const binding = await this.repository.getSessionBinding(authSessionId);
+    if (!binding || binding.revokedAt) return null;
+
+    return {
+      authSessionId,
+      matrixUserId: binding.matrixUserId,
+      matrixDeviceId: binding.matrixDeviceId,
+      accessToken: await this.tokenProtector.unprotect(
+        binding.matrixAccessTokenCiphertext,
+      ),
+    };
   }
 
   private async ensureProfile(user: AuthenticatedUserIdentity) {

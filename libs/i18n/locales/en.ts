@@ -1971,6 +1971,10 @@ export const en: Locale = {
       title: "Local preview",
       description: "Interactions are stored in this browser. Matrix and account services are not connected yet."
     },
+    matrix: {
+      title: "Synapse connected",
+      description: "Rooms and messages are synced from Matrix. This browser only keeps SDK cache and interface preferences."
+    },
     presence: {
       online: "Online",
       away: "Away",
@@ -1992,6 +1996,7 @@ export const en: Locale = {
       noResults: "No conversations here",
       noResultsDescription: "Try another search or turn off the unread filter.",
       synced: "Local timeline ready",
+      matrixSynced: "Matrix timeline synced",
       today: "Today in Vibe Chat",
       welcomeBack: "Good to have you back.",
       unreadSummary: "You have {count} unread moments waiting across your spaces.",
@@ -2012,6 +2017,7 @@ export const en: Locale = {
       hideControls: "Hide room controls",
       showControls: "Show room controls",
       fixtureSpace: "Official fixture atmosphere",
+      matrixSpace: "Matrix-backed atmosphere",
       memberCount: "{count} members in this atmosphere",
       sending: "Sending…",
       sent: "Sent",
@@ -2023,7 +2029,8 @@ export const en: Locale = {
       emoji: "Choose an emoji",
       messagePlaceholder: "Write into this atmosphere…",
       send: "Send message",
-      composerHint: "Enter to send · Shift + Enter for a new line"
+      composerHint: "Enter to send · Shift + Enter for a new line",
+      sendFailed: "Message could not be sent. Try again."
     },
     newChat: {
       peopleTitle: "Who is this moment for?",
@@ -2040,7 +2047,10 @@ export const en: Locale = {
       permissions: "Capabilities",
       permissionSummary: "{count} declared capabilities · no external network",
       localNotice: "This preview creates a local room. The same action will later become an idempotent Matrix room request.",
-      create: "Create room"
+      matrixNotice: "This creates a private Matrix room with an idempotent product index and an immutable atmosphere snapshot.",
+      create: "Create room",
+      creating: "Creating…",
+      createFailed: "The room could not be created. Check the selected contacts and try again."
     },
     contacts: {
       kicker: "People you know",
@@ -2108,7 +2118,9 @@ export const en: Locale = {
       privacyDescription: "Friend requests, permissions, and block list",
       localData: "Local preview data",
       localDataDescription: "Messages and preferences stored in this browser",
+      matrixDataDescription: "Matrix timeline cache and interface preferences stored in this browser",
       resetDemo: "Reset preview",
+      clearPreferences: "Clear preferences",
       about: "About",
       hostSafety: "Host safety boundary",
       hostSafetyDescription: "System controls stay outside atmosphere canvases",

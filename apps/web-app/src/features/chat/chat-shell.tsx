@@ -16,7 +16,7 @@ interface NavItem {
 
 export function ChatShell({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { state, ready } = useChatDemo()
+  const { state, ready, mode, syncState } = useChatDemo()
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
   const currentUser = state.people.find((person) => person.id === state.currentUserId)!
   const inRoom = pathname.includes('/rooms/')
@@ -59,6 +59,8 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
       className="vc-app"
       data-room-open={inRoom || undefined}
       data-ready={ready ? 'true' : 'false'}
+      data-mode={mode}
+      data-sync-state={syncState}
       data-testid="chat-app-shell"
     >
       <aside className="vc-primary-rail" data-testid="chat-primary-nav">
