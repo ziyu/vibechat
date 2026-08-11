@@ -99,6 +99,18 @@ export const zhCN: Locale = {
       disclaimer: "如果您没有请求重置密码，无需进行任何操作。",
       signature: "祝您使用愉快，Vibe Chat 团队",
       copyright: "© {{year}} Vibe Chat. 保留所有权利。"
+    },
+    authenticationOtp: {
+      subject: "您的 Vibe Chat 验证码",
+      title: "您的验证码",
+      signInMessage: "使用此验证码登录 Vibe Chat。如果这是一个新邮箱，系统会自动创建账户。",
+      emailVerificationMessage: "使用此验证码验证您的 Vibe Chat 邮箱地址。",
+      passwordResetMessage: "使用此验证码继续重置您的 Vibe Chat 密码。",
+      codeLabel: "验证码",
+      expiry: "此验证码将在 {{expiry_minutes}} 分钟后过期。",
+      disclaimer: "请勿向任何人透露此验证码。如果并非您本人请求，可以忽略此邮件。",
+      signature: "Vibe Chat 团队",
+      copyright: "© {{year}} Vibe Chat. 保留所有权利。"
     }
   },
   auth: {
@@ -146,6 +158,19 @@ export const zhCN: Locale = {
       rememberMe: "记住我",
       submit: "登录",
       submitting: "登录中...",
+      otpTitle: "邮箱验证码",
+      otpDescription: "我们会向您的邮箱发送一次性验证码；新邮箱验证后会自动创建账户。",
+      otpCode: "验证码",
+      otpCodePlaceholder: "请输入 6 位验证码",
+      sendOtp: "发送验证码",
+      sendingOtp: "正在发送...",
+      verifyOtp: "继续",
+      verifyingOtp: "正在验证...",
+      otpSent: "验证码已发送至 {{email}}。",
+      resendOtp: "重新发送验证码",
+      changeEmail: "更换邮箱",
+      usePasswordInstead: "使用密码登录",
+      useEmailOtpInstead: "使用邮箱验证码登录",
       noAccount: "还没有账户？",
       signupLink: "注册",
       termsNotice: "点击继续即表示您同意我们的",
@@ -163,6 +188,8 @@ export const zhCN: Locale = {
         requiredEmail: "请输入邮箱",
         requiredPassword: "请输入密码",
         invalidCredentials: "邮箱或密码错误",
+        invalidOtp: "验证码无效或已过期",
+        otpSendFailed: "验证码发送失败，请稍后重试。",
         captchaRequired: "请完成验证码验证",
         emailNotVerified: {
           title: "需要邮箱验证",

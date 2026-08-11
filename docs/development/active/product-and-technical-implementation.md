@@ -15,19 +15,18 @@
 
 ## 2. 当前结论
 
-> **产品实现状态：未开始。**
+> **产品实现状态：A1 已完成，A2 Active。**
 
 仓库已有 TanStack Start 工程骨架、共享 SaaS 能力、Vibe Chat 品牌和文档基线，但这些不能证明产品与技术设计中的核心能力已经实现。
 
-截至 2026-08-11，没有发现以下实现证据：
+截至 2026-08-11，已经形成以下实现证据：
 
-- `matrix-js-sdk`、Synapse 接入或 Matrix 身份桥接。
-- `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构。
-- 氛围空间 manifest、host bridge、capability、SDK、沙箱与恢复视图。
-- 氛围空间 CLI、模拟宿主、市场、版本固定、审核或撤销流程。
-- 与稳定设计对应的产品级合约测试、安全测试和端到端验收。
+- `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构已在 TanStack Start 中实现。
+- `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 fixture 数据。
+- `tests/e2e/specs/chat-foundation.spec.ts` 已覆盖桌面/移动宿主、房间、新建聊天、联系人和发现流程，最近一次结果为 5/5。
+- [聊天宿主基础实现](../../stable/references/chat-host-foundation.md)记录了已实现边界与真实服务接入顺序。
 
-当前允许计入的进展只有“阶段 0：工程与文档基线准备”，不计入产品功能完成度。
+尚未实现的核心范围包括 Matrix/Synapse、产品资料与社交数据、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。聊天宿主不等于真实消息服务；A2 必须逐步替换 fixture 身份与 timeline。
 
 ## 3. 状态定义
 
@@ -45,13 +44,13 @@
 | ID | 工作流 | 对应稳定设计 | 当前状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
-| A1 | 产品壳与信息架构 | §5 | 未开始 | 无目标页面实现 | 写入 E2E 验收场景并实现四项主导航骨架 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | 未开始 | 仅有通用 Better Auth 脚手架 | 后端/数据库复审与身份桥接 RFC 通过 |
+| A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | [Email OTP 与产品 Session Bootstrap](../../stable/references/identity-session-bootstrap.md)、`/v1/session/bootstrap`、相关 E2E 3/3 | Matrix identity 模型、Synapse adapter 合约与 session-device 生命周期 spec 可执行 |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |
 
-## 5. 当前 Active 切片：A0 工程基线与差距盘点
+## 5. 并行治理切片：A0 工程基线与差距盘点
 
 ### 目标
 
@@ -73,15 +72,15 @@
 - 后端相关内容保持候选状态，没有把现有 Better Auth、数据库和支付实现误写成产品最终决策。
 - `pnpm docs:check`、`pnpm typecheck`、`pnpm build` 通过。
 
-## 6. A1 准入条件
+## 6. 最近完成切片：A2 Email OTP 与产品 Session Bootstrap
 
-A1 只有满足以下条件才能改为 Active：
+A2 第一条切片遵循[实现参考](../../stable/references/identity-session-bootstrap.md)，以下完成条件已全部满足：
 
-1. 四项主导航和目标路由的 plain-language acceptance scenarios 已写入测试目录。
-2. 明确本阶段只实现前端壳和模拟数据，还是包含真实服务端数据。
-3. UI 文案已有 EN 与 ZH key 规划，没有组件硬编码字符串。
-4. 房间全画布、控制岛和恢复入口的最小 DOM/路由边界已经确定。
-5. 浏览器验证和 E2E 范围已写清。
+1. Better Auth 官方 Email OTP plugin 提供验证码生成、哈希存储、尝试次数与自动注册登录。
+2. 登录页默认使用 Email OTP，旧密码登录仅作为迁移兼容入口保留。
+3. `GET /v1/session/bootstrap` 只接受 Better Auth Cookie session，并返回稳定的共享 contract。
+4. Matrix 未配置时显式返回 unavailable，响应中不存在 access token、device ID 或伪造 Matrix user ID。
+5. TEST-CATALOG #26 对应 E2E、`pnpm docs:check`、`pnpm typecheck` 与 `pnpm build` 通过。
 
 ## 7. 待决策清单
 

@@ -26,6 +26,7 @@ import { Route as ApiVideoGenerateIndexRouteImport } from './routes/api/video-ge
 import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as LangAdminIndexRouteImport } from './routes/$lang/admin/index'
 import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
+import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as ApiWithdrawalRequestRouteImport } from './routes/api/withdrawal/request'
 import { Route as ApiWithdrawalHistoryRouteImport } from './routes/api/withdrawal/history'
 import { Route as ApiVideoGenerateStatusRouteImport } from './routes/api/video-generate/status'
@@ -187,6 +188,11 @@ const LangrootIndexRoute = LangrootIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LangrootRouteRoute,
+} as any)
+const V1SessionBootstrapRoute = V1SessionBootstrapRouteImport.update({
+  id: '/v1/session/bootstrap',
+  path: '/v1/session/bootstrap',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWithdrawalRequestRoute = ApiWithdrawalRequestRouteImport.update({
   id: '/api/withdrawal/request',
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/$lang/': typeof LangrootIndexRoute
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
@@ -739,6 +746,7 @@ export interface FileRoutesByTo {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/$lang/admin': typeof LangAdminIndexRoute
   '/api/blog': typeof ApiBlogIndexRoute
   '/api/video-generate': typeof ApiVideoGenerateIndexRoute
@@ -837,6 +845,7 @@ export interface FileRoutesById {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/$lang/(root)/': typeof LangrootIndexRoute
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
@@ -934,6 +943,7 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/session/bootstrap'
     | '/$lang/'
     | '/$lang/admin/'
     | '/api/blog/'
@@ -1027,6 +1037,7 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/session/bootstrap'
     | '/$lang/admin'
     | '/api/blog'
     | '/api/video-generate'
@@ -1124,6 +1135,7 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/session/bootstrap'
     | '/$lang/(root)/'
     | '/$lang/admin/'
     | '/api/blog/'
@@ -1200,6 +1212,7 @@ export interface RootRouteChildren {
   ApiVideoGenerateStatusRoute: typeof ApiVideoGenerateStatusRoute
   ApiWithdrawalHistoryRoute: typeof ApiWithdrawalHistoryRoute
   ApiWithdrawalRequestRoute: typeof ApiWithdrawalRequestRoute
+  V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   ApiBlogIndexRoute: typeof ApiBlogIndexRoute
   ApiVideoGenerateIndexRoute: typeof ApiVideoGenerateIndexRoute
   ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
@@ -1348,6 +1361,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$lang/'
       preLoaderRoute: typeof LangrootIndexRouteImport
       parentRoute: typeof LangrootRouteRoute
+    }
+    '/v1/session/bootstrap': {
+      id: '/v1/session/bootstrap'
+      path: '/v1/session/bootstrap'
+      fullPath: '/v1/session/bootstrap'
+      preLoaderRoute: typeof V1SessionBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/withdrawal/request': {
       id: '/api/withdrawal/request'
@@ -2076,6 +2096,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVideoGenerateStatusRoute: ApiVideoGenerateStatusRoute,
   ApiWithdrawalHistoryRoute: ApiWithdrawalHistoryRoute,
   ApiWithdrawalRequestRoute: ApiWithdrawalRequestRoute,
+  V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   ApiBlogIndexRoute: ApiBlogIndexRoute,
   ApiVideoGenerateIndexRoute: ApiVideoGenerateIndexRoute,
   ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,

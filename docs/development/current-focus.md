@@ -7,16 +7,18 @@
 
 ## 当前阶段
 
-仓库正在完成 Vibe Chat 的工程基线与产品 Web 前端骨架验收，暂不把旧 SaaS 脚手架能力视为已确认的产品范围。
+仓库已经完成 Vibe Chat 产品 Web 前端宿主的首轮验收，正在把 fixture 身份逐步替换为真实产品 session，并继续隔离未经产品评审的旧 SaaS 能力。
 
-当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A0“工程基线与差距盘点”。产品核心能力状态仍为“未开始”。
+当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A2“身份、社交与 Matrix 消息底座”。[Email OTP 与产品 Session Bootstrap](../stable/references/identity-session-bootstrap.md)已经完成；下一切片是 Matrix identity 持久化模型、Synapse adapter 合约和 session-device 生命周期。A0 的脚手架清理与追踪矩阵仍作为并行工程治理工作保留。
 
 ## 当前约束
 
 - 产品 Web 应用只以 `apps/web-app` 的 TanStack Start 实现为准。
 - 文档站位于 `apps/docs-app`。
 - 共享能力继续放在 `libs/*` 与 `config/*`，但是否进入产品范围仍需依据稳定设计评审。
-- 后端、数据库、认证和定价方案在前端骨架验收后重新评审。
+- 产品 API 的首轮实现继续使用 TanStack Start server routes，核心合约和 service 放入 `libs/*`；独立后端框架是否需要引入，在 A2 扩展到 worker/reconciler 前再次评审。
+- Better Auth 是浏览器身份权威，产品 API 不签发第二套 session；Matrix 尚未配置时必须显式返回 unavailable，不得生成 fixture token。
+- 产品 PostgreSQL 与 Synapse 数据边界、Matrix user/device 生命周期和生产部署拓扑仍需在真实 Matrix adapter 开码前完成评审。
 
 ## 当前文档治理工作
 

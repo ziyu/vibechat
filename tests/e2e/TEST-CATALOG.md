@@ -33,6 +33,7 @@
 - [23. 推荐佣金支付全流程测试](#23-推荐佣金支付全流程测试)
 - [24. 管理员动态定价管理测试](#24-管理员动态定价管理测试)
 - [25. 聊天宿主基础功能](#25-聊天宿主基础功能)
+- [26. Email OTP 与产品 Session Bootstrap](#26-email-otp-与产品-session-bootstrap)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1025,6 +1026,22 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 ---
 
+## 26. Email OTP 与产品 Session Bootstrap
+
+**文件：** `specs/chat-auth-bootstrap.spec.ts` ｜ **优先级：** P0 ｜ **本地数据库**
+
+本组用例验收 A2 的第一条真实服务切片。认证必须由 Better Auth Email OTP plugin 完成；产品接口只读取 Better Auth Cookie session，不复制 session token，也不在 Matrix 尚未接入时返回伪造凭据。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 请求登录验证码 | 打开 `/zh-CN/signin` → 保持 Email OTP 为默认登录方式 → 输入邮箱并请求验证码 → 验证进入六位验证码输入步骤 |
+| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/zh-CN/messages` |
+| 3 | 获取产品 session bootstrap | 登录后请求 `GET /v1/session/bootstrap` → 验证返回当前用户 ID、邮箱、展示名和头像字段 → 验证响应明确标记 Matrix 尚未配置且不包含 access token |
+| 4 | 未登录请求被拒绝 | 清除 Cookie 后请求 `GET /v1/session/bootstrap` → 验证返回 401 和稳定的产品错误结构 |
+| 5 | 旧密码登录仍可访问 | 在登录页切换到密码登录 → 验证旧账号兼容入口仍存在，迁移期间不破坏既有认证用户 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1032,6 +1049,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | P2 | 19 | 支付宝支付流程 | 支付宝沙盒 App ID/密钥 + 沙盒买家账号 | 3 |
 | ✅ | 20 | 博客功能 | blog_post 表已创建 + 管理员账号 | 11 |
 | ✅ | 25 | 聊天宿主基础功能 | 无（使用本地 fixture 数据） | 8 |
+| ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
 
 ---
 
@@ -1041,6 +1059,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-11 | TanStack | 3 | 0 | 0 | Email OTP 与产品 Session Bootstrap（`chat-auth-bootstrap.spec.ts`，覆盖 5 项验收场景） |
 | 2026-08-11 | TanStack | 5 | 0 | 0 | 聊天宿主基础功能（`chat-foundation.spec.ts`，覆盖 8 项验收场景） |
 | 2026-08-11 | TanStack | 1 | 0 | 0 | 精简首页回归（`public-pages.spec.ts` 单用例） |
 | 2026-02-25 | Next.js | 35 | 0 | 0 | 全部通过（含 Stripe 支付） |

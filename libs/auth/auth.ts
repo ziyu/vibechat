@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { phoneNumber, admin, captcha } from "better-auth/plugins"
+import { phoneNumber, admin, captcha, emailOTP } from "better-auth/plugins"
 import { validator, StandardAdapter } from "validation-better-auth"
 import { createAuthMiddleware, APIError } from "better-auth/api"
 import { nanoid } from "nanoid";
@@ -9,7 +9,7 @@ import { db, user, account, session, verification, isSqliteDialect } from '@libs
 import { sendSMS } from '@libs/sms';
 import { emailSignInSchema, emailSignUpSchema } from '@libs/validators/user'
 import { wechatPlugin } from './plugins/wechat'
-import { sendVerificationEmail, sendResetPasswordEmail } from '@libs/email'
+import { sendAuthenticationOtpEmail, sendVerificationEmail, sendResetPasswordEmail } from '@libs/email'
 import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@libs/i18n'
 import { config } from '@config'
 export { toNextJsHandler } from "better-auth/next-js";
@@ -212,6 +212,37 @@ export const auth = betterAuth({
     }
   },
   plugins: [
+    emailOTP({
+      expiresIn: 10 * 60,
+      allowedAttempts: 5,
+      storeOTP: 'hashed',
+      async sendVerificationOTP({ email, otp, type }, ctx) {
+        const request = ctx?.request;
+        const { locale } = getRefererInfo(request);
+
+        if (process.env.NODE_ENV === 'development' && request) {
+          (request as any).context = (request as any).context || {};
+          (request as any).context.otpCode = otp;
+          return;
+        }
+
+        const result = await sendAuthenticationOtpEmail(email, {
+          otp,
+          type,
+          expiry_minutes: 10,
+          locale,
+        });
+
+        if (!result.success) {
+          const t = getTranslation(locale as SupportedLocale);
+          throw new APIError("INTERNAL_SERVER_ERROR", {
+            code: "EMAIL_SEND_FAILED",
+            message: t.auth.authErrors.EMAIL_SEND_FAILED,
+          });
+        }
+      },
+    }),
+
     // https://www.better-auth.com/docs/plugins/admin
     admin({
       adminRoles: ["admin"],
@@ -222,7 +253,7 @@ export const auth = betterAuth({
       captcha({
         provider: "cloudflare-turnstile",
         secretKey: config.captcha.cloudflare.secretKey!,
-        endpoints: ["/sign-up/email", "/sign-in/email", "/request-password-reset", '/phone-number/send-otp', '/send-verification-email']
+        endpoints: ["/sign-up/email", "/sign-in/email", "/request-password-reset", '/phone-number/send-otp', '/send-verification-email', '/email-otp/send-verification-otp']
       })
     ] : []),
 

@@ -99,6 +99,18 @@ export const en: Locale = {
       disclaimer: "If you didn't request a password reset, no action is required.",
       signature: "The Vibe Chat Team",
       copyright: "© {{year}} Vibe Chat. All rights reserved."
+    },
+    authenticationOtp: {
+      subject: "Your Vibe Chat verification code",
+      title: "Your verification code",
+      signInMessage: "Use this code to sign in to Vibe Chat. If this email is new, your account will be created automatically.",
+      emailVerificationMessage: "Use this code to verify your Vibe Chat email address.",
+      passwordResetMessage: "Use this code to continue resetting your Vibe Chat password.",
+      codeLabel: "Verification code",
+      expiry: "This code expires in {{expiry_minutes}} minutes.",
+      disclaimer: "Never share this code. If you didn't request it, you can safely ignore this email.",
+      signature: "The Vibe Chat Team",
+      copyright: "© {{year}} Vibe Chat. All rights reserved."
     }
   },
   auth: {
@@ -146,6 +158,19 @@ export const en: Locale = {
       rememberMe: "Remember me",
       submit: "Sign in",
       submitting: "Signing in...",
+      otpTitle: "Email code",
+      otpDescription: "We'll email you a one-time code. New email addresses are registered automatically.",
+      otpCode: "Verification code",
+      otpCodePlaceholder: "Enter the 6-digit code",
+      sendOtp: "Send code",
+      sendingOtp: "Sending code...",
+      verifyOtp: "Continue",
+      verifyingOtp: "Verifying...",
+      otpSent: "We sent a code to {{email}}.",
+      resendOtp: "Send a new code",
+      changeEmail: "Use another email",
+      usePasswordInstead: "Use password instead",
+      useEmailOtpInstead: "Use email code instead",
       noAccount: "Don't have an account?",
       signupLink: "Sign up",
       termsNotice: "By clicking continue, you agree to our",
@@ -163,6 +188,8 @@ export const en: Locale = {
         requiredEmail: "Email is required",
         requiredPassword: "Password is required",
         invalidCredentials: "Invalid email or password",
+        invalidOtp: "The verification code is invalid or expired",
+        otpSendFailed: "We couldn't send a verification code. Please try again.",
         captchaRequired: "Please complete the captcha verification",
         emailNotVerified: {
           title: "Email verification required",
