@@ -12,6 +12,7 @@ import type {
   MatrixIdentityRecord,
   MatrixSessionBindingRecord,
   ProductProfile,
+  ProductProfileUpdate,
 } from "./types";
 
 export class DatabaseIdentityRepository implements IdentityRepository {
@@ -20,6 +21,41 @@ export class DatabaseIdentityRepository implements IdentityRepository {
     const stored = await this.getProfile(profile.userId);
     if (!stored) throw new Error("Product profile could not be persisted");
     return stored;
+  }
+
+  async getProfile(userId: string) {
+    const [stored] = await db
+      .select()
+      .from(userProfile)
+      .where(eq(userProfile.userId, userId))
+      .limit(1);
+
+    return (stored as ProductProfile | undefined) || null;
+  }
+
+  async getProfileByUsername(username: string) {
+    const [stored] = await db
+      .select()
+      .from(userProfile)
+      .where(eq(userProfile.username, username))
+      .limit(1);
+
+    return (stored as ProductProfile | undefined) || null;
+  }
+
+  async updateProfile(
+    userId: string,
+    update: Omit<ProductProfileUpdate, "completeOnboarding"> & {
+      onboardingCompletedAt?: Date | null;
+      updatedAt: Date;
+    },
+  ) {
+    const [stored] = await db
+      .update(userProfile)
+      .set(update)
+      .where(eq(userProfile.userId, userId))
+      .returning();
+    return (stored as ProductProfile | undefined) || null;
   }
 
   async getMatrixIdentity(userId: string) {
@@ -128,13 +164,4 @@ export class DatabaseIdentityRepository implements IdentityRepository {
       .where(eq(integrationOutbox.id, eventId));
   }
 
-  private async getProfile(userId: string) {
-    const [stored] = await db
-      .select()
-      .from(userProfile)
-      .where(eq(userProfile.userId, userId))
-      .limit(1);
-
-    return (stored as ProductProfile | undefined) || null;
-  }
 }

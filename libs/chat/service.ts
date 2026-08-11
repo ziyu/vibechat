@@ -29,7 +29,11 @@ export function filterRooms(
     const memberNames = room.memberIds
       .map((id) => people.get(id)?.displayName ?? '')
       .join(' ')
-    return `${room.name} ${room.lastMessage} ${memberNames}`
+    const messageText = state.messages
+      .filter((message) => message.roomId === room.id && !message.deleted)
+      .map((message) => `${message.text} ${message.attachment?.name || ''}`)
+      .join(' ')
+    return `${room.name} ${room.lastMessage} ${memberNames} ${messageText}`
       .toLocaleLowerCase()
       .includes(normalized)
   })
@@ -92,7 +96,7 @@ export function appendMessageToState(
       room.id === message.roomId
         ? {
             ...room,
-            lastMessage: message.text,
+            lastMessage: message.attachment?.name || message.text,
             updatedAt: message.createdAt,
             unreadCount: 0,
           }
@@ -121,4 +125,3 @@ export function formatMessageTime(value: string, locale: ChatLocale) {
     minute: '2-digit',
   }).format(new Date(value))
 }
-

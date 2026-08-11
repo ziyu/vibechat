@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { signUpViaAPI } from '../helpers/auth'
+import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
 
 test.describe('Vibe Chat real Matrix room and timeline', () => {
   test.skip(
@@ -36,6 +36,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       password: 'VibeChat-e2e-password-2026!',
     })
     expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
 
     const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
     expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()

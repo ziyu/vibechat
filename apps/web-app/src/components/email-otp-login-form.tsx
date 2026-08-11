@@ -104,7 +104,7 @@ export function EmailOtpLoginForm({
 
     const params = new URLSearchParams(window.location.search)
     const returnTo = params.get('returnTo')
-    const fallback = `/${locale}/messages`
+    const fallback = `/${locale}/onboarding`
     const safeReturnTo =
       returnTo?.startsWith('/') && !returnTo.startsWith('//')
         ? returnTo

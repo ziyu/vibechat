@@ -11,6 +11,7 @@ import type {
   MatrixIdentityRecord,
   MatrixSessionBindingRecord,
   ProductProfile,
+  ProductProfileUpdate,
 } from "./types";
 import { deriveDisplayName, deriveUsername } from "./username";
 
@@ -20,6 +21,20 @@ export interface IdentityServiceOptions {
   tokenProtector: MatrixTokenProtector;
   now?: () => Date;
   createId?: () => string;
+}
+
+export type IdentityServiceErrorCode =
+  | "PROFILE_NOT_FOUND"
+  | "PROFILE_USERNAME_TAKEN";
+
+export class IdentityServiceError extends Error {
+  readonly code: IdentityServiceErrorCode;
+
+  constructor(code: IdentityServiceErrorCode) {
+    super(code);
+    this.name = "IdentityServiceError";
+    this.code = code;
+  }
 }
 
 export class IdentityService {
@@ -119,6 +134,48 @@ export class IdentityService {
     };
   }
 
+  getOrCreateProfile(user: AuthenticatedUserIdentity) {
+    return this.ensureProfile(user);
+  }
+
+  async updateProfile(userId: string, input: ProductProfileUpdate) {
+    const existing = await this.repository.getProfile(userId);
+    if (!existing) throw new IdentityServiceError("PROFILE_NOT_FOUND");
+
+    const username = input.username?.trim().toLowerCase();
+    if (username && username !== existing.username) {
+      const owner = await this.repository.getProfileByUsername(username);
+      if (owner && owner.userId !== userId) {
+        throw new IdentityServiceError("PROFILE_USERNAME_TAKEN");
+      }
+    }
+
+    let updated: ProductProfile | null;
+    try {
+      updated = await this.repository.updateProfile(userId, {
+        ...(username ? { username } : {}),
+        ...(input.displayName !== undefined ? { displayName: input.displayName.trim() } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+        ...(input.completeOnboarding && !existing.onboardingCompletedAt
+          ? { onboardingCompletedAt: this.now() }
+          : {}),
+        updatedAt: this.now(),
+      });
+    } catch (error) {
+      // The unique index is the final authority when two users claim the same
+      // username between the preflight read and the update.
+      if (username && username !== existing.username) {
+        const owner = await this.repository.getProfileByUsername(username);
+        if (owner && owner.userId !== userId) {
+          throw new IdentityServiceError("PROFILE_USERNAME_TAKEN");
+        }
+      }
+      throw error;
+    }
+    if (!updated) throw new IdentityServiceError("PROFILE_NOT_FOUND");
+    return updated;
+  }
+
   async revokeSession(authSessionId: string) {
     const binding = await this.repository.getSessionBinding(authSessionId);
     if (!binding) return null;
@@ -169,6 +226,7 @@ export class IdentityService {
       username,
       displayName: deriveDisplayName(user.displayName, user.email, username),
       avatarUrl: user.avatarUrl,
+      onboardingCompletedAt: null,
       status: "active",
       createdAt: now,
       updatedAt: now,

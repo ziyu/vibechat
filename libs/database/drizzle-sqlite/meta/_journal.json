@@ -57,6 +57,13 @@
       "when": 1786467667581,
       "tag": "0007_lush_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786472328100,
+      "tag": "0008_strong_shadowcat",
+      "breakpoints": true
     }
   ]
 }

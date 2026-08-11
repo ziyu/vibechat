@@ -110,12 +110,14 @@ export class DatabaseSocialRepository implements SocialRepository {
 
   async getSnapshot(userId: string) {
     const contactRows = await db
-      .select({ contactUserId: contact.contactUserId })
+      .select({ contactUserId: contact.contactUserId, remark: contact.remark })
       .from(contact)
       .where(eq(contact.userId, userId));
-    const contacts = (await Promise.all(
-      contactRows.map((row) => this.findProfile(row.contactUserId)),
-    )).filter((person): person is SocialPerson => !!person);
+    const contacts: SocialPerson[] = [];
+    for (const row of contactRows) {
+      const profile = await this.findProfile(row.contactUserId);
+      if (profile) contacts.push({ ...profile, remark: row.remark });
+    }
     const requests = await db
       .select()
       .from(friendRequest)
@@ -188,6 +190,14 @@ export class DatabaseSocialRepository implements SocialRepository {
         { userId: request.recipientId, contactUserId: request.senderId, createdAt: acceptedAt },
       ]).onConflictDoNothing();
     });
+  }
+
+  async updateContactRemark(userId: string, contactUserId: string, remark: string | null) {
+    const updated = await db.update(contact).set({ remark }).where(and(
+      eq(contact.userId, userId),
+      eq(contact.contactUserId, contactUserId),
+    )).returning({ userId: contact.userId });
+    return updated.length > 0;
   }
 
   async rejectFriendRequest(requestId: string, recipientId: string, rejectedAt: Date) {

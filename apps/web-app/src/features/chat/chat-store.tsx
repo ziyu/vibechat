@@ -5,6 +5,7 @@ import {
   createChatId,
   createDemoChatState,
   createRoomInState,
+  productProfileSchema,
   roomBootstrapSchema,
   roomMetadataLookupResponseSchema,
   sessionBootstrapSchema,
@@ -47,6 +48,11 @@ interface ChatDemoContextValue {
   toggleRoomPinned: (roomId: string) => void
   toggleRoomMuted: (roomId: string) => void
   sendMessage: (roomId: string, text: string, replyToId?: string) => Promise<string>
+  sendAttachment: (roomId: string, file: File) => Promise<string>
+  editMessage: (messageId: string, text: string) => Promise<void>
+  deleteMessage: (messageId: string) => Promise<void>
+  setTyping: (roomId: string, isTyping: boolean) => void
+  retryMessage: (messageId: string) => Promise<void>
   toggleReaction: (messageId: string, emoji: string) => void
   createRoom: (input: CreateRoomInput) => Promise<string>
   searchUsers: (query: string) => Promise<SocialPerson[]>
@@ -55,6 +61,8 @@ interface ChatDemoContextValue {
   rejectFriendRequest: (requestId: string) => Promise<void>
   blockUser: (userId: string) => Promise<void>
   unblockUser: (userId: string) => Promise<void>
+  updateContactRemark: (userId: string, remark: string | null) => Promise<void>
+  updateCurrentProfile: (input: { displayName: string; username: string }) => Promise<void>
   acceptRoomInvite: (roomId: string) => Promise<void>
   rejectRoomInvite: (roomId: string) => Promise<void>
   toggleFavoriteSpace: (spaceId: string) => void
@@ -74,7 +82,7 @@ function readRoomPreferences(): RoomPreferences {
 }
 
 function socialPersonToChatPerson(person: SocialPerson): ChatPerson {
-  const name = person.displayName || person.username
+  const name = person.remark || person.displayName || person.username
   return {
     id: person.id,
     matrixUserId: person.matrixUserId,
@@ -105,6 +113,9 @@ export function ChatDemoProvider({
   const profileRef = useRef<ReturnType<typeof sessionBootstrapSchema.parse>['user'] | null>(null)
   const preferencesRef = useRef<RoomPreferences>({})
   const pendingTransactionIdsRef = useRef(new Set<string>())
+  const optimisticMessagesRef = useRef(new Map<string, ChatMessage>())
+  const reconnectRetryAttemptsRef = useRef(new Map<string, number>())
+  const reconnectRetryTimersRef = useRef(new Set<number>())
   const socialPeopleRef = useRef<ChatPerson[]>([])
   const socialContactIdsRef = useRef<string[]>([])
   const socialFriendRequestsRef = useRef<ChatDemoState['friendRequests']>([])
@@ -132,10 +143,7 @@ export function ChatDemoProvider({
         },
         roomMetadataRef.current,
       )
-      const optimisticMessages = current.messages.filter(
-        (message) => message.transactionId
-          && pendingTransactionIdsRef.current.has(message.transactionId),
-      )
+      const optimisticMessages = [...optimisticMessagesRef.current.values()]
       for (const optimistic of optimisticMessages) {
         projected = {
           ...projected,
@@ -223,7 +231,11 @@ export function ChatDemoProvider({
         if (raw) {
           const parsed = JSON.parse(raw) as ChatDemoState
           if (parsed.version === 1) {
-            nextState = { ...parsed, blockedUserIds: parsed.blockedUserIds || [] }
+            nextState = {
+              ...parsed,
+              blockedUserIds: parsed.blockedUserIds || [],
+              typingUserIdsByRoom: parsed.typingUserIdsByRoom || {},
+            }
           }
         }
       } catch {
@@ -247,7 +259,15 @@ export function ChatDemoProvider({
           return
         }
         const parsed = sessionBootstrapSchema.safeParse(await response.json())
-        if (!parsed.success || parsed.data.matrix.status !== 'ready') {
+        if (!parsed.success) {
+          hydrateFixture()
+          return
+        }
+        if (!parsed.data.user.onboardingCompleted) {
+          window.location.assign(`/${locale}/onboarding`)
+          return
+        }
+        if (parsed.data.matrix.status !== 'ready') {
           hydrateFixture()
           return
         }
@@ -316,6 +336,11 @@ export function ChatDemoProvider({
       runtimeModuleRef.current = null
       roomMetadataRef.current = {}
       roomMetadataLookupRef.current.clear()
+      optimisticMessagesRef.current.clear()
+      pendingTransactionIdsRef.current.clear()
+      reconnectRetryAttemptsRef.current.clear()
+      for (const timerId of reconnectRetryTimersRef.current) window.clearTimeout(timerId)
+      reconnectRetryTimersRef.current.clear()
       profileRef.current = null
       const runtime = runtimeRef.current
       runtimeRef.current = null
@@ -364,6 +389,64 @@ export function ChatDemoProvider({
     }))
   }, [])
 
+  const deliverOptimisticMessage = useCallback(
+    async (message: ChatMessage, allowReconnectRetry = true): Promise<string> => {
+      const transactionId = message.transactionId
+      const client = matrixClientRef.current
+      const matrixRuntime = runtimeModuleRef.current
+      if (!transactionId || !client || !matrixRuntime) throw new Error('MATRIX_NOT_READY')
+
+      pendingTransactionIdsRef.current.add(transactionId)
+      optimisticMessagesRef.current.set(transactionId, {
+        ...message,
+        status: 'sending',
+      })
+      refreshMatrixState()
+
+      try {
+        const response = await matrixRuntime.sendMatrixText(
+          client,
+          message.roomId,
+          message.text,
+          transactionId,
+          message.replyToId,
+        )
+        pendingTransactionIdsRef.current.delete(transactionId)
+        optimisticMessagesRef.current.delete(transactionId)
+        reconnectRetryAttemptsRef.current.delete(transactionId)
+        refreshMatrixState()
+        return response.event_id
+      } catch (error) {
+        pendingTransactionIdsRef.current.delete(transactionId)
+        const failedMessage = { ...message, status: 'failed' as const }
+        optimisticMessagesRef.current.set(transactionId, failedMessage)
+        refreshMatrixState()
+
+        // The browser can report `online` before the failed request settles. In
+        // that race the online event cannot see a failed item yet, so schedule
+        // one idempotent retry with the original Matrix transaction id.
+        if (
+          allowReconnectRetry
+          && navigator.onLine
+        ) {
+          const retryAttempt = reconnectRetryAttemptsRef.current.get(transactionId) || 0
+          if (retryAttempt >= 3) throw error
+          reconnectRetryAttemptsRef.current.set(transactionId, retryAttempt + 1)
+          const retryDelayMs = [800, 2_000, 4_000][retryAttempt]
+          const timerId = window.setTimeout(() => {
+            reconnectRetryTimersRef.current.delete(timerId)
+            const candidate = optimisticMessagesRef.current.get(transactionId)
+            if (!candidate || candidate.status !== 'failed' || !navigator.onLine) return
+            void deliverOptimisticMessage(candidate, true).catch(() => undefined)
+          }, retryDelayMs)
+          reconnectRetryTimersRef.current.add(timerId)
+        }
+        throw error
+      }
+    },
+    [refreshMatrixState],
+  )
+
   const sendMessage = useCallback(
     async (roomId: string, text: string, replyToId?: string) => {
       const client = matrixClientRef.current
@@ -372,39 +455,20 @@ export function ChatDemoProvider({
         const transactionId = createChatId('txn')
         pendingTransactionIdsRef.current.add(transactionId)
         const optimisticMessageId = `~${roomId}:${transactionId}`
-        setState((current) => appendMessageToState(current, {
+        const optimisticMessage: ChatMessage = {
           id: optimisticMessageId,
           transactionId,
           roomId,
-          senderId: current.currentUserId,
+          senderId: state.currentUserId,
           text: text.trim(),
           createdAt: new Date().toISOString(),
           status: 'sending',
           replyToId,
           reactions: [],
-        }))
-        const pending = matrixRuntime.sendMatrixText(
-          client,
-          roomId,
-          text.trim(),
-          transactionId,
-          replyToId,
-        )
-        try {
-          const response = await pending
-          pendingTransactionIdsRef.current.delete(transactionId)
-          refreshMatrixState()
-          return response.event_id
-        } catch (error) {
-          pendingTransactionIdsRef.current.delete(transactionId)
-          setState((current) => ({
-            ...current,
-            messages: current.messages.map((message) =>
-              message.id === optimisticMessageId ? { ...message, status: 'failed' } : message,
-            ),
-          }))
-          throw error
         }
+        optimisticMessagesRef.current.set(transactionId, optimisticMessage)
+        setState((current) => appendMessageToState(current, optimisticMessage))
+        return deliverOptimisticMessage(optimisticMessage)
       }
 
       const messageId = createChatId('message')
@@ -429,7 +493,7 @@ export function ChatDemoProvider({
       }, 520)
       return messageId
     },
-    [refreshMatrixState, state.currentUserId],
+    [deliverOptimisticMessage, state.currentUserId],
   )
 
   const toggleReaction = useCallback((messageId: string, emoji: string) => {
@@ -474,6 +538,125 @@ export function ChatDemoProvider({
       }),
     }))
   }, [refreshMatrixState, state.messages])
+
+  const sendAttachment = useCallback(async (roomId: string, file: File) => {
+    if (file.size > 20 * 1024 * 1024) throw new Error('ATTACHMENT_TOO_LARGE')
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (client && matrixRuntime) {
+      const response = await matrixRuntime.sendMatrixMedia(
+        client,
+        roomId,
+        file,
+        createChatId('txn'),
+      )
+      refreshMatrixState()
+      return response.event_id
+    }
+    const messageId = createChatId('message')
+    setState((current) => appendMessageToState(current, {
+      id: messageId,
+      roomId,
+      senderId: current.currentUserId,
+      text: '',
+      createdAt: new Date().toISOString(),
+      status: 'sent',
+      attachment: {
+        kind: file.type.startsWith('image/') ? 'image' : 'file',
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        matrixContentUri: '',
+      },
+      reactions: [],
+    }))
+    return messageId
+  }, [refreshMatrixState])
+
+  const editMessage = useCallback(async (messageId: string, text: string) => {
+    const message = state.messages.find((candidate) => candidate.id === messageId)
+    if (!message || message.senderId !== state.currentUserId || message.deleted) {
+      throw new Error('MESSAGE_EDIT_FORBIDDEN')
+    }
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (client && matrixRuntime) {
+      await matrixRuntime.editMatrixText(
+        client,
+        message.roomId,
+        message.id,
+        text.trim(),
+        createChatId('txn'),
+      )
+      refreshMatrixState()
+      return
+    }
+    setState((current) => ({
+      ...current,
+      messages: current.messages.map((candidate) => candidate.id === messageId
+        ? { ...candidate, text: text.trim(), edited: true }
+        : candidate),
+    }))
+  }, [refreshMatrixState, state.currentUserId, state.messages])
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const message = state.messages.find((candidate) => candidate.id === messageId)
+    if (!message || message.senderId !== state.currentUserId || message.deleted) {
+      throw new Error('MESSAGE_DELETE_FORBIDDEN')
+    }
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (client && matrixRuntime) {
+      await matrixRuntime.redactMatrixEvent(
+        client,
+        message.roomId,
+        message.id,
+        createChatId('txn'),
+      )
+      refreshMatrixState()
+      return
+    }
+    setState((current) => ({
+      ...current,
+      messages: current.messages.map((candidate) => candidate.id === messageId
+        ? {
+            ...candidate,
+            text: '',
+            deleted: true,
+            attachment: undefined,
+            reactions: [],
+          }
+        : candidate),
+    }))
+  }, [refreshMatrixState, state.currentUserId, state.messages])
+
+  const setTyping = useCallback((roomId: string, isTyping: boolean) => {
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (client && matrixRuntime) {
+      void matrixRuntime.setMatrixTyping(client, roomId, isTyping).catch(() => undefined)
+    }
+  }, [])
+
+  const retryMessage = useCallback(async (messageId: string) => {
+    const message = state.messages.find((candidate) => candidate.id === messageId)
+    if (!message || message.status !== 'failed' || !message.transactionId) return
+    reconnectRetryAttemptsRef.current.delete(message.transactionId)
+    await deliverOptimisticMessage(message, true)
+  }, [deliverOptimisticMessage, state.messages])
+
+  useEffect(() => {
+    const retryFailedMessages = () => {
+      for (const message of optimisticMessagesRef.current.values()) {
+        if (message.status === 'failed') {
+          reconnectRetryAttemptsRef.current.delete(message.transactionId || message.id)
+          void deliverOptimisticMessage(message, true).catch(() => undefined)
+        }
+      }
+    }
+    window.addEventListener('online', retryFailedMessages)
+    return () => window.removeEventListener('online', retryFailedMessages)
+  }, [deliverOptimisticMessage])
 
   const createRoom = useCallback(async (input: CreateRoomInput) => {
     if (matrixClientRef.current) {
@@ -579,6 +762,71 @@ export function ChatDemoProvider({
     }))
   }, [refreshSocial])
 
+  const updateContactRemark = useCallback(async (userId: string, remark: string | null) => {
+    if (matrixClientRef.current) {
+      const response = await fetch(`/v1/contacts/${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ remark }),
+      })
+      if (!response.ok) throw new Error('CONTACT_REMARK_UPDATE_FAILED')
+      await refreshSocial()
+      return
+    }
+    const normalized = remark?.trim()
+    const originalName = baseState.people.find((person) => person.id === userId)?.displayName
+    setState((current) => ({
+      ...current,
+      people: current.people.map((person) => person.id === userId
+        ? { ...person, displayName: normalized || originalName || person.displayName }
+        : person),
+    }))
+  }, [baseState.people, refreshSocial])
+
+  const updateCurrentProfile = useCallback(async (input: {
+    displayName: string
+    username: string
+  }) => {
+    if (matrixClientRef.current) {
+      const response = await fetch('/v1/profile', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as {
+          error?: { code?: string }
+        } | null
+        throw new Error(body?.error?.code || 'PROFILE_UPDATE_FAILED')
+      }
+      const profile = productProfileSchema.parse(await response.json())
+      if (profileRef.current) {
+        profileRef.current = {
+          ...profileRef.current,
+          username: profile.username,
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl,
+          onboardingCompleted: profile.onboardingCompleted,
+        }
+      }
+      await matrixClientRef.current.setDisplayName(profile.displayName).catch(() => undefined)
+      refreshMatrixState()
+      return
+    }
+    setState((current) => ({
+      ...current,
+      people: current.people.map((person) => person.id === current.currentUserId
+        ? {
+            ...person,
+            displayName: input.displayName.trim(),
+            handle: `@${input.username.trim().toLowerCase()}`,
+          }
+        : person),
+    }))
+  }, [refreshMatrixState])
+
   const blockUser = useCallback(async (userId: string) => {
     if (matrixClientRef.current) {
       const response = await fetch('/v1/blocks', {
@@ -669,6 +917,11 @@ export function ChatDemoProvider({
     toggleRoomPinned: (roomId) => updateRoomPreference(roomId, 'pinned'),
     toggleRoomMuted: (roomId) => updateRoomPreference(roomId, 'muted'),
     sendMessage,
+    sendAttachment,
+    editMessage,
+    deleteMessage,
+    setTyping,
+    retryMessage,
     toggleReaction,
     createRoom,
     searchUsers,
@@ -677,6 +930,8 @@ export function ChatDemoProvider({
     rejectFriendRequest,
     blockUser,
     unblockUser,
+    updateContactRemark,
+    updateCurrentProfile,
     acceptRoomInvite,
     rejectRoomInvite,
     toggleFavoriteSpace,
@@ -695,6 +950,11 @@ export function ChatDemoProvider({
     rejectRoomInvite,
     resetDemo,
     sendMessage,
+    sendAttachment,
+    editMessage,
+    deleteMessage,
+    setTyping,
+    retryMessage,
     sendFriendRequest,
     searchUsers,
     state,
@@ -702,6 +962,8 @@ export function ChatDemoProvider({
     toggleFavoriteSpace,
     toggleReaction,
     unblockUser,
+    updateContactRemark,
+    updateCurrentProfile,
     updateRoomPreference,
   ])
 

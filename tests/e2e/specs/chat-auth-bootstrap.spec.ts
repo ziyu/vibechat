@@ -46,7 +46,8 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
     await expect(page.getByTestId('email-otp-verify-form')).toBeVisible()
     await page.locator('#otp-code').fill(sendBody.dev.otpCode)
     await page.getByRole('button', { name: '继续' }).click()
-    await expect(page).toHaveURL(/\/zh-CN\/messages$/)
+    await expect(page).toHaveURL(/\/zh-CN\/onboarding$/)
+    await expect(page.getByTestId('onboarding-page')).toBeVisible()
 
     const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
     expect(bootstrapResponse.ok()).toBeTruthy()
@@ -55,6 +56,7 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
       contractVersion: 1,
       user: {
         email,
+        onboardingCompleted: false,
       },
     })
     expect(bootstrap.user.id).toEqual(expect.any(String))

@@ -13,9 +13,17 @@ export interface ProductProfile {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  onboardingCompletedAt: Date | null;
   status: ProductProfileStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductProfileUpdate {
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  completeOnboarding?: boolean;
 }
 
 export interface MatrixIdentityRecord {

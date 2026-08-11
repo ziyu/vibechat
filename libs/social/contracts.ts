@@ -13,6 +13,11 @@ export interface SocialRepository {
   isContact(userId: string, contactUserId: string): Promise<boolean>;
   hasBlockBetween(firstUserId: string, secondUserId: string): Promise<boolean>;
   getSnapshot(userId: string): Promise<SocialSnapshotRecords>;
+  updateContactRemark(
+    userId: string,
+    contactUserId: string,
+    remark: string | null,
+  ): Promise<boolean>;
   acceptFriendRequest(request: FriendRequestRecord, acceptedAt: Date): Promise<void>;
   rejectFriendRequest(requestId: string, recipientId: string, rejectedAt: Date): Promise<boolean>;
   blockUser(blockerId: string, blockedUserId: string, createdAt: Date): Promise<void>;

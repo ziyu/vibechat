@@ -1,4 +1,5 @@
-const MAX_BASE_LENGTH = 20;
+// 19 + separator + 10 keeps derived usernames inside the public 30-char contract.
+const MAX_BASE_LENGTH = 19;
 const MAX_SUFFIX_LENGTH = 10;
 
 function normalizeSegment(value: string, fallback: string) {

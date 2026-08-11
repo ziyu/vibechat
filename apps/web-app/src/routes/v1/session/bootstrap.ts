@@ -72,6 +72,7 @@ export const Route = createFileRoute('/v1/session/bootstrap')({
               username: identity.profile.username,
               displayName: identity.profile.displayName,
               avatarUrl: identity.profile.avatarUrl,
+              onboardingCompleted: !!identity.profile.onboardingCompletedAt,
             },
             matrix: identity.matrix,
           })

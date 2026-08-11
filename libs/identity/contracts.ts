@@ -3,10 +3,20 @@ import type {
   MatrixIdentityRecord,
   MatrixSessionBindingRecord,
   ProductProfile,
+  ProductProfileUpdate,
 } from "./types";
 
 export interface IdentityRepository {
   ensureProfile(profile: ProductProfile): Promise<ProductProfile>;
+  getProfile(userId: string): Promise<ProductProfile | null>;
+  getProfileByUsername(username: string): Promise<ProductProfile | null>;
+  updateProfile(
+    userId: string,
+    update: Omit<ProductProfileUpdate, "completeOnboarding"> & {
+      onboardingCompletedAt?: Date | null;
+      updatedAt: Date;
+    },
+  ): Promise<ProductProfile | null>;
   getMatrixIdentity(userId: string): Promise<MatrixIdentityRecord | null>;
   ensureMatrixIdentity(identity: MatrixIdentityRecord): Promise<MatrixIdentityRecord>;
   getSessionBinding(authSessionId: string): Promise<MatrixSessionBindingRecord | null>;

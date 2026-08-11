@@ -5,6 +5,7 @@ import {
   Ban,
   Check,
   MessageCircleMore,
+  Pencil,
   Search,
   UserPlus,
   UsersRound,
@@ -26,6 +27,7 @@ export function ContactsPage() {
     acceptFriendRequest,
     rejectFriendRequest,
     blockUser,
+    updateContactRemark,
   } = useChatDemo()
   const [query, setQuery] = useState('')
   const [selectedPersonId, setSelectedPersonId] = useState(state.contactIds[0])
@@ -34,6 +36,10 @@ export function ContactsPage() {
   const [searchResults, setSearchResults] = useState<SocialPerson[]>([])
   const [searching, setSearching] = useState(false)
   const [requestedIds, setRequestedIds] = useState<string[]>([])
+  const [remarkEditing, setRemarkEditing] = useState(false)
+  const [remarkValue, setRemarkValue] = useState('')
+  const [remarkSaving, setRemarkSaving] = useState(false)
+  const [remarkError, setRemarkError] = useState(false)
 
   useEffect(() => {
     if (mode !== 'matrix' || query.trim().length < 2) {
@@ -84,6 +90,20 @@ export function ContactsPage() {
   const startChat = (personId: string) => {
     setCreatePersonId(personId)
     setCreateOpen(true)
+  }
+
+  const saveRemark = async (remark: string | null) => {
+    if (!selectedPerson) return
+    setRemarkSaving(true)
+    setRemarkError(false)
+    try {
+      await updateContactRemark(selectedPerson.id, remark)
+      setRemarkEditing(false)
+    } catch {
+      setRemarkError(true)
+    } finally {
+      setRemarkSaving(false)
+    }
   }
 
   return (
@@ -246,6 +266,53 @@ export function ContactsPage() {
               <span className="vc-kicker">{t.chatApp.contacts.contactProfile}</span>
               <h2>{selectedPerson.displayName}</h2>
               <p>{selectedPerson.handle}</p>
+              {remarkEditing ? (
+                <form
+                  className="vc-remark-editor"
+                  data-testid="contact-remark-editor"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void saveRemark(remarkValue.trim() || null)
+                  }}
+                >
+                  <label>
+                    <span>{t.chatApp.contacts.remark}</span>
+                    <input
+                      value={remarkValue}
+                      onChange={(event) => setRemarkValue(event.target.value)}
+                      maxLength={50}
+                      autoFocus
+                      data-testid="contact-remark-input"
+                    />
+                  </label>
+                  <div>
+                    <button type="submit" disabled={remarkSaving} data-testid="save-contact-remark">
+                      {remarkSaving ? t.chatApp.contacts.savingRemark : t.chatApp.contacts.saveRemark}
+                    </button>
+                    <button type="button" onClick={() => setRemarkEditing(false)}>
+                      {t.chatApp.contacts.cancelRemark}
+                    </button>
+                    <button type="button" data-testid="clear-contact-remark" onClick={() => void saveRemark(null)}>
+                      {t.chatApp.contacts.clearRemark}
+                    </button>
+                  </div>
+                  {remarkError ? <small role="alert">{t.chatApp.contacts.remarkFailed}</small> : null}
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="vc-edit-remark"
+                  data-testid="edit-contact-remark"
+                  onClick={() => {
+                    setRemarkValue(selectedPerson.displayName)
+                    setRemarkError(false)
+                    setRemarkEditing(true)
+                  }}
+                >
+                  <Pencil size={12} />
+                  {t.chatApp.contacts.editRemark}
+                </button>
+              )}
               <blockquote>{selectedPerson.bio}</blockquote>
               <div>
                 <button

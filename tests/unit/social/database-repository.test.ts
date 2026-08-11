@@ -73,9 +73,17 @@ describe("DatabaseSocialRepository on SQLite", () => {
 
     expect(await repository.isContact("social-alice", "social-bob")).toBe(true);
     expect(await repository.isContact("social-bob", "social-alice")).toBe(true);
+    expect(await repository.updateContactRemark(
+      "social-alice",
+      "social-bob",
+      "Late-night Bob",
+    )).toBe(true);
     await expect(repository.getSnapshot("social-alice")).resolves.toMatchObject({
-      contacts: [{ id: "social-bob" }],
+      contacts: [{ id: "social-bob", remark: "Late-night Bob" }],
       outgoing: [{ request: { status: "accepted" } }],
+    });
+    await expect(repository.getSnapshot("social-bob")).resolves.toMatchObject({
+      contacts: [{ id: "social-alice", remark: null }],
     });
   });
 

@@ -836,10 +836,18 @@
 .vc-room-canvas[data-light] .vc-message-bubble { border-color: rgb(59 46 32 / 11%); background: rgb(255 255 255 / 48%); }
 .vc-message[data-own] .vc-message-bubble { border-color: color-mix(in srgb, var(--room-accent) 28%, transparent); border-radius: 14px 5px 14px 14px; background: color-mix(in srgb, var(--room-accent) 16%, rgb(255 255 255 / 7%)); }
 .vc-message-bubble p { margin: 0; font-size: 11.5px; line-height: 1.65; white-space: pre-wrap; }
+.vc-edited-label { display: block; margin-top: 4px; color: color-mix(in srgb, currentColor 45%, transparent); font-size: 7px; }
+.vc-message-attachment { display: flex; max-width: 310px; gap: 9px; align-items: center; margin-bottom: 7px; padding: 8px; border: 1px solid rgb(255 255 255 / 12%); border-radius: 10px; background: rgb(255 255 255 / 7%); color: inherit; text-decoration: none; }
+.vc-message-attachment > img { width: 112px; max-height: 96px; border-radius: 7px; object-fit: cover; }
+.vc-message-attachment > span { display: flex; min-width: 0; flex-direction: column; }
+.vc-message-attachment strong { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.vc-message-attachment small { margin-top: 3px; color: color-mix(in srgb, currentColor 55%, transparent); font-size: 7px; }
+.vc-room-canvas[data-light] .vc-message-attachment { border-color: rgb(59 46 32 / 12%); background: rgb(255 255 255 / 42%); }
 .vc-message-bubble blockquote { display: flex; flex-direction: column; margin: 0 0 8px; padding: 7px 9px; border-left: 2px solid var(--room-accent); border-radius: 4px 8px 8px 4px; background: rgb(0 0 0 / 13%); color: color-mix(in srgb, currentColor 70%, transparent); }
 .vc-message-bubble blockquote strong { font-size: 8px; }
 .vc-message-bubble blockquote span { overflow: hidden; margin-top: 2px; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .vc-delivery-status { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 5px; color: color-mix(in srgb, currentColor 43%, transparent); font-size: 7px; }
+.vc-delivery-status button { border: 0; padding: 0; background: transparent; color: #f09b8f; font: inherit; cursor: pointer; }
 .vc-message-actions { position: absolute; top: -31px; right: 4px; display: flex; gap: 2px; padding: 3px; border: 1px solid rgb(255 255 255 / 12%); border-radius: 9px; background: rgb(18 18 17 / 94%); opacity: .28; pointer-events: auto; transform: translateY(2px); transition: opacity 140ms ease, transform 140ms ease; }
 .vc-message-bubble:hover .vc-message-actions, .vc-message-actions:focus-within { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .vc-message-actions button { display: grid; width: 25px; height: 23px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #fff; font-size: 11px; cursor: pointer; }
@@ -856,6 +864,12 @@
 .vc-reply-preview small { color: rgb(255 255 255 / 55%); font-size: 7px; }
 .vc-reply-preview strong { overflow: hidden; margin-top: 2px; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .vc-reply-preview button { display: grid; width: 25px; height: 25px; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #fff; cursor: pointer; }
+.vc-typing-indicator { display: flex; width: max-content; gap: 7px; align-items: center; margin: 0 10px 6px; padding: 6px 9px; border: 1px solid rgb(255 255 255 / 9%); border-radius: 9px; background: rgb(18 18 17 / 78%); color: rgb(255 255 255 / 65%); font-size: 8px; backdrop-filter: blur(14px); }
+.vc-typing-indicator > span { display: flex; gap: 2px; }
+.vc-typing-indicator i { width: 3px; height: 3px; border-radius: 50%; background: var(--room-accent); animation: vc-typing 900ms ease-in-out infinite alternate; }
+.vc-typing-indicator i:nth-child(2) { animation-delay: 150ms; }
+.vc-typing-indicator i:nth-child(3) { animation-delay: 300ms; }
+@keyframes vc-typing { to { opacity: .3; transform: translateY(-2px); } }
 .vc-emoji-tray { display: flex; width: max-content; gap: 4px; margin: 0 52px 6px auto; padding: 5px; border: 1px solid rgb(255 255 255 / 11%); border-radius: 11px; background: rgb(18 18 17 / 91%); box-shadow: 0 15px 45px rgb(0 0 0 / 22%); backdrop-filter: blur(18px); }
 .vc-emoji-tray button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #fff; font-size: 15px; cursor: pointer; }
 .vc-emoji-tray button:hover { background: rgb(255 255 255 / 9%); }
@@ -1011,6 +1025,26 @@
 .vc-profile-stats span { display: flex; flex-direction: column; }
 .vc-profile-stats strong { font-family: Georgia, serif; font-size: 18px; font-weight: 500; }
 .vc-profile-stats small { margin-top: 3px; color: var(--vc-muted); font-size: 7px; }
+.vc-edit-profile { display: inline-flex; align-items: center; gap: 6px; margin: -6px auto 20px; border: 0; background: none; color: var(--vc-accent); font-size: 9px; cursor: pointer; }
+.vc-profile-editor { display: grid; gap: 10px; margin: -5px 0 21px; padding: 14px; border: 1px solid var(--vc-line); border-radius: 12px; background: var(--vc-canvas); text-align: left; }
+.vc-profile-editor label { display: grid; gap: 5px; }
+.vc-profile-editor label span { color: var(--vc-muted); font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.vc-profile-editor input { width: 100%; height: 32px; padding: 0 9px; border: 1px solid var(--vc-line); border-radius: 7px; background: var(--vc-surface); color: var(--vc-ink); font-size: 10px; outline: 0; }
+.vc-profile-editor input:focus { border-color: var(--vc-accent); }
+.vc-profile-editor > small { color: #d15b4b; font-size: 8px; }
+.vc-profile-editor > div { display: flex; justify-content: center; gap: 8px; }
+.vc-profile-editor button { padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--vc-muted); font-size: 8px; cursor: pointer; }
+.vc-profile-editor button:first-child { background: var(--vc-accent); color: #fff; }
+.vc-edit-remark { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; border: 0; background: none; color: var(--vc-accent); font-size: 9px; cursor: pointer; }
+.vc-remark-editor { width: min(100%, 320px); margin: 15px auto 4px; padding: 13px; border: 1px solid var(--vc-line); border-radius: 12px; background: var(--vc-canvas); text-align: left; }
+.vc-remark-editor label { display: grid; gap: 6px; }
+.vc-remark-editor label span { color: var(--vc-muted); font-size: 8px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.vc-remark-editor input { width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--vc-line); border-radius: 8px; background: var(--vc-surface); color: var(--vc-ink); outline: 0; }
+.vc-remark-editor input:focus { border-color: var(--vc-accent); }
+.vc-remark-editor > div { display: flex; gap: 8px; margin-top: 9px; }
+.vc-remark-editor button { border: 0; background: none; color: var(--vc-muted); font-size: 8px; cursor: pointer; }
+.vc-remark-editor button:first-child { padding: 5px 9px; border-radius: 7px; background: var(--vc-accent); color: #fff; }
+.vc-remark-editor > small { display: block; margin-top: 8px; color: #d15b4b; font-size: 8px; }
 .vc-settings-stack { display: flex; flex-direction: column; gap: 20px; }
 .vc-settings-group h2 { margin: 0 0 8px 3px; color: var(--vc-muted); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
 .vc-settings-group > div { overflow: hidden; border: 1px solid var(--vc-line); border-radius: 15px; background: var(--vc-surface); }

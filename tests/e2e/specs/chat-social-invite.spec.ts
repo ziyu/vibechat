@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { signUpViaAPI } from '../helpers/auth'
+import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
 
 const password = 'VibeChat-e2e-password-2026!'
 
@@ -11,6 +11,7 @@ async function createMatrixUser(
   const page = await context.newPage()
   const signUp = await signUpViaAPI(page, { name, email, password })
   expect(signUp.ok(), await signUp.text()).toBeTruthy()
+  await completeChatOnboarding(page)
   const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
   expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
   const bootstrap = await bootstrapResponse.json()

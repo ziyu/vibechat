@@ -6,6 +6,7 @@ export const socialPersonSchema = z.object({
   displayName: z.string(),
   avatarUrl: z.string().nullable(),
   matrixUserId: z.string().nullable(),
+  remark: z.string().max(50).nullable().optional(),
 });
 
 export const socialFriendRequestSchema = z.object({
@@ -35,6 +36,10 @@ export const sendFriendRequestSchema = z.object({
 
 export const blockUserSchema = z.object({
   userId: z.string().min(1),
+});
+
+export const updateContactSchema = z.object({
+  remark: z.string().trim().max(50).nullable(),
 });
 
 export type SocialPerson = z.infer<typeof socialPersonSchema>;

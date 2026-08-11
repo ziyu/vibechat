@@ -12,6 +12,7 @@ import {
   LockKeyhole,
   LogOut,
   MoonStar,
+  Pencil,
   RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
@@ -24,7 +25,14 @@ import { PersonAvatar } from './chat-primitives'
 export function MePage() {
   const { t, locale, changeLocale } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const { state, mode, resetDemo, unblockUser, clearLocalChatData } = useChatDemo()
+  const {
+    state,
+    mode,
+    resetDemo,
+    unblockUser,
+    clearLocalChatData,
+    updateCurrentProfile,
+  } = useChatDemo()
   const [notifications, setNotifications] = useState(true)
   const [privacyExpanded, setPrivacyExpanded] = useState(false)
   const [devicesExpanded, setDevicesExpanded] = useState(false)
@@ -33,6 +41,11 @@ export function MePage() {
   const [sessionsLoading, setSessionsLoading] = useState(false)
   const [sessionsError, setSessionsError] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [profileEditing, setProfileEditing] = useState(false)
+  const [profileDisplayName, setProfileDisplayName] = useState('')
+  const [profileUsername, setProfileUsername] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileError, setProfileError] = useState('')
   const currentUser = state.people.find((person) => person.id === state.currentUserId)!
   const blockedPeople = state.blockedUserIds
     .map((userId) => state.people.find((person) => person.id === userId))
@@ -109,6 +122,32 @@ export function MePage() {
     setSessionsError(true)
   }
 
+  const openProfileEditor = () => {
+    setProfileDisplayName(currentUser.displayName)
+    setProfileUsername(currentUser.handle.replace(/^@/, ''))
+    setProfileError('')
+    setProfileEditing(true)
+  }
+
+  const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setProfileSaving(true)
+    setProfileError('')
+    try {
+      await updateCurrentProfile({
+        displayName: profileDisplayName,
+        username: profileUsername,
+      })
+      setProfileEditing(false)
+      setProfileSaving(false)
+    } catch (error) {
+      setProfileError(error instanceof Error && error.message === 'PROFILE_USERNAME_TAKEN'
+        ? t.chatApp.onboarding.usernameTaken
+        : t.chatApp.me.profileSaveFailed)
+      setProfileSaving(false)
+    }
+  }
+
   return (
     <section className="vc-me-page" data-testid="me-page">
       <header className="vc-me-header">
@@ -127,6 +166,49 @@ export function MePage() {
             <p>{currentUser.handle}</p>
           </span>
           <blockquote>{currentUser.bio}</blockquote>
+          {profileEditing ? (
+            <form className="vc-profile-editor" onSubmit={saveProfile} data-testid="profile-editor">
+              <label>
+                <span>{t.chatApp.onboarding.displayName}</span>
+                <input
+                  value={profileDisplayName}
+                  onChange={(event) => setProfileDisplayName(event.target.value)}
+                  minLength={1}
+                  maxLength={50}
+                  required
+                  data-testid="me-profile-display-name"
+                />
+              </label>
+              <label>
+                <span>{t.chatApp.onboarding.username}</span>
+                <input
+                  value={profileUsername}
+                  onChange={(event) => setProfileUsername(
+                    event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''),
+                  )}
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[a-z0-9_]+"
+                  required
+                  data-testid="me-profile-username"
+                />
+              </label>
+              {profileError ? <small role="alert">{profileError}</small> : null}
+              <div>
+                <button type="submit" disabled={profileSaving} data-testid="save-profile">
+                  {profileSaving ? t.chatApp.me.profileSaving : t.chatApp.me.profileSave}
+                </button>
+                <button type="button" onClick={() => setProfileEditing(false)}>
+                  {t.chatApp.me.profileCancel}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button type="button" className="vc-edit-profile" onClick={openProfileEditor} data-testid="edit-profile">
+              <Pencil size={12} />
+              {t.chatApp.me.editProfile}
+            </button>
+          )}
           <div className="vc-profile-stats">
             <span>
               <strong>{state.rooms.length}</strong>

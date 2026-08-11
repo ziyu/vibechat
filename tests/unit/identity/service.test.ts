@@ -24,6 +24,25 @@ class MemoryIdentityRepository implements IdentityRepository {
     return stored;
   }
 
+  async getProfile(userId: string) {
+    return this.profiles.get(userId) || null;
+  }
+
+  async getProfileByUsername(username: string) {
+    return [...this.profiles.values()].find((profile) => profile.username === username) || null;
+  }
+
+  async updateProfile(
+    userId: string,
+    update: Parameters<IdentityRepository["updateProfile"]>[1],
+  ) {
+    const profile = this.profiles.get(userId);
+    if (!profile) return null;
+    const stored = { ...profile, ...update };
+    this.profiles.set(userId, stored);
+    return stored;
+  }
+
   async getMatrixIdentity(userId: string) {
     return this.identities.get(userId) || null;
   }
@@ -171,6 +190,32 @@ describe("IdentityService", () => {
     expect(first.profile.username).toBe("alice_chat_estaccount");
     expect(second.profile).toEqual(first.profile);
     expect(repository.profiles.size).toBe(1);
+  });
+
+  it("completes onboarding and protects unique usernames", async () => {
+    const { repository, service } = createReadyService();
+    const first = await service.getOrCreateProfile(authenticatedUser);
+    repository.profiles.set("other-user", {
+      ...first,
+      userId: "other-user",
+      username: "already_used",
+    });
+
+    await expect(service.updateProfile(first.userId, {
+      username: "already_used",
+      completeOnboarding: true,
+    })).rejects.toMatchObject({ code: "PROFILE_USERNAME_TAKEN" });
+
+    const updated = await service.updateProfile(first.userId, {
+      username: "alice_vibe",
+      displayName: "Alice Vibe",
+      completeOnboarding: true,
+    });
+    expect(updated).toMatchObject({
+      username: "alice_vibe",
+      displayName: "Alice Vibe",
+      onboardingCompletedAt: new Date("2026-08-11T08:00:00.000Z"),
+    });
   });
 
   it("degrades safely when Synapse is unavailable", async () => {

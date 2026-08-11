@@ -79,6 +79,7 @@ export function createDemoChatState(locale: ChatLocale): ChatDemoState {
       },
     ],
     blockedUserIds: [],
+    typingUserIdsByRoom: {},
     spaces: [
       {
         id: 'space-campfire',

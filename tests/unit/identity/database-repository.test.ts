@@ -46,6 +46,7 @@ describe("DatabaseIdentityRepository on SQLite", () => {
       username: "repository_test",
       displayName: "Original display name",
       avatarUrl: null,
+      onboardingCompletedAt: null,
       status: "active",
       createdAt,
       updatedAt: createdAt,
@@ -61,6 +62,19 @@ describe("DatabaseIdentityRepository on SQLite", () => {
     expect(repeated).toEqual(first);
     expect(repeated.displayName).toBe("Original display name");
     expect(repeated.avatarUrl).toBeNull();
+
+    const completedAt = new Date("2026-08-11T08:05:00.000Z");
+    const updated = await repository.updateProfile(profile.userId, {
+      username: "repository_vibe",
+      displayName: "Repository Vibe",
+      onboardingCompletedAt: completedAt,
+      updatedAt: completedAt,
+    });
+    expect(updated).toMatchObject({
+      username: "repository_vibe",
+      displayName: "Repository Vibe",
+      onboardingCompletedAt: completedAt,
+    });
   });
 
   it("persists one encrypted session binding and one idempotent revoke event", async () => {

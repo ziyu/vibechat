@@ -9,6 +9,7 @@ import {
   PendingEventOrdering,
   RelationType,
   RoomEvent,
+  RoomMemberEvent,
   SyncState,
   type MatrixClient,
   type MatrixEvent,
@@ -83,6 +84,12 @@ export function sendMatrixText(
   transactionId: string,
   replyToId?: string,
 ) {
+  const room = client.getRoom(roomId)
+  const pendingEvent = room?.getPendingEvents().find(
+    (event) => event.getTxnId() === transactionId,
+  )
+  if (room && pendingEvent) return client.resendEvent(pendingEvent, room)
+
   const content = (replyToId ? {
     msgtype: MsgType.Text,
     body: text,
@@ -117,6 +124,59 @@ export function sendMatrixReaction(
   }, transactionId)
 }
 
+export function editMatrixText(
+  client: MatrixClient,
+  roomId: string,
+  eventId: string,
+  text: string,
+  transactionId: string,
+) {
+  return client.sendEvent(roomId, EventType.RoomMessage, {
+    msgtype: MsgType.Text,
+    body: `* ${text}`,
+    'm.new_content': { msgtype: MsgType.Text, body: text },
+    'm.relates_to': {
+      rel_type: RelationType.Replace,
+      event_id: eventId,
+    },
+  }, transactionId)
+}
+
+export function redactMatrixEvent(
+  client: MatrixClient,
+  roomId: string,
+  eventId: string,
+  transactionId: string,
+) {
+  return client.redactEvent(roomId, eventId, transactionId)
+}
+
+export async function sendMatrixMedia(
+  client: MatrixClient,
+  roomId: string,
+  file: File,
+  transactionId: string,
+) {
+  const uploaded = await client.uploadContent(file, {
+    name: file.name,
+    type: file.type || 'application/octet-stream',
+  })
+  const content = {
+    msgtype: file.type.startsWith('image/') ? MsgType.Image : MsgType.File,
+    body: file.name,
+    url: uploaded.content_uri,
+    info: {
+      mimetype: file.type || 'application/octet-stream',
+      size: file.size,
+    },
+  } as RoomMessageEventContent
+  return client.sendEvent(roomId, EventType.RoomMessage, content, transactionId)
+}
+
+export function setMatrixTyping(client: MatrixClient, roomId: string, isTyping: boolean) {
+  return client.sendTyping(roomId, isTyping, isTyping ? 5_000 : 0)
+}
+
 export function subscribeToMatrixProjection(
   client: MatrixClient,
   onUpdate: () => void,
@@ -140,6 +200,7 @@ export function subscribeToMatrixProjection(
   client.on(RoomEvent.LocalEchoUpdated, handleRoomChange)
   client.on(RoomEvent.Name, handleRoomChange)
   client.on(RoomEvent.MyMembership, handleRoomChange)
+  client.on(RoomMemberEvent.Typing, handleRoomChange)
 
   return () => {
     client.removeListener(ClientEvent.Sync, handleSync)
@@ -147,6 +208,7 @@ export function subscribeToMatrixProjection(
     client.removeListener(RoomEvent.LocalEchoUpdated, handleRoomChange)
     client.removeListener(RoomEvent.Name, handleRoomChange)
     client.removeListener(RoomEvent.MyMembership, handleRoomChange)
+    client.removeListener(RoomMemberEvent.Typing, handleRoomChange)
   }
 }
 
@@ -205,11 +267,37 @@ function replyEventId(event: MatrixEvent) {
   return typeof eventId === 'string' ? eventId : undefined
 }
 
-function projectRoomMessages(room: Room, pendingTransactionIds: ReadonlySet<string>) {
+function projectRoomMessages(
+  client: MatrixClient,
+  room: Room,
+  pendingTransactionIds: ReadonlySet<string>,
+) {
   const events = room.getLiveTimeline().getEvents()
   const reactions = new Map<string, Map<string, Set<string>>>()
+  const replacements = new Map<string, { text: string; timestamp: number }>()
 
   for (const event of events) {
+    if (event.getType() === EventType.RoomMessage && !event.isRedacted()) {
+      const content = event.getContent<Record<string, unknown>>()
+      const relation = content['m.relates_to']
+      const newContent = content['m.new_content']
+      if (relation && typeof relation === 'object' && newContent && typeof newContent === 'object') {
+        const relationRecord = relation as Record<string, unknown>
+        const newContentRecord = newContent as Record<string, unknown>
+        const targetId = relationRecord.event_id
+        const text = newContentRecord.body
+        if (
+          relationRecord.rel_type === RelationType.Replace
+          && typeof targetId === 'string'
+          && typeof text === 'string'
+        ) {
+          const previous = replacements.get(targetId)
+          if (!previous || previous.timestamp <= event.getTs()) {
+            replacements.set(targetId, { text, timestamp: event.getTs() })
+          }
+        }
+      }
+    }
     if (event.getType() !== EventType.Reaction || event.isRedacted()) continue
     const content = event.getContent<Record<string, unknown>>()
     const relation = content['m.relates_to']
@@ -227,24 +315,57 @@ function projectRoomMessages(room: Room, pendingTransactionIds: ReadonlySet<stri
   }
 
   return events.flatMap<ChatMessage>((event) => {
-    if (event.getType() !== EventType.RoomMessage || event.isRedacted()) return []
+    if (event.getType() !== EventType.RoomMessage) return []
     const content = event.getContent<Record<string, unknown>>()
-    if (content.msgtype !== 'm.text' || typeof content.body !== 'string') return []
     const id = event.getId() || event.getTxnId()
     const sender = event.getSender()
     if (!id || !sender) return []
+    const relation = content['m.relates_to']
+    if (
+      relation
+      && typeof relation === 'object'
+      && (relation as Record<string, unknown>).rel_type === RelationType.Replace
+    ) return []
+    const deleted = event.isRedacted()
+    const messageType = content.msgtype
+    const supported = messageType === MsgType.Text
+      || messageType === MsgType.Image
+      || messageType === MsgType.File
+    if (!deleted && (!supported || typeof content.body !== 'string')) return []
     const eventReactions: ChatReaction[] = [...(reactions.get(id)?.entries() || [])]
       .map(([emoji, users]) => ({ emoji, userIds: [...users] }))
+    const replacement = replacements.get(id)
+    const info = content.info && typeof content.info === 'object'
+      ? content.info as Record<string, unknown>
+      : {}
+    const matrixContentUri = typeof content.url === 'string' ? content.url : undefined
+    const attachment = !deleted
+      && (messageType === MsgType.Image || messageType === MsgType.File)
+      && matrixContentUri
+      ? {
+          kind: messageType === MsgType.Image ? 'image' as const : 'file' as const,
+          name: content.body as string,
+          mimeType: typeof info.mimetype === 'string'
+            ? info.mimetype
+            : 'application/octet-stream',
+          size: typeof info.size === 'number' ? info.size : 0,
+          matrixContentUri,
+          downloadUrl: client.mxcUrlToHttp(matrixContentUri) || undefined,
+        }
+      : undefined
 
     return [{
       id,
       transactionId: event.getTxnId(),
       roomId: room.roomId,
       senderId: sender,
-      text: content.body,
+      text: deleted ? '' : replacement?.text || content.body as string,
       createdAt: new Date(event.getTs()).toISOString(),
       status: messageStatus(event, pendingTransactionIds),
       replyToId: replyEventId(event),
+      edited: !!replacement,
+      deleted,
+      attachment,
       reactions: eventReactions,
     }]
   })
@@ -271,12 +392,24 @@ export function projectMatrixChatState(
   roomMetadata: Record<string, RoomBootstrap> = {},
 ): ChatDemoState {
   const people = new Map<string, ChatPerson>()
-  for (const person of social?.people || []) people.set(person.id, person)
-  people.set(profile.id, projectPerson(profile.id, profile.displayName))
-  people.set(client.getUserId()!, projectPerson(client.getUserId()!, profile.displayName))
+  for (const person of social?.people || []) {
+    people.set(person.id, person)
+    if (person.matrixUserId) {
+      people.set(person.matrixUserId, { ...person, id: person.matrixUserId })
+    }
+  }
+  const currentMatrixUserId = client.getUserId()!
+  const currentPerson = {
+    ...projectPerson(currentMatrixUserId, profile.displayName),
+    matrixUserId: currentMatrixUserId,
+    handle: `@${profile.username}`,
+  }
+  people.set(profile.id, { ...currentPerson, id: profile.id })
+  people.set(currentMatrixUserId, currentPerson)
 
   const messages: ChatMessage[] = []
   const rooms: ChatRoom[] = []
+  const typingUserIdsByRoom: Record<string, string[]> = {}
   for (const room of client.getRooms()) {
     const membership = room.getMyMembership()
     if (membership !== 'join' && membership !== 'invite') continue
@@ -284,11 +417,16 @@ export function projectMatrixChatState(
     if (!spaceId || !baseState.spaces.some((space) => space.id === spaceId)) continue
 
     for (const member of room.getJoinedMembers()) {
-      people.set(member.userId, projectPerson(member.userId, member.name))
+      if (!people.has(member.userId)) {
+        people.set(member.userId, projectPerson(member.userId, member.name))
+      }
     }
     const roomMessages = membership === 'join'
-      ? projectRoomMessages(room, pendingTransactionIds)
+      ? projectRoomMessages(client, room, pendingTransactionIds)
       : []
+    typingUserIdsByRoom[room.roomId] = room.getJoinedMembers()
+      .filter((member) => member.typing && member.userId !== client.getUserId())
+      .map((member) => member.userId)
     messages.push(...roomMessages)
     const lastMessage = roomMessages.at(-1)
     const preferences = roomPreferences[room.roomId] || {}
@@ -300,7 +438,7 @@ export function projectMatrixChatState(
         client.getUserId()!,
       ])),
       spaceId,
-      lastMessage: lastMessage?.text || '',
+      lastMessage: lastMessage?.attachment?.name || lastMessage?.text || '',
       updatedAt: lastMessage?.createdAt || new Date(room.getLiveTimeline().getEvents().at(-1)?.getTs() || 0).toISOString(),
       unreadCount: room.getUnreadNotificationCount(),
       pinned: preferences.pinned || false,
@@ -309,6 +447,10 @@ export function projectMatrixChatState(
     })
   }
 
+  // Room membership display names can lag behind the product profile. Keep
+  // the current product profile authoritative after projecting room members.
+  people.set(currentMatrixUserId, currentPerson)
+
   return {
     ...baseState,
     currentUserId: client.getUserId()!,
@@ -316,6 +458,7 @@ export function projectMatrixChatState(
     contactIds: social?.contactIds || [],
     friendRequests: social?.friendRequests || [],
     blockedUserIds: social?.blockedUserIds || [],
+    typingUserIdsByRoom,
     rooms,
     messages,
   }

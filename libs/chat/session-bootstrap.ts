@@ -8,6 +8,7 @@ export const sessionBootstrapSchema = z.object({
     username: z.string().min(1),
     displayName: z.string(),
     avatarUrl: z.string().nullable(),
+    onboardingCompleted: z.boolean(),
   }),
   matrix: z.discriminatedUnion('status', [
     z.object({

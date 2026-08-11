@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { signInViaAPI, signUpViaAPI } from '../helpers/auth'
+import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
 
 test.describe('Vibe Chat browser session management', () => {
   test.setTimeout(90_000)
@@ -24,6 +24,7 @@ test.describe('Vibe Chat browser session management', () => {
         password,
       })
       expect(signUp.ok(), await signUp.text()).toBeTruthy()
+      await completeChatOnboarding(firstPage)
       const firstBootstrapResponse = await firstPage.request.get('/v1/session/bootstrap')
       expect(firstBootstrapResponse.ok(), await firstBootstrapResponse.text()).toBeTruthy()
       const firstBootstrap = await firstBootstrapResponse.json()

@@ -22,6 +22,15 @@ export interface ChatReaction {
   userIds: string[]
 }
 
+export interface ChatAttachment {
+  kind: 'image' | 'file'
+  name: string
+  mimeType: string
+  size: number
+  matrixContentUri: string
+  downloadUrl?: string
+}
+
 export interface ChatMessage {
   id: string
   transactionId?: string
@@ -31,6 +40,9 @@ export interface ChatMessage {
   createdAt: string
   status: MessageDeliveryStatus
   replyToId?: string
+  edited?: boolean
+  deleted?: boolean
+  attachment?: ChatAttachment
   reactions: ChatReaction[]
 }
 
@@ -75,6 +87,7 @@ export interface ChatDemoState {
   contactIds: string[]
   friendRequests: FriendRequest[]
   blockedUserIds: string[]
+  typingUserIdsByRoom: Record<string, string[]>
   rooms: ChatRoom[]
   messages: ChatMessage[]
   spaces: AtmosphereSpace[]

@@ -43,10 +43,17 @@ function getRefererInfo(request?: Request): { locale: string; lastSegment: strin
 
 export const auth = betterAuth({
   appName: 'vibechat',
-  trustedOrigins: [
-    ...(process.env.APP_BASE_URL ? [process.env.APP_BASE_URL] : []),
-    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
-  ],
+  trustedOrigins: (request) => {
+    const origins = [process.env.APP_BASE_URL, process.env.BETTER_AUTH_URL]
+      .filter((origin): origin is string => !!origin)
+    if (process.env.NODE_ENV !== 'production' && request) {
+      const requestUrl = new URL(request.url)
+      if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
+        origins.push(requestUrl.origin)
+      }
+    }
+    return origins
+  },
   database: drizzleAdapter(db, {
     provider: isSqliteDialect() ? 'sqlite' : 'pg',
     schema: {

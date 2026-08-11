@@ -7,6 +7,7 @@ export const userProfile = sqliteTable("user_profiles", {
   username: text("username").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
+  onboardingCompletedAt: integer("onboarding_completed_at", { mode: "timestamp" }),
   status: text("status").notNull().default("active"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),

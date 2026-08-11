@@ -15,11 +15,11 @@
 
 ## 2. 当前结论
 
-> **产品实现状态：A1 已完成，A2 Active。**
+> **产品实现状态：A1、A2 已完成，下一主线为 A3。**
 
 仓库已有 TanStack Start 工程骨架、共享 SaaS 能力、Vibe Chat 品牌和文档基线，但这些不能证明产品与技术设计中的核心能力已经实现。
 
-截至 2026-08-11，已经形成以下实现证据：
+截至 2026-08-12，已经形成以下实现证据：
 
 - `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构已在 TanStack Start 中实现。
 - `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 Matrix 投影；未配置环境保留显式 fixture 预览。
@@ -28,9 +28,11 @@
 - Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding、session revoke worker、Synapse Appservice adapter、room index 和 integration outbox 已形成可执行实现。
 - 浏览器 `matrix-js-sdk` 已接管 room/timeline，同步缓存、local echo、消息、回复、回应和 transaction ID 幂等均通过本地 Synapse/Chromium 验证。
 - 产品好友请求、双向联系人、屏蔽、房间参与者 ACL、Matrix 邀请确认与双浏览器会话管理已经通过真实链路验证。
-- identity/rooms/social unit、SQLite repository 与 mock HTTP 测试 32/32；fixture/真实 Matrix/双用户社交/会话管理浏览器回归 10/10。
+- Matrix 媒体、编辑、删除、typing、历史搜索和离线 pending event 幂等重发已经通过双用户真实链路验证。
+- 新用户首次资料设置、资料热更新、唯一用户名和私有联系人备注已接入产品 profile 与社交投影。
+- identity/rooms/social unit、SQLite repository 与 mock HTTP 测试 34/34；聊天基础全量 Chromium 回归 15/15；TanStack 构建和 Cloudflare 本地 SSR 预览通过。
 
-尚未实现的核心范围包括 A2 的媒体、编辑/删除、typing、历史搜索、离线失败恢复与资料首次设置，以及氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。
+尚未实现的产品专属范围包括氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系；它们分别进入 A3、A4 和 A5，不再属于聊天基础闭环。
 
 ## 3. 状态定义
 
@@ -49,7 +51,7 @@
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
 | A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./social-matrix-invitations.md)均通过本地 Synapse 验证 | 补齐媒体、编辑/删除、typing、搜索、离线恢复与资料设置 |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Complete | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./social-matrix-invitations.md)、[完整消息操作与资料基础](./matrix-message-profile-foundation.md)均通过本地 Synapse 验证 | 保持合约稳定，由 A3 通过 capability 使用 |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |
@@ -76,15 +78,16 @@
 - 后端相关内容保持候选状态，没有把现有 Better Auth、数据库和支付实现误写成产品最终决策。
 - `pnpm docs:check`、`pnpm typecheck`、`pnpm build` 通过。
 
-## 6. 最近完成切片：A2 Email OTP 与产品 Session Bootstrap
+## 6. 最近完成工作流：A2 身份、社交与 Matrix 消息底座
 
-A2 第一条切片遵循[实现参考](../../stable/references/identity-session-bootstrap.md)，以下完成条件已全部满足：
+A2 从[身份与 Session Bootstrap 实现参考](../../stable/references/identity-session-bootstrap.md)开始，以下阶段完成条件已全部满足：
 
 1. Better Auth 官方 Email OTP plugin 提供验证码生成、哈希存储、尝试次数与自动注册登录。
-2. 登录页默认使用 Email OTP，旧密码登录仅作为迁移兼容入口保留。
-3. `GET /v1/session/bootstrap` 只接受 Better Auth Cookie session，并返回稳定的共享 contract。
-4. Matrix 未配置时显式返回 unavailable，响应中不存在 access token、device ID 或伪造 Matrix user ID。
-5. TEST-CATALOG #26 对应 E2E、`pnpm docs:check`、`pnpm typecheck` 与 `pnpm build` 通过。
+2. 产品 profile、Matrix identity、每 session device binding 与撤销 outbox 形成可恢复生命周期。
+3. 好友、联系人、备注、屏蔽、房间 ACL、Matrix 邀请和浏览器会话管理形成完整产品链路。
+4. Matrix 标准事件覆盖文字、回复、回应、媒体、编辑、删除和 typing；SDK 缓存、失败状态与幂等重发通过刷新/离线验证。
+5. 新用户必须完成资料设置；用户名唯一，资料变更同步当前 Matrix 展示，联系人备注保持方向性私有。
+6. TEST-CATALOG #26–#34、34 项相关单测和 15 项聊天 E2E 全部通过；`pnpm build` 与 Cloudflare 本地 SSR 预览通过。
 
 ## 7. 待决策清单
 

@@ -34,4 +34,4 @@
 
 ## 下一出口
 
-继续完成 A2 剩余 Matrix adapter 能力：媒体、编辑、删除、typing、历史搜索与离线失败恢复；同时补齐用户资料首次设置和备注名。
+媒体、编辑、删除、typing、历史搜索、离线失败恢复、用户资料首次设置和备注已经在[完整消息操作与资料基础](./matrix-message-profile-foundation.md)中完成。A2 至此闭环，下一主线进入 A3 氛围空间 Runtime。

@@ -15,12 +15,15 @@ import {
   CheckCheck,
   ChevronDown,
   CornerUpLeft,
+  FileText,
   ImagePlus,
   MoreHorizontal,
+  Pencil,
   Pin,
   PinOff,
   Send,
   SmilePlus,
+  Trash2,
   Volume2,
   VolumeX,
   UsersRound,
@@ -48,18 +51,25 @@ export function RoomPage({ roomId }: { roomId: string }) {
     mode,
     markRoomRead,
     sendMessage,
+    sendAttachment,
+    editMessage,
+    deleteMessage,
+    setTyping,
+    retryMessage,
     toggleReaction,
     toggleRoomMuted,
     toggleRoomPinned,
   } = useChatDemo()
   const [draft, setDraft] = useState('')
   const [replyToId, setReplyToId] = useState<string>()
+  const [editingMessageId, setEditingMessageId] = useState<string>()
   const [controlsVisible, setControlsVisible] = useState(true)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [sendError, setSendError] = useState(false)
   const timelineRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const typingTimerRef = useRef<number | undefined>(undefined)
   const room = state.rooms.find((candidate) => candidate.id === roomId)
   const space = state.spaces.find((candidate) => candidate.id === room?.spaceId)
   const messages = useMemo(() => getRoomMessages(state, roomId), [roomId, state])
@@ -80,6 +90,11 @@ export function RoomPage({ roomId }: { roomId: string }) {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
+
+  useEffect(() => () => {
+    window.clearTimeout(typingTimerRef.current)
+    setTyping(roomId, false)
+  }, [roomId, setTyping])
 
   useEffect(() => {
     timelineRef.current?.scrollTo({
@@ -108,11 +123,22 @@ export function RoomPage({ roomId }: { roomId: string }) {
     .filter((person): person is NonNullable<typeof person> => !!person)
   const replyMessage = messages.find((message) => message.id === replyToId)
   const replyPerson = state.people.find((person) => person.id === replyMessage?.senderId)
+  const typingPeople = (state.typingUserIdsByRoom[room.id] || [])
+    .map((userId) => state.people.find((person) => person.id === userId))
+    .filter((person): person is NonNullable<typeof person> => !!person)
 
   const submit = () => {
     if (!draft.trim()) return
     setSendError(false)
-    void sendMessage(room.id, draft, replyToId).catch(() => setSendError(true))
+    const text = draft.trim()
+    if (editingMessageId) {
+      void editMessage(editingMessageId, text).catch(() => setSendError(true))
+      setEditingMessageId(undefined)
+    } else {
+      void sendMessage(room.id, text, replyToId).catch(() => setSendError(true))
+    }
+    setTyping(room.id, false)
+    window.clearTimeout(typingTimerRef.current)
     setDraft('')
     setReplyToId(undefined)
   }
@@ -126,10 +152,20 @@ export function RoomPage({ roomId }: { roomId: string }) {
 
   const onFileSelected = (file?: File) => {
     if (!file) return
-    const fallback = t.chatApp.room.attachmentFallback.replace('{name}', file.name)
     setSendError(false)
-    void sendMessage(room.id, fallback).catch(() => setSendError(true))
+    void sendAttachment(room.id, file).catch(() => setSendError(true))
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const onDraftChange = (value: string) => {
+    setDraft(value)
+    window.clearTimeout(typingTimerRef.current)
+    if (!value.trim()) {
+      setTyping(room.id, false)
+      return
+    }
+    setTyping(room.id, true)
+    typingTimerRef.current = window.setTimeout(() => setTyping(room.id, false), 3_500)
   }
 
   return (
@@ -279,19 +315,52 @@ export function RoomPage({ roomId }: { roomId: string }) {
                           <span>{repliedMessage.text}</span>
                         </blockquote>
                       ) : null}
-                      <p data-testid="message-body">{message.text}</p>
+                      {message.attachment ? (
+                        <a
+                          className="vc-message-attachment"
+                          href={message.attachment.downloadUrl}
+                          download={message.attachment.name}
+                          data-testid="message-attachment"
+                        >
+                          {message.attachment.kind === 'image' && message.attachment.downloadUrl ? (
+                            <img src={message.attachment.downloadUrl} alt={message.attachment.name} />
+                          ) : <FileText size={18} />}
+                          <span>
+                            <strong>{message.attachment.name}</strong>
+                            <small>
+                              {message.attachment.mimeType} · {Math.ceil(message.attachment.size / 1024)} KB
+                            </small>
+                          </span>
+                        </a>
+                      ) : null}
+                      <p data-testid="message-body">
+                        {message.deleted ? t.chatApp.room.deletedMessage : message.text}
+                      </p>
+                      {message.edited && !message.deleted ? (
+                        <small className="vc-edited-label">{t.chatApp.room.edited}</small>
+                      ) : null}
                       {own ? (
                         <small className="vc-delivery-status">
-                          {message.status === 'sending' ? (
-                            t.chatApp.room.sending
-                          ) : (
+                          {message.status === 'sending'
+                            ? t.chatApp.room.sending
+                            : message.status === 'failed'
+                              ? (
+                                <button
+                                  type="button"
+                                  onClick={() => void retryMessage(message.id).catch(() => setSendError(true))}
+                                  data-testid="retry-message"
+                                >
+                                  {t.chatApp.room.retryFailed}
+                                </button>
+                              )
+                              : (
                             <>
                               <Check size={11} /> {t.chatApp.room.sent}
                             </>
-                          )}
+                              )}
                         </small>
                       ) : null}
-                      <div className="vc-message-actions">
+                      {!message.deleted ? <div className="vc-message-actions">
                         <button
                           type="button"
                           onClick={() => setReplyToId(message.id)}
@@ -309,7 +378,34 @@ export function RoomPage({ roomId }: { roomId: string }) {
                             {emoji}
                           </button>
                         ))}
-                      </div>
+                        {own ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyToId(undefined)
+                                setEditingMessageId(message.id)
+                                setDraft(message.text)
+                                composerRef.current?.focus()
+                              }}
+                              aria-label={t.chatApp.room.editMessage}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(t.chatApp.room.deleteMessageConfirm)) {
+                                  void deleteMessage(message.id).catch(() => setSendError(true))
+                                }
+                              }}
+                              aria-label={t.chatApp.room.deleteMessage}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        ) : null}
+                      </div> : null}
                     </div>
                     {message.reactions.length ? (
                       <div className="vc-reactions">
@@ -345,6 +441,34 @@ export function RoomPage({ roomId }: { roomId: string }) {
               </button>
             </div>
           ) : null}
+          {editingMessageId ? (
+            <div className="vc-reply-preview" data-testid="edit-preview">
+              <Pencil size={14} />
+              <span>
+                <small>{t.chatApp.room.editingMessage}</small>
+                <strong>{draft}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingMessageId(undefined)
+                  setDraft('')
+                }}
+                aria-label={t.actions.cancel}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : null}
+          {typingPeople.length ? (
+            <div className="vc-typing-indicator" data-testid="typing-indicator">
+              <span><i /><i /><i /></span>
+              {t.chatApp.room.typing.replace(
+                '{names}',
+                typingPeople.map((person) => person.displayName).join('、'),
+              )}
+            </div>
+          ) : null}
           {emojiOpen ? (
             <div className="vc-emoji-tray" aria-label={t.chatApp.room.emoji}>
               {['🌙', '✨', '♥', '☕', '🎧'].map((emoji) => (
@@ -368,6 +492,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
               ref={fileInputRef}
               type="file"
               hidden
+              data-testid="attachment-input"
               onChange={(event) => onFileSelected(event.target.files?.[0])}
             />
             <button
@@ -381,7 +506,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
             <textarea
               ref={composerRef}
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => onDraftChange(event.target.value)}
               onKeyDown={onComposerKeyDown}
               placeholder={t.chatApp.room.messagePlaceholder}
               rows={1}

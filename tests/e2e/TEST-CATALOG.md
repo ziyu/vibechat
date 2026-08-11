@@ -40,6 +40,8 @@
 - [30. 真实 Matrix 房间与消息 Timeline](#30-真实-matrix-房间与消息-timeline)
 - [31. 好友关系与双用户 Matrix 邀请](#31-好友关系与双用户-matrix-邀请)
 - [32. 浏览器会话与本地 Matrix 数据管理](#32-浏览器会话与本地-matrix-数据管理)
+- [33. Matrix 完整消息操作](#33-matrix-完整消息操作)
+- [34. 首次资料设置与联系人备注](#34-首次资料设置与联系人备注)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1157,6 +1159,42 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 ---
 
+## 33. Matrix 完整消息操作
+
+**文件：** `specs/chat-matrix-operations.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+阶段 1 的消息 adapter 必须使用 Matrix 标准事件与关系完成文字以外的日常操作，并在双方同步、刷新和恢复投影中保持一致。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 编辑自己的文字 | 发送者编辑已确认消息 → 写入 `m.replace` 与 `m.new_content` → 双方原消息位置展示新文字和“已编辑” |
+| 2 | 删除自己的消息 | 发送者确认删除 → Matrix redaction → 双方保留删除占位而不是静默丢失时间线位置 |
+| 3 | 权限约束 | 非发送者 UI 不显示编辑/删除；adapter 不把编辑和 redaction 暴露为普通新消息 |
+| 4 | 媒体附件 | 选择图片或文件 → 上传 Synapse media repository → 发送 `m.image`/`m.file` → 对端显示名称、类型和受控下载入口 |
+| 5 | 正在输入 | 输入框变化发送 `m.typing` ephemeral event → 对端显示输入提示 → 发送、清空或超时后提示消失 |
+| 6 | 历史搜索 | 会话搜索命中已加载消息正文或附件名称 → 返回对应房间；删除内容不再参与可读搜索 |
+| 7 | 恢复一致 | 页面刷新后编辑、删除和附件投影保持一致；token、媒体内容与本地文件句柄不写入 localStorage |
+
+---
+
+## 34. 首次资料设置与联系人备注
+
+**文件：** `specs/chat-profile-onboarding.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+产品资料是 Better Auth 账号、社交目录和 Matrix 身份之间的稳定映射。新账号先完成资料设置，联系人备注只影响设置者自己的联系人视图。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 首次设置守卫 | 新账号访问聊天页 → 跳转 `/onboarding`；已完成资料的账号不再被拦截 |
+| 2 | 资料校验 | 昵称必填；用户名只能使用小写字母、数字和下划线且全局唯一；非法或重复值返回稳定错误码 |
+| 3 | 完成首次设置 | 保存昵称、唯一用户名并选择跳过头像 → 标记完成 → 进入消息页 → bootstrap 返回新资料 |
+| 4 | 后续编辑 | “我的”页面修改昵称与用户名 → 页面刷新和 Matrix 当前用户投影展示最新资料 |
+| 5 | 头像入口 | 支持选择受限图片并复用认证上传接口；存储未配置时展示可恢复错误且允许跳过，不阻塞首次设置 |
+| 6 | 联系人备注 | 建立好友后设置备注 → 仅设置者联系人列表、选人和会话成员投影优先显示备注；对端仍显示原昵称 |
+| 7 | 备注清除与权限 | 清空备注恢复昵称；非联系人不能写备注；长度和输入由共享 schema 校验 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1171,6 +1209,8 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 | ✅ | 30 | 真实 Matrix 房间与消息 Timeline | SQLite、本地 Synapse、Chromium | 8 |
 | ✅ | 31 | 好友关系与双用户 Matrix 邀请 | SQLite、本地 Synapse、双 Chromium Context | 9 |
 | ✅ | 32 | 浏览器会话与本地 Matrix 数据管理 | SQLite、本地 Synapse、双 Chromium Context | 5 |
+| ✅ | 33 | Matrix 完整消息操作 | SQLite、本地 Synapse、双 Chromium Context | 7 |
+| ✅ | 34 | 首次资料设置与联系人备注 | SQLite、本地 Synapse、双 Chromium Context | 7 |
 
 ---
 
@@ -1180,6 +1220,9 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | TanStack + Vitest + Synapse | 49 | 0 | 0 | A2 聊天基础闭环（identity/rooms/social 单测 34 项；OTP、fixture、Matrix 房间/消息操作、资料、社交邀请、会话与撤销 E2E 15 项） |
+| 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | 首次资料设置与联系人备注真实链路（唯一用户名、头像校验、资料热更新、方向性私有备注与权限） |
+| 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | Matrix 完整消息操作真实链路（typing、编辑、撤回、媒体、搜索、刷新恢复、离线 pending event 幂等重发） |
 | 2026-08-12 | TanStack + Vitest + Synapse | 42 | 0 | 0 | A2 基础整合（identity/rooms/social 单测 32 项；fixture、真实 room、双用户好友/邀请/屏蔽、会话撤销与本地清理 E2E 10 项） |
 | 2026-08-12 | TanStack + Vitest + Synapse | 8 | 0 | 0 | 真实 Matrix 房间与 Timeline（rooms 单测 6 项 + 本地 Synapse/Chromium E2E 2 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 4 | 0 | 0 | Session 撤销与 Matrix Device 回收（worker 单测 3 项 + 真实 sign-out/token 失效 E2E 1 项） |

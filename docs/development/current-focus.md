@@ -7,9 +7,9 @@
 
 ## 当前阶段
 
-仓库已经完成 Vibe Chat 产品 Web 前端宿主的首轮验收，并已用真实产品 session、Synapse room 与 Matrix timeline 替换身份和消息主链路；未经产品评审的旧 SaaS 能力继续隔离。
+仓库已经完成 Vibe Chat 产品 Web 前端宿主和 A2 聊天基础闭环验收，并已用真实产品 session、Synapse room 与 Matrix timeline 替换身份和消息主链路；未经产品评审的旧 SaaS 能力继续隔离。
 
-当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A2“身份、社交与 Matrix 消息底座”。Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)、session 撤销 worker、[真实 Matrix 房间与 Timeline](./active/matrix-room-timeline.md)和[社交关系与 Matrix 邀请](./active/social-matrix-invitations.md)切片已经完成。下一步补齐媒体、编辑/删除、typing、历史搜索、离线失败恢复和用户资料首次设置。A0 的脚手架清理与追踪矩阵仍作为并行工程治理工作保留。
+Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)、session 撤销 worker、[真实 Matrix 房间与 Timeline](./active/matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./active/social-matrix-invitations.md)以及[完整消息操作与资料基础](./active/matrix-message-profile-foundation.md)均已完成。A2 的 34 项领域单测和 15 项本地 Synapse/Chromium E2E 全部通过，Cloudflare 本地预览也已验证。下一主线进入 A3“氛围空间 Runtime”的 manifest、协议、capability 和 iframe 沙箱 spec；A0 的脚手架清理与追踪矩阵仍作为并行工程治理工作保留。
 
 ## 当前约束
 

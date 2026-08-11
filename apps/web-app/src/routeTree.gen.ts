@@ -13,11 +13,13 @@ import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PaymentCancelRouteImport } from './routes/payment-cancel'
 import { Route as LangRouteImport } from './routes/$lang'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as V1ProfileRouteImport } from './routes/v1/profile'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiImageGenerateRouteImport } from './routes/api/image-generate'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as LangOnboardingRouteImport } from './routes/$lang/onboarding'
 import { Route as LangAdminRouteImport } from './routes/$lang/admin'
 import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
 import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
@@ -33,6 +35,7 @@ import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
 import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
+import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
 import { Route as V1BlocksUserIdRouteImport } from './routes/v1/blocks/$userId'
 import { Route as ApiWithdrawalRequestRouteImport } from './routes/api/withdrawal/request'
 import { Route as ApiWithdrawalHistoryRouteImport } from './routes/api/withdrawal/history'
@@ -136,6 +139,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1ProfileRoute = V1ProfileRouteImport.update({
+  id: '/v1/profile',
+  path: '/v1/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadRoute = ApiUploadRouteImport.update({
   id: '/api/upload',
   path: '/api/upload',
@@ -160,6 +168,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LangOnboardingRoute = LangOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => LangRoute,
 } as any)
 const LangAdminRoute = LangAdminRouteImport.update({
   id: '/admin',
@@ -231,6 +244,11 @@ const V1SessionBootstrapRoute = V1SessionBootstrapRouteImport.update({
 const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
   id: '/v1/rooms/metadata',
   path: '/v1/rooms/metadata',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1ContactsUserIdRoute = V1ContactsUserIdRouteImport.update({
+  id: '/v1/contacts/$userId',
+  path: '/v1/contacts/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const V1BlocksUserIdRoute = V1BlocksUserIdRouteImport.update({
@@ -664,11 +682,13 @@ export interface FileRoutesByFullPath {
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/$lang/admin': typeof LangAdminRouteWithChildren
+  '/$lang/onboarding': typeof LangOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/profile': typeof V1ProfileRoute
   '/$lang/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
@@ -709,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -768,11 +789,13 @@ export interface FileRoutesByTo {
   '/$lang': typeof LangrootIndexRoute
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
+  '/$lang/onboarding': typeof LangOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/profile': typeof V1ProfileRoute
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/reset-password': typeof LangauthResetPasswordRoute
@@ -812,6 +835,7 @@ export interface FileRoutesByTo {
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -875,11 +899,13 @@ export interface FileRoutesById {
   '/$lang/(chat)': typeof LangchatRouteRouteWithChildren
   '/$lang/(root)': typeof LangrootRouteRouteWithChildren
   '/$lang/admin': typeof LangAdminRouteWithChildren
+  '/$lang/onboarding': typeof LangOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/profile': typeof V1ProfileRoute
   '/$lang/(chat)/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/(auth)/cellphone': typeof LangauthCellphoneRoute
   '/$lang/(auth)/forgot-password': typeof LangauthForgotPasswordRoute
@@ -920,6 +946,7 @@ export interface FileRoutesById {
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -982,11 +1009,13 @@ export interface FileRouteTypes {
     | '/payment-cancel'
     | '/payment-success'
     | '/$lang/admin'
+    | '/$lang/onboarding'
     | '/api/chat'
     | '/api/health'
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/profile'
     | '/$lang/discover'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
@@ -1027,6 +1056,7 @@ export interface FileRouteTypes {
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
+    | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -1086,11 +1116,13 @@ export interface FileRouteTypes {
     | '/$lang'
     | '/payment-cancel'
     | '/payment-success'
+    | '/$lang/onboarding'
     | '/api/chat'
     | '/api/health'
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/profile'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
     | '/$lang/reset-password'
@@ -1130,6 +1162,7 @@ export interface FileRouteTypes {
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
+    | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -1192,11 +1225,13 @@ export interface FileRouteTypes {
     | '/$lang/(chat)'
     | '/$lang/(root)'
     | '/$lang/admin'
+    | '/$lang/onboarding'
     | '/api/chat'
     | '/api/health'
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/profile'
     | '/$lang/(chat)/discover'
     | '/$lang/(auth)/cellphone'
     | '/$lang/(auth)/forgot-password'
@@ -1237,6 +1272,7 @@ export interface FileRouteTypes {
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
+    | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -1302,6 +1338,7 @@ export interface RootRouteChildren {
   ApiImageGenerateRoute: typeof ApiImageGenerateRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiUploadRoute: typeof ApiUploadRoute
+  V1ProfileRoute: typeof V1ProfileRoute
   ApiAdminCommissionsRoute: typeof ApiAdminCommissionsRoute
   ApiAffiliateClaimRoute: typeof ApiAffiliateClaimRoute
   ApiAffiliateCommissionsRoute: typeof ApiAffiliateCommissionsRoute
@@ -1323,6 +1360,7 @@ export interface RootRouteChildren {
   ApiWithdrawalHistoryRoute: typeof ApiWithdrawalHistoryRoute
   ApiWithdrawalRequestRoute: typeof ApiWithdrawalRequestRoute
   V1BlocksUserIdRoute: typeof V1BlocksUserIdRoute
+  V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   V1UsersSearchRoute: typeof V1UsersSearchRoute
@@ -1390,6 +1428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/profile': {
+      id: '/v1/profile'
+      path: '/v1/profile'
+      fullPath: '/v1/profile'
+      preLoaderRoute: typeof V1ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/upload': {
       id: '/api/upload'
       path: '/api/upload'
@@ -1424,6 +1469,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/$lang/onboarding': {
+      id: '/$lang/onboarding'
+      path: '/onboarding'
+      fullPath: '/$lang/onboarding'
+      preLoaderRoute: typeof LangOnboardingRouteImport
+      parentRoute: typeof LangRoute
     }
     '/$lang/admin': {
       id: '/$lang/admin'
@@ -1528,6 +1580,13 @@ declare module '@tanstack/react-router' {
       path: '/v1/rooms/metadata'
       fullPath: '/v1/rooms/metadata'
       preLoaderRoute: typeof V1RoomsMetadataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/contacts/$userId': {
+      id: '/v1/contacts/$userId'
+      path: '/v1/contacts/$userId'
+      fullPath: '/v1/contacts/$userId'
+      preLoaderRoute: typeof V1ContactsUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/blocks/$userId': {
@@ -2237,6 +2296,7 @@ interface LangRouteChildren {
   LangchatRouteRoute: typeof LangchatRouteRouteWithChildren
   LangrootRouteRoute: typeof LangrootRouteRouteWithChildren
   LangAdminRoute: typeof LangAdminRouteWithChildren
+  LangOnboardingRoute: typeof LangOnboardingRoute
 }
 
 const LangRouteChildren: LangRouteChildren = {
@@ -2244,6 +2304,7 @@ const LangRouteChildren: LangRouteChildren = {
   LangchatRouteRoute: LangchatRouteRouteWithChildren,
   LangrootRouteRoute: LangrootRouteRouteWithChildren,
   LangAdminRoute: LangAdminRouteWithChildren,
+  LangOnboardingRoute: LangOnboardingRoute,
 }
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
@@ -2258,6 +2319,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImageGenerateRoute: ApiImageGenerateRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiUploadRoute: ApiUploadRoute,
+  V1ProfileRoute: V1ProfileRoute,
   ApiAdminCommissionsRoute: ApiAdminCommissionsRoute,
   ApiAffiliateClaimRoute: ApiAffiliateClaimRoute,
   ApiAffiliateCommissionsRoute: ApiAffiliateCommissionsRoute,
@@ -2279,6 +2341,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWithdrawalHistoryRoute: ApiWithdrawalHistoryRoute,
   ApiWithdrawalRequestRoute: ApiWithdrawalRequestRoute,
   V1BlocksUserIdRoute: V1BlocksUserIdRoute,
+  V1ContactsUserIdRoute: V1ContactsUserIdRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   V1UsersSearchRoute: V1UsersSearchRoute,

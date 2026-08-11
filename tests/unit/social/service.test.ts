@@ -9,6 +9,7 @@ class MemorySocialRepository implements SocialRepository {
   requests = new Map<string, FriendRequestRecord>();
   contacts = new Set<string>();
   blocks = new Set<string>();
+  remarks = new Map<string, string | null>();
 
   constructor() {
     for (const id of ["alice", "bob", "carol"]) {
@@ -52,7 +53,10 @@ class MemorySocialRepository implements SocialRepository {
   async getSnapshot(userId: string): Promise<SocialSnapshotRecords> {
     const contacts = [...this.contacts]
       .filter((key) => key.startsWith(`${userId}:`))
-      .map((key) => this.profiles.get(key.split(':')[1])!);
+      .map((key) => ({
+        ...this.profiles.get(key.split(':')[1])!,
+        remark: this.remarks.get(key) || null,
+      }));
     const incoming = [];
     const outgoing = [];
     for (const request of this.requests.values()) {
@@ -99,6 +103,12 @@ class MemorySocialRepository implements SocialRepository {
   }
   async unblockUser(blockerId: string, blockedUserId: string) {
     this.blocks.delete(`${blockerId}:${blockedUserId}`);
+  }
+  async updateContactRemark(userId: string, contactUserId: string, remark: string | null) {
+    const key = `${userId}:${contactUserId}`;
+    if (!this.contacts.has(key)) return false;
+    this.remarks.set(key, remark);
+    return true;
   }
 }
 
@@ -168,5 +178,26 @@ describe("SocialService", () => {
     expect(await repository.isContact("alice", "bob")).toBe(false);
     expect(await repository.isContact("bob", "alice")).toBe(false);
     expect(await repository.hasBlockBetween("alice", "bob")).toBe(true);
+  });
+
+  it("stores a private directional contact remark and clears it", async () => {
+    const { service } = createService();
+    const request = await service.sendFriendRequest("alice", "bob");
+    await service.acceptFriendRequest("bob", request.id);
+
+    await service.updateContactRemark("alice", "bob", "Night radio friend");
+    await expect(service.getSnapshot("alice")).resolves.toMatchObject({
+      contacts: [{ id: "bob", remark: "Night radio friend" }],
+    });
+    await expect(service.getSnapshot("bob")).resolves.toMatchObject({
+      contacts: [{ id: "alice", remark: null }],
+    });
+
+    await service.updateContactRemark("alice", "bob", "");
+    await expect(service.getSnapshot("alice")).resolves.toMatchObject({
+      contacts: [{ id: "bob", remark: null }],
+    });
+    await expect(service.updateContactRemark("alice", "carol", "Nope"))
+      .rejects.toBeInstanceOf(SocialServiceError);
   });
 });

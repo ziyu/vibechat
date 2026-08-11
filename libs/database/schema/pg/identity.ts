@@ -7,6 +7,7 @@ export const userProfile = pgTable("user_profiles", {
   username: text("username").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

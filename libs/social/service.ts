@@ -120,6 +120,16 @@ export class SocialService {
     return this.repository.unblockUser(blockerId, blockedUserId);
   }
 
+  async updateContactRemark(userId: string, contactUserId: string, remark: string | null) {
+    if (!await this.repository.isContact(userId, contactUserId)) {
+      throw new SocialServiceError("SOCIAL_NOT_CONTACT");
+    }
+    const normalized = remark?.trim() || null;
+    if (!await this.repository.updateContactRemark(userId, contactUserId, normalized)) {
+      throw new SocialServiceError("SOCIAL_NOT_CONTACT");
+    }
+  }
+
   async assertCanInvite(inviterUserId: string, participantUserIds: string[]) {
     for (const participantUserId of participantUserIds) {
       if (await this.repository.hasBlockBetween(inviterUserId, participantUserId)) {
