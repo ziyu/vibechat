@@ -151,7 +151,7 @@ Follow the checklist in the root `AGENTS.md`: put reusable domain logic in `libs
 
 ### Cloudflare Workers Deployment
 
-See `docs/user-guide/deployment/cloudflare-workers.md` for the full guide. Key points:
+See `docs/stable/runbooks/deployment/cloudflare-workers.md` for the full Runbook. Key points:
 - Set `CF_DEPLOY=1` to activate Cloudflare Vite plugin
 - Configure Hyperdrive for PostgreSQL access
 - Use `wrangler secret put` for sensitive env vars
@@ -190,7 +190,7 @@ npx playwright test --config=tests/e2e/playwright.config.ts
 
 - Ensure `CF_DEPLOY` is only set when intentionally building for Workers
 - Check `wrangler.jsonc` for correct Hyperdrive ID
-- See `docs/user-guide/deployment/cloudflare-workers.md` troubleshooting section
+- See `docs/stable/runbooks/deployment/cloudflare-workers.md` troubleshooting section
 
 ### Shared Component Errors
 

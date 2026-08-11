@@ -19,7 +19,7 @@ apps/
   docs-app/    文档站
 libs/          共享能力与界面基础
 config/        共享配置
-docs/          产品与技术文档
+docs/          按分类与生命周期治理的产品与技术文档
 tests/         单元、API 与端到端测试
 ```
 
@@ -36,5 +36,5 @@ pnpm build:docs
 
 启动后访问 `http://localhost:7001/zh-CN/messages` 进入聊天预览；如果该端口已被其他本地服务占用，可以在 `apps/web-app` 下直接为 Vite 指定其他端口。
 
-产品范围与架构决策见 [`docs/PRODUCT_AND_TECH_DESIGN.md`](docs/PRODUCT_AND_TECH_DESIGN.md)。
-当前聊天宿主的实现范围与后续接入点见 [`docs/implementation/chat-host-foundation.md`](docs/implementation/chat-host-foundation.md)。
+文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。
+当前聊天宿主的实现范围与后续接入点见[聊天宿主基础实现](docs/stable/references/chat-host-foundation.md)。

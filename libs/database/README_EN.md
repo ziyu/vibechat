@@ -173,4 +173,4 @@ Through Studio you can:
 - [Drizzle ORM Official Documentation](https://orm.drizzle.team/) - Query building, relationship definitions, migrations, etc.
 - [Drizzle Kit Documentation](https://orm.drizzle.team/kit-docs/overview) - Database migration and management tools
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/) - PostgreSQL database reference
-- [Database Configuration Guide](../../docs/user-guide/database.md) - Project-specific configuration instructions
+- [Database Runbook](../../docs/stable/runbooks/database.md) - Project database configuration procedures

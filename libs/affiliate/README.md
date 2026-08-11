@@ -91,5 +91,5 @@ Run `pnpm db:generate && pnpm db:push` after pulling changes.
 ## Documentation
 
 - [AGENTS.md](./AGENTS.md) — Architecture reference for AI agents
-- [User Guide](../../docs/user-guide/affiliate.md) — Configuration and usage guide
-- [Implementation](../../docs/implementation/affiliate-system.md) — Technical design details
+- [Affiliate Runbook](../../docs/stable/runbooks/affiliate.md) — Configuration and operations
+- [Affiliate Design](../../docs/stable/designs/affiliate-system.md) — Architecture and domain boundaries

@@ -171,4 +171,4 @@ Drizzle Studio 提供了一个可视化界面来查看和修改数据库内容�
 - [Drizzle ORM 官方文档](https://orm.drizzle.team/) - 查询构建、关系定义、迁移等
 - [Drizzle Kit 文档](https://orm.drizzle.team/kit-docs/overview) - 数据库迁移和管理工具
 - [PostgreSQL 文档](https://www.postgresql.org/docs/) - PostgreSQL 数据库参考
-- [数据库配置指南](../../docs/user-guide/database.md) - 项目特定的配置说明
+- [数据库 Runbook](../../docs/stable/runbooks/database.md) - 项目数据库配置步骤
