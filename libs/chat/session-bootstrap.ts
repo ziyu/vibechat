@@ -5,6 +5,7 @@ export const sessionBootstrapSchema = z.object({
   user: z.object({
     id: z.string().min(1),
     email: z.string().email(),
+    username: z.string().min(1),
     displayName: z.string(),
     avatarUrl: z.string().nullable(),
   }),

@@ -29,6 +29,13 @@
       "when": 1786006291824,
       "tag": "0003_hesitant_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786459896729,
+      "tag": "0004_glossy_stingray",
+      "breakpoints": true
     }
   ]
 }

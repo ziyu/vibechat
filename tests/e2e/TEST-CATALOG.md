@@ -38,6 +38,7 @@
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
 - [20. 博客功能测试](#20-博客功能测试)
+- [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
 
 ### 追踪
 
@@ -1042,6 +1043,24 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 ---
 
+## 27. Matrix Identity 生命周期
+
+**文件：** `specs/chat-auth-bootstrap.spec.ts` + `tests/unit/identity/*.test.ts` ｜ **优先级：** P0 ｜ **本地数据库 / fake adapter**
+
+本组场景验收 A2 的第二条切片。产品 profile 必须持久化，Matrix user/device 的创建必须通过 adapter 和幂等 repository；Synapse 未配置时不能创建 binding 或返回 token。由于 Synapse Admin “login as user”不会创建真实设备，本切片不把该接口当成浏览器设备凭据签发方案。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 幂等创建产品资料 | Email OTP 登录后连续请求两次 `GET /v1/session/bootstrap` → 验证 user ID、username、display name 保持一致 |
+| 2 | 产品资料成为权威 | 首次 bootstrap 从 Better Auth session 创建 profile → 后续 bootstrap 读取已持久化 profile，不重复创建或覆盖产品字段 |
+| 3 | Synapse 未配置安全降级 | 本地未配置 Synapse adapter → 验证 Matrix 状态为 unavailable → 数据库中不创建 session binding → 响应不含 access token |
+| 4 | Matrix user 幂等 provision | 使用 fake adapter 并发 bootstrap 同一用户 → 验证只形成一个 Matrix identity，重复调用返回同一 Matrix user ID |
+| 5 | Session-device 幂等绑定 | 同一 Better Auth session 重复 bootstrap → adapter 只创建一次设备 session → token 经 protector 后才写入 repository |
+| 6 | Session 撤销进入 outbox | 撤销已绑定 session → binding 标记 revoked → 写入幂等 `matrix.device.revoke` outbox 事件，供后续 worker 处理 |
+| 7 | Adapter 失败不泄漏凭据 | Matrix adapter 抛错 → route 映射稳定产品错误 → 不写入明文 token 或半成品 active binding |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1050,6 +1069,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | ✅ | 20 | 博客功能 | blog_post 表已创建 + 管理员账号 | 11 |
 | ✅ | 25 | 聊天宿主基础功能 | 无（使用本地 fixture 数据） | 8 |
 | ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
+| ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
 
 ---
 
@@ -1059,6 +1079,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-11 | TanStack + Vitest | 17 | 0 | 0 | Matrix Identity 生命周期（identity 单测 9 项 + `chat-auth-bootstrap` / `chat-foundation` 浏览器回归 8 项） |
 | 2026-08-11 | TanStack | 3 | 0 | 0 | Email OTP 与产品 Session Bootstrap（`chat-auth-bootstrap.spec.ts`，覆盖 5 项验收场景） |
 | 2026-08-11 | TanStack | 5 | 0 | 0 | 聊天宿主基础功能（`chat-foundation.spec.ts`，覆盖 8 项验收场景） |
 | 2026-08-11 | TanStack | 1 | 0 | 0 | 精简首页回归（`public-pages.spec.ts` 单用例） |

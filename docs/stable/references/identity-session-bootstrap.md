@@ -53,4 +53,4 @@ Plain-language 场景记录在 [`tests/e2e/TEST-CATALOG.md`](../../../tests/e2e/
 
 ## 下一出口
 
-进入 A2 下一切片前，先形成 Matrix identity 持久化模型、Synapse adapter 合约和 Better Auth session 到 Matrix device 的创建/撤销状态机；不直接从 route 调用 Synapse Admin API。
+后续的 [Matrix Identity 生命周期切片](../../development/active/matrix-identity-lifecycle.md)已经形成持久化模型、Synapse adapter 合约和 Better Auth session 到 Matrix device 的创建/撤销状态机。真实 device/access token 签发方式仍须先完成决策，不直接从 route 调用 Synapse Admin API。

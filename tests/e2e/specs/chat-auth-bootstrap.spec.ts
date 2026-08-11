@@ -15,6 +15,7 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
       },
     })
     expect(body.error.requestId).toEqual(expect.any(String))
+    expect(response.headers()['x-request-id']).toBe(body.error.requestId)
   })
 
   test('signs in with Email OTP and bootstraps the authenticated product session', async ({
@@ -59,8 +60,16 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
       },
     })
     expect(bootstrap.user.id).toEqual(expect.any(String))
+    expect(bootstrap.user.username).toEqual(expect.any(String))
     expect(bootstrap.user.displayName).toBe(email.split('@')[0])
     expect(JSON.stringify(bootstrap)).not.toContain('accessToken')
+
+    const repeatedResponse = await page.request.get('/v1/session/bootstrap')
+    expect(repeatedResponse.ok()).toBeTruthy()
+    const repeatedBootstrap = await repeatedResponse.json()
+    expect(repeatedBootstrap.user).toEqual(bootstrap.user)
+    expect(repeatedBootstrap.matrix).toEqual(bootstrap.matrix)
+    expect(JSON.stringify(repeatedBootstrap)).not.toContain('accessToken')
   })
 
   test('keeps password sign-in available during the migration', async ({ page }) => {

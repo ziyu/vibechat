@@ -1,0 +1,52 @@
+import type {
+  IntegrationOutboxRecord,
+  MatrixIdentityRecord,
+  MatrixSessionBindingRecord,
+  ProductProfile,
+} from "./types";
+
+export interface IdentityRepository {
+  ensureProfile(profile: ProductProfile): Promise<ProductProfile>;
+  getMatrixIdentity(userId: string): Promise<MatrixIdentityRecord | null>;
+  ensureMatrixIdentity(identity: MatrixIdentityRecord): Promise<MatrixIdentityRecord>;
+  getSessionBinding(authSessionId: string): Promise<MatrixSessionBindingRecord | null>;
+  ensureSessionBinding(binding: MatrixSessionBindingRecord): Promise<MatrixSessionBindingRecord>;
+  revokeSessionBinding(
+    authSessionId: string,
+    revokedAt: Date,
+    outboxEvent: IntegrationOutboxRecord,
+  ): Promise<MatrixSessionBindingRecord | null>;
+}
+
+export interface MatrixTokenProtector {
+  protect(accessToken: string): Promise<string>;
+  unprotect(ciphertext: string): Promise<string>;
+}
+
+export type SynapseAvailability =
+  | {
+      available: false;
+      reason: "SYNAPSE_NOT_CONFIGURED";
+    }
+  | {
+      available: true;
+      homeserverUrl: string;
+    };
+
+export interface SynapseAdapter {
+  availability(): SynapseAvailability;
+  ensureUser(input: {
+    externalUserId: string;
+    localpart: string;
+    displayName: string;
+  }): Promise<{ matrixUserId: string }>;
+  ensureSessionDevice(input: {
+    matrixUserId: string;
+    authSessionId: string;
+    displayName: string;
+  }): Promise<{ deviceId: string; accessToken: string }>;
+  revokeDevice(input: {
+    matrixUserId: string;
+    deviceId: string;
+  }): Promise<void>;
+}

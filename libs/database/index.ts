@@ -25,6 +25,16 @@ export type { BlogPost, NewBlogPost } from './schema/pg/blog-post'
 export type { Commission, NewCommission } from './schema/pg/commission'
 export type { Withdrawal, NewWithdrawal } from './schema/pg/withdrawal'
 export type { PricingPlan, NewPricingPlan } from './schema/pg/pricing-plan'
+export type {
+  IntegrationOutboxEvent,
+  MatrixIdentity,
+  MatrixSessionBinding,
+  NewIntegrationOutboxEvent,
+  NewMatrixIdentity,
+  NewMatrixSessionBinding,
+  NewUserProfile,
+  UserProfile,
+} from './schema/pg/identity'
 export type { BlogPostStatus } from './constants'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
@@ -37,6 +47,7 @@ export { commission } from './schema/commission'
 export { withdrawal } from './schema/withdrawal'
 export { blogPost } from './schema/blog-post'
 export { pricingPlan } from './schema/pricing-plan'
+export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -49,12 +60,20 @@ import { commission as _commission } from './schema/commission'
 import { withdrawal as _withdrawal } from './schema/withdrawal'
 import { blogPost as _blogPost } from './schema/blog-post'
 import { pricingPlan as _pricingPlan } from './schema/pricing-plan'
+import {
+  integrationOutbox as _integrationOutbox,
+  matrixIdentity as _matrixIdentity,
+  matrixSessionBinding as _matrixSessionBinding,
+  userProfile as _userProfile,
+} from './schema/identity'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
   order: _order, subscription: _subscription, creditTransaction: _creditTransaction,
   commission: _commission, withdrawal: _withdrawal,
   blogPost: _blogPost, pricingPlan: _pricingPlan,
+  userProfile: _userProfile, matrixIdentity: _matrixIdentity,
+  matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
 }
 
 // ---------------------------------------------------------------------------
