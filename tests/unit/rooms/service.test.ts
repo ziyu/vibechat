@@ -27,6 +27,13 @@ class MemoryRoomRepository implements RoomRepository {
     this.records.push(record);
     return record;
   }
+
+  async getAccessibleByMatrixRoomIds(userId: string, matrixRoomIds: string[]) {
+    return this.records.filter((record) =>
+      matrixRoomIds.includes(record.matrixRoomId)
+      && record.participantUserIds.includes(userId)
+    );
+  }
 }
 
 const identities = new Map<string, MatrixIdentityRecord>([
@@ -50,6 +57,7 @@ function createService() {
     identities: {
       getMatrixIdentity: async (userId) => identities.get(userId) || null,
     },
+    participantPolicy: { assertCanInvite: async () => undefined },
     matrix: { createRoom },
     spaces: [space],
     now: () => new Date("2026-08-11T15:00:00.000Z"),
@@ -80,6 +88,7 @@ describe("RoomService", () => {
       spaceId: space.spaceId,
       spaceVersionId: space.spaceVersionId,
       creatorUserId: input.creatorUserId,
+      participantUserIds: [input.creatorUserId, "friend-1"],
       instanceConfig: input.instanceConfig,
     });
     expect(createRoom).toHaveBeenCalledWith({

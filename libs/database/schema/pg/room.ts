@@ -8,6 +8,7 @@ export const roomIndex = pgTable("room_index", {
   spaceId: text("space_id").notNull(),
   spaceVersionId: text("space_version_id").notNull(),
   creatorUserId: text("creator_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  participantUserIdsJson: jsonb("participant_user_ids_json").$type<string[]>().notNull().default([]),
   instanceConfigJson: jsonb("instance_config_json").$type<Record<string, unknown>>().notNull(),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

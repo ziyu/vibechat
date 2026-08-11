@@ -1,5 +1,10 @@
 import type { BuiltInChatSpaceConfig } from "@config";
-import type { MatrixRoomAdapter, RoomIdentityReader, RoomRepository } from "./contracts";
+import type {
+  MatrixRoomAdapter,
+  RoomIdentityReader,
+  RoomParticipantPolicy,
+  RoomRepository,
+} from "./contracts";
 import type { RoomIndexRecord } from "./types";
 
 export type RoomServiceErrorCode =
@@ -31,6 +36,7 @@ export class RoomService {
   constructor(private readonly options: {
     repository: RoomRepository;
     identities: RoomIdentityReader;
+    participantPolicy: RoomParticipantPolicy;
     matrix: MatrixRoomAdapter;
     spaces: BuiltInChatSpaceConfig[];
     now?: () => Date;
@@ -48,6 +54,10 @@ export class RoomService {
 
     const participantUserIds = input.participantUserIds.filter(
       (userId) => userId !== input.creatorUserId,
+    );
+    await this.options.participantPolicy.assertCanInvite(
+      input.creatorUserId,
+      participantUserIds,
     );
     const identities = await Promise.all(
       participantUserIds.map((userId) => this.options.identities.getMatrixIdentity(userId)),
@@ -70,11 +80,19 @@ export class RoomService {
       spaceId: space.spaceId,
       spaceVersionId: space.spaceVersionId,
       creatorUserId: input.creatorUserId,
+      participantUserIds: Array.from(new Set([
+        input.creatorUserId,
+        ...participantUserIds,
+      ])),
       instanceConfig: input.instanceConfig,
       status: "active",
       createdAt: this.options.now?.() || new Date(),
     };
 
     return this.options.repository.create(record);
+  }
+
+  lookupAccessibleRooms(userId: string, matrixRoomIds: string[]) {
+    return this.options.repository.getAccessibleByMatrixRoomIds(userId, matrixRoomIds);
   }
 }

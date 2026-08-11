@@ -6,6 +6,10 @@ export interface RoomRepository {
     creatorUserId: string,
     clientRequestId: string,
   ): Promise<RoomIndexRecord | null>;
+  getAccessibleByMatrixRoomIds(
+    userId: string,
+    matrixRoomIds: string[],
+  ): Promise<RoomIndexRecord[]>;
   create(record: RoomIndexRecord): Promise<RoomIndexRecord>;
 }
 
@@ -15,4 +19,8 @@ export interface RoomIdentityReader {
 
 export interface MatrixRoomAdapter {
   createRoom(input: CreateMatrixRoomInput): Promise<{ matrixRoomId: string }>;
+}
+
+export interface RoomParticipantPolicy {
+  assertCanInvite(inviterUserId: string, participantUserIds: string[]): Promise<void>;
 }

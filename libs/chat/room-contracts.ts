@@ -17,5 +17,15 @@ export const roomBootstrapSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+export const roomMetadataLookupRequestSchema = z.object({
+  matrixRoomIds: z.array(z.string().min(1)).max(100)
+    .refine((ids) => new Set(ids).size === ids.length, "Room ids must be unique"),
+});
+
+export const roomMetadataLookupResponseSchema = z.object({
+  rooms: z.array(roomBootstrapSchema),
+});
+
 export type CreateRoomRequest = z.infer<typeof createRoomRequestSchema>;
 export type RoomBootstrap = z.infer<typeof roomBootstrapSchema>;
+export type RoomMetadataLookupResponse = z.infer<typeof roomMetadataLookupResponseSchema>;

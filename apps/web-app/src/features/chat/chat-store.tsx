@@ -6,11 +6,17 @@ import {
   createDemoChatState,
   createRoomInState,
   roomBootstrapSchema,
+  roomMetadataLookupResponseSchema,
   sessionBootstrapSchema,
+  socialSnapshotSchema,
+  userSearchResponseSchema,
   type ChatDemoState,
   type ChatLocale,
   type ChatMessage,
+  type ChatPerson,
   type CreateRoomInput,
+  type RoomBootstrap,
+  type SocialPerson,
 } from '@libs/chat'
 import {
   createContext,
@@ -22,26 +28,15 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import {
-  MsgType,
-  RelationType,
-  type MatrixClient,
-} from 'matrix-js-sdk'
-import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/@types/events'
-import {
-  createMatrixRuntime,
-  EventType,
-  projectMatrixChatState,
-  subscribeToMatrixProjection,
-  SyncState,
-  type MatrixRuntime,
-} from './matrix-runtime'
+import type { MatrixClient, SyncState } from 'matrix-js-sdk'
+import type { MatrixRuntime } from './matrix-runtime'
 
 const FIXTURE_STORAGE_KEY = 'vibechat-demo-state-v1'
 const UI_PREFERENCES_KEY = 'vibechat-chat-ui-v1'
 
 type ChatDataMode = 'fixture' | 'matrix'
 type RoomPreferences = Record<string, { pinned?: boolean; muted?: boolean }>
+type MatrixRuntimeModule = typeof import('./matrix-runtime')
 
 interface ChatDemoContextValue {
   state: ChatDemoState
@@ -54,10 +49,17 @@ interface ChatDemoContextValue {
   sendMessage: (roomId: string, text: string, replyToId?: string) => Promise<string>
   toggleReaction: (messageId: string, emoji: string) => void
   createRoom: (input: CreateRoomInput) => Promise<string>
-  acceptFriendRequest: (requestId: string) => void
-  rejectFriendRequest: (requestId: string) => void
+  searchUsers: (query: string) => Promise<SocialPerson[]>
+  sendFriendRequest: (recipientUserId: string) => Promise<void>
+  acceptFriendRequest: (requestId: string) => Promise<void>
+  rejectFriendRequest: (requestId: string) => Promise<void>
+  blockUser: (userId: string) => Promise<void>
+  unblockUser: (userId: string) => Promise<void>
+  acceptRoomInvite: (roomId: string) => Promise<void>
+  rejectRoomInvite: (roomId: string) => Promise<void>
   toggleFavoriteSpace: (spaceId: string) => void
   resetDemo: () => void
+  clearLocalChatData: () => Promise<void>
 }
 
 const ChatDemoContext = createContext<ChatDemoContextValue | null>(null)
@@ -68,6 +70,20 @@ function readRoomPreferences(): RoomPreferences {
   } catch {
     window.localStorage.removeItem(UI_PREFERENCES_KEY)
     return {}
+  }
+}
+
+function socialPersonToChatPerson(person: SocialPerson): ChatPerson {
+  const name = person.displayName || person.username
+  return {
+    id: person.id,
+    matrixUserId: person.matrixUserId,
+    handle: `@${person.username}`,
+    displayName: name,
+    initials: [...name].slice(0, 2).join('').toUpperCase(),
+    color: '#356b94',
+    presence: 'offline',
+    bio: '',
   }
 }
 
@@ -85,21 +101,36 @@ export function ChatDemoProvider({
   const [syncState, setSyncState] = useState<ChatDemoContextValue['syncState']>('CONNECTING')
   const matrixClientRef = useRef<MatrixClient | null>(null)
   const runtimeRef = useRef<MatrixRuntime | null>(null)
+  const runtimeModuleRef = useRef<MatrixRuntimeModule | null>(null)
   const profileRef = useRef<ReturnType<typeof sessionBootstrapSchema.parse>['user'] | null>(null)
   const preferencesRef = useRef<RoomPreferences>({})
   const pendingTransactionIdsRef = useRef(new Set<string>())
+  const socialPeopleRef = useRef<ChatPerson[]>([])
+  const socialContactIdsRef = useRef<string[]>([])
+  const socialFriendRequestsRef = useRef<ChatDemoState['friendRequests']>([])
+  const socialBlockedUserIdsRef = useRef<string[]>([])
+  const roomMetadataRef = useRef<Record<string, RoomBootstrap>>({})
+  const roomMetadataLookupRef = useRef(new Set<string>())
 
   const refreshMatrixState = useCallback(() => {
     const client = matrixClientRef.current
     const profile = profileRef.current
-    if (!client || !profile) return
+    const matrixRuntime = runtimeModuleRef.current
+    if (!client || !profile || !matrixRuntime) return
     setState((current) => {
-      let projected = projectMatrixChatState(
+      let projected = matrixRuntime.projectMatrixChatState(
         client,
         baseState,
         profile,
         preferencesRef.current,
         pendingTransactionIdsRef.current,
+        {
+          people: socialPeopleRef.current,
+          contactIds: socialContactIdsRef.current,
+          friendRequests: socialFriendRequestsRef.current,
+          blockedUserIds: socialBlockedUserIdsRef.current,
+        },
+        roomMetadataRef.current,
       )
       const optimisticMessages = current.messages.filter(
         (message) => message.transactionId
@@ -118,6 +149,69 @@ export function ChatDemoProvider({
     })
   }, [baseState])
 
+  const refreshRoomMetadata = useCallback(async () => {
+    const client = matrixClientRef.current
+    if (!client) return
+    const matrixRoomIds = client.getRooms()
+      .filter((room) => {
+        const membership = room.getMyMembership()
+        return membership === 'join' || membership === 'invite'
+      })
+      .map((room) => room.roomId)
+      .filter((roomId) => !roomMetadataLookupRef.current.has(roomId))
+    if (!matrixRoomIds.length) return
+    for (const roomId of matrixRoomIds) roomMetadataLookupRef.current.add(roomId)
+    try {
+      const response = await fetch('/v1/rooms/metadata', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ matrixRoomIds }),
+      })
+      if (!response.ok) throw new Error('ROOM_METADATA_LOOKUP_FAILED')
+      const metadata = roomMetadataLookupResponseSchema.parse(await response.json())
+      for (const room of metadata.rooms) {
+        roomMetadataRef.current[room.matrixRoomId] = room
+      }
+      refreshMatrixState()
+    } catch (error) {
+      for (const roomId of matrixRoomIds) roomMetadataLookupRef.current.delete(roomId)
+      throw error
+    }
+  }, [refreshMatrixState])
+
+  const refreshSocial = useCallback(async () => {
+    const response = await fetch('/v1/contacts', {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    })
+    if (!response.ok) throw new Error('SOCIAL_SNAPSHOT_FAILED')
+    const snapshot = socialSnapshotSchema.parse(await response.json())
+    const people = new Map<string, ChatPerson>()
+    for (const person of snapshot.contacts) {
+      people.set(person.id, socialPersonToChatPerson(person))
+    }
+    for (const request of snapshot.incomingRequests) {
+      if (request.status === 'pending') {
+        people.set(request.person.id, socialPersonToChatPerson(request.person))
+      }
+    }
+    for (const person of snapshot.blockedUsers) {
+      people.set(person.id, socialPersonToChatPerson(person))
+    }
+    socialPeopleRef.current = [...people.values()]
+    socialContactIdsRef.current = snapshot.contacts.map((person) => person.id)
+    socialFriendRequestsRef.current = snapshot.incomingRequests
+      .filter((request) => request.status === 'pending')
+      .map((request) => ({
+        id: request.id,
+        personId: request.person.id,
+        createdAt: request.createdAt,
+      }))
+    socialBlockedUserIdsRef.current = snapshot.blockedUserIds
+    refreshMatrixState()
+  }, [refreshMatrixState])
+
   useEffect(() => {
     let disposed = false
     let unsubscribe: () => void = () => {}
@@ -128,7 +222,9 @@ export function ChatDemoProvider({
         const raw = window.localStorage.getItem(FIXTURE_STORAGE_KEY)
         if (raw) {
           const parsed = JSON.parse(raw) as ChatDemoState
-          if (parsed.version === 1) nextState = parsed
+          if (parsed.version === 1) {
+            nextState = { ...parsed, blockedUserIds: parsed.blockedUserIds || [] }
+          }
         }
       } catch {
         window.localStorage.removeItem(FIXTURE_STORAGE_KEY)
@@ -158,22 +254,42 @@ export function ChatDemoProvider({
 
         preferencesRef.current = readRoomPreferences()
         profileRef.current = parsed.data.user
-        const runtime = await createMatrixRuntime(parsed.data.matrix)
+        // matrix-js-sdk is browser-only and intentionally excluded from the
+        // server module graph. Loading it here keeps SSR and Vite HMR stable.
+        const matrixRuntime = await import('./matrix-runtime')
+        const runtime = await matrixRuntime.createMatrixRuntime(parsed.data.matrix)
         if (disposed) {
           await runtime.stop()
           return
         }
         runtimeRef.current = runtime
+        runtimeModuleRef.current = matrixRuntime
         matrixClientRef.current = runtime.client
         setMode('matrix')
-        unsubscribe = subscribeToMatrixProjection(
+        await refreshSocial().catch((error) => {
+          console.warn('[chat-social] Social snapshot is temporarily unavailable', {
+            errorName: error instanceof Error ? error.name : 'UnknownError',
+          })
+        })
+        const refreshProjection = () => {
+          refreshMatrixState()
+          void refreshRoomMetadata().catch((error) => {
+            console.warn('[chat-room-metadata] Room metadata is temporarily unavailable', {
+              errorName: error instanceof Error ? error.name : 'UnknownError',
+            })
+          })
+        }
+        unsubscribe = matrixRuntime.subscribeToMatrixProjection(
           runtime.client,
-          refreshMatrixState,
+          refreshProjection,
           (nextSyncState) => {
             if (disposed) return
             setSyncState(nextSyncState)
-            if (nextSyncState === SyncState.Prepared || nextSyncState === SyncState.Syncing) {
-              refreshMatrixState()
+            if (
+              nextSyncState === matrixRuntime.SyncState.Prepared
+              || nextSyncState === matrixRuntime.SyncState.Syncing
+            ) {
+              refreshProjection()
               setReady(true)
             }
           },
@@ -197,12 +313,15 @@ export function ChatDemoProvider({
       disposed = true
       unsubscribe()
       matrixClientRef.current = null
+      runtimeModuleRef.current = null
+      roomMetadataRef.current = {}
+      roomMetadataLookupRef.current.clear()
       profileRef.current = null
       const runtime = runtimeRef.current
       runtimeRef.current = null
       if (runtime) void runtime.stop()
     }
-  }, [baseState, refreshMatrixState])
+  }, [baseState, refreshMatrixState, refreshRoomMetadata, refreshSocial])
 
   useEffect(() => {
     if (!ready || mode !== 'fixture') return
@@ -248,20 +367,11 @@ export function ChatDemoProvider({
   const sendMessage = useCallback(
     async (roomId: string, text: string, replyToId?: string) => {
       const client = matrixClientRef.current
-      if (client) {
+      const matrixRuntime = runtimeModuleRef.current
+      if (client && matrixRuntime) {
         const transactionId = createChatId('txn')
         pendingTransactionIdsRef.current.add(transactionId)
         const optimisticMessageId = `~${roomId}:${transactionId}`
-        const content = (replyToId ? {
-          msgtype: MsgType.Text,
-          body: text.trim(),
-          'm.relates_to': {
-            'm.in_reply_to': { event_id: replyToId },
-          },
-        } : {
-          msgtype: MsgType.Text,
-          body: text.trim(),
-        }) as RoomMessageEventContent
         setState((current) => appendMessageToState(current, {
           id: optimisticMessageId,
           transactionId,
@@ -273,11 +383,12 @@ export function ChatDemoProvider({
           replyToId,
           reactions: [],
         }))
-        const pending = client.sendEvent(
+        const pending = matrixRuntime.sendMatrixText(
+          client,
           roomId,
-          EventType.RoomMessage,
-          content,
+          text.trim(),
           transactionId,
+          replyToId,
         )
         try {
           const response = await pending
@@ -323,16 +434,17 @@ export function ChatDemoProvider({
 
   const toggleReaction = useCallback((messageId: string, emoji: string) => {
     const client = matrixClientRef.current
-    if (client) {
+    const matrixRuntime = runtimeModuleRef.current
+    if (client && matrixRuntime) {
       const message = state.messages.find((candidate) => candidate.id === messageId)
       if (!message) return
-      void client.sendEvent(message.roomId, EventType.Reaction, {
-        'm.relates_to': {
-          rel_type: RelationType.Annotation,
-          event_id: messageId,
-          key: emoji,
-        },
-      }, createChatId('txn')).then(refreshMatrixState, refreshMatrixState)
+      void matrixRuntime.sendMatrixReaction(
+        client,
+        message.roomId,
+        messageId,
+        emoji,
+        createChatId('txn'),
+      ).then(refreshMatrixState, refreshMatrixState)
       return
     }
 
@@ -393,7 +505,51 @@ export function ChatDemoProvider({
     return roomId
   }, [locale, state.people, state.spaces])
 
-  const acceptFriendRequest = useCallback((requestId: string) => {
+  const searchUsers = useCallback(async (query: string) => {
+    if (matrixClientRef.current) {
+      const response = await fetch(`/v1/users/search?q=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return []
+      return userSearchResponseSchema.parse(await response.json()).users
+    }
+    const normalized = query.trim().toLowerCase()
+    return state.people
+      .filter((person) => person.id !== state.currentUserId)
+      .filter((person) => `${person.displayName} ${person.handle}`.toLowerCase().includes(normalized))
+      .map((person) => ({
+        id: person.id,
+        username: person.handle.replace(/^@/, ''),
+        displayName: person.displayName,
+        avatarUrl: null,
+        matrixUserId: person.matrixUserId || null,
+      }))
+  }, [state.currentUserId, state.people])
+
+  const sendFriendRequest = useCallback(async (recipientUserId: string) => {
+    if (!matrixClientRef.current) return
+    const response = await fetch('/v1/friend-requests', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ recipientUserId }),
+    })
+    if (!response.ok) throw new Error('FRIEND_REQUEST_FAILED')
+    await refreshSocial()
+  }, [refreshSocial])
+
+  const acceptFriendRequest = useCallback(async (requestId: string) => {
+    if (matrixClientRef.current) {
+      const response = await fetch(`/v1/friend-requests/${encodeURIComponent(requestId)}/accept`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      })
+      if (!response.ok) throw new Error('FRIEND_REQUEST_ACCEPT_FAILED')
+      await refreshSocial()
+      return
+    }
     setState((current) => {
       const request = current.friendRequests.find((item) => item.id === requestId)
       if (!request) return current
@@ -403,14 +559,75 @@ export function ChatDemoProvider({
         friendRequests: current.friendRequests.filter((item) => item.id !== requestId),
       }
     })
-  }, [])
+  }, [refreshSocial])
 
-  const rejectFriendRequest = useCallback((requestId: string) => {
+  const rejectFriendRequest = useCallback(async (requestId: string) => {
+    if (matrixClientRef.current) {
+      const response = await fetch(`/v1/friend-requests/${encodeURIComponent(requestId)}/reject`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      })
+      if (!response.ok) throw new Error('FRIEND_REQUEST_REJECT_FAILED')
+      await refreshSocial()
+      return
+    }
     setState((current) => ({
       ...current,
       friendRequests: current.friendRequests.filter((item) => item.id !== requestId),
     }))
-  }, [])
+  }, [refreshSocial])
+
+  const blockUser = useCallback(async (userId: string) => {
+    if (matrixClientRef.current) {
+      const response = await fetch('/v1/blocks', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (!response.ok) throw new Error('SOCIAL_BLOCK_FAILED')
+      await refreshSocial()
+      return
+    }
+    setState((current) => ({
+      ...current,
+      contactIds: current.contactIds.filter((id) => id !== userId),
+      friendRequests: current.friendRequests.filter((request) => request.personId !== userId),
+      blockedUserIds: Array.from(new Set([...current.blockedUserIds, userId])),
+    }))
+  }, [refreshSocial])
+
+  const unblockUser = useCallback(async (userId: string) => {
+    if (matrixClientRef.current) {
+      const response = await fetch(`/v1/blocks/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!response.ok) throw new Error('SOCIAL_UNBLOCK_FAILED')
+      await refreshSocial()
+      return
+    }
+    setState((current) => ({
+      ...current,
+      blockedUserIds: current.blockedUserIds.filter((id) => id !== userId),
+    }))
+  }, [refreshSocial])
+
+  const acceptRoomInvite = useCallback(async (roomId: string) => {
+    const client = matrixClientRef.current
+    if (!client) return
+    await client.joinRoom(roomId)
+    refreshMatrixState()
+  }, [refreshMatrixState])
+
+  const rejectRoomInvite = useCallback(async (roomId: string) => {
+    const client = matrixClientRef.current
+    if (!client) return
+    await client.leave(roomId)
+    refreshMatrixState()
+  }, [refreshMatrixState])
 
   const toggleFavoriteSpace = useCallback((spaceId: string) => {
     setState((current) => ({
@@ -433,6 +650,16 @@ export function ChatDemoProvider({
     window.localStorage.setItem(FIXTURE_STORAGE_KEY, JSON.stringify(cleanState))
   }, [locale, refreshMatrixState])
 
+  const clearLocalChatData = useCallback(async () => {
+    preferencesRef.current = {}
+    window.localStorage.removeItem(UI_PREFERENCES_KEY)
+    window.localStorage.removeItem(FIXTURE_STORAGE_KEY)
+    const runtime = runtimeRef.current
+    runtimeRef.current = null
+    matrixClientRef.current = null
+    if (runtime) await runtime.clear()
+  }, [])
+
   const value = useMemo<ChatDemoContextValue>(() => ({
     state,
     ready,
@@ -444,23 +671,37 @@ export function ChatDemoProvider({
     sendMessage,
     toggleReaction,
     createRoom,
+    searchUsers,
+    sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
+    blockUser,
+    unblockUser,
+    acceptRoomInvite,
+    rejectRoomInvite,
     toggleFavoriteSpace,
     resetDemo,
+    clearLocalChatData,
   }), [
     acceptFriendRequest,
+    acceptRoomInvite,
+    blockUser,
     createRoom,
+    clearLocalChatData,
     markRoomRead,
     mode,
     ready,
     rejectFriendRequest,
+    rejectRoomInvite,
     resetDemo,
     sendMessage,
+    sendFriendRequest,
+    searchUsers,
     state,
     syncState,
     toggleFavoriteSpace,
     toggleReaction,
+    unblockUser,
     updateRoomPreference,
   ])
 

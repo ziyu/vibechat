@@ -8,6 +8,7 @@ export const roomIndex = sqliteTable("room_index", {
   spaceId: text("space_id").notNull(),
   spaceVersionId: text("space_version_id").notNull(),
   creatorUserId: text("creator_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  participantUserIdsJson: text("participant_user_ids_json", { mode: "json" }).$type<string[]>().notNull().default([]),
   instanceConfigJson: text("instance_config_json", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
   status: text("status").notNull().default("active"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),

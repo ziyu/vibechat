@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
+  Ban,
   Check,
   MessageCircleMore,
   Search,
@@ -10,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
+import type { SocialPerson } from '@libs/chat'
 import { useChatDemo } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'
@@ -18,13 +20,46 @@ export function ContactsPage() {
   const { t } = useTranslation()
   const {
     state,
+    mode,
+    searchUsers,
+    sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
+    blockUser,
   } = useChatDemo()
   const [query, setQuery] = useState('')
   const [selectedPersonId, setSelectedPersonId] = useState(state.contactIds[0])
   const [createOpen, setCreateOpen] = useState(false)
   const [createPersonId, setCreatePersonId] = useState<string>()
+  const [searchResults, setSearchResults] = useState<SocialPerson[]>([])
+  const [searching, setSearching] = useState(false)
+  const [requestedIds, setRequestedIds] = useState<string[]>([])
+
+  useEffect(() => {
+    if (mode !== 'matrix' || query.trim().length < 2) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+    let cancelled = false
+    setSearching(true)
+    const timer = window.setTimeout(() => {
+      void searchUsers(query).then((users) => {
+        if (!cancelled) setSearchResults(users)
+      }).finally(() => {
+        if (!cancelled) setSearching(false)
+      })
+    }, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [mode, query, searchUsers])
+
+  useEffect(() => {
+    if (selectedPersonId && state.contactIds.includes(selectedPersonId)) return
+    setSelectedPersonId(state.contactIds[0])
+  }, [selectedPersonId, state.contactIds])
 
   const contacts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
@@ -41,7 +76,9 @@ export function ContactsPage() {
   }, [query, state.contactIds, state.people])
   const selectedPerson = state.people.find((person) => person.id === selectedPersonId)
   const selectedRooms = selectedPerson
-    ? state.rooms.filter((room) => room.memberIds.includes(selectedPerson.id))
+    ? state.rooms.filter((room) => room.memberIds.includes(
+        selectedPerson.matrixUserId || selectedPerson.id,
+      ))
     : []
 
   const startChat = (personId: string) => {
@@ -86,7 +123,7 @@ export function ContactsPage() {
                     type="button"
                     className="vc-icon-button vc-accept-button"
                     aria-label={t.chatApp.contacts.accept}
-                    onClick={() => acceptFriendRequest(request.id)}
+                    onClick={() => void acceptFriendRequest(request.id)}
                   >
                     <Check size={15} />
                   </button>
@@ -94,13 +131,82 @@ export function ContactsPage() {
                     type="button"
                     className="vc-icon-button"
                     aria-label={t.chatApp.contacts.reject}
-                    onClick={() => rejectFriendRequest(request.id)}
+                    onClick={() => void rejectFriendRequest(request.id)}
                   >
                     <X size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="vc-icon-button vc-danger-button"
+                    aria-label={t.chatApp.contacts.block}
+                    onClick={() => {
+                      if (window.confirm(t.chatApp.contacts.blockConfirm)) {
+                        void blockUser(person.id)
+                      }
+                    }}
+                  >
+                    <Ban size={14} />
                   </button>
                 </article>
               )
             })}
+          </section>
+        ) : null}
+
+        {mode === 'matrix' && query.trim().length >= 2 ? (
+          <section className="vc-request-section" data-testid="user-search-results">
+            <header>
+              <span>{t.chatApp.contacts.searchResults}</span>
+              <i>{searchResults.length}</i>
+            </header>
+            {searching ? <p>{t.chatApp.contacts.searching}</p> : null}
+            {!searching && searchResults.length === 0 ? (
+              <p>{t.chatApp.contacts.noUsersFound}</p>
+            ) : null}
+            {searchResults
+              .filter((person) => !state.contactIds.includes(person.id))
+              .map((person) => {
+                const chatPerson = {
+                  id: person.id,
+                  matrixUserId: person.matrixUserId,
+                  handle: `@${person.username}`,
+                  displayName: person.displayName,
+                  initials: [...(person.displayName || person.username)].slice(0, 2).join(''),
+                  color: '#356b94',
+                  presence: 'offline' as const,
+                  bio: '',
+                }
+                const requested = requestedIds.includes(person.id)
+                return (
+                  <article
+                    key={person.id}
+                    className="vc-friend-request"
+                    data-testid="user-search-result"
+                    data-search-result
+                  >
+                    <PersonAvatar person={chatPerson} showPresence />
+                    <span>
+                      <strong>{person.displayName}</strong>
+                      <small>@{person.username}</small>
+                    </span>
+                    <button
+                      type="button"
+                      className="vc-icon-button vc-accept-button"
+                      aria-label={requested
+                        ? t.chatApp.contacts.requestSent
+                        : t.chatApp.contacts.addContact}
+                      disabled={requested}
+                      onClick={() => {
+                        void sendFriendRequest(person.id).then(() => {
+                          setRequestedIds((current) => [...current, person.id])
+                        })
+                      }}
+                    >
+                      {requested ? <Check size={15} /> : <UserPlus size={15} />}
+                    </button>
+                  </article>
+                )
+              })}
           </section>
         ) : null}
 
@@ -114,6 +220,7 @@ export function ContactsPage() {
               key={person.id}
               type="button"
               className="vc-contact-row"
+              data-testid="contact-row"
               data-active={person.id === selectedPersonId || undefined}
               onClick={() => setSelectedPersonId(person.id)}
             >
@@ -144,6 +251,7 @@ export function ContactsPage() {
                 <button
                   type="button"
                   className="vc-button vc-button-primary"
+                  data-testid="start-chat-with-contact"
                   onClick={() => startChat(selectedPerson.id)}
                 >
                   <MessageCircleMore size={16} />
@@ -156,6 +264,18 @@ export function ContactsPage() {
                 >
                   <UserPlus size={16} />
                   {t.chatApp.contacts.addToGroup}
+                </button>
+                <button
+                  type="button"
+                  className="vc-button vc-button-ghost vc-danger-button"
+                  onClick={() => {
+                    if (window.confirm(t.chatApp.contacts.blockConfirm)) {
+                      void blockUser(selectedPerson.id)
+                    }
+                  }}
+                >
+                  <Ban size={16} />
+                  {t.chatApp.contacts.blockContact}
                 </button>
               </div>
             </div>

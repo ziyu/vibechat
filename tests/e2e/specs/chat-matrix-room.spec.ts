@@ -67,7 +67,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     })
     expect(missingParticipant.status()).toBe(409)
     await expect(missingParticipant.json()).resolves.toMatchObject({
-      error: { code: 'ROOM_PARTICIPANT_NOT_READY' },
+      error: { code: 'SOCIAL_NOT_CONTACT' },
     })
 
     const clientRequestId = `e2e-room-${crypto.randomUUID()}`

@@ -8,6 +8,7 @@ export type SpaceCategory = 'daily' | 'focus' | 'play' | 'ritual'
 
 export interface ChatPerson {
   id: string
+  matrixUserId?: string | null
   handle: string
   displayName: string
   initials: string
@@ -43,6 +44,7 @@ export interface ChatRoom {
   unreadCount: number
   pinned: boolean
   muted: boolean
+  membership?: 'join' | 'invite'
 }
 
 export interface AtmosphereSpace {
@@ -72,6 +74,7 @@ export interface ChatDemoState {
   people: ChatPerson[]
   contactIds: string[]
   friendRequests: FriendRequest[]
+  blockedUserIds: string[]
   rooms: ChatRoom[]
   messages: ChatMessage[]
   spaces: AtmosphereSpace[]

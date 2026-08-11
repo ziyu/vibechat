@@ -97,6 +97,9 @@ export default defineConfig({
       }
     : undefined,
   ssr: {
-    noExternal: ['streamdown', 'katex', 'rehype-katex'],
+    // matrix-js-sdk publishes a few internal directory imports that Node's
+    // native ESM loader rejects. Let Vite transform them for the SSR module
+    // graph; the app still loads the SDK dynamically in the browser only.
+    noExternal: ['streamdown', 'katex', 'rehype-katex', 'matrix-js-sdk'],
   },
 })

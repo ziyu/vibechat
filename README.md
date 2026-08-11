@@ -2,7 +2,7 @@
 
 Vibe Chat 是一个以“氛围空间”为核心的新一代聊天产品。每个聊天房间由独立的氛围空间定义会话画布、消息呈现和互动方式。
 
-当前仓库已经具备可运行的聊天宿主和真实消息纵向链路：Better Auth Email OTP、产品 profile、Synapse Application Service identity、session/device 撤销、幂等 Matrix 建房与产品索引均已接入。浏览器使用 `matrix-js-sdk` 完成 `/sync`、IndexedDB timeline 缓存、transaction local echo、消息、回复和回应；Synapse 未配置或用户未登录时才显式退回 fixture 预览。
+当前仓库已经具备可运行的聊天宿主和真实基础闭环：Better Auth Email OTP、产品 profile、好友请求/联系人/屏蔽、Synapse Application Service identity、session/device 撤销、参与者 ACL、幂等 Matrix 建房与邀请均已接入。浏览器使用 `matrix-js-sdk` 完成 `/sync`、IndexedDB timeline 缓存、transaction local echo、消息、回复和回应；“我的”可管理浏览器会话和本地 Matrix 缓存。Synapse 未配置或用户未登录时才显式退回 fixture 预览。
 
 ## 当前技术基线
 

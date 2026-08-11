@@ -38,6 +38,8 @@
 - [28. Synapse Appservice Adapter](#28-synapse-appservice-adapter)
 - [29. Session 撤销与 Matrix Device 回收](#29-session-撤销与-matrix-device-回收)
 - [30. 真实 Matrix 房间与消息 Timeline](#30-真实-matrix-房间与消息-timeline)
+- [31. 好友关系与双用户 Matrix 邀请](#31-好友关系与双用户-matrix-邀请)
+- [32. 浏览器会话与本地 Matrix 数据管理](#32-浏览器会话与本地-matrix-数据管理)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1119,6 +1121,42 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 
 ---
 
+## 31. 好友关系与双用户 Matrix 邀请
+
+**文件：** `tests/unit/social/*.test.ts` + `specs/chat-social-invite.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+产品数据库是好友、备注与屏蔽的权威来源；Matrix 只保存 room membership 和邀请。联系人使用 Better Auth product user ID，建房 service 经 identity mapping 转换为 Matrix user ID，并在创建私有 room 时发送邀请。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 精确用户搜索 | 登录用户按 username 或完整 email 搜索 → 不返回自己、被屏蔽用户或公开全量目录 → 返回产品 profile 与 Matrix readiness |
+| 2 | 好友请求幂等 | A 向 B 发送请求 → B 收件箱出现一条 pending → A 重复发送不产生第二条 → A/B 各自可读取稳定 snapshot |
+| 3 | 接受形成双向联系人 | B 接受 pending 请求 → request 变 accepted → contacts 原子写入 A→B 与 B→A 两行 → 双方列表均显示对方 |
+| 4 | 拒绝不形成联系人 | B 拒绝请求 → request 变 rejected → 双方 contacts 不新增关系 → 重复拒绝保持稳定 |
+| 5 | 屏蔽优先 | B 屏蔽 A → pending 请求被终止、既有联系人移除 → A 不能再次请求或邀请 B；解除屏蔽后仍需重新建立好友关系 |
+| 6 | 非联系人禁止邀请 | A 尝试把非联系人加入 room → 产品 API 返回稳定 409；不能靠已知 Matrix user ID 绕过产品社交策略 |
+| 7 | 双用户邀请确认 | A/B 成为联系人 → A 创建氛围 room 并邀请 B → B 宿主显示邀请 → B 确认后 Matrix membership 变 join |
+| 8 | 双向实时消息 | A 发消息 → B `/sync` timeline 显示 → B 回复/回应 → A timeline 收到且刷新后双方历史一致 |
+| 9 | 多方言一致与凭据隔离 | PG/SQLite/D1 schema 同步；社交响应、日志和 Matrix invite state 不包含 Better Auth Cookie、Matrix token 或加密 key |
+
+---
+
+## 32. 浏览器会话与本地 Matrix 数据管理
+
+**文件：** `specs/chat-session-management.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+Better Auth session 是浏览器登录设备的产品权威；每个产品 session 对应独立 Matrix device。用户可以查看和撤销设备，退出当前会话时宿主必须同时清理对应 Matrix IndexedDB timeline cache 和本地 UI 偏好。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 活动会话列表 | 同一账号在两个浏览器 context 登录并 bootstrap → “我的 / 设备与会话”显示两条活动会话并标记当前设备 |
+| 2 | 撤销其他设备 | 当前设备调用 Better Auth `revoke-other-sessions` → 列表只保留当前会话 → 另一产品 session 立即失效 |
+| 3 | Matrix device 联动撤销 | 另一 session 被删除 → lifecycle hook/outbox 注销对应 Matrix device → 原 access token `/whoami` 返回 401 |
+| 4 | 当前退出 | 从聊天“我的”页退出 → 当前 Better Auth session 和 Matrix device 均失效 → 跳转本地化登录页 |
+| 5 | 本地数据清理 | 退出前停止 Matrix client → 删除 `matrix-js-sdk:vibechat-sync-{deviceId}` IndexedDB → 清除聊天 UI 偏好且不把 token 写入 localStorage |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1131,6 +1169,8 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 | ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
 | ✅ | 29 | Session 撤销与 Matrix Device 回收 | SQLite 与本地 Synapse | 7 |
 | ✅ | 30 | 真实 Matrix 房间与消息 Timeline | SQLite、本地 Synapse、Chromium | 8 |
+| ✅ | 31 | 好友关系与双用户 Matrix 邀请 | SQLite、本地 Synapse、双 Chromium Context | 9 |
+| ✅ | 32 | 浏览器会话与本地 Matrix 数据管理 | SQLite、本地 Synapse、双 Chromium Context | 5 |
 
 ---
 
@@ -1140,6 +1180,7 @@ Better Auth session 是产品会话权威。任何单会话或批量 session 删
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | TanStack + Vitest + Synapse | 42 | 0 | 0 | A2 基础整合（identity/rooms/social 单测 32 项；fixture、真实 room、双用户好友/邀请/屏蔽、会话撤销与本地清理 E2E 10 项） |
 | 2026-08-12 | TanStack + Vitest + Synapse | 8 | 0 | 0 | 真实 Matrix 房间与 Timeline（rooms 单测 6 项 + 本地 Synapse/Chromium E2E 2 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 4 | 0 | 0 | Session 撤销与 Matrix Device 回收（worker 单测 3 项 + 真实 sign-out/token 失效 E2E 1 项） |
 | 2026-08-11 | TanStack + Vitest + Synapse | 24 | 0 | 0 | Synapse Appservice Adapter（identity unit/mock/SQLite 17 项 + 真实 Synapse 合约 1 项 + Matrix ready/unavailable bootstrap E2E 各 3 项） |

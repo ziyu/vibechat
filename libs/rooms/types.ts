@@ -4,6 +4,7 @@ export interface RoomIndexRecord {
   spaceId: string;
   spaceVersionId: string;
   creatorUserId: string;
+  participantUserIds: string[];
   instanceConfig: Record<string, unknown>;
   status: "active";
   createdAt: Date;

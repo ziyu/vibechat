@@ -41,6 +41,7 @@ describe("DatabaseRoomRepository on SQLite", () => {
       spaceId: "space-campfire",
       spaceVersionId: "builtin-space-campfire-v1",
       creatorUserId: "room-creator",
+      participantUserIds: ["room-creator", "room-participant"],
       instanceConfig: { ambient: "night" },
       status: "active" as const,
       createdAt: new Date("2026-08-11T15:00:00.000Z"),
@@ -51,5 +52,13 @@ describe("DatabaseRoomRepository on SQLite", () => {
       record.creatorUserId,
       record.clientRequestId,
     )).resolves.toEqual(record);
+    await expect(repository.getAccessibleByMatrixRoomIds(
+      "room-participant",
+      [record.matrixRoomId],
+    )).resolves.toEqual([record]);
+    await expect(repository.getAccessibleByMatrixRoomIds(
+      "room-outsider",
+      [record.matrixRoomId],
+    )).resolves.toEqual([]);
   });
 });

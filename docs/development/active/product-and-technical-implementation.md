@@ -27,9 +27,10 @@
 - [聊天宿主基础实现](../../stable/references/chat-host-foundation.md)记录了已实现边界与真实服务接入顺序。
 - Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding、session revoke worker、Synapse Appservice adapter、room index 和 integration outbox 已形成可执行实现。
 - 浏览器 `matrix-js-sdk` 已接管 room/timeline，同步缓存、local echo、消息、回复、回应和 transaction ID 幂等均通过本地 Synapse/Chromium 验证。
-- identity/rooms unit/SQLite/mock HTTP 测试 26/26、真实 room/timeline E2E 2/2；此前固定版本 Synapse 合约、ready bootstrap、Cloudflare build 与 Workers 探测均通过。
+- 产品好友请求、双向联系人、屏蔽、房间参与者 ACL、Matrix 邀请确认与双浏览器会话管理已经通过真实链路验证。
+- identity/rooms/social unit、SQLite repository 与 mock HTTP 测试 32/32；fixture/真实 Matrix/双用户社交/会话管理浏览器回归 10/10。
 
-尚未实现的核心范围包括社交数据、双用户联系人邀请、氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。A2 下一步把当前 Matrix 单用户房间链路扩展到产品好友关系与小群成员邀请。
+尚未实现的核心范围包括 A2 的媒体、编辑/删除、typing、历史搜索、离线失败恢复与资料首次设置，以及氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系。
 
 ## 3. 状态定义
 
@@ -48,7 +49,7 @@
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
 | A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)均通过本地 Synapse 验证 | 实现好友请求/联系人并跑通双用户邀请与对端 timeline |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Active | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./social-matrix-invitations.md)均通过本地 Synapse 验证 | 补齐媒体、编辑/删除、typing、搜索、离线恢复与资料设置 |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |

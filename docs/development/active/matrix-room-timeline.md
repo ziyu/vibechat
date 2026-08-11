@@ -24,4 +24,4 @@
 
 ## 下一出口
 
-实现产品层好友请求、双向联系人和屏蔽约束；联系人 ID 必须是 Better Auth product user ID，RoomService 再把它解析为 Matrix identity 并发出邀请。随后使用两个真实浏览器 session 验证邀请、接受、双方 `/sync` 与消息往返。
+产品层好友请求、双向联系人、屏蔽约束和双用户邀请已经在[社交关系与 Matrix 邀请](./social-matrix-invitations.md)中完成。下一步继续补齐媒体、编辑/删除、typing、历史搜索与离线失败恢复。

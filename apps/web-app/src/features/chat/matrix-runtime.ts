@@ -5,19 +5,24 @@ import {
   EventType,
   IndexedDBStore,
   MatrixScheduler,
+  MsgType,
   PendingEventOrdering,
+  RelationType,
   RoomEvent,
   SyncState,
   type MatrixClient,
   type MatrixEvent,
   type Room,
 } from 'matrix-js-sdk'
+import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type {
   ChatDemoState,
   ChatMessage,
   ChatPerson,
   ChatReaction,
   ChatRoom,
+  FriendRequest,
+  RoomBootstrap,
   SessionBootstrap,
 } from '@libs/chat'
 
@@ -27,6 +32,7 @@ export interface MatrixRuntime {
   client: MatrixClient
   store: IndexedDBStore
   stop: () => Promise<void>
+  clear: () => Promise<void>
 }
 
 type ReadyMatrixBootstrap = Extract<SessionBootstrap['matrix'], { status: 'ready' }>
@@ -63,7 +69,52 @@ export async function createMatrixRuntime(
       client.stopClient()
       await store.save(true).catch(() => undefined)
     },
+    clear: async () => {
+      client.stopClient()
+      await store.deleteAllData()
+    },
   }
+}
+
+export function sendMatrixText(
+  client: MatrixClient,
+  roomId: string,
+  text: string,
+  transactionId: string,
+  replyToId?: string,
+) {
+  const content = (replyToId ? {
+    msgtype: MsgType.Text,
+    body: text,
+    'm.relates_to': {
+      'm.in_reply_to': { event_id: replyToId },
+    },
+  } : {
+    msgtype: MsgType.Text,
+    body: text,
+  }) as RoomMessageEventContent
+  return client.sendEvent(
+    roomId,
+    EventType.RoomMessage,
+    content,
+    transactionId,
+  )
+}
+
+export function sendMatrixReaction(
+  client: MatrixClient,
+  roomId: string,
+  eventId: string,
+  emoji: string,
+  transactionId: string,
+) {
+  return client.sendEvent(roomId, EventType.Reaction, {
+    'm.relates_to': {
+      rel_type: RelationType.Annotation,
+      event_id: eventId,
+      key: emoji,
+    },
+  }, transactionId)
 }
 
 export function subscribeToMatrixProjection(
@@ -211,35 +262,50 @@ export function projectMatrixChatState(
   profile: SessionBootstrap['user'],
   roomPreferences: Record<string, { pinned?: boolean; muted?: boolean }>,
   pendingTransactionIds: ReadonlySet<string> = new Set(),
+  social?: {
+    people: ChatPerson[]
+    contactIds: string[]
+    friendRequests: FriendRequest[]
+    blockedUserIds: string[]
+  },
+  roomMetadata: Record<string, RoomBootstrap> = {},
 ): ChatDemoState {
   const people = new Map<string, ChatPerson>()
+  for (const person of social?.people || []) people.set(person.id, person)
   people.set(profile.id, projectPerson(profile.id, profile.displayName))
   people.set(client.getUserId()!, projectPerson(client.getUserId()!, profile.displayName))
 
   const messages: ChatMessage[] = []
   const rooms: ChatRoom[] = []
   for (const room of client.getRooms()) {
-    if (room.getMyMembership() !== 'join') continue
-    const spaceId = roomSpaceId(room)
+    const membership = room.getMyMembership()
+    if (membership !== 'join' && membership !== 'invite') continue
+    const spaceId = roomSpaceId(room) || roomMetadata[room.roomId]?.spaceId || null
     if (!spaceId || !baseState.spaces.some((space) => space.id === spaceId)) continue
 
     for (const member of room.getJoinedMembers()) {
       people.set(member.userId, projectPerson(member.userId, member.name))
     }
-    const roomMessages = projectRoomMessages(room, pendingTransactionIds)
+    const roomMessages = membership === 'join'
+      ? projectRoomMessages(room, pendingTransactionIds)
+      : []
     messages.push(...roomMessages)
     const lastMessage = roomMessages.at(-1)
     const preferences = roomPreferences[room.roomId] || {}
     rooms.push({
       id: room.roomId,
       name: room.name,
-      memberIds: room.getJoinedMembers().map((member) => member.userId),
+      memberIds: Array.from(new Set([
+        ...room.getJoinedMembers().map((member) => member.userId),
+        client.getUserId()!,
+      ])),
       spaceId,
       lastMessage: lastMessage?.text || '',
       updatedAt: lastMessage?.createdAt || new Date(room.getLiveTimeline().getEvents().at(-1)?.getTs() || 0).toISOString(),
       unreadCount: room.getUnreadNotificationCount(),
       pinned: preferences.pinned || false,
       muted: preferences.muted || false,
+      membership,
     })
   }
 
@@ -247,8 +313,9 @@ export function projectMatrixChatState(
     ...baseState,
     currentUserId: client.getUserId()!,
     people: [...people.values()],
-    contactIds: [],
-    friendRequests: [],
+    contactIds: social?.contactIds || [],
+    friendRequests: social?.friendRequests || [],
+    blockedUserIds: social?.blockedUserIds || [],
     rooms,
     messages,
   }

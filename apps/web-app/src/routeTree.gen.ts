@@ -23,11 +23,17 @@ import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
 import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
 import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
 import { Route as V1RoomsIndexRouteImport } from './routes/v1/rooms/index'
+import { Route as V1FriendRequestsIndexRouteImport } from './routes/v1/friend-requests/index'
+import { Route as V1ContactsIndexRouteImport } from './routes/v1/contacts/index'
+import { Route as V1BlocksIndexRouteImport } from './routes/v1/blocks/index'
 import { Route as ApiVideoGenerateIndexRouteImport } from './routes/api/video-generate/index'
 import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as LangAdminIndexRouteImport } from './routes/$lang/admin/index'
 import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
+import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
+import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
+import { Route as V1BlocksUserIdRouteImport } from './routes/v1/blocks/$userId'
 import { Route as ApiWithdrawalRequestRouteImport } from './routes/api/withdrawal/request'
 import { Route as ApiWithdrawalHistoryRouteImport } from './routes/api/withdrawal/history'
 import { Route as ApiVideoGenerateStatusRouteImport } from './routes/api/video-generate/status'
@@ -84,6 +90,8 @@ import { Route as LangAdminCommissionsIndexRouteImport } from './routes/$lang/ad
 import { Route as LangAdminBlogIndexRouteImport } from './routes/$lang/admin/blog/index'
 import { Route as LangrootBlogIndexRouteImport } from './routes/$lang/(root)/blog/index'
 import { Route as LangchatDiscoverIndexRouteImport } from './routes/$lang/(chat)/discover/index'
+import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
+import { Route as V1FriendRequestsIdAcceptRouteImport } from './routes/v1/friend-requests/$id/accept'
 import { Route as ApiPaymentWebhookWechatRouteImport } from './routes/api/payment/webhook/wechat'
 import { Route as ApiPaymentWebhookStripeRouteImport } from './routes/api/payment/webhook/stripe'
 import { Route as ApiPaymentWebhookPaypalRouteImport } from './routes/api/payment/webhook/paypal'
@@ -175,6 +183,21 @@ const V1RoomsIndexRoute = V1RoomsIndexRouteImport.update({
   path: '/v1/rooms/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1FriendRequestsIndexRoute = V1FriendRequestsIndexRouteImport.update({
+  id: '/v1/friend-requests/',
+  path: '/v1/friend-requests/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1ContactsIndexRoute = V1ContactsIndexRouteImport.update({
+  id: '/v1/contacts/',
+  path: '/v1/contacts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1BlocksIndexRoute = V1BlocksIndexRouteImport.update({
+  id: '/v1/blocks/',
+  path: '/v1/blocks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVideoGenerateIndexRoute = ApiVideoGenerateIndexRouteImport.update({
   id: '/api/video-generate/',
   path: '/api/video-generate/',
@@ -195,9 +218,24 @@ const LangrootIndexRoute = LangrootIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LangrootRouteRoute,
 } as any)
+const V1UsersSearchRoute = V1UsersSearchRouteImport.update({
+  id: '/v1/users/search',
+  path: '/v1/users/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const V1SessionBootstrapRoute = V1SessionBootstrapRouteImport.update({
   id: '/v1/session/bootstrap',
   path: '/v1/session/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
+  id: '/v1/rooms/metadata',
+  path: '/v1/rooms/metadata',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1BlocksUserIdRoute = V1BlocksUserIdRouteImport.update({
+  id: '/v1/blocks/$userId',
+  path: '/v1/blocks/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWithdrawalRequestRoute = ApiWithdrawalRequestRouteImport.update({
@@ -486,6 +524,18 @@ const LangchatDiscoverIndexRoute = LangchatDiscoverIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LangchatDiscoverRouteRoute,
 } as any)
+const V1FriendRequestsIdRejectRoute =
+  V1FriendRequestsIdRejectRouteImport.update({
+    id: '/v1/friend-requests/$id/reject',
+    path: '/v1/friend-requests/$id/reject',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const V1FriendRequestsIdAcceptRoute =
+  V1FriendRequestsIdAcceptRouteImport.update({
+    id: '/v1/friend-requests/$id/accept',
+    path: '/v1/friend-requests/$id/accept',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPaymentWebhookWechatRoute = ApiPaymentWebhookWechatRouteImport.update({
   id: '/api/payment/webhook/wechat',
   path: '/api/payment/webhook/wechat',
@@ -658,11 +708,17 @@ export interface FileRoutesByFullPath {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
+  '/v1/users/search': typeof V1UsersSearchRoute
   '/$lang/': typeof LangrootIndexRoute
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/v1/blocks/': typeof V1BlocksIndexRoute
+  '/v1/contacts/': typeof V1ContactsIndexRoute
+  '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
@@ -680,6 +736,8 @@ export interface FileRoutesByFullPath {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
+  '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/$lang/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
@@ -753,10 +811,16 @@ export interface FileRoutesByTo {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
+  '/v1/users/search': typeof V1UsersSearchRoute
   '/$lang/admin': typeof LangAdminIndexRoute
   '/api/blog': typeof ApiBlogIndexRoute
   '/api/video-generate': typeof ApiVideoGenerateIndexRoute
+  '/v1/blocks': typeof V1BlocksIndexRoute
+  '/v1/contacts': typeof V1ContactsIndexRoute
+  '/v1/friend-requests': typeof V1FriendRequestsIndexRoute
   '/v1/rooms': typeof V1RoomsIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
@@ -774,6 +838,8 @@ export interface FileRoutesByTo {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
+  '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/$lang/discover': typeof LangchatDiscoverIndexRoute
   '/$lang/blog': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog': typeof LangAdminBlogIndexRoute
@@ -853,11 +919,17 @@ export interface FileRoutesById {
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
+  '/v1/users/search': typeof V1UsersSearchRoute
   '/$lang/(root)/': typeof LangrootIndexRoute
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/v1/blocks/': typeof V1BlocksIndexRoute
+  '/v1/contacts/': typeof V1ContactsIndexRoute
+  '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
   '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
@@ -875,6 +947,8 @@ export interface FileRoutesById {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
+  '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/$lang/(chat)/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/(root)/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
@@ -952,11 +1026,17 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/blocks/$userId'
+    | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
+    | '/v1/users/search'
     | '/$lang/'
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/v1/blocks/'
+    | '/v1/contacts/'
+    | '/v1/friend-requests/'
     | '/v1/rooms/'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
@@ -974,6 +1054,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/v1/friend-requests/$id/accept'
+    | '/v1/friend-requests/$id/reject'
     | '/$lang/discover/'
     | '/$lang/blog/'
     | '/$lang/admin/blog/'
@@ -1047,10 +1129,16 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/blocks/$userId'
+    | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
+    | '/v1/users/search'
     | '/$lang/admin'
     | '/api/blog'
     | '/api/video-generate'
+    | '/v1/blocks'
+    | '/v1/contacts'
+    | '/v1/friend-requests'
     | '/v1/rooms'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
@@ -1068,6 +1156,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/v1/friend-requests/$id/accept'
+    | '/v1/friend-requests/$id/reject'
     | '/$lang/discover'
     | '/$lang/blog'
     | '/$lang/admin/blog'
@@ -1146,11 +1236,17 @@ export interface FileRouteTypes {
     | '/api/video-generate/status'
     | '/api/withdrawal/history'
     | '/api/withdrawal/request'
+    | '/v1/blocks/$userId'
+    | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
+    | '/v1/users/search'
     | '/$lang/(root)/'
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/v1/blocks/'
+    | '/v1/contacts/'
+    | '/v1/friend-requests/'
     | '/v1/rooms/'
     | '/$lang/(chat)/rooms/$roomId'
     | '/$lang/(root)/blog/$slug'
@@ -1168,6 +1264,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/v1/friend-requests/$id/accept'
+    | '/v1/friend-requests/$id/reject'
     | '/$lang/(chat)/discover/'
     | '/$lang/(root)/blog/'
     | '/$lang/admin/blog/'
@@ -1224,9 +1322,15 @@ export interface RootRouteChildren {
   ApiVideoGenerateStatusRoute: typeof ApiVideoGenerateStatusRoute
   ApiWithdrawalHistoryRoute: typeof ApiWithdrawalHistoryRoute
   ApiWithdrawalRequestRoute: typeof ApiWithdrawalRequestRoute
+  V1BlocksUserIdRoute: typeof V1BlocksUserIdRoute
+  V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
+  V1UsersSearchRoute: typeof V1UsersSearchRoute
   ApiBlogIndexRoute: typeof ApiBlogIndexRoute
   ApiVideoGenerateIndexRoute: typeof ApiVideoGenerateIndexRoute
+  V1BlocksIndexRoute: typeof V1BlocksIndexRoute
+  V1ContactsIndexRoute: typeof V1ContactsIndexRoute
+  V1FriendRequestsIndexRoute: typeof V1FriendRequestsIndexRoute
   V1RoomsIndexRoute: typeof V1RoomsIndexRoute
   ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
   ApiAdminPricingPlansImportRoute: typeof ApiAdminPricingPlansImportRoute
@@ -1242,6 +1346,8 @@ export interface RootRouteChildren {
   ApiPaymentWebhookPaypalRoute: typeof ApiPaymentWebhookPaypalRoute
   ApiPaymentWebhookStripeRoute: typeof ApiPaymentWebhookStripeRoute
   ApiPaymentWebhookWechatRoute: typeof ApiPaymentWebhookWechatRoute
+  V1FriendRequestsIdAcceptRoute: typeof V1FriendRequestsIdAcceptRoute
+  V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
   ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
   ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
   ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
@@ -1354,6 +1460,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1RoomsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/friend-requests/': {
+      id: '/v1/friend-requests/'
+      path: '/v1/friend-requests'
+      fullPath: '/v1/friend-requests/'
+      preLoaderRoute: typeof V1FriendRequestsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/contacts/': {
+      id: '/v1/contacts/'
+      path: '/v1/contacts'
+      fullPath: '/v1/contacts/'
+      preLoaderRoute: typeof V1ContactsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/blocks/': {
+      id: '/v1/blocks/'
+      path: '/v1/blocks'
+      fullPath: '/v1/blocks/'
+      preLoaderRoute: typeof V1BlocksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/video-generate/': {
       id: '/api/video-generate/'
       path: '/api/video-generate'
@@ -1382,11 +1509,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootIndexRouteImport
       parentRoute: typeof LangrootRouteRoute
     }
+    '/v1/users/search': {
+      id: '/v1/users/search'
+      path: '/v1/users/search'
+      fullPath: '/v1/users/search'
+      preLoaderRoute: typeof V1UsersSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/session/bootstrap': {
       id: '/v1/session/bootstrap'
       path: '/v1/session/bootstrap'
       fullPath: '/v1/session/bootstrap'
       preLoaderRoute: typeof V1SessionBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/rooms/metadata': {
+      id: '/v1/rooms/metadata'
+      path: '/v1/rooms/metadata'
+      fullPath: '/v1/rooms/metadata'
+      preLoaderRoute: typeof V1RoomsMetadataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/blocks/$userId': {
+      id: '/v1/blocks/$userId'
+      path: '/v1/blocks/$userId'
+      fullPath: '/v1/blocks/$userId'
+      preLoaderRoute: typeof V1BlocksUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/withdrawal/request': {
@@ -1781,6 +1929,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangchatDiscoverIndexRouteImport
       parentRoute: typeof LangchatDiscoverRouteRoute
     }
+    '/v1/friend-requests/$id/reject': {
+      id: '/v1/friend-requests/$id/reject'
+      path: '/v1/friend-requests/$id/reject'
+      fullPath: '/v1/friend-requests/$id/reject'
+      preLoaderRoute: typeof V1FriendRequestsIdRejectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/friend-requests/$id/accept': {
+      id: '/v1/friend-requests/$id/accept'
+      path: '/v1/friend-requests/$id/accept'
+      fullPath: '/v1/friend-requests/$id/accept'
+      preLoaderRoute: typeof V1FriendRequestsIdAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/payment/webhook/wechat': {
       id: '/api/payment/webhook/wechat'
       path: '/api/payment/webhook/wechat'
@@ -2116,9 +2278,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVideoGenerateStatusRoute: ApiVideoGenerateStatusRoute,
   ApiWithdrawalHistoryRoute: ApiWithdrawalHistoryRoute,
   ApiWithdrawalRequestRoute: ApiWithdrawalRequestRoute,
+  V1BlocksUserIdRoute: V1BlocksUserIdRoute,
+  V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
+  V1UsersSearchRoute: V1UsersSearchRoute,
   ApiBlogIndexRoute: ApiBlogIndexRoute,
   ApiVideoGenerateIndexRoute: ApiVideoGenerateIndexRoute,
+  V1BlocksIndexRoute: V1BlocksIndexRoute,
+  V1ContactsIndexRoute: V1ContactsIndexRoute,
+  V1FriendRequestsIndexRoute: V1FriendRequestsIndexRoute,
   V1RoomsIndexRoute: V1RoomsIndexRoute,
   ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,
   ApiAdminPricingPlansImportRoute: ApiAdminPricingPlansImportRoute,
@@ -2134,6 +2302,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaymentWebhookPaypalRoute: ApiPaymentWebhookPaypalRoute,
   ApiPaymentWebhookStripeRoute: ApiPaymentWebhookStripeRoute,
   ApiPaymentWebhookWechatRoute: ApiPaymentWebhookWechatRoute,
+  V1FriendRequestsIdAcceptRoute: V1FriendRequestsIdAcceptRoute,
+  V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
   ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
   ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
   ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,

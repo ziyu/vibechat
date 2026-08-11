@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db, roomIndex } from "@libs/database";
 import type { RoomRepository } from "./contracts";
 import type { RoomIndexRecord } from "./types";
@@ -24,6 +24,7 @@ export class DatabaseRoomRepository implements RoomRepository {
       spaceId: record.spaceId,
       spaceVersionId: record.spaceVersionId,
       creatorUserId: record.creatorUserId,
+      participantUserIdsJson: record.participantUserIds,
       instanceConfigJson: record.instanceConfig,
       status: record.status,
       createdAt: record.createdAt,
@@ -36,6 +37,17 @@ export class DatabaseRoomRepository implements RoomRepository {
     return stored;
   }
 
+  async getAccessibleByMatrixRoomIds(userId: string, matrixRoomIds: string[]) {
+    if (!matrixRoomIds.length) return [];
+    const stored = await db
+      .select()
+      .from(roomIndex)
+      .where(inArray(roomIndex.matrixRoomId, matrixRoomIds));
+    return stored
+      .map((room) => this.toRecord(room))
+      .filter((room) => room.participantUserIds.includes(userId));
+  }
+
   private toRecord(stored: typeof roomIndex.$inferSelect): RoomIndexRecord {
     return {
       matrixRoomId: stored.matrixRoomId,
@@ -43,6 +55,9 @@ export class DatabaseRoomRepository implements RoomRepository {
       spaceId: stored.spaceId,
       spaceVersionId: stored.spaceVersionId,
       creatorUserId: stored.creatorUserId,
+      participantUserIds: stored.participantUserIdsJson.length
+        ? stored.participantUserIdsJson
+        : [stored.creatorUserId],
       instanceConfig: stored.instanceConfigJson,
       status: stored.status as RoomIndexRecord["status"],
       createdAt: stored.createdAt,

@@ -10,7 +10,9 @@ import {
   MatrixRoomAdapterError,
   RoomServiceError,
 } from '@libs/rooms'
+import { SocialServiceError } from '@libs/social'
 import { withCfDb } from '@/lib/with-request-db'
+import { socialServiceErrorResponse } from '@/lib/social-api'
 
 function getRequestId(request: Request) {
   return request.headers.get('x-request-id') || globalThis.crypto.randomUUID()
@@ -109,6 +111,9 @@ export const Route = createFileRoute('/v1/rooms/')({
           if (error instanceof RoomServiceError) {
             const status = error.code === 'ROOM_SPACE_NOT_FOUND' ? 404 : 409
             return productError(requestId, status, error.code, error.code)
+          }
+          if (error instanceof SocialServiceError) {
+            return socialServiceErrorResponse(requestId, error)
           }
           if (error instanceof MatrixRoomAdapterError) {
             return productError(

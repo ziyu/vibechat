@@ -37,6 +37,14 @@ export type {
 } from './schema/pg/identity'
 export type { BlogPostStatus } from './constants'
 export type { NewRoomIndex, RoomIndex } from './schema/pg/room'
+export type {
+  Block,
+  Contact,
+  FriendRequest,
+  NewBlock,
+  NewContact,
+  NewFriendRequest,
+} from './schema/pg/social'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -49,6 +57,7 @@ export { withdrawal } from './schema/withdrawal'
 export { blogPost } from './schema/blog-post'
 export { pricingPlan } from './schema/pricing-plan'
 export { roomIndex } from './schema/room'
+export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 
 // Build a schema object for drizzle() initialization from proxy exports.
@@ -63,6 +72,7 @@ import { withdrawal as _withdrawal } from './schema/withdrawal'
 import { blogPost as _blogPost } from './schema/blog-post'
 import { pricingPlan as _pricingPlan } from './schema/pricing-plan'
 import { roomIndex as _roomIndex } from './schema/room'
+import { block as _block, contact as _contact, friendRequest as _friendRequest } from './schema/social'
 import {
   integrationOutbox as _integrationOutbox,
   matrixIdentity as _matrixIdentity,
@@ -76,6 +86,7 @@ const _schema = {
   commission: _commission, withdrawal: _withdrawal,
   blogPost: _blogPost, pricingPlan: _pricingPlan,
   roomIndex: _roomIndex,
+  block: _block, contact: _contact, friendRequest: _friendRequest,
   userProfile: _userProfile, matrixIdentity: _matrixIdentity,
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
 }

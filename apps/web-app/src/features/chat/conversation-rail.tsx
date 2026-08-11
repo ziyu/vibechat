@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
   CheckCheck,
+  Check,
   Inbox,
   MoreHorizontal,
   Pin,
@@ -12,6 +13,7 @@ import {
   Search,
   Volume2,
   VolumeX,
+  X,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -33,6 +35,8 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
     markRoomRead,
     toggleRoomMuted,
     toggleRoomPinned,
+    acceptRoomInvite,
+    rejectRoomInvite,
   } = useChatDemo()
   const [query, setQuery] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(false)
@@ -96,6 +100,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
               data-active={room.id === activeRoomId || undefined}
               data-unread={room.unreadCount > 0 || undefined}
               data-testid="conversation-row"
+              data-membership={room.membership || 'join'}
             >
               <Link
                 to="/$lang/rooms/$roomId"
@@ -117,14 +122,40 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                     <time dateTime={room.updatedAt}>{formatRoomTime(room.updatedAt, locale)}</time>
                   </span>
                   <span className="vc-room-summary-line">
-                    <small>{room.lastMessage}</small>
+                    <small>
+                      {room.membership === 'invite'
+                        ? t.chatApp.contacts.invited
+                        : room.lastMessage}
+                    </small>
                     {room.muted ? <VolumeX size={12} aria-label={t.chatApp.messages.muted} /> : null}
                     {room.unreadCount > 0 ? <i>{room.unreadCount}</i> : null}
                   </span>
                 </span>
               </Link>
 
-              <DropdownMenu>
+              {room.membership === 'invite' ? (
+                <span className="vc-invite-actions">
+                  <button
+                    type="button"
+                    className="vc-icon-button vc-accept-button"
+                    aria-label={t.chatApp.contacts.acceptInvite}
+                    data-testid="accept-room-invite"
+                    onClick={() => void acceptRoomInvite(room.id)}
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="vc-icon-button"
+                    aria-label={t.chatApp.contacts.declineInvite}
+                    onClick={() => void rejectRoomInvite(room.id)}
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              ) : null}
+
+              {room.membership !== 'invite' ? <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
@@ -148,7 +179,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                     {t.chatApp.messages.markRead}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> : null}
             </article>
           )
         })}

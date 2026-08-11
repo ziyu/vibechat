@@ -78,6 +78,7 @@ export function createDemoChatState(locale: ChatLocale): ChatDemoState {
         createdAt: isoMinutesAgo(38),
       },
     ],
+    blockedUserIds: [],
     spaces: [
       {
         id: 'space-campfire',
