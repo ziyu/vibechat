@@ -20,6 +20,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as LangAdminRouteImport } from './routes/$lang/admin'
 import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
+import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
 import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
 import { Route as ApiVideoGenerateIndexRouteImport } from './routes/api/video-generate/index'
 import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
@@ -54,12 +55,16 @@ import { Route as LangrootPaymentCancelRouteImport } from './routes/$lang/(root)
 import { Route as LangrootImageGenerateRouteImport } from './routes/$lang/(root)/image-generate'
 import { Route as LangrootDashboardRouteImport } from './routes/$lang/(root)/dashboard'
 import { Route as LangrootAiRouteImport } from './routes/$lang/(root)/ai'
+import { Route as LangchatMessagesRouteImport } from './routes/$lang/(chat)/messages'
+import { Route as LangchatMeRouteImport } from './routes/$lang/(chat)/me'
+import { Route as LangchatContactsRouteImport } from './routes/$lang/(chat)/contacts'
 import { Route as LangauthWechatRouteImport } from './routes/$lang/(auth)/wechat'
 import { Route as LangauthSignupRouteImport } from './routes/$lang/(auth)/signup'
 import { Route as LangauthSigninRouteImport } from './routes/$lang/(auth)/signin'
 import { Route as LangauthResetPasswordRouteImport } from './routes/$lang/(auth)/reset-password'
 import { Route as LangauthForgotPasswordRouteImport } from './routes/$lang/(auth)/forgot-password'
 import { Route as LangauthCellphoneRouteImport } from './routes/$lang/(auth)/cellphone'
+import { Route as LangchatDiscoverRouteRouteImport } from './routes/$lang/(chat)/discover/route'
 import { Route as ApiAdminWithdrawalsIndexRouteImport } from './routes/api/admin/withdrawals/index'
 import { Route as ApiAdminUsersIndexRouteImport } from './routes/api/admin/users/index'
 import { Route as ApiAdminSubscriptionsIndexRouteImport } from './routes/api/admin/subscriptions/index'
@@ -76,6 +81,7 @@ import { Route as LangAdminCreditsIndexRouteImport } from './routes/$lang/admin/
 import { Route as LangAdminCommissionsIndexRouteImport } from './routes/$lang/admin/commissions/index'
 import { Route as LangAdminBlogIndexRouteImport } from './routes/$lang/admin/blog/index'
 import { Route as LangrootBlogIndexRouteImport } from './routes/$lang/(root)/blog/index'
+import { Route as LangchatDiscoverIndexRouteImport } from './routes/$lang/(chat)/discover/index'
 import { Route as ApiPaymentWebhookWechatRouteImport } from './routes/api/payment/webhook/wechat'
 import { Route as ApiPaymentWebhookStripeRouteImport } from './routes/api/payment/webhook/stripe'
 import { Route as ApiPaymentWebhookPaypalRouteImport } from './routes/api/payment/webhook/paypal'
@@ -91,12 +97,14 @@ import { Route as ApiAdminPricingPlansReorderRouteImport } from './routes/api/ad
 import { Route as ApiAdminPricingPlansImportRouteImport } from './routes/api/admin/pricing-plans/import'
 import { Route as ApiAdminBlogIdRouteImport } from './routes/api/admin/blog/$id'
 import { Route as LangrootBlogSlugRouteImport } from './routes/$lang/(root)/blog/$slug'
+import { Route as LangchatRoomsRoomIdRouteImport } from './routes/$lang/(chat)/rooms/$roomId'
 import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin/users/update/index'
 import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
 import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
 import { Route as LangAdminUsersIdIndexRouteImport } from './routes/$lang/admin/users/$id/index'
 import { Route as LangAdminPricingIdIndexRouteImport } from './routes/$lang/admin/pricing/$id/index'
 import { Route as LangAdminBlogIdIndexRouteImport } from './routes/$lang/admin/blog/$id/index'
+import { Route as LangchatDiscoverSpacesSpaceIdRouteImport } from './routes/$lang/(chat)/discover/spaces/$spaceId'
 
 const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
   id: '/payment-success',
@@ -150,6 +158,10 @@ const LangAdminRoute = LangAdminRouteImport.update({
 } as any)
 const LangrootRouteRoute = LangrootRouteRouteImport.update({
   id: '/(root)',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangchatRouteRoute = LangchatRouteRouteImport.update({
+  id: '/(chat)',
   getParentRoute: () => LangRoute,
 } as any)
 const LangauthRouteRoute = LangauthRouteRouteImport.update({
@@ -321,6 +333,21 @@ const LangrootAiRoute = LangrootAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => LangrootRouteRoute,
 } as any)
+const LangchatMessagesRoute = LangchatMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatMeRoute = LangchatMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatContactsRoute = LangchatContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
 const LangauthWechatRoute = LangauthWechatRouteImport.update({
   id: '/wechat',
   path: '/wechat',
@@ -350,6 +377,11 @@ const LangauthCellphoneRoute = LangauthCellphoneRouteImport.update({
   id: '/cellphone',
   path: '/cellphone',
   getParentRoute: () => LangauthRouteRoute,
+} as any)
+const LangchatDiscoverRouteRoute = LangchatDiscoverRouteRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => LangchatRouteRoute,
 } as any)
 const ApiAdminWithdrawalsIndexRoute =
   ApiAdminWithdrawalsIndexRouteImport.update({
@@ -437,6 +469,11 @@ const LangrootBlogIndexRoute = LangrootBlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => LangrootRouteRoute,
 } as any)
+const LangchatDiscoverIndexRoute = LangchatDiscoverIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LangchatDiscoverRouteRoute,
+} as any)
 const ApiPaymentWebhookWechatRoute = ApiPaymentWebhookWechatRouteImport.update({
   id: '/api/payment/webhook/wechat',
   path: '/api/payment/webhook/wechat',
@@ -514,6 +551,11 @@ const LangrootBlogSlugRoute = LangrootBlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => LangrootRouteRoute,
 } as any)
+const LangchatRoomsRoomIdRoute = LangchatRoomsRoomIdRouteImport.update({
+  id: '/rooms/$roomId',
+  path: '/rooms/$roomId',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
 const ApiAdminUsersUpdateIndexRoute =
   ApiAdminUsersUpdateIndexRouteImport.update({
     id: '/api/admin/users/update/',
@@ -547,6 +589,12 @@ const LangAdminBlogIdIndexRoute = LangAdminBlogIdIndexRouteImport.update({
   path: '/blog/$id/',
   getParentRoute: () => LangAdminRoute,
 } as any)
+const LangchatDiscoverSpacesSpaceIdRoute =
+  LangchatDiscoverSpacesSpaceIdRouteImport.update({
+    id: '/spaces/$spaceId',
+    path: '/spaces/$spaceId',
+    getParentRoute: () => LangchatDiscoverRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -559,12 +607,16 @@ export interface FileRoutesByFullPath {
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/$lang/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/reset-password': typeof LangauthResetPasswordRoute
   '/$lang/signin': typeof LangauthSigninRoute
   '/$lang/signup': typeof LangauthSignupRoute
   '/$lang/wechat': typeof LangauthWechatRoute
+  '/$lang/contacts': typeof LangchatContactsRoute
+  '/$lang/me': typeof LangchatMeRoute
+  '/$lang/messages': typeof LangchatMessagesRoute
   '/$lang/ai': typeof LangrootAiRoute
   '/$lang/dashboard': typeof LangrootDashboardRoute
   '/$lang/image-generate': typeof LangrootImageGenerateRoute
@@ -598,6 +650,7 @@ export interface FileRoutesByFullPath {
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
   '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
@@ -613,6 +666,7 @@ export interface FileRoutesByFullPath {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/$lang/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
   '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
@@ -629,6 +683,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users/': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
   '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
   '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
   '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
@@ -652,6 +707,9 @@ export interface FileRoutesByTo {
   '/$lang/signin': typeof LangauthSigninRoute
   '/$lang/signup': typeof LangauthSignupRoute
   '/$lang/wechat': typeof LangauthWechatRoute
+  '/$lang/contacts': typeof LangchatContactsRoute
+  '/$lang/me': typeof LangchatMeRoute
+  '/$lang/messages': typeof LangchatMessagesRoute
   '/$lang/ai': typeof LangrootAiRoute
   '/$lang/dashboard': typeof LangrootDashboardRoute
   '/$lang/image-generate': typeof LangrootImageGenerateRoute
@@ -684,6 +742,7 @@ export interface FileRoutesByTo {
   '/$lang/admin': typeof LangAdminIndexRoute
   '/api/blog': typeof ApiBlogIndexRoute
   '/api/video-generate': typeof ApiVideoGenerateIndexRoute
+  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
   '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
@@ -699,6 +758,7 @@ export interface FileRoutesByTo {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/$lang/discover': typeof LangchatDiscoverIndexRoute
   '/$lang/blog': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog': typeof LangAdminBlogIndexRoute
   '/$lang/admin/commissions': typeof LangAdminCommissionsIndexRoute
@@ -715,6 +775,7 @@ export interface FileRoutesByTo {
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals': typeof ApiAdminWithdrawalsIndexRoute
+  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
   '/$lang/admin/blog/$id': typeof LangAdminBlogIdIndexRoute
   '/$lang/admin/pricing/$id': typeof LangAdminPricingIdIndexRoute
   '/$lang/admin/users/$id': typeof LangAdminUsersIdIndexRoute
@@ -729,6 +790,7 @@ export interface FileRoutesById {
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/$lang/(auth)': typeof LangauthRouteRouteWithChildren
+  '/$lang/(chat)': typeof LangchatRouteRouteWithChildren
   '/$lang/(root)': typeof LangrootRouteRouteWithChildren
   '/$lang/admin': typeof LangAdminRouteWithChildren
   '/api/chat': typeof ApiChatRoute
@@ -736,12 +798,16 @@ export interface FileRoutesById {
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/$lang/(chat)/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/(auth)/cellphone': typeof LangauthCellphoneRoute
   '/$lang/(auth)/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/(auth)/reset-password': typeof LangauthResetPasswordRoute
   '/$lang/(auth)/signin': typeof LangauthSigninRoute
   '/$lang/(auth)/signup': typeof LangauthSignupRoute
   '/$lang/(auth)/wechat': typeof LangauthWechatRoute
+  '/$lang/(chat)/contacts': typeof LangchatContactsRoute
+  '/$lang/(chat)/me': typeof LangchatMeRoute
+  '/$lang/(chat)/messages': typeof LangchatMessagesRoute
   '/$lang/(root)/ai': typeof LangrootAiRoute
   '/$lang/(root)/dashboard': typeof LangrootDashboardRoute
   '/$lang/(root)/image-generate': typeof LangrootImageGenerateRoute
@@ -775,6 +841,7 @@ export interface FileRoutesById {
   '/$lang/admin/': typeof LangAdminIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
   '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
+  '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
   '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
@@ -790,6 +857,7 @@ export interface FileRoutesById {
   '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
   '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
+  '/$lang/(chat)/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/(root)/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
   '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
@@ -806,6 +874,7 @@ export interface FileRoutesById {
   '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users/': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/$lang/(chat)/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
   '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
   '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
   '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
@@ -826,12 +895,16 @@ export interface FileRouteTypes {
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/$lang/discover'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
     | '/$lang/reset-password'
     | '/$lang/signin'
     | '/$lang/signup'
     | '/$lang/wechat'
+    | '/$lang/contacts'
+    | '/$lang/me'
+    | '/$lang/messages'
     | '/$lang/ai'
     | '/$lang/dashboard'
     | '/$lang/image-generate'
@@ -865,6 +938,7 @@ export interface FileRouteTypes {
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
     | '/api/admin/pricing-plans/import'
@@ -880,6 +954,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/$lang/discover/'
     | '/$lang/blog/'
     | '/$lang/admin/blog/'
     | '/$lang/admin/commissions/'
@@ -896,6 +971,7 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions/'
     | '/api/admin/users/'
     | '/api/admin/withdrawals/'
+    | '/$lang/discover/spaces/$spaceId'
     | '/$lang/admin/blog/$id/'
     | '/$lang/admin/pricing/$id/'
     | '/$lang/admin/users/$id/'
@@ -919,6 +995,9 @@ export interface FileRouteTypes {
     | '/$lang/signin'
     | '/$lang/signup'
     | '/$lang/wechat'
+    | '/$lang/contacts'
+    | '/$lang/me'
+    | '/$lang/messages'
     | '/$lang/ai'
     | '/$lang/dashboard'
     | '/$lang/image-generate'
@@ -951,6 +1030,7 @@ export interface FileRouteTypes {
     | '/$lang/admin'
     | '/api/blog'
     | '/api/video-generate'
+    | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
     | '/api/admin/pricing-plans/import'
@@ -966,6 +1046,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/$lang/discover'
     | '/$lang/blog'
     | '/$lang/admin/blog'
     | '/$lang/admin/commissions'
@@ -982,6 +1063,7 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions'
     | '/api/admin/users'
     | '/api/admin/withdrawals'
+    | '/$lang/discover/spaces/$spaceId'
     | '/$lang/admin/blog/$id'
     | '/$lang/admin/pricing/$id'
     | '/$lang/admin/users/$id'
@@ -995,6 +1077,7 @@ export interface FileRouteTypes {
     | '/payment-cancel'
     | '/payment-success'
     | '/$lang/(auth)'
+    | '/$lang/(chat)'
     | '/$lang/(root)'
     | '/$lang/admin'
     | '/api/chat'
@@ -1002,12 +1085,16 @@ export interface FileRouteTypes {
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/$lang/(chat)/discover'
     | '/$lang/(auth)/cellphone'
     | '/$lang/(auth)/forgot-password'
     | '/$lang/(auth)/reset-password'
     | '/$lang/(auth)/signin'
     | '/$lang/(auth)/signup'
     | '/$lang/(auth)/wechat'
+    | '/$lang/(chat)/contacts'
+    | '/$lang/(chat)/me'
+    | '/$lang/(chat)/messages'
     | '/$lang/(root)/ai'
     | '/$lang/(root)/dashboard'
     | '/$lang/(root)/image-generate'
@@ -1041,6 +1128,7 @@ export interface FileRouteTypes {
     | '/$lang/admin/'
     | '/api/blog/'
     | '/api/video-generate/'
+    | '/$lang/(chat)/rooms/$roomId'
     | '/$lang/(root)/blog/$slug'
     | '/api/admin/blog/$id'
     | '/api/admin/pricing-plans/import'
@@ -1056,6 +1144,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/paypal'
     | '/api/payment/webhook/stripe'
     | '/api/payment/webhook/wechat'
+    | '/$lang/(chat)/discover/'
     | '/$lang/(root)/blog/'
     | '/$lang/admin/blog/'
     | '/$lang/admin/commissions/'
@@ -1072,6 +1161,7 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions/'
     | '/api/admin/users/'
     | '/api/admin/withdrawals/'
+    | '/$lang/(chat)/discover/spaces/$spaceId'
     | '/$lang/admin/blog/$id/'
     | '/$lang/admin/pricing/$id/'
     | '/$lang/admin/users/$id/'
@@ -1215,6 +1305,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/$lang'
       preLoaderRoute: typeof LangrootRouteRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/(chat)': {
+      id: '/$lang/(chat)'
+      path: ''
+      fullPath: '/$lang'
+      preLoaderRoute: typeof LangchatRouteRouteImport
       parentRoute: typeof LangRoute
     }
     '/$lang/(auth)': {
@@ -1455,6 +1552,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootAiRouteImport
       parentRoute: typeof LangrootRouteRoute
     }
+    '/$lang/(chat)/messages': {
+      id: '/$lang/(chat)/messages'
+      path: '/messages'
+      fullPath: '/$lang/messages'
+      preLoaderRoute: typeof LangchatMessagesRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
+    '/$lang/(chat)/me': {
+      id: '/$lang/(chat)/me'
+      path: '/me'
+      fullPath: '/$lang/me'
+      preLoaderRoute: typeof LangchatMeRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
+    '/$lang/(chat)/contacts': {
+      id: '/$lang/(chat)/contacts'
+      path: '/contacts'
+      fullPath: '/$lang/contacts'
+      preLoaderRoute: typeof LangchatContactsRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
     '/$lang/(auth)/wechat': {
       id: '/$lang/(auth)/wechat'
       path: '/wechat'
@@ -1496,6 +1614,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$lang/cellphone'
       preLoaderRoute: typeof LangauthCellphoneRouteImport
       parentRoute: typeof LangauthRouteRoute
+    }
+    '/$lang/(chat)/discover': {
+      id: '/$lang/(chat)/discover'
+      path: '/discover'
+      fullPath: '/$lang/discover'
+      preLoaderRoute: typeof LangchatDiscoverRouteRouteImport
+      parentRoute: typeof LangchatRouteRoute
     }
     '/api/admin/withdrawals/': {
       id: '/api/admin/withdrawals/'
@@ -1609,6 +1734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootBlogIndexRouteImport
       parentRoute: typeof LangrootRouteRoute
     }
+    '/$lang/(chat)/discover/': {
+      id: '/$lang/(chat)/discover/'
+      path: '/'
+      fullPath: '/$lang/discover/'
+      preLoaderRoute: typeof LangchatDiscoverIndexRouteImport
+      parentRoute: typeof LangchatDiscoverRouteRoute
+    }
     '/api/payment/webhook/wechat': {
       id: '/api/payment/webhook/wechat'
       path: '/api/payment/webhook/wechat'
@@ -1714,6 +1846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootBlogSlugRouteImport
       parentRoute: typeof LangrootRouteRoute
     }
+    '/$lang/(chat)/rooms/$roomId': {
+      id: '/$lang/(chat)/rooms/$roomId'
+      path: '/rooms/$roomId'
+      fullPath: '/$lang/rooms/$roomId'
+      preLoaderRoute: typeof LangchatRoomsRoomIdRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
     '/api/admin/users/update/': {
       id: '/api/admin/users/update/'
       path: '/api/admin/users/update'
@@ -1756,6 +1895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangAdminBlogIdIndexRouteImport
       parentRoute: typeof LangAdminRoute
     }
+    '/$lang/(chat)/discover/spaces/$spaceId': {
+      id: '/$lang/(chat)/discover/spaces/$spaceId'
+      path: '/spaces/$spaceId'
+      fullPath: '/$lang/discover/spaces/$spaceId'
+      preLoaderRoute: typeof LangchatDiscoverSpacesSpaceIdRouteImport
+      parentRoute: typeof LangchatDiscoverRouteRoute
+    }
   }
 }
 
@@ -1779,6 +1925,41 @@ const LangauthRouteRouteChildren: LangauthRouteRouteChildren = {
 
 const LangauthRouteRouteWithChildren = LangauthRouteRoute._addFileChildren(
   LangauthRouteRouteChildren,
+)
+
+interface LangchatDiscoverRouteRouteChildren {
+  LangchatDiscoverIndexRoute: typeof LangchatDiscoverIndexRoute
+  LangchatDiscoverSpacesSpaceIdRoute: typeof LangchatDiscoverSpacesSpaceIdRoute
+}
+
+const LangchatDiscoverRouteRouteChildren: LangchatDiscoverRouteRouteChildren = {
+  LangchatDiscoverIndexRoute: LangchatDiscoverIndexRoute,
+  LangchatDiscoverSpacesSpaceIdRoute: LangchatDiscoverSpacesSpaceIdRoute,
+}
+
+const LangchatDiscoverRouteRouteWithChildren =
+  LangchatDiscoverRouteRoute._addFileChildren(
+    LangchatDiscoverRouteRouteChildren,
+  )
+
+interface LangchatRouteRouteChildren {
+  LangchatDiscoverRouteRoute: typeof LangchatDiscoverRouteRouteWithChildren
+  LangchatContactsRoute: typeof LangchatContactsRoute
+  LangchatMeRoute: typeof LangchatMeRoute
+  LangchatMessagesRoute: typeof LangchatMessagesRoute
+  LangchatRoomsRoomIdRoute: typeof LangchatRoomsRoomIdRoute
+}
+
+const LangchatRouteRouteChildren: LangchatRouteRouteChildren = {
+  LangchatDiscoverRouteRoute: LangchatDiscoverRouteRouteWithChildren,
+  LangchatContactsRoute: LangchatContactsRoute,
+  LangchatMeRoute: LangchatMeRoute,
+  LangchatMessagesRoute: LangchatMessagesRoute,
+  LangchatRoomsRoomIdRoute: LangchatRoomsRoomIdRoute,
+}
+
+const LangchatRouteRouteWithChildren = LangchatRouteRoute._addFileChildren(
+  LangchatRouteRouteChildren,
 )
 
 interface LangrootRouteRouteChildren {
@@ -1851,12 +2032,14 @@ const LangAdminRouteWithChildren = LangAdminRoute._addFileChildren(
 
 interface LangRouteChildren {
   LangauthRouteRoute: typeof LangauthRouteRouteWithChildren
+  LangchatRouteRoute: typeof LangchatRouteRouteWithChildren
   LangrootRouteRoute: typeof LangrootRouteRouteWithChildren
   LangAdminRoute: typeof LangAdminRouteWithChildren
 }
 
 const LangRouteChildren: LangRouteChildren = {
   LangauthRouteRoute: LangauthRouteRouteWithChildren,
+  LangchatRouteRoute: LangchatRouteRouteWithChildren,
   LangrootRouteRoute: LangrootRouteRouteWithChildren,
   LangAdminRoute: LangAdminRouteWithChildren,
 }

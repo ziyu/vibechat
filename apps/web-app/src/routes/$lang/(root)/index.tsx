@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { seoHead } from '@/lib/seo'
 import { useTranslation } from '@/hooks/use-translation'
 
@@ -8,7 +8,7 @@ export const Route = createFileRoute('/$lang/(root)/')({
 })
 
 function HomePage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const year = new Date().getFullYear().toString()
 
   return (
@@ -40,6 +40,13 @@ function HomePage() {
             <p className="mt-8 max-w-xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
               {t.home.intro.description}
             </p>
+            <Link
+              to="/$lang/messages"
+              params={{ lang: locale }}
+              className="mt-9 inline-flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
+            >
+              {t.home.intro.openChat}
+            </Link>
           </div>
         </div>
 
