@@ -149,8 +149,10 @@ The BDD **mindset** (think about acceptance criteria first) is preserved in the 
 
 ### 8) Documentation updates
 
-- [ ] Update implementation docs under `docs/implementation/*` for new API behaviors.
-- [ ] Update user docs under `docs/user-guide/*` when user-visible behavior changes.
+- [ ] Put proposals, implementation notes, and unverified operational guidance under `docs/development/*`.
+- [ ] Update published user documentation under `apps/docs-app/content/docs/*` when user-visible behavior changes.
+- [ ] Promote reviewed, durable documentation to `docs/stable/*`, choosing the correct type (`designs`, `runbooks`, `references`, `release-notes`, or `plans`); archive superseded material under `docs/archive/*`.
+- [ ] Follow `docs/governance/lifecycle-policy.md` and run `pnpm docs:check`.
 - [ ] Keep provider parameter examples aligned with actual request payload format.
 
 ### 9) Verification before handoff
@@ -193,14 +195,15 @@ When adding a new capability, track these rows explicitly:
 ## Key Project References
 
 - Structure guideline: `.cursor/rules/project-structure.mdc`
+- Documentation index: `docs/README.md`
+- Documentation lifecycle policy: `docs/governance/lifecycle-policy.md`
+- Product and technical baseline: `docs/stable/designs/vibechat-mvp-product-and-technical-design.md`
 - i18n conventions: `libs/i18n/AGENTS.md`
 - AI provider implementation patterns: `libs/ai/AGENTS.md`
 - Credits lifecycle: `libs/credits/AGENTS.md`
 - Permissions model: `libs/permissions/AGENTS.md`
-- Auth middleware design: `docs/implementation/auth-middleware-design.md`
-- Build verification notes: `docs/implementation/build-verification.md`
-- Storage upload guide: `docs/user-guide/storage.md`
-- Credits user guide: `docs/user-guide/credits.md`
+- Build and documentation verification: `docs/governance/verification-standard.md`
+- Cloudflare Workers deployment Runbook: `docs/stable/runbooks/deployment/cloudflare-workers.md`
 - TanStack Cloudflare pitfalls: `apps/web-app/CF-NOTES.md`
 - E2E test conventions: `tests/e2e/AGENTS.md`
 - E2E test catalog: `tests/e2e/TEST-CATALOG.md`

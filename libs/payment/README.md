@@ -283,7 +283,7 @@ const result = await provider.handleWebhook(
 
 ## 📚 参考文档
 
-- [支付配置详细指南](../../docs/user-guide/payment.md) - 完整的环境变量配置和申请流程
+- [支付 Runbook](../../docs/stable/runbooks/payment/overview.md) - 支付配置与操作步骤
 - [微信支付开发文档](https://pay.weixin.qq.com/wiki/doc/api/index.html)
 - [支付宝开放平台](https://open.alipay.com/)
 - [Stripe 开发文档](https://stripe.com/docs)
