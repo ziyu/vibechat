@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClientReact } from "@libs/auth/authClient";
@@ -17,12 +16,12 @@ import { Inbox } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import { Link } from "@tanstack/react-router";
+import { postAuthPath } from "@/lib/auth-return";
 
 export function SignupForm({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  const navigate = useNavigate();
   const { t, locale, tWithParams } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -32,6 +31,9 @@ export function SignupForm({
   const [showResendDialog, setShowResendDialog] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => setHydrated(true), []);
 
   const { signupFormSchema } = createValidators(tWithParams);
 
@@ -92,9 +94,7 @@ export function SignupForm({
       setVerificationEmail(formData.email);
       setIsVerificationEmailSent(true);
     } else {
-      const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get("returnTo");
-      navigate({ to: returnTo || `/$lang`, params: { lang: locale } });
+      window.location.assign(postAuthPath(locale, window.location.search));
     }
 
     setLoading(false);
@@ -136,7 +136,12 @@ export function SignupForm({
   return (
     <div className={cn("flex flex-col gap-4", className)} {...props}>
       <FormError message={errorMessage} code={errorCode} />
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex flex-col gap-4"
+        data-testid="password-signup-form"
+        data-ready={hydrated ? "true" : "false"}
+      >
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="name">{t.auth.signup.name}</Label>
@@ -149,6 +154,7 @@ export function SignupForm({
                 className={cn(errors.name && "border-destructive")}
                 aria-invalid={errors.name ? "true" : "false"}
                 autoComplete="name"
+                disabled={!hydrated || loading}
               />
               {errors.name && (
                 <span className="text-destructive absolute -bottom-5 left-0 text-xs">
@@ -168,6 +174,7 @@ export function SignupForm({
                 className={cn(errors.email && "border-destructive")}
                 aria-invalid={errors.email ? "true" : "false"}
                 autoComplete="email"
+                disabled={!hydrated || loading}
               />
               {errors.email && (
                 <span className="text-destructive absolute -bottom-5 left-0 text-xs">
@@ -187,6 +194,7 @@ export function SignupForm({
                 className={cn(errors.password && "border-destructive")}
                 aria-invalid={errors.password ? "true" : "false"}
                 autoComplete="new-password"
+                disabled={!hydrated || loading}
               />
               {errors.password && (
                 <span className="text-destructive absolute -bottom-5 left-0 text-xs">
@@ -207,6 +215,7 @@ export function SignupForm({
                 placeholder={t.auth.signup.imageUrlPlaceholder}
                 className={cn(errors.image && "border-destructive")}
                 aria-invalid={errors.image ? "true" : "false"}
+                disabled={!hydrated || loading}
               />
               {errors.image && (
                 <span className="text-destructive absolute -bottom-5 left-0 text-xs">
@@ -227,6 +236,7 @@ export function SignupForm({
             type="submit"
             className="w-full"
             disabled={
+              !hydrated ||
               loading ||
               isSubmitting ||
               (config.captcha.enabled && !turnstileToken)

@@ -10,8 +10,16 @@ const space: BuiltInChatSpaceConfig = {
   spaceVersionId: "builtin-space-campfire-v1",
   semanticVersion: "1.0.0",
   integrity: "builtin:space-campfire@1.0.0",
+  category: "daily",
+  name: { en: "Afterglow Radio", "zh-CN": "夜航电台" },
+  summary: { en: "A late-night room.", "zh-CN": "深夜房间。" },
+  author: "Vibe Chat Studio",
+  icon: "◐",
+  accent: "#ff6b42",
+  canvas: "#171b20",
   permissions: ["messages.read", "messages.send"],
   networkDomains: [],
+  official: true,
 };
 
 class MemoryRoomRepository implements RoomRepository {

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@libs/ui/utils/cn";
@@ -20,12 +19,12 @@ import { createValidators } from "@libs/validators";
 import type { z } from "zod";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
+import { postAuthPath } from "@/lib/auth-return";
 
 export function PhoneLoginForm({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  const navigate = useNavigate();
   const { t, locale, tWithParams } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{
@@ -154,9 +153,7 @@ export function PhoneLoginForm({
     }
 
     if (data) {
-      const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get("returnTo");
-      navigate({ to: returnTo || `/$lang`, params: { lang: locale } });
+      window.location.assign(postAuthPath(locale, window.location.search));
     }
 
     setLoading(false);

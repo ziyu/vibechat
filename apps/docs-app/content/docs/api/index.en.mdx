@@ -1,88 +1,87 @@
 ---
-title: API Reference
-description: Complete API documentation and reference
+title: Product API Reference
+description: Current Vibe Chat browser product APIs and data authorities
 ---
 
-# API Reference
+# Product API Reference
 
-This section provides comprehensive documentation for all available APIs.
+The Vibe Chat web app composes Better Auth, the product database, and Matrix/Synapse through same-origin product APIs. This page documents the browser contracts that are implemented today. The third-party atmosphere marketplace, Runtime capabilities, and Web Push are not yet public.
 
 ## Authentication
 
-All API endpoints require authentication using Bearer tokens.
+Product APIs read the Better Auth HttpOnly Cookie session. They do not accept a client-created bearer token. Browser requests should stay same-origin and include cookies:
 
-```typescript
-const response = await fetch('/api/endpoint', {
-  headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  },
-});
+```ts
+const response = await fetch('/v1/product-state', {
+  credentials: 'include',
+  headers: { accept: 'application/json' },
+})
 ```
 
-## Endpoints
+Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access token is returned only by `/v1/session/bootstrap` to the in-memory Matrix client for the current browser. It must not be stored in localStorage, logs, or another product API.
 
-### GET /api/users
+## Current endpoints
 
-Retrieve a list of users.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/v1/session/bootstrap` | Current product profile and the Matrix device bound to the Better Auth session |
+| `GET/PATCH` | `/v1/profile` | Read or update display name, unique username, avatar, and onboarding state |
+| `GET` | `/v1/contacts` | Contacts, friend requests, and blocks snapshot |
+| `GET` | `/v1/users/search?q=` | Search product users eligible for a friend request |
+| `POST` | `/v1/friend-requests` | Send a friend request |
+| `POST` | `/v1/friend-requests/:id/accept` | Accept a friend request and establish the Matrix invitation relationship |
+| `POST` | `/v1/friend-requests/:id/reject` | Reject a friend request |
+| `PATCH` | `/v1/contacts/:userId` | Update the current user's private contact remark |
+| `POST/DELETE` | `/v1/blocks`, `/v1/blocks/:userId` | Block or unblock a user |
+| `POST` | `/v1/rooms` | Validate participants and a built-in atmosphere, then idempotently create a Matrix room |
+| `POST` | `/v1/rooms/metadata` | Batch-read product room indexes accessible to the current user |
+| `GET/PATCH` | `/v1/product-state` | User notification/theme/locale settings, room preferences, and favorite spaces |
+| `PUT` | `/v1/rooms/:roomId/preferences` | Persist the current user's pin/mute state for a real Matrix room |
+| `GET` | `/v1/spaces?locale=en` | Read the server-owned built-in atmosphere directory and version/capability metadata |
+| `PUT` | `/v1/spaces/:spaceId/favorite` | Persist the current account's built-in space favorite |
 
-**Response**
+## Product state example
 
 ```json
 {
-  "data": [
+  "preferences": {
+    "notificationsEnabled": true,
+    "theme": "system",
+    "locale": "en"
+  },
+  "roomPreferences": [
     {
-      "id": "1",
-      "name": "John Doe",
-      "email": "john@example.com"
+      "matrixRoomId": "!room:example.org",
+      "pinned": true,
+      "muted": false
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 100
-  }
+  "favoriteSpaceIds": ["space-campfire"]
 }
 ```
 
-### POST /api/users
+The space directory currently returns `source: builtin`. This means the version is bundled by the product service; it does not imply that a third-party marketplace is live.
 
-Create a new user.
+## Error shape
 
-**Request Body**
-
-```json
-{
-  "name": "Jane Doe",
-  "email": "jane@example.com"
-}
-```
-
-**Response**
-
-```json
-{
-  "id": "2",
-  "name": "Jane Doe",
-  "email": "jane@example.com",
-  "createdAt": "2024-01-01T00:00:00Z"
-}
-```
-
-## Error Handling
-
-All API errors follow a consistent format:
+Product APIs use a stable error shape. The response header and body carry the same request ID:
 
 ```json
 {
   "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid request parameters",
-    "details": []
+    "code": "PRODUCT_ROOM_NOT_FOUND",
+    "message": "PRODUCT_ROOM_NOT_FOUND",
+    "details": {},
+    "requestId": "request-id"
   }
 }
 ```
 
-## Rate Limiting
+Clients must handle the HTTP status and `error.code`. A service failure must never create a fake local user, room, or mutation.
 
-API requests are limited to 100 requests per minute per user.
+## Data authorities
+
+- Better Auth: accounts and browser sessions.
+- Product database: profiles, social relationships, room indexes, user preferences, room preferences, and space favorites.
+- Matrix/Synapse: room membership, timelines, relation events, typing, read receipts, presence, and media URIs.
+- Browser: only Matrix SDK IndexedDB sync/timeline cache and non-authoritative theme cache.

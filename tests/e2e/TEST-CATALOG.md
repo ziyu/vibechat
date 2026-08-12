@@ -42,6 +42,7 @@
 - [32. 浏览器会话与本地 Matrix 数据管理](#32-浏览器会话与本地-matrix-数据管理)
 - [33. Matrix 完整消息操作](#33-matrix-完整消息操作)
 - [34. 首次资料设置与联系人备注](#34-首次资料设置与联系人备注)
+- [35. 登录后产品状态真实化](#35-登录后产品状态真实化)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1015,11 +1016,11 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 ---
 
-## 25. 聊天宿主基础功能
+## 25. 聊天宿主基础功能（历史基线，已由 #35 替代）
 
-**文件：** `specs/chat-foundation.spec.ts` ｜ **优先级：** P0 ｜ **本地 fixture 数据**
+**文件：** 已删除；真实回归见 `specs/chat-real-product-state.spec.ts` ｜ **状态：** Replaced ｜ **历史 fixture 基线**
 
-当前阶段后端、Matrix 与正式认证尚待单独评审。本组用例验收可独立运行的前端产品切片，确保后续接入真实服务时已经有稳定的宿主信息架构、交互契约和响应式界面。
+本组场景记录 2026-08-11 的前端壳验收历史，不再代表当前实现。2026-08-12 起登录后宿主不允许 fixture 或浏览器本地 mutation，自动化由 #30–#35 的真实 Matrix/产品状态用例承担。
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
@@ -1195,13 +1196,33 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 ---
 
+## 35. 登录后产品状态真实化
+
+**文件：** `specs/chat-real-product-state.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+登录后的聊天产品只能展示当前账号、产品数据库和 Matrix 的真实状态。服务不可用时显示明确错误，不再用 fixture 掩盖失败。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 路由认证守卫 | 未登录访问消息、联系人、发现、我的或房间 → 跳转本地化登录页，不渲染演示用户或演示房间 |
+| 2 | 空账号真实状态 | 新账号完成 onboarding 后进入消息页 → 当前用户来自 profile → 房间、联系人、请求和收藏均为空 → 不出现 River/林林等 fixture 内容 |
+| 3 | Matrix 失败关闭 | 已登录但 Matrix 配置不可用或 bootstrap 失败 → 展示可重试的服务不可用状态 → 不进入可发送的本地模拟模式 |
+| 4 | 官方空间目录 | `GET /v1/spaces` 返回服务端内置空间版本与权限 → 发现页和新建聊天使用该响应 → 不把第三方市场标记为已上线 |
+| 5 | 收藏持久化与隔离 | A 收藏官方空间并刷新/重新登录后仍存在 → B 的收藏不受影响 → 非法空间 ID 被拒绝 |
+| 6 | 用户偏好持久化 | 通知偏好和主题/语言更新写入产品 API → 刷新与新浏览器 session 读取一致值 |
+| 7 | 房间偏好持久化 | A 对真实 Matrix 房间置顶/静音 → 刷新或另一 session 仍保持 → B 的同一房间视图不继承 A 的偏好 |
+| 8 | 真实 mutation 边界 | 发送、建房、好友、备注、屏蔽、收藏和偏好操作只调用真实接口/Matrix；失败时保持错误态，不创建本地假记录 |
+| 9 | 凭据与缓存隔离 | localStorage 不包含 profile、联系人、收藏、偏好权威副本、Matrix token 或消息正文；清理缓存不删除服务端用户态 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
 |--------|------|----------|----------|-----------|
 | P2 | 19 | 支付宝支付流程 | 支付宝沙盒 App ID/密钥 + 沙盒买家账号 | 3 |
 | ✅ | 20 | 博客功能 | blog_post 表已创建 + 管理员账号 | 11 |
-| ✅ | 25 | 聊天宿主基础功能 | 无（使用本地 fixture 数据） | 8 |
+| Replaced | 25 | 聊天宿主基础功能 | 历史 fixture 基线，见 #35 | 8 |
 | ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
 | ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
 | ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
@@ -1211,6 +1232,7 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 | ✅ | 32 | 浏览器会话与本地 Matrix 数据管理 | SQLite、本地 Synapse、双 Chromium Context | 5 |
 | ✅ | 33 | Matrix 完整消息操作 | SQLite、本地 Synapse、双 Chromium Context | 7 |
 | ✅ | 34 | 首次资料设置与联系人备注 | SQLite、本地 Synapse、双 Chromium Context | 7 |
+| ✅ | 35 | 登录后产品状态真实化 | SQLite、本地 Synapse、双 Chromium Context | 9 |
 
 ---
 
@@ -1220,6 +1242,8 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | TanStack + Synapse | 19 | 0 | 0 | 聊天真实链路全量回归（OTP、profile、social、Matrix room/message、product state 与 session） |
+| 2026-08-12 | TanStack + Synapse | 9 | 0 | 0 | 登录后产品状态真实化（UI 注册、守卫、Matrix 失败关闭、真实空账号、目录、收藏、用户/房间偏好、持久化与隔离） |
 | 2026-08-12 | TanStack + Vitest + Synapse | 49 | 0 | 0 | A2 聊天基础闭环（identity/rooms/social 单测 34 项；OTP、fixture、Matrix 房间/消息操作、资料、社交邀请、会话与撤销 E2E 15 项） |
 | 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | 首次资料设置与联系人备注真实链路（唯一用户名、头像校验、资料热更新、方向性私有备注与权限） |
 | 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | Matrix 完整消息操作真实链路（typing、编辑、撤回、媒体、搜索、刷新恢复、离线 pending event 幂等重发） |

@@ -23,7 +23,7 @@ import {
 } from '@libs/react-shared/ui/dropdown-menu'
 import { filterRooms, formatRoomTime } from '@libs/chat'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { AvatarStack, EmptyState, PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'
 
@@ -31,13 +31,12 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
   const { t, locale } = useTranslation()
   const {
     state,
-    mode,
     markRoomRead,
     toggleRoomMuted,
     toggleRoomPinned,
     acceptRoomInvite,
     rejectRoomInvite,
-  } = useChatDemo()
+  } = useChat()
   const [query, setQuery] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -166,11 +165,11 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="vc-menu-content">
-                  <DropdownMenuItem onSelect={() => toggleRoomPinned(room.id)}>
+                  <DropdownMenuItem onSelect={() => void toggleRoomPinned(room.id)}>
                     {room.pinned ? <PinOff /> : <Pin />}
                     {room.pinned ? t.chatApp.messages.unpin : t.chatApp.messages.pin}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => toggleRoomMuted(room.id)}>
+                  <DropdownMenuItem onSelect={() => void toggleRoomMuted(room.id)}>
                     {room.muted ? <Volume2 /> : <VolumeX />}
                     {room.muted ? t.chatApp.messages.unmute : t.chatApp.messages.mute}
                   </DropdownMenuItem>
@@ -193,11 +192,11 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
         ) : null}
       </div>
 
-      <div className="vc-demo-status">
+      <div className="vc-service-status">
         <span />
         <p>
-          <strong>{mode === 'matrix' ? t.chatApp.matrix.title : t.chatApp.demo.title}</strong>
-          {mode === 'matrix' ? t.chatApp.matrix.description : t.chatApp.demo.description}
+          <strong>{t.chatApp.matrix.title}</strong>
+          {t.chatApp.matrix.description}
         </p>
       </div>
 

@@ -172,6 +172,10 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
 
     await ownMessage.getByRole('button', { name: '回应 🌙' }).click()
     await expect(ownMessage.locator('.vc-reactions')).toContainText('🌙')
+    await ownMessage.locator('.vc-reactions').getByRole('button', { name: '🌙 1' }).click()
+    await expect(ownMessage.locator('.vc-reactions')).toHaveCount(0)
+    await ownMessage.getByRole('button', { name: '回应 🌙' }).click()
+    await expect(ownMessage.locator('.vc-reactions')).toContainText('🌙')
 
     await page.reload()
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')

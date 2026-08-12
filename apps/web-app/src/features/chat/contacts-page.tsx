@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
 import type { SocialPerson } from '@libs/chat'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'
 
@@ -21,14 +21,13 @@ export function ContactsPage() {
   const { t } = useTranslation()
   const {
     state,
-    mode,
     searchUsers,
     sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
     blockUser,
     updateContactRemark,
-  } = useChatDemo()
+  } = useChat()
   const [query, setQuery] = useState('')
   const [selectedPersonId, setSelectedPersonId] = useState(state.contactIds[0])
   const [createOpen, setCreateOpen] = useState(false)
@@ -42,7 +41,7 @@ export function ContactsPage() {
   const [remarkError, setRemarkError] = useState(false)
 
   useEffect(() => {
-    if (mode !== 'matrix' || query.trim().length < 2) {
+    if (query.trim().length < 2) {
       setSearchResults([])
       setSearching(false)
       return
@@ -60,7 +59,7 @@ export function ContactsPage() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [mode, query, searchUsers])
+  }, [query, searchUsers])
 
   useEffect(() => {
     if (selectedPersonId && state.contactIds.includes(selectedPersonId)) return
@@ -173,7 +172,7 @@ export function ContactsPage() {
           </section>
         ) : null}
 
-        {mode === 'matrix' && query.trim().length >= 2 ? (
+        {query.trim().length >= 2 ? (
           <section className="vc-request-section" data-testid="user-search-results">
             <header>
               <span>{t.chatApp.contacts.searchResults}</span>

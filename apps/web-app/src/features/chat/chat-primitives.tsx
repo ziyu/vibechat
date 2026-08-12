@@ -17,7 +17,7 @@ export function PersonAvatar({
       style={{ '--avatar-color': person.color } as CSSProperties}
       aria-hidden="true"
     >
-      <span>{person.initials}</span>
+      {person.avatarUrl ? <img src={person.avatarUrl} alt="" /> : <span>{person.initials}</span>}
       {showPresence ? <i data-presence={person.presence} /> : null}
     </span>
   )
@@ -85,4 +85,3 @@ export function EmptyState({
     </div>
   )
 }
-

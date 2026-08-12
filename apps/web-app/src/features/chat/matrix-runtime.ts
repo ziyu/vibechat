@@ -11,13 +11,14 @@ import {
   RoomEvent,
   RoomMemberEvent,
   SyncState,
+  UserEvent,
   type MatrixClient,
   type MatrixEvent,
   type Room,
 } from 'matrix-js-sdk'
 import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type {
-  ChatDemoState,
+  ChatState,
   ChatMessage,
   ChatPerson,
   ChatReaction,
@@ -124,6 +125,31 @@ export function sendMatrixReaction(
   }, transactionId)
 }
 
+export async function toggleMatrixReaction(
+  client: MatrixClient,
+  roomId: string,
+  eventId: string,
+  emoji: string,
+  transactionId: string,
+) {
+  const ownReaction = client.getRoom(roomId)?.getLiveTimeline().getEvents().find((event) => {
+    if (event.getType() !== EventType.Reaction || event.isRedacted()) return false
+    const relation = event.getContent<Record<string, unknown>>()['m.relates_to']
+    if (!relation || typeof relation !== 'object') return false
+    const record = relation as Record<string, unknown>
+    return event.getSender() === client.getUserId()
+      && record.rel_type === RelationType.Annotation
+      && record.event_id === eventId
+      && record.key === emoji
+  })
+  const reactionEventId = ownReaction?.getId()
+  if (reactionEventId) {
+    await client.redactEvent(roomId, reactionEventId, transactionId)
+    return
+  }
+  await sendMatrixReaction(client, roomId, eventId, emoji, transactionId)
+}
+
 export function editMatrixText(
   client: MatrixClient,
   roomId: string,
@@ -201,6 +227,9 @@ export function subscribeToMatrixProjection(
   client.on(RoomEvent.Name, handleRoomChange)
   client.on(RoomEvent.MyMembership, handleRoomChange)
   client.on(RoomMemberEvent.Typing, handleRoomChange)
+  client.on(UserEvent.Presence, handleRoomChange)
+  client.on(UserEvent.AvatarUrl, handleRoomChange)
+  client.on(UserEvent.DisplayName, handleRoomChange)
 
   return () => {
     client.removeListener(ClientEvent.Sync, handleSync)
@@ -209,6 +238,9 @@ export function subscribeToMatrixProjection(
     client.removeListener(RoomEvent.Name, handleRoomChange)
     client.removeListener(RoomEvent.MyMembership, handleRoomChange)
     client.removeListener(RoomMemberEvent.Typing, handleRoomChange)
+    client.removeListener(UserEvent.Presence, handleRoomChange)
+    client.removeListener(UserEvent.AvatarUrl, handleRoomChange)
+    client.removeListener(UserEvent.DisplayName, handleRoomChange)
   }
 }
 
@@ -225,17 +257,30 @@ function initialsForName(name: string) {
   return parts.slice(0, 2).map((part) => [...part][0]).join('').toUpperCase()
 }
 
-function projectPerson(userId: string, displayName?: string): ChatPerson {
+function projectPerson(
+  client: MatrixClient,
+  userId: string,
+  displayName?: string,
+  productAvatarUrl?: string | null,
+): ChatPerson {
   const localpart = userId.startsWith('@') ? userId.slice(1).split(':')[0] : userId
-  const name = displayName || localpart || userId
+  const matrixUser = client.getUser(userId)
+  const name = displayName || matrixUser?.displayName || localpart || userId
+  const matrixAvatarUrl = matrixUser?.avatarUrl
   return {
     id: userId,
+    avatarUrl: productAvatarUrl
+      || (matrixAvatarUrl ? client.mxcUrlToHttp(matrixAvatarUrl) : null),
     handle: userId,
     displayName: name,
     initials: initialsForName(name),
     color: colorForUser(userId),
-    presence: 'offline',
-    bio: '',
+    presence: matrixUser?.presence === 'online'
+      ? 'online'
+      : matrixUser?.presence === 'unavailable'
+        ? 'away'
+        : 'offline',
+    bio: matrixUser?.presenceStatusMsg || '',
   }
 }
 
@@ -379,7 +424,7 @@ function roomSpaceId(room: Room) {
 
 export function projectMatrixChatState(
   client: MatrixClient,
-  baseState: ChatDemoState,
+  baseState: ChatState,
   profile: SessionBootstrap['user'],
   roomPreferences: Record<string, { pinned?: boolean; muted?: boolean }>,
   pendingTransactionIds: ReadonlySet<string> = new Set(),
@@ -390,17 +435,26 @@ export function projectMatrixChatState(
     blockedUserIds: string[]
   },
   roomMetadata: Record<string, RoomBootstrap> = {},
-): ChatDemoState {
+): ChatState {
   const people = new Map<string, ChatPerson>()
   for (const person of social?.people || []) {
-    people.set(person.id, person)
+    const liveMatrixPerson = person.matrixUserId
+      ? projectPerson(client, person.matrixUserId, person.displayName, person.avatarUrl)
+      : null
+    const productPerson = liveMatrixPerson ? {
+      ...person,
+      avatarUrl: person.avatarUrl || liveMatrixPerson.avatarUrl,
+      presence: liveMatrixPerson.presence,
+      bio: liveMatrixPerson.bio || person.bio,
+    } : person
+    people.set(person.id, productPerson)
     if (person.matrixUserId) {
-      people.set(person.matrixUserId, { ...person, id: person.matrixUserId })
+      people.set(person.matrixUserId, { ...productPerson, id: person.matrixUserId })
     }
   }
   const currentMatrixUserId = client.getUserId()!
   const currentPerson = {
-    ...projectPerson(currentMatrixUserId, profile.displayName),
+    ...projectPerson(client, currentMatrixUserId, profile.displayName, profile.avatarUrl),
     matrixUserId: currentMatrixUserId,
     handle: `@${profile.username}`,
   }
@@ -418,7 +472,7 @@ export function projectMatrixChatState(
 
     for (const member of room.getJoinedMembers()) {
       if (!people.has(member.userId)) {
-        people.set(member.userId, projectPerson(member.userId, member.name))
+        people.set(member.userId, projectPerson(client, member.userId, member.name))
       }
     }
     const roomMessages = membership === 'join'

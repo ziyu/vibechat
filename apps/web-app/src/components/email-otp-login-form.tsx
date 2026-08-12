@@ -8,6 +8,7 @@ import { FormError } from '@libs/react-shared/ui/form-error'
 import { Turnstile } from '@libs/react-shared/ui/turnstile'
 import { useTranslation } from '@/hooks/use-translation'
 import { config } from '@config'
+import { postAuthPath } from '@/lib/auth-return'
 
 type Step = 'email' | 'code'
 
@@ -102,14 +103,7 @@ export function EmailOtpLoginForm({
       return
     }
 
-    const params = new URLSearchParams(window.location.search)
-    const returnTo = params.get('returnTo')
-    const fallback = `/${locale}/onboarding`
-    const safeReturnTo =
-      returnTo?.startsWith('/') && !returnTo.startsWith('//')
-        ? returnTo
-        : fallback
-    window.location.assign(safeReturnTo)
+    window.location.assign(postAuthPath(locale, window.location.search))
   }
 
   return (

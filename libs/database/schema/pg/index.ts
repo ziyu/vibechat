@@ -8,3 +8,4 @@ export * from './withdrawal';
 export * from './blog-post';
 export * from './pricing-plan';
 export * from './identity';
+export * from './product-state';

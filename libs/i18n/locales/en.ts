@@ -1526,8 +1526,8 @@ export const en: Locale = {
       index: "VIBE / 001",
       title: "A place for every conversation.",
       description: "Vibe Chat is exploring a new kind of chat: choose the people, choose the atmosphere, and let the room become part of the conversation.",
-      status: "The interactive host foundation is ready. Matrix, authentication, and production services remain intentionally deferred.",
-      openChat: "Open the chat preview"
+      status: "Accounts, product state, contacts, and Matrix messaging now run on real service paths. Built-in atmospheres are clearly separated from the upcoming third-party runtime.",
+      openChat: "Open Vibe Chat"
     },
     footer: {
       tagline: "Atmosphere-first chat.",
@@ -1972,13 +1972,17 @@ export const en: Locale = {
     common: {
       viewAll: "View all"
     },
-    demo: {
-      title: "Local preview",
-      description: "Interactions are stored in this browser. Matrix and account services are not connected yet."
-    },
     matrix: {
       title: "Synapse connected",
       description: "Rooms and messages are synced from Matrix. This browser only keeps SDK cache and interface preferences."
+    },
+    service: {
+      connecting: "Connecting your account",
+      connectingDescription: "Loading your product profile, preferences, contacts, and encrypted Matrix device session.",
+      unavailable: "Messaging is not configured",
+      unavailableDescription: "Your account is ready, but this environment has no active Synapse connection. No demo data has been substituted.",
+      failed: "Messaging could not start",
+      failedDescription: "We kept your account data untouched. Check the service and try the connection again."
     },
     onboarding: {
       kicker: "A small beginning",
@@ -2029,7 +2033,6 @@ export const en: Locale = {
       markRead: "Mark as read",
       noResults: "No conversations here",
       noResultsDescription: "Try another search or turn off the unread filter.",
-      synced: "Local timeline ready",
       matrixSynced: "Matrix timeline synced",
       today: "Today in Vibe Chat",
       welcomeBack: "Good to have you back.",
@@ -2043,14 +2046,13 @@ export const en: Locale = {
     },
     room: {
       notFound: "This room could not be found",
-      notFoundDescription: "It may have been removed from local preview data.",
+      notFoundDescription: "It may no longer be available to this account, or Matrix is still synchronizing it.",
       backToMessages: "Back to messages",
       connected: "Timeline connected",
       roomMenu: "Room menu",
       recoveryView: "Open recovery view",
       hideControls: "Hide room controls",
       showControls: "Show room controls",
-      fixtureSpace: "Official fixture atmosphere",
       matrixSpace: "Matrix-backed atmosphere",
       memberCount: "{count} members in this atmosphere",
       sending: "Sending…",
@@ -2089,7 +2091,6 @@ export const en: Locale = {
       participants: "Participants",
       permissions: "Capabilities",
       permissionSummary: "{count} declared capabilities · no external network",
-      localNotice: "This preview creates a local room. The same action will later become an idempotent Matrix room request.",
       matrixNotice: "This creates a private Matrix room with an idempotent product index and an immutable atmosphere snapshot.",
       create: "Create room",
       creating: "Creating…",
@@ -2160,7 +2161,7 @@ export const en: Locale = {
     me: {
       kicker: "Your corner",
       title: "Me",
-      description: "Identity, preferences, privacy, and the local state of this preview.",
+      description: "Manage your identity, product preferences, privacy, sessions, and local Matrix cache.",
       profile: "Profile",
       rooms: "Rooms",
       contacts: "Contacts",
@@ -2190,11 +2191,9 @@ export const en: Locale = {
       signOut: "Sign out",
       signingOut: "Signing out…",
       signOutDescription: "End this product session and revoke its Matrix device",
-      localData: "Local preview data",
-      localDataDescription: "Messages and preferences stored in this browser",
-      matrixDataDescription: "Matrix timeline cache and interface preferences stored in this browser",
-      resetDemo: "Reset preview",
-      clearPreferences: "Clear preferences",
+      localData: "Local Matrix cache",
+      matrixDataDescription: "Cached timeline data for this Matrix device; product preferences stay on your account",
+      clearCache: "Clear cache",
       about: "About",
       hostSafety: "Host safety boundary",
       hostSafetyDescription: "System controls stay outside atmosphere canvases",

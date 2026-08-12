@@ -1811,8 +1811,8 @@ export const zhCN: Locale = {
       index: "VIBE / 001",
       title: "让每段对话，都有自己的地方。",
       description: "Vibe Chat 正在探索一种新的聊天方式：先选择一起聊天的人，再选择氛围，让房间本身成为对话的一部分。",
-      status: "可交互的聊天宿主基础已经就绪；Matrix、正式认证和生产服务仍按计划暂缓接入。",
-      openChat: "打开聊天预览"
+      status: "账号、产品状态、联系人和 Matrix 消息已经接入真实服务链路；官方内置氛围与后续第三方 Runtime 保持明确边界。",
+      openChat: "打开 Vibe Chat"
     },
     footer: {
       tagline: "以氛围为核心的聊天。",
@@ -1979,13 +1979,17 @@ export const zhCN: Locale = {
     common: {
       viewAll: "查看全部"
     },
-    demo: {
-      title: "本地预览",
-      description: "交互数据保存在当前浏览器，暂未连接 Matrix 与正式账号服务。"
-    },
     matrix: {
       title: "Synapse 已连接",
       description: "房间与消息由 Matrix 同步；当前浏览器只保存 SDK 缓存和界面偏好。"
+    },
+    service: {
+      connecting: "正在连接你的账号",
+      connectingDescription: "正在读取产品资料、偏好、联系人和当前 Matrix 设备会话。",
+      unavailable: "消息服务尚未配置",
+      unavailableDescription: "账号已经就绪，但当前环境没有可用的 Synapse 连接；系统不会用演示数据代替。",
+      failed: "消息服务启动失败",
+      failedDescription: "你的账号数据没有被改动。请检查服务后重新连接。"
     },
     onboarding: {
       kicker: "从一个小小的开始",
@@ -2036,7 +2040,6 @@ export const zhCN: Locale = {
       markRead: "标记为已读",
       noResults: "这里没有会话",
       noResultsDescription: "试试其他搜索词，或关闭未读筛选。",
-      synced: "本地时间线已就绪",
       matrixSynced: "Matrix 时间线已同步",
       today: "今天的 Vibe Chat",
       welcomeBack: "很高兴你又回来了。",
@@ -2050,14 +2053,13 @@ export const zhCN: Locale = {
     },
     room: {
       notFound: "没有找到这个房间",
-      notFoundDescription: "它可能已经从本地预览数据中移除。",
+      notFoundDescription: "当前账号可能已无法访问，或 Matrix 仍在同步这个房间。",
       backToMessages: "返回消息列表",
       connected: "时间线已连接",
       roomMenu: "房间菜单",
       recoveryView: "打开基础恢复视图",
       hideControls: "收起房间控制",
       showControls: "显示房间控制",
-      fixtureSpace: "官方 fixture 氛围空间",
       matrixSpace: "Matrix 实时氛围空间",
       memberCount: "{count} 位成员在这个氛围里",
       sending: "发送中…",
@@ -2096,7 +2098,6 @@ export const zhCN: Locale = {
       participants: "参与人",
       permissions: "能力权限",
       permissionSummary: "声明 {count} 项能力 · 不连接外部网络",
-      localNotice: "当前预览会创建本地房间；接入服务后，同一操作将成为幂等的 Matrix 建房请求。",
       matrixNotice: "将创建私有 Matrix 房间、幂等产品索引和不可变氛围快照。",
       create: "创建房间",
       creating: "正在创建…",
@@ -2167,7 +2168,7 @@ export const zhCN: Locale = {
     me: {
       kicker: "属于你的角落",
       title: "我的",
-      description: "管理身份、偏好、隐私，以及当前预览保存在本地的状态。",
+      description: "管理身份、产品偏好、隐私、登录会话和本地 Matrix 缓存。",
       profile: "个人资料",
       rooms: "房间",
       contacts: "联系人",
@@ -2197,11 +2198,9 @@ export const zhCN: Locale = {
       signOut: "退出登录",
       signingOut: "正在退出…",
       signOutDescription: "退出当前产品会话并撤销对应的 Matrix 设备",
-      localData: "本地预览数据",
-      localDataDescription: "当前浏览器保存的消息与偏好",
-      matrixDataDescription: "当前浏览器保存的 Matrix 时间线缓存与界面偏好",
-      resetDemo: "重置预览",
-      clearPreferences: "清除偏好",
+      localData: "本地 Matrix 缓存",
+      matrixDataDescription: "当前 Matrix 设备的时间线缓存；产品偏好仍保存在账号中",
+      clearCache: "清除缓存",
       about: "关于",
       hostSafety: "宿主安全边界",
       hostSafetyDescription: "系统控制始终位于氛围画布之外",

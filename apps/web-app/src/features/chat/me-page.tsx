@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Bell,
+  Camera,
   ChevronRight,
   CircleHelp,
   ContactRound,
@@ -19,7 +20,7 @@ import {
 import { useTheme } from '@libs/react-shared/hooks/use-theme'
 import type { SupportedLocale } from '@libs/i18n'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { PersonAvatar } from './chat-primitives'
 
 export function MePage() {
@@ -27,13 +28,12 @@ export function MePage() {
   const { theme, setTheme } = useTheme()
   const {
     state,
-    mode,
-    resetDemo,
+    productPreferences,
     unblockUser,
     clearLocalChatData,
     updateCurrentProfile,
-  } = useChatDemo()
-  const [notifications, setNotifications] = useState(true)
+    updateProductPreferences,
+  } = useChat()
   const [privacyExpanded, setPrivacyExpanded] = useState(false)
   const [devicesExpanded, setDevicesExpanded] = useState(false)
   const [sessions, setSessions] = useState<AuthBrowserSession[]>([])
@@ -44,6 +44,7 @@ export function MePage() {
   const [profileEditing, setProfileEditing] = useState(false)
   const [profileDisplayName, setProfileDisplayName] = useState('')
   const [profileUsername, setProfileUsername] = useState('')
+  const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileError, setProfileError] = useState('')
   const currentUser = state.people.find((person) => person.id === state.currentUserId)!
@@ -125,6 +126,7 @@ export function MePage() {
   const openProfileEditor = () => {
     setProfileDisplayName(currentUser.displayName)
     setProfileUsername(currentUser.handle.replace(/^@/, ''))
+    setProfileAvatarFile(null)
     setProfileError('')
     setProfileEditing(true)
   }
@@ -134,16 +136,33 @@ export function MePage() {
     setProfileSaving(true)
     setProfileError('')
     try {
+      let avatarUrl = currentUser.avatarUrl || null
+      if (profileAvatarFile) {
+        const uploadBody = new FormData()
+        uploadBody.append('file', profileAvatarFile)
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: uploadBody,
+        })
+        if (!uploadResponse.ok) throw new Error('AVATAR_UPLOAD_FAILED')
+        const upload = await uploadResponse.json() as { data?: { url?: string } }
+        if (!upload.data?.url) throw new Error('AVATAR_UPLOAD_FAILED')
+        avatarUrl = upload.data.url
+      }
       await updateCurrentProfile({
         displayName: profileDisplayName,
         username: profileUsername,
+        avatarUrl,
       })
       setProfileEditing(false)
       setProfileSaving(false)
     } catch (error) {
       setProfileError(error instanceof Error && error.message === 'PROFILE_USERNAME_TAKEN'
         ? t.chatApp.onboarding.usernameTaken
-        : t.chatApp.me.profileSaveFailed)
+        : error instanceof Error && error.message === 'AVATAR_UPLOAD_FAILED'
+          ? t.chatApp.onboarding.avatarUploadFailed
+          : t.chatApp.me.profileSaveFailed)
       setProfileSaving(false)
     }
   }
@@ -193,6 +212,27 @@ export function MePage() {
                   data-testid="me-profile-username"
                 />
               </label>
+              <label className="vc-profile-avatar-field">
+                <span>{t.chatApp.onboarding.avatar}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  data-testid="me-profile-avatar"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
+                      || file.size > 5 * 1024 * 1024) {
+                      setProfileError(t.chatApp.onboarding.avatarInvalid)
+                      event.target.value = ''
+                      return
+                    }
+                    setProfileError('')
+                    setProfileAvatarFile(file)
+                  }}
+                />
+                <small><Camera size={12} />{profileAvatarFile?.name || t.chatApp.onboarding.avatarHelp}</small>
+              </label>
               {profileError ? <small role="alert">{profileError}</small> : null}
               <div>
                 <button type="submit" disabled={profileSaving} data-testid="save-profile">
@@ -231,17 +271,25 @@ export function MePage() {
               <button
                 type="button"
                 className="vc-switch"
-                data-checked={notifications || undefined}
-                aria-pressed={notifications}
-                onClick={() => setNotifications((current) => !current)}
+                data-checked={productPreferences.notificationsEnabled || undefined}
+                aria-pressed={productPreferences.notificationsEnabled}
+                onClick={() => void updateProductPreferences({
+                  notificationsEnabled: !productPreferences.notificationsEnabled,
+                })}
               >
                 <span />
               </button>
             </SettingsRow>
             <SettingsRow icon={<MoonStar />} title={t.chatApp.me.appearance} description={t.chatApp.me.appearanceDescription}>
               <select
-                value={theme}
-                onChange={(event) => setTheme(event.target.value as typeof theme)}
+                value={productPreferences.theme}
+                onChange={(event) => {
+                  const nextTheme = event.target.value as ProductPreferencesTheme
+                  setTheme(nextTheme === 'system'
+                    ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+                    : nextTheme)
+                  void updateProductPreferences({ theme: nextTheme })
+                }}
                 aria-label={t.chatApp.me.appearance}
               >
                 <option value="light">{t.common.theme.light}</option>
@@ -252,7 +300,10 @@ export function MePage() {
             <SettingsRow icon={<Languages />} title={t.chatApp.me.language} description={t.chatApp.me.languageDescription}>
               <select
                 value={locale}
-                onChange={(event) => changeLocale(event.target.value as SupportedLocale)}
+                onChange={(event) => {
+                  const nextLocale = event.target.value as SupportedLocale
+                  void updateProductPreferences({ locale: nextLocale }).then(() => changeLocale(nextLocale))
+                }}
                 aria-label={t.chatApp.me.language}
               >
                 <option value="zh-CN">中文</option>
@@ -355,23 +406,17 @@ export function MePage() {
             <SettingsRow
               icon={<Database />}
               title={t.chatApp.me.localData}
-              description={mode === 'matrix'
-                ? t.chatApp.me.matrixDataDescription
-                : t.chatApp.me.localDataDescription}
+              description={t.chatApp.me.matrixDataDescription}
             >
               <button
                 type="button"
                 className="vc-reset-button"
                 onClick={() => {
-                  if (mode === 'matrix') {
-                    void clearLocalChatData().then(() => window.location.reload())
-                  } else {
-                    resetDemo()
-                  }
+                  void clearLocalChatData().then(() => window.location.reload())
                 }}
               >
                 <RefreshCcw size={14} />
-                {mode === 'matrix' ? t.chatApp.me.clearPreferences : t.chatApp.me.resetDemo}
+                {t.chatApp.me.clearCache}
               </button>
             </SettingsRow>
             <SettingsRow icon={<LogOut />} title={t.chatApp.me.signOut} description={t.chatApp.me.signOutDescription}>
@@ -409,6 +454,8 @@ interface AuthBrowserSession {
   ipAddress?: string | null
   userAgent?: string | null
 }
+
+type ProductPreferencesTheme = 'light' | 'dark' | 'system'
 
 function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (

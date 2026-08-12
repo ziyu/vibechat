@@ -38,7 +38,7 @@ import {
 } from '@libs/react-shared/ui/dropdown-menu'
 import { formatMessageTime, getRoomMessages } from '@libs/chat'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { ConversationRail } from './conversation-rail'
 import { AvatarStack, PersonAvatar, SpaceGlyph } from './chat-primitives'
 
@@ -48,7 +48,6 @@ export function RoomPage({ roomId }: { roomId: string }) {
   const { t, locale } = useTranslation()
   const {
     state,
-    mode,
     markRoomRead,
     sendMessage,
     sendAttachment,
@@ -59,7 +58,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
     toggleReaction,
     toggleRoomMuted,
     toggleRoomPinned,
-  } = useChatDemo()
+  } = useChat()
   const [draft, setDraft] = useState('')
   const [replyToId, setReplyToId] = useState<string>()
   const [editingMessageId, setEditingMessageId] = useState<string>()
@@ -263,7 +262,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
         <div className="vc-room-intro">
           <SpaceGlyph space={space} />
           <span>{space.name}</span>
-          <small>{mode === 'matrix' ? t.chatApp.room.matrixSpace : t.chatApp.room.fixtureSpace}</small>
+          <small>{t.chatApp.room.matrixSpace}</small>
         </div>
 
         <div className="vc-timeline" ref={timelineRef} data-testid="message-timeline">
@@ -372,7 +371,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
                           <button
                             key={emoji}
                             type="button"
-                            onClick={() => toggleReaction(message.id, emoji)}
+                            onClick={() => void toggleReaction(message.id, emoji).catch(() => setSendError(true))}
                             aria-label={`${t.chatApp.room.react} ${emoji}`}
                           >
                             {emoji}
@@ -414,7 +413,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
                             key={reaction.emoji}
                             type="button"
                             data-reacted={reaction.userIds.includes(state.currentUserId) || undefined}
-                            onClick={() => toggleReaction(message.id, reaction.emoji)}
+                            onClick={() => void toggleReaction(message.id, reaction.emoji).catch(() => setSendError(true))}
                           >
                             {reaction.emoji} <span>{reaction.userIds.length}</span>
                           </button>

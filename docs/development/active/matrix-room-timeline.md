@@ -14,7 +14,7 @@
 - 浏览器只创建一个 `matrix-js-sdk` client；SDK 使用 IndexedDB 保存 sync/timeline cache，Matrix access token 仅来自内存中的 session bootstrap，不写入 localStorage。
 - 宿主将真实 Matrix room、成员、`m.room.message`、reply relation 和 `m.reaction` 投影到既有视图契约。
 - 消息发送使用唯一 transaction ID；宿主保留 transaction local echo，远端确认后替换为 event ID，失败时进入 failed 状态。
-- Synapse 未配置或用户未登录时保留明确的 fixture 模式，界面标识不会把它描述成远端数据。
+- Synapse 未配置时宿主进入显式 unavailable 状态；未登录访问由产品路由 guard 拦截，不再回退 fixture。
 
 ## 验证证据
 

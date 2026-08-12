@@ -5,14 +5,14 @@ import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, MessageCircleMore, Plus, Sparkles, UsersRound } from 'lucide-react'
 import { sortRooms } from '@libs/chat'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { ConversationRail } from './conversation-rail'
 import { AvatarStack, PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'
 
 export function MessagesPage() {
   const { t, locale } = useTranslation()
-  const { state, mode } = useChatDemo()
+  const { state } = useChat()
   const [createOpen, setCreateOpen] = useState(false)
   const rooms = sortRooms(state.rooms)
   const featuredSpace = state.spaces[0]
@@ -29,10 +29,10 @@ export function MessagesPage() {
       <section className="vc-inbox-overview" data-testid="messages-overview">
         <header className="vc-overview-header">
           <span className="vc-live-indicator">
-            <i /> {mode === 'matrix' ? t.chatApp.messages.matrixSynced : t.chatApp.messages.synced}
+            <i /> {t.chatApp.messages.matrixSynced}
           </span>
           <div className="vc-overview-actions">
-            <span>{mode === 'matrix' ? t.chatApp.matrix.title : t.chatApp.demo.title}</span>
+            <span>{t.chatApp.matrix.title}</span>
             <button
               type="button"
               className="vc-button vc-button-primary"

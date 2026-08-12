@@ -1,9 +1,8 @@
 import type {
-  ChatDemoState,
+  ChatState,
   ChatLocale,
   ChatMessage,
   ChatRoom,
-  CreateRoomInput,
 } from './types'
 
 export function sortRooms(rooms: ChatRoom[]) {
@@ -15,7 +14,7 @@ export function sortRooms(rooms: ChatRoom[]) {
 }
 
 export function filterRooms(
-  state: ChatDemoState,
+  state: ChatState,
   query: string,
   unreadOnly: boolean,
 ) {
@@ -39,7 +38,7 @@ export function filterRooms(
   })
 }
 
-export function getRoomMessages(state: ChatDemoState, roomId: string) {
+export function getRoomMessages(state: ChatState, roomId: string) {
   return state.messages
     .filter((message) => message.roomId === roomId)
     .sort(
@@ -53,40 +52,8 @@ export function createChatId(prefix: string) {
   return `${prefix}-${id}`
 }
 
-export function createRoomInState(
-  state: ChatDemoState,
-  input: CreateRoomInput,
-  locale: ChatLocale,
-  roomId = createChatId('room'),
-) {
-  const participantNames = input.participantIds
-    .map((id) => state.people.find((person) => person.id === id)?.displayName)
-    .filter(Boolean)
-  const space = state.spaces.find((candidate) => candidate.id === input.spaceId)
-  const now = new Date().toISOString()
-  const emptySummary = locale === 'zh-CN' ? '会话刚刚创建' : 'Conversation created'
-  const title = participantNames.join('、') || space?.name || emptySummary
-
-  const room: ChatRoom = {
-    id: roomId,
-    name: title,
-    memberIds: [state.currentUserId, ...input.participantIds],
-    spaceId: input.spaceId,
-    lastMessage: emptySummary,
-    updatedAt: now,
-    unreadCount: 0,
-    pinned: false,
-    muted: false,
-  }
-
-  return {
-    ...state,
-    rooms: [room, ...state.rooms],
-  }
-}
-
 export function appendMessageToState(
-  state: ChatDemoState,
+  state: ChatState,
   message: ChatMessage,
 ) {
   return {

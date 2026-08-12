@@ -19,6 +19,48 @@
   font-family: "IBM Plex Sans", "Avenir Next", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
 }
 
+.vc-service-state {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  justify-items: start;
+  padding: 48px;
+  background: radial-gradient(circle at 70% 18%, rgba(228, 71, 47, .09), transparent 34%), var(--vc-canvas);
+}
+
+.vc-service-state > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  margin-bottom: 42px;
+  border-radius: 11px;
+  background: var(--vc-ink);
+  color: var(--vc-surface);
+  font: italic 25px Georgia, serif;
+}
+
+.vc-service-state h1 {
+  max-width: 620px;
+  margin: 0;
+  font: 500 clamp(38px, 6vw, 76px)/.98 Georgia, "Noto Serif SC", serif;
+  letter-spacing: -.055em;
+}
+
+.vc-service-state p {
+  max-width: 540px;
+  margin: 24px 0 32px;
+  color: var(--vc-muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.vc-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .dark .vc-app {
   --vc-canvas: #171816;
   --vc-surface: #20211e;
@@ -174,6 +216,13 @@
 .vc-avatar-md { width: 40px; height: 40px; font-size: 14px; }
 .vc-avatar-lg { width: 48px; height: 48px; font-size: 16px; }
 .vc-avatar-xl { width: 78px; height: 78px; font-size: 25px; }
+
+.vc-avatar > img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
 
 .vc-avatar i {
   position: absolute;
@@ -565,7 +614,7 @@
 .vc-empty-state h3 { margin: 16px 0 5px; font-size: 13px; }
 .vc-empty-state p { max-width: 220px; margin: 0; color: var(--vc-muted); font-size: 11px; line-height: 1.6; }
 
-.vc-demo-status {
+.vc-service-status {
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -576,7 +625,7 @@
   background: var(--vc-canvas);
 }
 
-.vc-demo-status > span {
+.vc-service-status > span {
   width: 7px;
   height: 7px;
   margin-top: 3px;
@@ -585,8 +634,8 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, #d99033 15%, transparent);
 }
 
-.vc-demo-status p { margin: 0; color: var(--vc-muted); font-size: 9px; line-height: 1.5; }
-.vc-demo-status strong { display: block; color: var(--vc-ink); font-size: 9px; }
+.vc-service-status p { margin: 0; color: var(--vc-muted); font-size: 9px; line-height: 1.5; }
+.vc-service-status strong { display: block; color: var(--vc-ink); font-size: 9px; }
 
 .vc-inbox-overview {
   position: relative;
@@ -1093,7 +1142,7 @@
   .vc-messages-layout, .vc-room-layout { display: block; height: 100%; }
   .vc-messages-layout > .vc-conversation-rail { height: 100%; border-right: 0; }
   .vc-inbox-overview { display: none; }
-  .vc-demo-status { display: none; }
+  .vc-service-status { display: none; }
   .vc-list-header { padding-top: 20px; }
   .vc-room-row { border-radius: 10px; }
   .vc-room-more { opacity: .55; }

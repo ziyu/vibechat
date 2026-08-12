@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@libs/react-shared/ui/dialog'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
 
 export function NewChatDialog({
@@ -27,7 +27,7 @@ export function NewChatDialog({
 }) {
   const { t, locale } = useTranslation()
   const navigate = useNavigate()
-  const { state, mode, createRoom } = useChatDemo()
+  const { state, createRoom } = useChat()
   const [step, setStep] = useState(initialSpaceId ? 0 : 0)
   const [query, setQuery] = useState('')
   const [participantIds, setParticipantIds] = useState<string[]>(initialParticipantIds ?? [])
@@ -221,9 +221,7 @@ export function NewChatDialog({
                 </span>
               </div>
               <p>
-                {mode === 'matrix'
-                  ? t.chatApp.newChat.matrixNotice
-                  : t.chatApp.newChat.localNotice}
+                {t.chatApp.newChat.matrixNotice}
               </p>
               {createError ? <p role="alert">{t.chatApp.newChat.createFailed}</p> : null}
             </div>

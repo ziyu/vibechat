@@ -9,6 +9,7 @@ export type SpaceCategory = 'daily' | 'focus' | 'play' | 'ritual'
 export interface ChatPerson {
   id: string
   matrixUserId?: string | null
+  avatarUrl?: string | null
   handle: string
   displayName: string
   initials: string
@@ -80,7 +81,7 @@ export interface FriendRequest {
   createdAt: string
 }
 
-export interface ChatDemoState {
+export interface ChatState {
   version: 1
   currentUserId: string
   people: ChatPerson[]

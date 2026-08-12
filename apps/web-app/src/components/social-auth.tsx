@@ -8,6 +8,7 @@ import { authClientReact } from "@libs/auth/authClient";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
+import { postAuthPath } from "@/lib/auth-return";
 
 interface SocialAuthProps extends React.HTMLAttributes<HTMLDivElement> {
   providers?: SocialProvider[];
@@ -36,9 +37,6 @@ export function SocialAuth({
 
     const params = new URLSearchParams(window.location.search);
     const returnTo = params.get("returnTo");
-    const queryString = returnTo
-      ? `?returnTo=${encodeURIComponent(returnTo)}`
-      : "";
 
     switch (provider) {
       case "wechat":
@@ -59,12 +57,13 @@ export function SocialAuth({
         setLoadingProvider(provider);
 
         try {
-          const callbackURL = returnTo
-            ? `${window.location.origin}${returnTo}`
-            : undefined;
+          const callbackURL = `${window.location.origin}${postAuthPath(
+            currentLocale,
+            window.location.search,
+          )}`;
           const { data, error } = await authClientReact.signIn.social({
             provider,
-            ...(callbackURL && { callbackURL }),
+            callbackURL,
           });
 
           if (error) {

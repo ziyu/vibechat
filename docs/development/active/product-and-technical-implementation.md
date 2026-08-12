@@ -22,15 +22,15 @@
 截至 2026-08-12，已经形成以下实现证据：
 
 - `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构已在 TanStack Start 中实现。
-- `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 Matrix 投影；未配置环境保留显式 fixture 预览。
-- `tests/e2e/specs/chat-foundation.spec.ts` 已覆盖桌面/移动宿主、房间、新建聊天、联系人和发现流程，最近一次结果为 5/5。
-- [聊天宿主基础实现](../../stable/references/chat-host-foundation.md)记录了已实现边界与真实服务接入顺序。
+- `libs/chat` 提供共享领域契约，宿主页面通过稳定 action 使用 Matrix 投影；未配置环境显式失败关闭。
+- `tests/e2e/specs/chat-real-product-state.spec.ts` 覆盖产品路由守卫、空账号、服务端目录、收藏、偏好和账号隔离。
+- [聊天宿主与产品状态参考](../../stable/references/chat-host-foundation.md)记录了当前实现边界与数据权威。
 - Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding、session revoke worker、Synapse Appservice adapter、room index 和 integration outbox 已形成可执行实现。
 - 浏览器 `matrix-js-sdk` 已接管 room/timeline，同步缓存、local echo、消息、回复、回应和 transaction ID 幂等均通过本地 Synapse/Chromium 验证。
 - 产品好友请求、双向联系人、屏蔽、房间参与者 ACL、Matrix 邀请确认与双浏览器会话管理已经通过真实链路验证。
 - Matrix 媒体、编辑、删除、typing、历史搜索和离线 pending event 幂等重发已经通过双用户真实链路验证。
 - 新用户首次资料设置、资料热更新、唯一用户名和私有联系人备注已接入产品 profile 与社交投影。
-- identity/rooms/social unit、SQLite repository 与 mock HTTP 测试 34/34；聊天基础全量 Chromium 回归 15/15；TanStack 构建和 Cloudflare 本地 SSR 预览通过。
+- identity/rooms/social/product-state 相关单测 39/39；聊天真实链路全量 Chromium 回归 19/19；TanStack 生产构建和浏览器人工走查通过。
 
 尚未实现的产品专属范围包括氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系；它们分别进入 A3、A4 和 A5，不再属于聊天基础闭环。
 
@@ -50,8 +50,8 @@
 | ID | 工作流 | 对应稳定设计 | 当前状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
-| A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat`、目标路由、聊天宿主 E2E 5/5 | 保持宿主契约稳定，由 A2 替换 fixture 数据 |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Complete | Email OTP、identity/device、session revoke、[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./social-matrix-invitations.md)、[完整消息操作与资料基础](./matrix-message-profile-foundation.md)均通过本地 Synapse 验证 | 保持合约稳定，由 A3 通过 capability 使用 |
+| A1 | 产品壳与信息架构 | §5 | Complete | `libs/chat`、`apps/web-app/src/features/chat` 与目标路由 | 保持宿主契约稳定；A2 已删除 fixture 数据源 |
+| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Complete | Email OTP、identity/device、session revoke、Matrix timeline、社交、资料与[登录后产品状态真实化](./real-product-state-cutover.md)均通过本地 Synapse；19/19 聊天 E2E | 维持真实服务边界与回归，转入 A3 |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
 | A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
 | A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |
@@ -87,7 +87,7 @@ A2 从[身份与 Session Bootstrap 实现参考](../../stable/references/identit
 3. 好友、联系人、备注、屏蔽、房间 ACL、Matrix 邀请和浏览器会话管理形成完整产品链路。
 4. Matrix 标准事件覆盖文字、回复、回应、媒体、编辑、删除和 typing；SDK 缓存、失败状态与幂等重发通过刷新/离线验证。
 5. 新用户必须完成资料设置；用户名唯一，资料变更同步当前 Matrix 展示，联系人备注保持方向性私有。
-6. TEST-CATALOG #26–#34、34 项相关单测和 15 项聊天 E2E 全部通过；`pnpm build` 与 Cloudflare 本地 SSR 预览通过。
+6. TEST-CATALOG #26–#35、39 项相关单测和 19 项聊天 E2E 全部通过；`pnpm build` 与浏览器人工走查通过。
 
 ## 7. 待决策清单
 

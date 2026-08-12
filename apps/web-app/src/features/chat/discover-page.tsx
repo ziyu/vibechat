@@ -5,7 +5,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowLeft, ArrowUpRight, Check, Heart, Search, ShieldCheck, Sparkles } from 'lucide-react'
 import type { SpaceCategory } from '@libs/chat'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useChat } from './chat-store'
 import { SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'
 
@@ -13,7 +13,7 @@ const categories: Array<'all' | SpaceCategory> = ['all', 'daily', 'focus', 'play
 
 export function DiscoverPage({ spaceId }: { spaceId?: string }) {
   const { t, locale } = useTranslation()
-  const { state, toggleFavoriteSpace } = useChatDemo()
+  const { state, toggleFavoriteSpace } = useChat()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'all' | SpaceCategory>('all')
   const [createOpen, setCreateOpen] = useState(false)
@@ -49,7 +49,7 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
             className="vc-favorite-button"
             data-active={favorite || undefined}
             aria-pressed={favorite}
-            onClick={() => toggleFavoriteSpace(selectedSpace.id)}
+            onClick={() => void toggleFavoriteSpace(selectedSpace.id)}
           >
             <Heart size={16} fill={favorite ? 'currentColor' : 'none'} />
             {favorite ? t.chatApp.discover.saved : t.chatApp.discover.save}
@@ -182,7 +182,7 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
                   className="vc-card-favorite"
                   aria-label={favorite ? t.chatApp.discover.unsave : t.chatApp.discover.save}
                   aria-pressed={favorite}
-                  onClick={() => toggleFavoriteSpace(space.id)}
+                  onClick={() => void toggleFavoriteSpace(space.id)}
                 >
                   <Heart size={16} fill={favorite ? 'currentColor' : 'none'} />
                 </button>

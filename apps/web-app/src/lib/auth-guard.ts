@@ -62,7 +62,7 @@ const getSubscriptionAccess = createServerFn({ method: 'GET' }).handler(async ()
 
 /**
  * Redirect authenticated users away from auth pages (signin, signup, etc.)
- * to the dashboard. Use in `beforeLoad` of auth routes.
+ * to the chat product. Use in `beforeLoad` of auth routes.
  */
 export async function redirectIfAuthenticated({
   params,
@@ -72,7 +72,7 @@ export async function redirectIfAuthenticated({
   const result = await getAuthSession()
   if (result?.user) {
     throw redirect({
-      to: '/$lang/dashboard',
+      to: '/$lang/messages',
       params: { lang: params.lang },
     })
   }

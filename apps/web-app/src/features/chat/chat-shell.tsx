@@ -4,7 +4,9 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { Compass, ContactRound, MessageCircleMore, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
-import { useChatDemo } from './chat-store'
+import { useTheme } from '@libs/react-shared/hooks/use-theme'
+import { useEffect } from 'react'
+import { useChat } from './chat-store'
 import { PersonAvatar } from './chat-primitives'
 
 interface NavItem {
@@ -16,10 +18,42 @@ interface NavItem {
 
 export function ChatShell({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { state, ready, mode, syncState } = useChatDemo()
+  const { setTheme } = useTheme()
+  const {
+    state,
+    ready,
+    connectionState,
+    productPreferences,
+    retryConnection,
+    clearLocalChatData,
+  } = useChat()
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
-  const currentUser = state.people.find((person) => person.id === state.currentUserId)!
+  const currentUser = state.people.find((person) => person.id === state.currentUserId)
   const inRoom = pathname.includes('/rooms/')
+
+  const leaveProduct = async () => {
+    await clearLocalChatData().catch(() => undefined)
+    await fetch('/api/auth/sign-out', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    }).catch(() => undefined)
+    window.location.assign(`/${locale}/signin`)
+  }
+
+  useEffect(() => {
+    if (!ready) return
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyPreference = () => setTheme(
+      productPreferences.theme === 'system'
+        ? media.matches ? 'dark' : 'light'
+        : productPreferences.theme,
+    )
+    applyPreference()
+    if (productPreferences.theme === 'system') media.addEventListener('change', applyPreference)
+    return () => media.removeEventListener('change', applyPreference)
+  }, [productPreferences.theme, ready, setTheme])
 
   const items: NavItem[] = [
     {
@@ -59,8 +93,8 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
       className="vc-app"
       data-room-open={inRoom || undefined}
       data-ready={ready ? 'true' : 'false'}
-      data-mode={mode}
-      data-sync-state={syncState}
+      data-mode="matrix"
+      data-sync-state={connectionState}
       data-testid="chat-app-shell"
     >
       <aside className="vc-primary-rail" data-testid="chat-primary-nav">
@@ -100,11 +134,37 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
           className="vc-rail-profile"
           aria-label={t.chatApp.me.profile}
         >
-          <PersonAvatar person={currentUser} size="sm" showPresence />
+          {currentUser ? <PersonAvatar person={currentUser} size="sm" showPresence /> : <span>V</span>}
         </Link>
       </aside>
 
-      <main className="vc-workspace">{children}</main>
+      <main className="vc-workspace">
+        {!ready ? (
+          <section className="vc-service-state" data-testid="chat-service-state">
+            <span>V</span>
+            <h1>{connectionState === 'CONNECTING'
+              ? t.chatApp.service.connecting
+              : connectionState === 'UNAVAILABLE'
+                ? t.chatApp.service.unavailable
+                : t.chatApp.service.failed}</h1>
+            <p>{connectionState === 'CONNECTING'
+              ? t.chatApp.service.connectingDescription
+              : connectionState === 'UNAVAILABLE'
+                ? t.chatApp.service.unavailableDescription
+                : t.chatApp.service.failedDescription}</p>
+            {connectionState !== 'CONNECTING' ? (
+              <div className="vc-service-actions">
+                <button type="button" className="vc-button vc-button-primary" onClick={retryConnection}>
+                  {t.actions.tryAgain}
+                </button>
+                <button type="button" className="vc-button" onClick={() => void leaveProduct()}>
+                  {t.chatApp.me.signOut}
+                </button>
+              </div>
+            ) : null}
+          </section>
+        ) : children}
+      </main>
 
       <nav className="vc-mobile-nav" aria-label={t.chatApp.nav.primaryLabel}>
         {items.map((item) => {

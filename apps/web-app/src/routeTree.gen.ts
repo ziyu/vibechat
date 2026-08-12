@@ -14,6 +14,7 @@ import { Route as PaymentCancelRouteImport } from './routes/payment-cancel'
 import { Route as LangRouteImport } from './routes/$lang'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as V1ProfileRouteImport } from './routes/v1/profile'
+import { Route as V1ProductStateRouteImport } from './routes/v1/product-state'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiImageGenerateRouteImport } from './routes/api/image-generate'
@@ -24,6 +25,7 @@ import { Route as LangAdminRouteImport } from './routes/$lang/admin'
 import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
 import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
 import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
+import { Route as V1SpacesIndexRouteImport } from './routes/v1/spaces/index'
 import { Route as V1RoomsIndexRouteImport } from './routes/v1/rooms/index'
 import { Route as V1FriendRequestsIndexRouteImport } from './routes/v1/friend-requests/index'
 import { Route as V1ContactsIndexRouteImport } from './routes/v1/contacts/index'
@@ -93,6 +95,8 @@ import { Route as LangAdminCommissionsIndexRouteImport } from './routes/$lang/ad
 import { Route as LangAdminBlogIndexRouteImport } from './routes/$lang/admin/blog/index'
 import { Route as LangrootBlogIndexRouteImport } from './routes/$lang/(root)/blog/index'
 import { Route as LangchatDiscoverIndexRouteImport } from './routes/$lang/(chat)/discover/index'
+import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
+import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
 import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
 import { Route as V1FriendRequestsIdAcceptRouteImport } from './routes/v1/friend-requests/$id/accept'
 import { Route as ApiPaymentWebhookWechatRouteImport } from './routes/api/payment/webhook/wechat'
@@ -144,6 +148,11 @@ const V1ProfileRoute = V1ProfileRouteImport.update({
   path: '/v1/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1ProductStateRoute = V1ProductStateRouteImport.update({
+  id: '/v1/product-state',
+  path: '/v1/product-state',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadRoute = ApiUploadRouteImport.update({
   id: '/api/upload',
   path: '/api/upload',
@@ -190,6 +199,11 @@ const LangchatRouteRoute = LangchatRouteRouteImport.update({
 const LangauthRouteRoute = LangauthRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => LangRoute,
+} as any)
+const V1SpacesIndexRoute = V1SpacesIndexRouteImport.update({
+  id: '/v1/spaces/',
+  path: '/v1/spaces/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const V1RoomsIndexRoute = V1RoomsIndexRouteImport.update({
   id: '/v1/rooms/',
@@ -542,6 +556,17 @@ const LangchatDiscoverIndexRoute = LangchatDiscoverIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LangchatDiscoverRouteRoute,
 } as any)
+const V1SpacesSpaceIdFavoriteRoute = V1SpacesSpaceIdFavoriteRouteImport.update({
+  id: '/v1/spaces/$spaceId/favorite',
+  path: '/v1/spaces/$spaceId/favorite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1RoomsRoomIdPreferencesRoute =
+  V1RoomsRoomIdPreferencesRouteImport.update({
+    id: '/v1/rooms/$roomId/preferences',
+    path: '/v1/rooms/$roomId/preferences',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1FriendRequestsIdRejectRoute =
   V1FriendRequestsIdRejectRouteImport.update({
     id: '/v1/friend-requests/$id/reject',
@@ -688,6 +713,7 @@ export interface FileRoutesByFullPath {
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
   '/$lang/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/cellphone': typeof LangauthCellphoneRoute
@@ -741,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/v1/contacts/': typeof V1ContactsIndexRoute
   '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
+  '/v1/spaces/': typeof V1SpacesIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -759,6 +786,8 @@ export interface FileRoutesByFullPath {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/$lang/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
@@ -795,6 +824,7 @@ export interface FileRoutesByTo {
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
@@ -846,6 +876,7 @@ export interface FileRoutesByTo {
   '/v1/contacts': typeof V1ContactsIndexRoute
   '/v1/friend-requests': typeof V1FriendRequestsIndexRoute
   '/v1/rooms': typeof V1RoomsIndexRoute
+  '/v1/spaces': typeof V1SpacesIndexRoute
   '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -864,6 +895,8 @@ export interface FileRoutesByTo {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/$lang/discover': typeof LangchatDiscoverIndexRoute
   '/$lang/blog': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog': typeof LangAdminBlogIndexRoute
@@ -905,6 +938,7 @@ export interface FileRoutesById {
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
   '/$lang/(chat)/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/(auth)/cellphone': typeof LangauthCellphoneRoute
@@ -958,6 +992,7 @@ export interface FileRoutesById {
   '/v1/contacts/': typeof V1ContactsIndexRoute
   '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
+  '/v1/spaces/': typeof V1SpacesIndexRoute
   '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
   '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
   '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
@@ -976,6 +1011,8 @@ export interface FileRoutesById {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/$lang/(chat)/discover/': typeof LangchatDiscoverIndexRoute
   '/$lang/(root)/blog/': typeof LangrootBlogIndexRoute
   '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
@@ -1015,6 +1052,7 @@ export interface FileRouteTypes {
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/product-state'
     | '/v1/profile'
     | '/$lang/discover'
     | '/$lang/cellphone'
@@ -1068,6 +1106,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/'
     | '/v1/friend-requests/'
     | '/v1/rooms/'
+    | '/v1/spaces/'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1086,6 +1125,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/rooms/$roomId/preferences'
+    | '/v1/spaces/$spaceId/favorite'
     | '/$lang/discover/'
     | '/$lang/blog/'
     | '/$lang/admin/blog/'
@@ -1122,6 +1163,7 @@ export interface FileRouteTypes {
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/product-state'
     | '/v1/profile'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
@@ -1173,6 +1215,7 @@ export interface FileRouteTypes {
     | '/v1/contacts'
     | '/v1/friend-requests'
     | '/v1/rooms'
+    | '/v1/spaces'
     | '/$lang/rooms/$roomId'
     | '/$lang/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1191,6 +1234,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/rooms/$roomId/preferences'
+    | '/v1/spaces/$spaceId/favorite'
     | '/$lang/discover'
     | '/$lang/blog'
     | '/$lang/admin/blog'
@@ -1231,6 +1276,7 @@ export interface FileRouteTypes {
     | '/api/image-generate'
     | '/api/orders'
     | '/api/upload'
+    | '/v1/product-state'
     | '/v1/profile'
     | '/$lang/(chat)/discover'
     | '/$lang/(auth)/cellphone'
@@ -1284,6 +1330,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/'
     | '/v1/friend-requests/'
     | '/v1/rooms/'
+    | '/v1/spaces/'
     | '/$lang/(chat)/rooms/$roomId'
     | '/$lang/(root)/blog/$slug'
     | '/api/admin/blog/$id'
@@ -1302,6 +1349,8 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/rooms/$roomId/preferences'
+    | '/v1/spaces/$spaceId/favorite'
     | '/$lang/(chat)/discover/'
     | '/$lang/(root)/blog/'
     | '/$lang/admin/blog/'
@@ -1338,6 +1387,7 @@ export interface RootRouteChildren {
   ApiImageGenerateRoute: typeof ApiImageGenerateRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiUploadRoute: typeof ApiUploadRoute
+  V1ProductStateRoute: typeof V1ProductStateRoute
   V1ProfileRoute: typeof V1ProfileRoute
   ApiAdminCommissionsRoute: typeof ApiAdminCommissionsRoute
   ApiAffiliateClaimRoute: typeof ApiAffiliateClaimRoute
@@ -1370,6 +1420,7 @@ export interface RootRouteChildren {
   V1ContactsIndexRoute: typeof V1ContactsIndexRoute
   V1FriendRequestsIndexRoute: typeof V1FriendRequestsIndexRoute
   V1RoomsIndexRoute: typeof V1RoomsIndexRoute
+  V1SpacesIndexRoute: typeof V1SpacesIndexRoute
   ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
   ApiAdminPricingPlansImportRoute: typeof ApiAdminPricingPlansImportRoute
   ApiAdminPricingPlansReorderRoute: typeof ApiAdminPricingPlansReorderRoute
@@ -1386,6 +1437,8 @@ export interface RootRouteChildren {
   ApiPaymentWebhookWechatRoute: typeof ApiPaymentWebhookWechatRoute
   V1FriendRequestsIdAcceptRoute: typeof V1FriendRequestsIdAcceptRoute
   V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
+  V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
+  V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
   ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
   ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
   ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
@@ -1433,6 +1486,13 @@ declare module '@tanstack/react-router' {
       path: '/v1/profile'
       fullPath: '/v1/profile'
       preLoaderRoute: typeof V1ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/product-state': {
+      id: '/v1/product-state'
+      path: '/v1/product-state'
+      fullPath: '/v1/product-state'
+      preLoaderRoute: typeof V1ProductStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/upload': {
@@ -1504,6 +1564,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$lang'
       preLoaderRoute: typeof LangauthRouteRouteImport
       parentRoute: typeof LangRoute
+    }
+    '/v1/spaces/': {
+      id: '/v1/spaces/'
+      path: '/v1/spaces'
+      fullPath: '/v1/spaces/'
+      preLoaderRoute: typeof V1SpacesIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/v1/rooms/': {
       id: '/v1/rooms/'
@@ -1988,6 +2055,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangchatDiscoverIndexRouteImport
       parentRoute: typeof LangchatDiscoverRouteRoute
     }
+    '/v1/spaces/$spaceId/favorite': {
+      id: '/v1/spaces/$spaceId/favorite'
+      path: '/v1/spaces/$spaceId/favorite'
+      fullPath: '/v1/spaces/$spaceId/favorite'
+      preLoaderRoute: typeof V1SpacesSpaceIdFavoriteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/rooms/$roomId/preferences': {
+      id: '/v1/rooms/$roomId/preferences'
+      path: '/v1/rooms/$roomId/preferences'
+      fullPath: '/v1/rooms/$roomId/preferences'
+      preLoaderRoute: typeof V1RoomsRoomIdPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/friend-requests/$id/reject': {
       id: '/v1/friend-requests/$id/reject'
       path: '/v1/friend-requests/$id/reject'
@@ -2319,6 +2400,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImageGenerateRoute: ApiImageGenerateRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiUploadRoute: ApiUploadRoute,
+  V1ProductStateRoute: V1ProductStateRoute,
   V1ProfileRoute: V1ProfileRoute,
   ApiAdminCommissionsRoute: ApiAdminCommissionsRoute,
   ApiAffiliateClaimRoute: ApiAffiliateClaimRoute,
@@ -2351,6 +2433,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1ContactsIndexRoute: V1ContactsIndexRoute,
   V1FriendRequestsIndexRoute: V1FriendRequestsIndexRoute,
   V1RoomsIndexRoute: V1RoomsIndexRoute,
+  V1SpacesIndexRoute: V1SpacesIndexRoute,
   ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,
   ApiAdminPricingPlansImportRoute: ApiAdminPricingPlansImportRoute,
   ApiAdminPricingPlansReorderRoute: ApiAdminPricingPlansReorderRoute,
@@ -2367,6 +2450,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaymentWebhookWechatRoute: ApiPaymentWebhookWechatRoute,
   V1FriendRequestsIdAcceptRoute: V1FriendRequestsIdAcceptRoute,
   V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
+  V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
+  V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
   ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
   ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
   ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,
