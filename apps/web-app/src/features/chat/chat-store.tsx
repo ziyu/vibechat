@@ -378,7 +378,7 @@ export function ChatProvider({
         unsubscribe = matrixRuntime.subscribeToMatrixProjection(
           runtime.client,
           refreshProjection,
-          (nextSyncState) => {
+          (nextSyncState, syncData) => {
             if (disposed) return
             setConnectionState(nextSyncState)
             if (
@@ -388,6 +388,16 @@ export function ChatProvider({
               refreshProjection()
               setReady(true)
             } else if (nextSyncState === matrixRuntime.SyncState.Error) {
+              const syncError = syncData?.error as Error & {
+                httpStatus?: number
+                errcode?: string
+              } | undefined
+              console.error('[chat-matrix] Sync failed', {
+                errorName: syncError?.name || 'UnknownError',
+                httpStatus: syncError?.httpStatus || null,
+                matrixErrorCode: syncError?.errcode || null,
+                message: syncError?.message || null,
+              })
               setReady(false)
             }
           },
@@ -402,9 +412,11 @@ export function ChatProvider({
           setReady(true)
         }
       } catch (error) {
-        console.error('[chat] Product state bootstrap failed', {
-          errorName: error instanceof Error ? error.name : 'UnknownError',
-        })
+        console.error(
+          '[chat] Product state bootstrap failed',
+          error instanceof Error ? error.name : 'UnknownError',
+          error instanceof Error ? error.message : 'Unknown failure',
+        )
         if (!disposed) {
           setConnectionState('ERROR')
           setReady(false)

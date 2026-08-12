@@ -9,9 +9,9 @@ import { PAGES, TIMEOUTS } from '../helpers/constants';
  * there is likely a build or routing issue.
  */
 
-test.describe('Public Pages', () => {
-  test('Home page loads and renders the minimal brand shell', async ({ page }) => {
-    await page.goto(PAGES.home, { timeout: TIMEOUTS.navigation });
+test.describe('Split application boundaries', () => {
+  test('site app renders the public brand shell', async ({ page }) => {
+    await page.goto('http://localhost:8003/en', { timeout: TIMEOUTS.navigation });
 
     // Page should load without errors
     await expect(page).not.toHaveTitle(/error|500|404/i);
@@ -32,8 +32,10 @@ test.describe('Public Pages', () => {
   test('Sign in page loads and shows login form', async ({ page }) => {
     await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
 
-    // Should have email and password inputs
+    // Email OTP is the default; password auth remains available as an explicit mode.
     await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true');
+    await page.getByRole('button', { name: 'Use password instead' }).click();
     await expect(page.locator('input[type="password"]')).toBeVisible();
 
     // Should have a submit button
@@ -62,14 +64,15 @@ test.describe('Public Pages', () => {
     await expect(page.locator('form button').first()).toBeVisible();
   });
 
-  test('Pricing page loads and shows plan cards', async ({ page }) => {
-    await page.goto(PAGES.pricing, { timeout: TIMEOUTS.navigation });
+  test('web root is a product entry and backend health is same-origin', async ({ page }) => {
+    await page.goto(PAGES.home, { timeout: TIMEOUTS.navigation });
+    await expect(page).toHaveURL(/\/en\/(messages|signin)$/);
 
-    // Page should not show error
-    await expect(page).not.toHaveTitle(/error|500|404/i);
-
-    // Should display at least one plan card with a price
-    const priceElements = page.locator('text=/[¥$]\\d+/');
-    await expect(priceElements.first()).toBeVisible({ timeout: TIMEOUTS.navigation });
+    const health = await page.request.get('/api/health');
+    expect(health.ok(), await health.text()).toBeTruthy();
+    await expect(health.json()).resolves.toMatchObject({
+      status: 'healthy',
+      application: 'backend',
+    });
   });
 });

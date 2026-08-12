@@ -4,7 +4,7 @@
 > 文档类型：Runbook
 > 状态：生效
 > 更新日期：2026-08-12
-> 维护范围：`apps/web-app` Playwright 回归
+> 维护范围：`apps/site-app`、`apps/web-app`、`apps/backend` Playwright 回归
 
 ## 前置条件
 
@@ -12,13 +12,13 @@
 - `.env` 与测试数据库可用。
 - 需要支付、AI 或邮件 Provider 的用例已准备对应沙盒凭据。
 
-## 1. 启动产品应用
+## 1. 启动活动应用
 
 ```bash
 pnpm dev
 ```
 
-确认 `http://localhost:8001/api/health` 返回成功。
+该命令同时启动 backend `8002`、Web `8001` 和官网 `8003`。确认 `http://localhost:8001/api/health` 返回 backend 健康状态，且 `http://localhost:8003/en` 可访问。
 
 ## 2. 运行相关用例
 
@@ -32,7 +32,7 @@ npx playwright test --config=tests/e2e/playwright.config.ts tests/e2e/specs/<nam
 pnpm test:e2e
 ```
 
-D1/Cloudflare 回归：
+D1/Cloudflare backend 回归：
 
 ```bash
 pnpm test:e2e:cf
@@ -48,7 +48,7 @@ pnpm test:e2e:ui
 
 ## 4. 记录结果
 
-- 新功能先在 `tests/e2e/TEST-CATALOG.md` 写验收场景。
+- 新功能先在 `tests/e2e/TEST-CATALOG.md` 写验收场景。`tests/e2e/legacy` 不进入默认产品回归。
 - UI 完成并由浏览器核验后再编写 `tests/e2e/specs/*.spec.ts`。
 - 相关用例通过后更新目录中的结果记录。
 - 支付和 AI 用例如果因缺少凭据未运行，交付说明必须明确列出。

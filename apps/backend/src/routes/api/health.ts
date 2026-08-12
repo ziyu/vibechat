@@ -12,7 +12,7 @@ function createHealthResponse(status: 'healthy' | 'unhealthy', dbResponseTime: n
     status,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    application: 'web-app',
+    application: 'backend',
     version: process.env.npm_package_version || '1.0.0',
     environment: process.env.NODE_ENV || 'development',
     checks: {

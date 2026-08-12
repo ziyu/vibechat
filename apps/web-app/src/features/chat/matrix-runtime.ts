@@ -15,6 +15,7 @@ import {
   type MatrixClient,
   type MatrixEvent,
   type Room,
+  type SyncStateData,
 } from 'matrix-js-sdk'
 import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type {
@@ -206,10 +207,14 @@ export function setMatrixTyping(client: MatrixClient, roomId: string, isTyping: 
 export function subscribeToMatrixProjection(
   client: MatrixClient,
   onUpdate: () => void,
-  onSyncState: (state: SyncState) => void,
+  onSyncState: (state: SyncState, data?: SyncStateData) => void,
 ) {
-  const handleSync = (state: SyncState) => {
-    onSyncState(state)
+  const handleSync = (
+    state: SyncState,
+    _previousState: SyncState | null,
+    data?: SyncStateData,
+  ) => {
+    onSyncState(state, data)
     if (state === SyncState.Prepared || state === SyncState.Syncing) onUpdate()
   }
   const handleTimeline = (

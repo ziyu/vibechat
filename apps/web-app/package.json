@@ -5,14 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 8001",
-    "dev:cf": "CF_DEPLOY=1 vite dev --port 8001",
-    "preview:cf": "pnpm run build:cf && pnpm exec wrangler dev --port 8001",
-    "build": "CF_DEPLOY=1 vite build",
+    "build": "vite build",
     "build:node": "vite build",
-    "build:cf": "CF_DEPLOY=1 vite build",
     "start": "NODE_ENV=production node .output/server/index.mjs",
-    "deploy:cf": "pnpm run build:cf && wrangler deploy",
-    "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -60,7 +55,6 @@
     "ai": "*"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.33.2",
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^22",
     "@types/qrcode": "1.5.5",
@@ -73,7 +67,6 @@
     "vite": "^7.3.1",
     "vite-plugin-node-polyfills": "0.25.0",
     "vite-plugin-svgr": "4.5.0",
-    "vite-tsconfig-paths": "^5.1.4",
-    "wrangler": "4.85.0"
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

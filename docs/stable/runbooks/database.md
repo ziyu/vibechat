@@ -159,7 +159,7 @@ D1 是 Cloudflare 原生的 SQLite 数据库，运行在 Workers 边缘网络上
 
 ```bash
 # 1. 创建 D1 数据库
-cd apps/web-app
+cd apps/backend
 npx wrangler d1 create vibechat-db
 
 # 2. 在 wrangler.jsonc 中配置 d1_databases 和 DB_DIALECT=d1
@@ -169,10 +169,10 @@ pnpm db:generate:sqlite
 npx wrangler d1 migrations apply vibechat-db
 
 # 4. 本地预览
-DB_DIALECT=d1 pnpm dev:cf
+DB_DIALECT=d1 pnpm --dir apps/backend dev:cf
 
 # 5. 部署
-pnpm run deploy:cf
+pnpm --dir apps/backend deploy:cf
 ```
 
 ### D1 与 SQLite 的关系

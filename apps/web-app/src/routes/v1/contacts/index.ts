@@ -1,26 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { socialSnapshotSchema } from '@libs/chat'
-import { createDefaultSocialService } from '@libs/social'
-import { productRequestId, requireProductSession } from '@/lib/product-api'
-import { withCfDb } from '@/lib/with-request-db'
+import { proxyBackendRequest } from '@/lib/backend-proxy'
 
+/**
+ * Keep this transport route explicit because `/v1/contacts` would otherwise
+ * collide with the localized product page pattern `/$lang/contacts`.
+ */
 export const Route = createFileRoute('/v1/contacts/')({
   server: {
     handlers: {
-      GET: withCfDb(async ({ request }) => {
-        const requestId = productRequestId(request)
-        const auth = await requireProductSession(request, requestId)
-        if (!auth.ok) return auth.response
-        const snapshot = socialSnapshotSchema.parse(
-          await createDefaultSocialService().getSnapshot(auth.session.user.id),
-        )
-        return Response.json(snapshot, {
-          headers: {
-            'cache-control': 'private, no-store',
-            'x-request-id': requestId,
-          },
-        })
-      }),
+      GET: ({ request }) => proxyBackendRequest(request),
     },
   },
 })

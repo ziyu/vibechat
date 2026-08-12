@@ -1,6 +1,6 @@
 # E2E 测试流程目录
 
-本文档详细记录所有已实现的 E2E 测试用例，包含每个测试的具体步骤和验证内容。
+本文档记录当前产品 E2E 与历史脚手架验收。`specs/` 是默认执行的 VibeChat 活动产品回归；旧 AI、支付、Affiliate、通用 Admin 等用例已迁入 `legacy/`，仅保留为历史证据，不参与默认 `pnpm test:e2e`。
 
 > 编写规范和架构约定请查看 [`AGENTS.md`](./AGENTS.md)。
 
@@ -43,6 +43,7 @@
 - [33. Matrix 完整消息操作](#33-matrix-完整消息操作)
 - [34. 首次资料设置与联系人备注](#34-首次资料设置与联系人备注)
 - [35. 登录后产品状态真实化](#35-登录后产品状态真实化)
+- [36. Apps 拆分与同源 Backend 网关](#36-apps-拆分与同源-backend-网关)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -64,7 +65,7 @@
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
 | 1 | 首页加载 | 打开 `/en` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
-| 2 | 登录页加载 | 打开 `/en/signin` → 验证邮箱输入框、密码输入框、提交按钮均可见 |
+| 2 | 登录页加载 | 打开 `/en/signin` → 验证默认 Email OTP 表单 → 切换“Use password instead” → 验证密码输入框和提交按钮可见 |
 | 3 | 注册页加载 | 打开 `/en/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
 | 4 | 忘记密码页加载 | 打开 `/en/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
 | 5 | 定价页加载 | 打开 `/en/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
@@ -92,9 +93,9 @@
 |---|---------|---------|
 | 3 | UI 表单登录 | 打开登录页 → 填写邮箱/密码 → 点击提交 → 等待 URL 离开 `/signin` |
 | 4 | API 登录 | 通过 `POST /api/auth/sign-in/email` 登录 → 验证返回 200 |
-| 5 | 登出后无法访问仪表盘 | 先 API 登录 → 访问仪表盘确认可进入 → 调用 API 登出 → 再次访问仪表盘 → 验证被重定向到 `/signin` |
-| 6 | 已登录用户访问 /signin 重定向到 /dashboard | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/dashboard` |
-| 7 | 已登录用户访问 /signup 重定向到 /dashboard | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/dashboard` |
+| 5 | 登出后无法访问产品 | 先 API 登录 → 访问 `/messages` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/messages` → 验证被重定向到 `/signin` |
+| 6 | 已登录用户访问 /signin 重定向到 /messages | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/messages` |
+| 7 | 已登录用户访问 /signup 重定向到 /messages | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/messages` |
 
 ---
 
@@ -1216,6 +1217,24 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 ---
 
+## 36. Apps 拆分与同源 Backend 网关
+
+**文件：** `specs/public-pages.spec.ts`、`specs/auth-flow.spec.ts`、聊天 P0 specs ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse**
+
+官网、产品 Web 和共享 backend 是独立构建单元，但浏览器继续从 `8001` 使用稳定的同源认证与产品 API 路径。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立官网 | 打开 `http://localhost:8003/en` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/en/messages` |
+| 2 | 产品根入口 | 打开 `http://localhost:8001/en` → 未登录进入 `/en/signin`；已登录进入 `/en/messages`，不渲染官网或 legacy 页面 |
+| 3 | Backend 健康 | 经 Web 同源路径请求 `GET /api/health` → 返回 `application=backend` 和健康数据库状态 |
+| 4 | 同源 Auth | 经 `8001/api/auth/*` 注册、登录、读取 session、退出 → Cookie 生命周期与拆分前一致 |
+| 5 | 同源产品 API | 经 `8001/v1/*` 完成 bootstrap、profile、social、rooms、spaces 与 product state → 真实 Matrix/数据库链路不变 |
+| 6 | 构建边界 | site、web、backend 分别 typecheck/build → Site/Web 不导入数据库、支付、AI、存储或 server Auth → app-to-app import 被边界检查拒绝 |
+| 7 | Legacy 隔离 | 旧 AI、支付、affiliate 和通用 Admin 源码保留在 `legacy/*`，不进入活动 route tree 或默认 E2E |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1233,6 +1252,7 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 | ✅ | 33 | Matrix 完整消息操作 | SQLite、本地 Synapse、双 Chromium Context | 7 |
 | ✅ | 34 | 首次资料设置与联系人备注 | SQLite、本地 Synapse、双 Chromium Context | 7 |
 | ✅ | 35 | 登录后产品状态真实化 | SQLite、本地 Synapse、双 Chromium Context | 9 |
+| ✅ | 36 | Apps 拆分与同源 Backend 网关 | backend/Web/Site、SQLite、本地 Synapse | 7 |
 
 ---
 
@@ -1242,6 +1262,8 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | Backend + Web + Site + Synapse + Vitest | 75 | 0 | 0 | Apps 拆分最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state 单测 39 项；另完成三 app Node build、Backend Workers/D1 preview 与文档站 build |
+| 2026-08-12 | Backend + Web + Site + Synapse | 23 | 0 | 0 | Apps 物理拆分定向回归：官网、同源 Auth/API、真实 Matrix 房间消息与持久化产品状态 |
 | 2026-08-12 | TanStack + Synapse | 19 | 0 | 0 | 聊天真实链路全量回归（OTP、profile、social、Matrix room/message、product state 与 session） |
 | 2026-08-12 | TanStack + Synapse | 9 | 0 | 0 | 登录后产品状态真实化（UI 注册、守卫、Matrix 失败关闭、真实空账号、目录、收藏、用户/房间偏好、持久化与隔离） |
 | 2026-08-12 | TanStack + Vitest + Synapse | 49 | 0 | 0 | A2 聊天基础闭环（identity/rooms/social 单测 34 项；OTP、fixture、Matrix 房间/消息操作、资料、社交邀请、会话与撤销 E2E 15 项） |

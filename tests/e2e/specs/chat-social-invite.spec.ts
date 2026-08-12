@@ -132,7 +132,9 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       const invitedRoom = bob.page.locator(
         '[data-testid="conversation-row"][data-membership="invite"]',
       )
-      await expect(invitedRoom).toHaveCount(1)
+      // Matrix invitations arrive through the recipient's long-polling /sync.
+      // Give the live sync cycle room to complete under a loaded local Synapse.
+      await expect(invitedRoom).toHaveCount(1, { timeout: 20_000 })
       await invitedRoom.getByTestId('accept-room-invite').click()
       await expect(invitedRoom).toHaveCount(0)
       const joinedRoom = bob.page.locator(

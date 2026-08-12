@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 文档类型：RFC
-> 状态：评审中
+> 状态：已采纳，实施中
 > 更新日期：2026-08-12
 > 维护范围：`apps/*`、共享前端 packages、产品 API、Web/PWA 与未来 Desktop 宿主
 > 稳定来源：[VibeChat MVP 版本产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
@@ -15,7 +15,7 @@
 
 1. 保留 `apps/web-app` 名称，将它逐步收敛为唯一的 Web/PWA 产品宿主。
 2. 新建独立 `apps/site-app` 承载官网与公开内容；主站不导入产品服务端代码。
-3. 将产品 HTTP 边界抽到 `apps/api-app`，Web 可通过同源网关访问，Desktop 通过显式 API origin 访问。
+3. 将共享后端边界抽到 `apps/backend`，Web 可通过同源网关访问，Desktop 通过显式 API origin 访问。
 4. Web 与 Desktop 共同组合 `packages/product-*`、`packages/matrix-client` 和平台能力接口；任何 app 不得导入另一个 app。
 5. `apps/desktop-app` 打包本地产品前端资源，不把线上 `web-app` 当远程 WebView 页面。
 6. 旧 AI、计费、推广和通用后台能力先隔离，不默认迁入新的产品 app 或产品 API。
@@ -23,11 +23,11 @@
 
 Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当前拆分不会封死 Desktop；是否进入正式产品路线，需要在完成 Desktop 技术 spike 后更新稳定设计和产品路线图。
 
-## 2. 当前实现事实
+## 2. 拆分前实现事实
 
 ### 2.1 Apps 与构建边界
 
-仓库当前只有两个 app：
+本 RFC 评审时仓库只有两个 app；以下数据保留为迁移基线，不代表拆分后的当前目录：
 
 | App | 当前职责 | 问题 |
 | --- | --- | --- |
@@ -63,6 +63,18 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 - `config.ts` 同时承载公开配置与服务端 provider 配置。
 - 产品 API 只能以 TanStack route 形式存在，Desktop 没有稳定、可版本化的独立 API origin 和认证方式。
 
+### 2.4 2026-08-12 实施进度
+
+第一轮物理边界已经落地：
+
+- `apps/site-app` 独立承载官网与 Blog，默认端口 `8003`；构建不包含 Matrix、数据库、支付、AI provider 或服务端 Auth。
+- `apps/web-app` 已收敛为认证、onboarding 与聊天产品宿主，默认端口 `8001`；`/api/*` 与 `/v1/*` 只保留同源传输适配。
+- `apps/backend` 独立承载 Better Auth、产品 `/v1`、上传、健康检查与 Blog 读取，默认端口 `8002`。
+- 未进入 VibeChat 当前范围的旧页面、API 与 E2E 已分别隔离到 `legacy/web-app`、`legacy/backend` 与 `tests/e2e/legacy`，不参与活动 route tree 或默认回归。
+- `scripts/check-app-boundaries.mjs` 已阻止 app-to-app import，并阻止 Site/Web 直接导入数据库、支付、AI、存储与服务端 Auth。
+
+本轮有意保留两项后续工作：`backend` 的首个 runtime adapter 仍使用 TanStack Start server route；聊天 feature 仍待通过 Phase 1 的 `api-contracts`、`product-client` 与宿主 ports 消除相对 `fetch` 和 TanStack 依赖。因此 Phase 1 与 Phase 2 的长期退出标准尚未全部满足。
+
 ## 3. 设计目标与非目标
 
 ### 3.1 目标
@@ -92,9 +104,9 @@ flowchart LR
     Site["apps/site-app\n官网与公开内容"]
     Web["apps/web-app\nWeb/PWA 产品宿主"]
     Desktop["apps/desktop-app\n本地 Desktop 宿主"]
-    API["apps/api-app\n产品 API 与 Auth"]
+    API["apps/backend\n共享后端、产品 API 与 Auth"]
     Docs["apps/docs-app\n开发者与用户文档"]
-    Review["apps/admin-review-app\n未来空间审核后台"]
+    Review["apps/admin-review\n未来空间审核后台"]
 
     ProductReact["packages/product-react\n共享产品 screens/providers"]
     ProductCore["packages/product-core\n纯状态与用例"]
@@ -126,9 +138,9 @@ flowchart LR
 | `site-app` | 首页、功能说明、公开 blog、下载入口、法律页面、SEO | 数据库、Matrix SDK、聊天 store、管理后台、产品 Cookie 逻辑 |
 | `web-app` | 认证 UI、onboarding、messages、contacts、discover、me、rooms、PWA 能力 | 官网内容管理、旧 SaaS 页面、领域数据库写入、另一个 app 的源码 |
 | `desktop-app` | Desktop 启动、窗口、深链、系统通知、文件选择、安全存储、更新、平台适配 | 加载线上产品 URL、直接访问数据库、复制 Web feature |
-| `api-app` | Better Auth HTTP 挂载、产品 `/v1`、上传授权、Matrix identity/room bridge、请求级 DB/日志 | React 页面、Matrix 浏览器 sync、官网内容 |
+| `backend` | Better Auth HTTP 挂载、产品 `/v1`、上传授权、Matrix identity/room bridge、请求级 DB/日志 | 产品 React 页面、Matrix 浏览器 sync、官网内容 |
 | `docs-app` | 用户、SDK、CLI 和部署文档 | 产品运行时依赖 |
-| `admin-review-app` | A4 空间审核、撤销和治理 | 继承旧 SaaS 通用 admin；在 A4 前创建空 app |
+| `admin-review` | A4 空间审核、撤销和治理 | 继承旧 SaaS 通用 admin；在 A4 前创建空 app |
 
 ### 4.2 本地端口建议
 
@@ -158,13 +170,13 @@ flowchart LR
 | `@vibechat/platform-contracts` | navigation、storage、file、notification、deep-link、update、external-link 能力接口 | 纯 TS |
 | `@vibechat/product-react` | ChatProvider、宿主 shell、screens、hooks | 上述 packages、design system、i18n |
 
-后续再按证据迁移 `design-system`、`auth-client` 和 server domain packages。现有 `libs/identity`、`libs/social`、`libs/rooms`、`libs/product-state` 已有较清晰领域边界，可以先由 `api-app` 继续源码引用，再逐个升级为 workspace package；不需要为目录整齐一次性搬迁全部通用 SaaS 库。
+后续再按证据迁移 `design-system`、`auth-client` 和 server domain packages。现有 `libs/identity`、`libs/social`、`libs/rooms`、`libs/product-state` 已有较清晰领域边界，可以先由 `backend` 继续源码引用，再逐个升级为 workspace package；不需要为目录整齐一次性搬迁全部通用 SaaS 库。
 
 ### 5.1 强制依赖规则
 
 ```text
 apps/* -> packages/* -> 第三方依赖
-apps/api-app -> server domain packages -> database/providers
+apps/backend -> server domain packages -> database/providers
 
 禁止：packages/* -> apps/*
 禁止：一个 app -> 另一个 app
@@ -230,7 +242,7 @@ Matrix access token 只进入 runtime 内存和受控 SDK storage，不写入普
 1. `api-contracts` 保存请求、响应和错误 schema。
 2. app 无关的 handler/use case 接收标准 `RequestContext`，不导入 TanStack。
 3. 当前 TanStack `/v1` route 先变成薄适配器。
-4. `api-app` 挂载同一 handler；契约测试同时打两个入口。
+4. `backend` 挂载 handler；迁移期 Web 只保留同源透传，不保留业务 handler。
 5. Web 通过网关继续使用同源 `/v1` 和 `/api/auth`，避免拆分当天改变 Cookie/CSRF 行为。
 6. 完成流量和回滚验证后，删除 Web 中对应 server route。
 
@@ -258,12 +270,12 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | `/$lang/blog/*` | `site-app` 或 docs 内容 | 先评审是否仍属产品内容，再迁移 |
 | auth + onboarding | `web-app`，UI 可进入 `product-react`/`auth-client` | Web 路由保留，Desktop 使用独立认证入口 |
 | messages/contacts/discover/me/rooms | `web-app` + `product-react` | 路由薄适配，共享 screen |
-| `/v1/*` | `api-app` | 先共享 handler，再切网关 |
-| `/api/auth/*` | `api-app` | 保持公开路径和 Web 同源代理 |
-| `/api/upload` | `api-app` 的产品媒体接口 | 拆分头像/产品媒体与旧通用上传 |
+| `/v1/*` | `backend` | Web 只保留同源透传，业务 handler 只有一份 |
+| `/api/auth/*` | `backend` | 保持公开路径和 Web 同源代理 |
+| `/api/upload` | `backend` 的产品媒体接口 | 拆分头像/产品媒体与旧通用上传 |
 | pricing/payment/dashboard/affiliate | 待产品决策 | 不自动迁移；在旧 app 中隔离或退场 |
 | AI/image/video/premium/upload demo | 旧脚手架隔离/退场 | 不进入 VibeChat 产品 Web/Desktop |
-| 现有通用 admin | 旧脚手架隔离/退场 | 不等同于未来 `admin-review-app` |
+| 现有通用 admin | 旧脚手架隔离/退场 | 不等同于未来 `admin-review` |
 
 主站拆出后，当前 `web-app` 中未决旧路由可以短期保留在兼容部署，但必须有 feature flag、owner 和删除条件；不能成为 `site-app` 或新产品 package 的依赖。
 
@@ -296,12 +308,12 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 
 交付：
 
-- 创建 `apps/api-app`，本地端口 `8002`。
+- 创建 `apps/backend`，本地端口 `8002`。
 - 将 `/v1`、Better Auth 和产品上传迁为 app 无关 handler + API runtime adapter。
 - Web 开发代理和生产网关保持浏览器同源公开路径。
 - 增加 API contract tests、CORS/CSRF、request ID 和兼容版本测试。
 
-退出标准：Web server route 不包含产品领域逻辑；`api-app` 可独立构建/部署/回滚；Web 用户无需重新登录完成切换。
+退出标准：Web server route 不包含产品领域逻辑；`backend` 可独立构建/部署/回滚；Web 用户无需重新登录完成切换。
 
 ### Phase 3：拆分官网
 
@@ -343,7 +355,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 - 删除 Web 中已经切走的 route/handler 和兼容代理。
 - 清理未采用的 legacy SaaS 库、配置、环境变量和测试。
 - 每个 app 有独立 CI、artifact、部署 Runbook、回滚和 owner。
-- A4 开始时再创建真正的 `admin-review-app`。
+- A4 开始时再创建真正的 `admin-review`。
 
 ## 10. 验证矩阵
 
@@ -352,7 +364,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | packages | 独立 typecheck、exports、无 app import、无隐式全局 env |
 | site-app | SEO/静态页面、CTA、无产品 server 依赖、独立构建 |
 | web-app | auth/onboarding/chat E2E、PWA、Cookie/CSRF、真实 Matrix |
-| api-app | contract tests、资源归属、两种 principal、幂等、错误码、独立部署 |
+| backend | contract tests、资源归属、两种 principal、幂等、错误码、独立部署 |
 | desktop-app | 深链、系统认证、secure storage、Matrix sync、休眠/断网/重启、更新签名 |
 | 跨客户端 | Web 与 Desktop 同房间双向消息、邀请、编辑/删除/回应、版本兼容 |
 
@@ -383,12 +395,14 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | pricing/payment/affiliate/AI | 默认不迁移；逐项产品评审 | Phase 3 前 |
 | `docs-app` 是否重命名 | 暂不重命名；等 apps 拆分稳定后统一命名 | Phase 6 |
 
+已决策：`web-app`、`site-app`、`backend`、`docs-app` 采用当前名称；未来确有实现和验收时再创建 `desktop-app` 与 `admin-review`，本轮不生成空 app。
+
 ## 13. RFC 完成条件
 
-- [ ] App 目标边界、路由处置和 package 依赖方向完成评审。
+- [x] App 目标边界、路由处置和 package 依赖方向完成评审。
 - [ ] Desktop 是否进入产品路线获得明确决策；若进入，更新稳定设计的首发/后续平台边界。
-- [ ] Phase 0 的 import-boundary、路由 inventory 和 owner 已实现。
+- [x] Phase 0 的 import-boundary、路由 inventory 和旧路由隔离已实现。
 - [ ] Phase 1 建立首批 workspace packages，并以现有聊天 E2E 证明行为不变。
 - [ ] 实施伴随记录接替本 RFC；RFC 评审结论同步到稳定设计或归档。
 
-在这些条件满足前，本 RFC 只表达建议架构，不代表 Desktop 已承诺发布，也不代表目标目录已经实现。
+在这些条件满足前，本 RFC 已落地的 app 物理边界可作为当前实现事实，但不代表 Desktop 已承诺发布，也不代表尚未完成的共享 package 与 Desktop 目录已经实现。

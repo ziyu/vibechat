@@ -1,4 +1,4 @@
-# TanStack Start — Cloudflare Workers Notes
+# VibeChat Backend — Cloudflare Workers Notes
 
 Known pitfalls and constraints when running TanStack Start on Cloudflare Workers.
 

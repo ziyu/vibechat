@@ -84,13 +84,13 @@ export const Route = createFileRoute('/api/upload')({
             ])
             const bucket = (env as Record<string, unknown>).R2_BUCKET
             if (!bucket) {
-              throw new Error('R2_BUCKET binding is not configured. Add it to apps/web-app/wrangler.jsonc.')
+              throw new Error('R2_BUCKET binding is not configured. Add it to apps/backend/wrangler.jsonc.')
             }
             const publicUrl = resolveWorkersR2PublicUrl((env as Record<string, unknown>).R2_PUBLIC_URL)
             if (!publicUrl) {
               return Response.json(
                 {
-                  error: 'R2_PUBLIC_URL is not configured with a real HTTPS custom domain. Set it in apps/web-app/.dev.vars for local wrangler dev or via wrangler vars/secrets before uploading on Cloudflare Workers.',
+                  error: 'R2_PUBLIC_URL is not configured with a real HTTPS custom domain. Set it in apps/backend/.dev.vars for local wrangler dev or via wrangler vars/secrets before uploading on Cloudflare Workers.',
                 },
                 { status: 503 },
               )

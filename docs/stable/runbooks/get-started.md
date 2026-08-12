@@ -89,7 +89,7 @@ pnpm docs:check
 
 - 依赖安装失败：确认 Node 与 pnpm 版本符合根目录约束。
 - 数据库错误：确认方言、连接串和 schema 初始化命令属于同一种数据库。
-- 端口占用：结束占用 `8001` 的进程后重启。
-- SSR 或 Workers 构建失败：查看 `apps/web-app/CF-NOTES.md`。
+- 端口占用：检查 Web `8001`、backend `8002`、官网 `8003` 和 Synapse `8008`。
+- SSR 或 Workers 构建失败：查看 `apps/backend/CF-NOTES.md`。
 
 下一步可阅读[配置系统设计](../designs/configuration-system.md)、[认证 Runbook](./auth/overview.md)和[部署 Runbook](./deployment/overview.md)。

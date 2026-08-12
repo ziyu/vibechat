@@ -8,12 +8,14 @@ vibechat/
 │   ├── web-app/               # Product web app (TanStack Start, TanStack Router, Vite)
 │   │   ├── src/
 │   │   │   ├── routes/       # File-based routes ($lang param for i18n)
-│   │   │   │   ├── api/     # API routes (server handlers)
+│   │   │   │   ├── api/     # Thin same-origin backend gateway
 │   │   │   │   └── $lang/   # Localized page routes
 │   │   │   ├── lib/         # Auth guards, utilities
 │   │   │   └── styles/      # CSS and Tailwind styles
 │   │   ├── app.config.ts     # TanStack Start app config
 │   │   └── vite.config.ts    # Vite configuration
+│   ├── site-app/              # Public site and content
+│   ├── backend/               # Auth, product API, upload, health
 │   └── docs-app/              # Documentation site
 ├── libs/                      # Libraries directory
 │   ├── database/             # Database related code

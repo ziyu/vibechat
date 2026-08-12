@@ -38,7 +38,7 @@
 | 认证与权限 | `libs/auth/README*.md`、`libs/permissions/AGENTS.md`、相关设计与 Runbook |
 | 计费、支付或积分 | `libs/payment/README*.md`、`libs/credits/AGENTS.md`、相关设计与 Runbook |
 | AI 能力 | `libs/ai/AGENTS.md`、provider 参考资料、相关 Runbook |
-| 部署或服务端运行时 | 对应部署 Runbook、`apps/web-app/CF-NOTES.md` |
+| 部署或服务端运行时 | 对应部署 Runbook、`apps/backend/CF-NOTES.md` |
 | 测试 | `tests/e2e/AGENTS.md`、`tests/e2e/TEST-CATALOG.md` 和对应测试目录说明 |
 | 文档新增、迁移或重写 | 生命周期规范、对应类型模板、文档验证标准 |
 
@@ -168,7 +168,7 @@ pnpm build
 此外：
 
 - 用户可见功能运行相关 TanStack E2E。
-- 修改 TanStack 服务端代码或共享库时，按 `apps/web-app/CF-NOTES.md` 验证 Cloudflare 预览。
+- 修改 backend 服务端代码或共享库时，按 `apps/backend/CF-NOTES.md` 验证 Cloudflare 预览。
 - 发布前或大型重构后运行完整 `pnpm test:e2e`。
 - 外部凭据、支付 CLI 或 provider key 缺失导致无法验证时，明确记录未覆盖项，不得声称通过。
 - 交付说明只记录实际执行的命令与结果，不用“应当通过”代替验证。
@@ -194,6 +194,6 @@ pnpm build
 - 项目结构约束：[`.cursor/rules/project-structure.mdc`](.cursor/rules/project-structure.mdc)
 - E2E 约束：[`tests/e2e/AGENTS.md`](tests/e2e/AGENTS.md)
 - E2E 目录：[`tests/e2e/TEST-CATALOG.md`](tests/e2e/TEST-CATALOG.md)
-- Cloudflare 注意事项：[`apps/web-app/CF-NOTES.md`](apps/web-app/CF-NOTES.md)
+- Cloudflare 注意事项：[`apps/backend/CF-NOTES.md`](apps/backend/CF-NOTES.md)
 
 当本文件与更深层目录中的 `AGENTS.md` 同时适用时，本文件规定仓库级文档治理和交付底线，更深层文件补充局部实现约束；两者都必须遵守。

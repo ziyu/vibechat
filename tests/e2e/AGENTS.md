@@ -25,10 +25,10 @@ Without these, `pnpm test:e2e` will fail with "Executable doesn't exist" errors.
 
 ## Running Tests
 
-> The TanStack Start app runs on port 8001.
+> `pnpm dev` starts backend on 8002, product Web on 8001, and the public site on 8003.
 
 ```bash
-# 1) Start the TanStack Start dev server
+# 1) Start the three active TanStack applications
 pnpm dev
 
 # 2) For Stripe payment tests, also start webhook forwarding in another terminal
@@ -93,7 +93,7 @@ tests/e2e/
 │   ├── auth.ts                   # Auth helper functions (sign-up, sign-in, sign-out)
 │   └── credits.ts                # Credit seeding (direct SQL for AI test users)
 └── specs/
-    ├── public-pages.spec.ts      # Public page smoke tests
+    ├── public-pages.spec.ts      # App boundary and public smoke tests
     ├── auth-flow.spec.ts         # Authentication flow tests
     ├── access-control.spec.ts    # Access control tests
     ├── dashboard.spec.ts         # Dashboard tests
@@ -111,7 +111,7 @@ tests/e2e/
     ├── paypal-payment.spec.ts    # PayPal payment flow tests
     ├── affiliate.spec.ts         # Affiliate/referral system tests
     ├── admin-affiliate.spec.ts   # Admin commission/withdrawal management tests
-    └── admin-pricing.spec.ts     # Admin dynamic pricing management tests
+└── legacy/                      # Isolated old SaaS tests, excluded by default
 ```
 
 ---
