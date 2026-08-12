@@ -22,6 +22,11 @@ import type { SupportedLocale } from '@libs/i18n'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { PersonAvatar } from './chat-primitives'
+import { authClientReact } from '@vibechat/auth-client'
+import { ProductApiClient, ProductApiClientError } from '@vibechat/product-client'
+import { browserProductPlatform } from '@/lib/product-platform'
+
+const productApi = new ProductApiClient()
 
 export function MePage() {
   const { t, locale, changeLocale } = useTranslation()
@@ -56,17 +61,13 @@ export function MePage() {
     setSessionsLoading(true)
     setSessionsError(false)
     try {
-      const [listResponse, currentResponse] = await Promise.all([
-        fetch('/api/auth/list-sessions', { credentials: 'include' }),
-        fetch('/api/auth/get-session', { credentials: 'include' }),
+      const [listResult, currentResult] = await Promise.all([
+        authClientReact.listSessions(),
+        authClientReact.getSession(),
       ])
-      if (!listResponse.ok || !currentResponse.ok) throw new Error('SESSION_LIST_FAILED')
-      const list = await listResponse.json() as AuthBrowserSession[]
-      const current = await currentResponse.json() as {
-        session?: { token?: string }
-      } | null
-      setSessions(list)
-      setCurrentSessionToken(current?.session?.token)
+      if (listResult.error || currentResult.error) throw new Error('SESSION_LIST_FAILED')
+      setSessions((listResult.data || []) as AuthBrowserSession[])
+      setCurrentSessionToken(currentResult.data?.session?.token)
     } catch {
       setSessionsError(true)
     } finally {
@@ -79,13 +80,8 @@ export function MePage() {
   }, [devicesExpanded, loadSessions])
 
   const revokeSession = async (token: string) => {
-    const response = await fetch('/api/auth/revoke-session', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-    if (!response.ok) {
+    const result = await authClientReact.revokeSession({ token })
+    if (result.error) {
       setSessionsError(true)
       return
     }
@@ -93,13 +89,8 @@ export function MePage() {
   }
 
   const revokeOtherSessions = async () => {
-    const response = await fetch('/api/auth/revoke-other-sessions', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    })
-    if (!response.ok) {
+    const result = await authClientReact.revokeOtherSessions()
+    if (result.error) {
       setSessionsError(true)
       return
     }
@@ -109,14 +100,9 @@ export function MePage() {
   const signOut = async () => {
     setSigningOut(true)
     await clearLocalChatData().catch(() => undefined)
-    const response = await fetch('/api/auth/sign-out', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    })
-    if (response.ok) {
-      window.location.assign(`/${locale}/signin`)
+    const result = await authClientReact.signOut()
+    if (!result.error) {
+      browserProductPlatform.navigation.openSignIn(locale)
       return
     }
     setSigningOut(false)
@@ -138,17 +124,8 @@ export function MePage() {
     try {
       let avatarUrl = currentUser.avatarUrl || null
       if (profileAvatarFile) {
-        const uploadBody = new FormData()
-        uploadBody.append('file', profileAvatarFile)
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          credentials: 'include',
-          body: uploadBody,
-        })
-        if (!uploadResponse.ok) throw new Error('AVATAR_UPLOAD_FAILED')
-        const upload = await uploadResponse.json() as { data?: { url?: string } }
-        if (!upload.data?.url) throw new Error('AVATAR_UPLOAD_FAILED')
-        avatarUrl = upload.data.url
+        const upload = await productApi.uploadImage(profileAvatarFile)
+        avatarUrl = upload.url
       }
       await updateCurrentProfile({
         displayName: profileDisplayName,
@@ -158,9 +135,10 @@ export function MePage() {
       setProfileEditing(false)
       setProfileSaving(false)
     } catch (error) {
-      setProfileError(error instanceof Error && error.message === 'PROFILE_USERNAME_TAKEN'
+      const errorCode = error instanceof ProductApiClientError ? error.code : error instanceof Error ? error.message : ''
+      setProfileError(errorCode === 'PROFILE_USERNAME_TAKEN'
         ? t.chatApp.onboarding.usernameTaken
-        : error instanceof Error && error.message === 'AVATAR_UPLOAD_FAILED'
+        : errorCode === 'AVATAR_UPLOAD_FAILED'
           ? t.chatApp.onboarding.avatarUploadFailed
           : t.chatApp.me.profileSaveFailed)
       setProfileSaving(false)
@@ -412,7 +390,7 @@ export function MePage() {
                 type="button"
                 className="vc-reset-button"
                 onClick={() => {
-                  void clearLocalChatData().then(() => window.location.reload())
+                  void clearLocalChatData().then(() => browserProductPlatform.navigation.reload())
                 }}
               >
                 <RefreshCcw size={14} />

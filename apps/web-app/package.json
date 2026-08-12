@@ -11,6 +11,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vibechat/api-contracts": "workspace:*",
+    "@vibechat/auth-client": "workspace:*",
+    "@vibechat/matrix-client": "workspace:*",
+    "@vibechat/platform-contracts": "workspace:*",
+    "@vibechat/product-client": "workspace:*",
+    "@vibechat/product-core": "workspace:*",
     "@ai-sdk/react": "3.0.6",
     "@hookform/resolvers": "^5.2.2",
     "@marsidev/react-turnstile": "1.1.0",
@@ -38,7 +44,6 @@
     "framer-motion": "^12.23.0",
     "input-otp": "1.4.2",
     "lucide-react": "0.484.0",
-    "matrix-js-sdk": "42.1.0",
     "qrcode": "1.5.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

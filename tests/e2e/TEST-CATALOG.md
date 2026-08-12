@@ -1235,6 +1235,25 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 ---
 
+## 37. 跨宿主 Workspace Package 边界
+
+**文件：** package unit tests、`scripts/check-app-boundaries.mjs`、聊天 P0 specs ｜ **优先级：** P0 ｜ **pnpm workspace / SQLite / 本地 Synapse**
+
+Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真实 workspace package 发布边界消费；重构不能改变同源 Auth、产品 API 或 Matrix 用户链路。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立 Package 元数据 | `api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client`、`platform-contracts` 各自声明 package name、exports、依赖、typecheck/build 与 README |
+| 2 | API contract 单一来源 | Backend route 与 Web client 使用 `@vibechat/api-contracts` 的相同 Zod schema → 输入、输出和错误码不在 app 内复制 |
+| 3 | 可注入产品 Client | `ProductApiClient` 用注入的 base URL 和 transport 发请求 → Web 使用同源 gateway → 测试可替换 transport → 非 2xx 返回稳定 `ProductApiClientError` |
+| 4 | Matrix 运行时隔离 | Web 不直接依赖 `matrix-js-sdk` → `@vibechat/matrix-client` 接收宿主 IndexedDB → 真实 room/timeline/媒体/编辑/撤回链路保持通过 |
+| 5 | Auth client/server 隔离 | Web 只导入 `@vibechat/auth-client` → `libs/auth` 只暴露 server auth/session lifecycle → 注册、登录、session、退出与设备撤销行为不变 |
+| 6 | Package 依赖门禁 | packages 不导入 app、`@/`、`@libs/*` 或未声明的其他 package；Site/Web 不导入 server-only 领域实现；违规 import 使 `boundaries:check` 失败 |
+| 7 | 保留合理 libs | 只有 Backend 消费的 identity/social/rooms/product-state 继续作为服务端领域实现 → 不为目录整齐创建无独立消费者的 package |
+| 8 | 真实链路无回归 | 完整活动 Playwright 回归覆盖官网、同源 Auth/API、真实空账号、好友/房间、Matrix timeline 和产品偏好，重构后通过数不下降 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1253,6 +1272,7 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 | ✅ | 34 | 首次资料设置与联系人备注 | SQLite、本地 Synapse、双 Chromium Context | 7 |
 | ✅ | 35 | 登录后产品状态真实化 | SQLite、本地 Synapse、双 Chromium Context | 9 |
 | ✅ | 36 | Apps 拆分与同源 Backend 网关 | backend/Web/Site、SQLite、本地 Synapse | 7 |
+| ✅ | 37 | 跨宿主 Workspace Package 边界 | pnpm workspace、backend/Web/Site、SQLite、本地 Synapse | 8 |
 
 ---
 
@@ -1262,6 +1282,7 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | Packages + Backend + Web + Site + Synapse + Vitest | 81 | 0 | 0 | Package 边界最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state/product-client/product-core 单测 45 项；另完成 6 package + 3 app 根级 typecheck/build、Workers build/health/未登录 bootstrap 401 与文档站 build |
 | 2026-08-12 | Backend + Web + Site + Synapse + Vitest | 75 | 0 | 0 | Apps 拆分最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state 单测 39 项；另完成三 app Node build、Backend Workers/D1 preview 与文档站 build |
 | 2026-08-12 | Backend + Web + Site + Synapse | 23 | 0 | 0 | Apps 物理拆分定向回归：官网、同源 Auth/API、真实 Matrix 房间消息与持久化产品状态 |
 | 2026-08-12 | TanStack + Synapse | 19 | 0 | 0 | 聊天真实链路全量回归（OTP、profile、social、Matrix room/message、product state 与 session） |

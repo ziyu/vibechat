@@ -75,6 +75,10 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 
 本轮有意保留两项后续工作：`backend` 的首个 runtime adapter 仍使用 TanStack Start server route；聊天 feature 仍待通过 Phase 1 的 `api-contracts`、`product-client` 与宿主 ports 消除相对 `fetch` 和 TanStack 依赖。因此 Phase 1 与 Phase 2 的长期退出标准尚未全部满足。
 
+随后已完成 Phase 1 的第一组真实 packages：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client` 与 `platform-contracts` 均成为 pnpm workspace package，并由活动 Web/Backend 消费。聊天 feature 已消除产品 API 相对 `fetch`，Matrix IndexedDB 与导航/存储/网络能力改为宿主注入；Better Auth React client 也已与服务端 `libs/auth` 分离。尚未完成的是 screen 层的 TanStack Router 解耦、`product-react`，以及 Backend app-independent handler。
+
+六个 package 与 Backend/Web/Site 已通过根级 typecheck/build，活动 Playwright + Synapse 回归 36/36。Cloudflare Workers bundle、`/api/health` 与未登录 session bootstrap 401 契约也已在读取根开发环境的本地 D1 preview 中通过。
+
 ## 3. 设计目标与非目标
 
 ### 3.1 目标
@@ -114,15 +118,19 @@ flowchart LR
     Contracts["packages/api-contracts\nZod contracts"]
     MatrixClient["packages/matrix-client\nMatrix SDK 封装"]
     Platform["packages/platform-contracts\n宿主能力端口"]
+    AuthClient["packages/auth-client\nBetter Auth React client"]
     Server["server domain packages\nidentity/social/rooms/state"]
 
     Web --> ProductReact
     Desktop --> ProductReact
+    Web --> AuthClient
+    Desktop --> AuthClient
     ProductReact --> ProductCore
     ProductReact --> ProductClient
     ProductReact --> MatrixClient
     ProductReact --> Platform
     ProductClient --> Contracts
+    AuthClient --> API
     API --> Contracts
     API --> Server
     Web --> API
@@ -164,13 +172,14 @@ flowchart LR
 | Package | 内容 | 允许依赖 |
 | --- | --- | --- |
 | `@vibechat/api-contracts` | Zod schema、DTO、错误码、contract version | Zod 与纯 TS |
+| `@vibechat/auth-client` | Better Auth React client、插件配置、可注入 Backend base URL 的 factory | better-auth、React peer |
 | `@vibechat/product-client` | profile/social/rooms/spaces/session API client；可注入 base URL 与 auth transport | api-contracts |
 | `@vibechat/product-core` | 与 React、路由、运行时无关的产品状态、用例和 selector | api-contracts、product-client 接口 |
 | `@vibechat/matrix-client` | `matrix-js-sdk` 生命周期、timeline、媒体与 storage port | matrix-js-sdk、纯契约 |
 | `@vibechat/platform-contracts` | navigation、storage、file、notification、deep-link、update、external-link 能力接口 | 纯 TS |
 | `@vibechat/product-react` | ChatProvider、宿主 shell、screens、hooks | 上述 packages、design system、i18n |
 
-后续再按证据迁移 `design-system`、`auth-client` 和 server domain packages。现有 `libs/identity`、`libs/social`、`libs/rooms`、`libs/product-state` 已有较清晰领域边界，可以先由 `backend` 继续源码引用，再逐个升级为 workspace package；不需要为目录整齐一次性搬迁全部通用 SaaS 库。
+后续再按证据迁移 `design-system` 和 server domain packages。现有 `libs/identity`、`libs/social`、`libs/rooms`、`libs/product-state` 已有较清晰领域边界，可以先由 `backend` 继续源码引用；只有出现第二个真实服务端消费者、独立发布或依赖隔离需要时才逐个升级为 workspace package，不为目录整齐一次性搬迁全部通用 SaaS 库。
 
 ### 5.1 强制依赖规则
 
@@ -296,11 +305,11 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 
 交付：
 
-- 创建 `api-contracts`、`product-client`、`platform-contracts`、`matrix-client`。
+- 创建 `api-contracts`、`auth-client`、`product-core`、`product-client`、`platform-contracts`、`matrix-client`。
 - 用 `ProductApiClient` 替换聊天 feature 中全部相对 `fetch`。
 - 用 navigation/platform ports 替换共享 feature 中的 TanStack 与 `window.location`。
 - 将 Matrix runtime 从 React store 和 Web storage 选择中分离。
-- 拆分 `libs/auth` 的 client/server 入口，拆分公开/服务端配置入口。
+- 拆分 `libs/auth` 的 client/server 入口，拆分公开/服务端配置入口。认证客户端必须经 `@vibechat/auth-client` 消费。
 
 退出标准：聊天 feature 的核心可在不导入 TanStack route 和服务端源码的独立测试中启动；Web 行为和 19 项聊天 E2E 不变。
 
@@ -402,7 +411,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 - [x] App 目标边界、路由处置和 package 依赖方向完成评审。
 - [ ] Desktop 是否进入产品路线获得明确决策；若进入，更新稳定设计的首发/后续平台边界。
 - [x] Phase 0 的 import-boundary、路由 inventory 和旧路由隔离已实现。
-- [ ] Phase 1 建立首批 workspace packages，并以现有聊天 E2E 证明行为不变。
+- [x] Phase 1 建立首批 workspace packages，并以现有聊天 E2E 证明行为不变。
 - [ ] 实施伴随记录接替本 RFC；RFC 评审结论同步到稳定设计或归档。
 
 在这些条件满足前，本 RFC 已落地的 app 物理边界可作为当前实现事实，但不代表 Desktop 已承诺发布，也不代表尚未完成的共享 package 与 Desktop 目录已经实现。

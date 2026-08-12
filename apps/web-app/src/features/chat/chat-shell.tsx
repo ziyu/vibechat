@@ -8,6 +8,8 @@ import { useTheme } from '@libs/react-shared/hooks/use-theme'
 import { useEffect } from 'react'
 import { useChat } from './chat-store'
 import { PersonAvatar } from './chat-primitives'
+import { authClientReact } from '@vibechat/auth-client'
+import { browserProductPlatform } from '@/lib/product-platform'
 
 interface NavItem {
   id: 'messages' | 'contacts' | 'discover' | 'me'
@@ -33,13 +35,8 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
 
   const leaveProduct = async () => {
     await clearLocalChatData().catch(() => undefined)
-    await fetch('/api/auth/sign-out', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    }).catch(() => undefined)
-    window.location.assign(`/${locale}/signin`)
+    await authClientReact.signOut().catch(() => undefined)
+    browserProductPlatform.navigation.openSignIn(locale)
   }
 
   useEffect(() => {

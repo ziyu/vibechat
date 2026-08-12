@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
-import type { SocialPerson } from '@libs/chat'
+import type { SocialPerson } from '@vibechat/api-contracts'
 import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewChatDialog } from './new-chat-dialog'

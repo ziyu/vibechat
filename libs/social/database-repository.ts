@@ -11,7 +11,7 @@ import {
   user,
   userProfile,
 } from "@libs/database";
-import type { SocialPerson } from "@libs/chat";
+import type { SocialPerson } from "@vibechat/api-contracts";
 import type { SocialRepository } from "./contracts";
 import type { FriendRequestRecord, SocialSnapshotRecords } from "./types";
 

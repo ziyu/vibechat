@@ -20,7 +20,17 @@ async function sourceFiles(directory) {
   return files
 }
 
-const activeRoots = ['apps/backend/src', 'apps/site-app/src', 'apps/web-app/src']
+const activeRoots = [
+  'apps/backend/src',
+  'apps/site-app/src',
+  'apps/web-app/src',
+  'packages/api-contracts/src',
+  'packages/auth-client/src',
+  'packages/matrix-client/src',
+  'packages/platform-contracts/src',
+  'packages/product-client/src',
+  'packages/product-core/src',
+]
 const files = (await Promise.all(activeRoots.map(sourceFiles))).flat()
 const failures = []
 const importPattern = /(?:from\s*|import\s*\()\s*['"]([^'"]+)['"]/g
@@ -35,6 +45,22 @@ const serverOnlyClientImports = [
   '@libs/rooms',
   '@libs/product-state',
 ]
+const packageDependencyPolicy = {
+  '@vibechat/api-contracts': new Set(),
+  '@vibechat/auth-client': new Set(),
+  '@vibechat/product-core': new Set(),
+  '@vibechat/platform-contracts': new Set(),
+  '@vibechat/product-client': new Set(['@vibechat/api-contracts']),
+  '@vibechat/matrix-client': new Set([
+    '@vibechat/api-contracts',
+    '@vibechat/product-core',
+  ]),
+}
+
+function packageNameFor(file) {
+  const match = file.match(/^packages\/([^/]+)\//)
+  return match ? `@vibechat/${match[1]}` : null
+}
 
 for (const file of files) {
   const source = await readFile(path.join(root, file), 'utf8')
@@ -43,15 +69,29 @@ for (const file of files) {
     if (specifier.includes('/apps/') || specifier.startsWith('apps/')) {
       failures.push(`${file}: app-to-app import is forbidden (${specifier})`)
     }
+    const sourcePackage = packageNameFor(file)
+    if (sourcePackage) {
+      if (specifier.startsWith('@/') || specifier.startsWith('@libs/')) {
+        failures.push(`${file}: package imports repository source alias (${specifier})`)
+      }
+      if (specifier.startsWith('@vibechat/')
+        && specifier !== sourcePackage
+        && !packageDependencyPolicy[sourcePackage].has(specifier)) {
+        failures.push(`${file}: package dependency is not allowed (${sourcePackage} -> ${specifier})`)
+      }
+    }
     if (file.startsWith('apps/site-app/') || file.startsWith('apps/web-app/')) {
       if (serverOnlyClientImports.some((prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`))) {
         failures.push(`${file}: client host imports server-only module (${specifier})`)
       }
-      if (specifier === '@libs/auth' || specifier === '@libs/auth/auth') {
-        failures.push(`${file}: client host must import only the Better Auth client entry`)
+      if (specifier === '@libs/auth' || specifier.startsWith('@libs/auth/')) {
+        failures.push(`${file}: client host must use @vibechat/auth-client (${specifier})`)
       }
       if (specifier === '../../config.ts' || specifier === '@config/server') {
         failures.push(`${file}: client host imports server configuration (${specifier})`)
+      }
+      if (specifier === 'matrix-js-sdk' || specifier.startsWith('matrix-js-sdk/')) {
+        failures.push(`${file}: client host must use @vibechat/matrix-client (${specifier})`)
       }
     }
   }

@@ -3,7 +3,7 @@ import {
   createRoomRequestSchema,
   productApiErrorSchema,
   roomBootstrapSchema,
-} from '@libs/chat'
+} from '@vibechat/api-contracts'
 import { createDefaultIdentityService } from '@libs/identity'
 import {
   createDefaultRoomService,

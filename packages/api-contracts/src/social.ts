@@ -42,6 +42,15 @@ export const updateContactSchema = z.object({
   remark: z.string().trim().max(50).nullable(),
 });
 
+export const socialMutationStatusSchema = z.object({
+  status: z.string().min(1),
+});
+
+export const friendRequestMutationResponseSchema = z.object({
+  id: z.string().min(1),
+  status: z.string().min(1),
+});
+
 export type SocialPerson = z.infer<typeof socialPersonSchema>;
 export type SocialFriendRequest = z.infer<typeof socialFriendRequestSchema>;
 export type SocialSnapshot = z.infer<typeof socialSnapshotSchema>;

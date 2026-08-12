@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@libs/react-shared/ui/dropdown-menu'
-import { filterRooms, formatRoomTime } from '@libs/chat'
+import { filterRooms, formatRoomTime } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { AvatarStack, EmptyState, PersonAvatar, SpaceGlyph } from './chat-primitives'

@@ -36,7 +36,7 @@
 - 未认证：返回 401 与产品标准错误结构。
 - Matrix 未配置：返回 `matrix.status = "unavailable"` 和稳定 reason code。
 
-共享响应 schema 放在 `libs/chat`，避免页面、route 和未来 Matrix adapter 各自定义一份类型。
+共享响应 schema 放在 `@vibechat/api-contracts`，通过 package exports 同时约束 Backend route、Web client 和未来 Desktop client，避免各自定义类型。
 
 ## 验收
 

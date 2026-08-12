@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import {
   productStateSnapshotSchema,
   updateProductPreferencesSchema,
-} from '@libs/chat'
+} from '@vibechat/api-contracts'
 import { createDefaultProductStateService } from '@libs/product-state'
 import {
   productApiError,

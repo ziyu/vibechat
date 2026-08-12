@@ -117,7 +117,7 @@ export default toNodeHandler(auth);
 ### 客户端（React）
 
 ```typescript
-import { authClientReact } from '@libs/auth/authClient';
+import { authClientReact } from '@vibechat/auth-client';
 
 // 获取会话状态
 const session = authClientReact.useSession();
@@ -175,56 +175,6 @@ const accounts = await authClientReact.listAccounts();
 await authClientReact.deleteUser();
 ```
 
-### 客户端（Vue）
-
-```typescript
-import { authClientVue } from '@libs/auth/authClient';
-
-// 获取会话状态
-const session = authClientVue.useSession();
-const user = computed(() => session.value?.data?.user);
-
-// 邮箱密码登录
-const { data, error } = await authClientVue.signIn.email({
-  email: 'user@example.com',
-  password: 'password123',
-  rememberMe: true
-});
-
-// 社交登录
-await authClientVue.signIn.social({
-  provider: 'google', // 'google' | 'github' | 'wechat'
-});
-
-// 手机号登录
-await authClientVue.signIn.phoneNumber({
-  phoneNumber: '+86 138 0000 0000',
-  otp: '123456'
-});
-
-// 退出登录
-await authClientVue.signOut();
-
-// 用户注册
-const { data, error } = await authClientVue.signUp.email({
-  email: 'user@example.com',
-  password: 'password123',
-  name: 'User Name'
-});
-
-// 或者使用 Nuxt.js composable (推荐)
-import { useAuth } from '@/composables/useAuth';
-
-const { 
-  isAuthenticated, 
-  user, 
-  signOut, 
-  isAdmin,
-  hasRole,
-  requireAuth 
-} = useAuth();
-```
-
 ## 认证错误国际化
 
 为了提供更好的用户体验，我们实现了认证错误消息的国际化支持。
@@ -234,7 +184,7 @@ const {
 #### Next.js (React)
 
 ```typescript
-import { authClientReact } from '@libs/auth/authClient';
+import { authClientReact } from '@vibechat/auth-client';
 import { useTranslation } from '@/hooks/use-translation';
 
 function LoginForm() {
@@ -256,33 +206,6 @@ function LoginForm() {
     }
   };
 }
-```
-
-#### Nuxt.js (Vue)
-
-```vue
-<script setup>
-import { authClientVue } from '@libs/auth/authClient';
-
-const { t } = useI18n();
-const localePath = useLocalePath();
-
-const handleLogin = async (email, password) => {
-  const { data, error } = await authClientVue.signIn.email({
-    email,
-    password
-  });
-
-  if (error?.code) {
-    // 使用国际化错误消息
-    const authErrorMessage = t('auth.authErrors.' + error.code) || t('auth.authErrors.UNKNOWN_ERROR');
-    errorMessage.value = authErrorMessage;
-  } else if (data?.user) {
-    // 登录成功，跳转到首页
-    await navigateTo(localePath('/'));
-  }
-};
-</script>
 ```
 
 ### 支持的错误代码

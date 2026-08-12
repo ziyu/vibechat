@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authClientReact } from "@libs/auth/authClient";
+import { authClientReact } from "@vibechat/auth-client";
 import { createValidators } from "@libs/validators";
 import type { z } from "zod";
 import { cn } from "@libs/ui/utils/cn";

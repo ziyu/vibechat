@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@libs/ui/utils/cn";
 import { Button } from "@libs/react-shared/ui/button";
-import { authClientReact } from "@libs/auth/authClient";
+import { authClientReact } from "@vibechat/auth-client";
 import { Input } from "@libs/react-shared/ui/input";
 import { Label } from "@libs/react-shared/ui/label";
 import { FormError } from "@libs/react-shared/ui/form-error";

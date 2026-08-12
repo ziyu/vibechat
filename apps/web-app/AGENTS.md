@@ -41,8 +41,9 @@ Old SaaS pages and components live under `legacy/web-app` and are not part of th
 
 ## Boundaries
 
-- Page and chat composition may import browser-safe shared UI, i18n, validators, contracts, and `@libs/auth/authClient`.
-- Do not import `@libs/database`, `@libs/payment`, `@libs/credits`, `@libs/ai`, `@libs/storage`, server Auth, or another app.
+- Page and chat composition imports product contracts/client/core/Matrix/platform/auth client through `@vibechat/*`; browser-safe shared UI, i18n and validators may remain under `libs/*` until separately packaged.
+- Chat screens do not issue relative product `fetch` calls. Use `@vibechat/product-client` and the Web adapter in `src/lib/product-platform.ts`.
+- Do not import `@libs/database`, `@libs/payment`, `@libs/credits`, `@libs/ai`, `@libs/storage`, any `@libs/auth/*` entry, or another app. Browser authentication uses `@vibechat/auth-client`.
 - `src/lib/backend-proxy.ts` may only forward requests. Business parsing, authorization, persistence, and provider calls belong in `apps/backend` or shared domain libraries.
 - Browser-safe configuration resolves through `config/public.ts`.
 - Run `pnpm boundaries:check` after changing imports or app composition.

@@ -117,7 +117,7 @@ export default toNodeHandler(auth);
 ### Client-side (React)
 
 ```typescript
-import { authClientReact } from '@libs/auth/authClient';
+import { authClientReact } from '@vibechat/auth-client';
 
 // Get session state
 const session = authClientReact.useSession();
@@ -175,56 +175,6 @@ const accounts = await authClientReact.listAccounts();
 await authClientReact.deleteUser();
 ```
 
-### Client-side (Vue)
-
-```typescript
-import { authClientVue } from '@libs/auth/authClient';
-
-// Get session state
-const session = authClientVue.useSession();
-const user = computed(() => session.value?.data?.user);
-
-// Email/password login
-const { data, error } = await authClientVue.signIn.email({
-  email: 'user@example.com',
-  password: 'password123',
-  rememberMe: true
-});
-
-// Social login
-await authClientVue.signIn.social({
-  provider: 'google', // 'google' | 'github' | 'wechat'
-});
-
-// Phone number login
-await authClientVue.signIn.phoneNumber({
-  phoneNumber: '+86 138 0000 0000',
-  otp: '123456'
-});
-
-// Sign out
-await authClientVue.signOut();
-
-// User registration
-const { data, error } = await authClientVue.signUp.email({
-  email: 'user@example.com',
-  password: 'password123',
-  name: 'User Name'
-});
-
-// Or use Nuxt.js composable (recommended)
-import { useAuth } from '@/composables/useAuth';
-
-const { 
-  isAuthenticated, 
-  user, 
-  signOut, 
-  isAdmin,
-  hasRole,
-  requireAuth 
-} = useAuth();
-```
-
 ## Authentication Error Internationalization
 
 To provide a better user experience, we have implemented internationalization support for authentication error messages.
@@ -234,7 +184,7 @@ To provide a better user experience, we have implemented internationalization su
 #### Next.js (React)
 
 ```typescript
-import { authClientReact } from '@libs/auth/authClient';
+import { authClientReact } from '@vibechat/auth-client';
 import { useTranslation } from '@/hooks/use-translation';
 
 function LoginForm() {
@@ -256,33 +206,6 @@ function LoginForm() {
     }
   };
 }
-```
-
-#### Nuxt.js (Vue)
-
-```vue
-<script setup>
-import { authClientVue } from '@libs/auth/authClient';
-
-const { t } = useI18n();
-const localePath = useLocalePath();
-
-const handleLogin = async (email, password) => {
-  const { data, error } = await authClientVue.signIn.email({
-    email,
-    password
-  });
-
-  if (error?.code) {
-    // Use internationalized error messages
-    const authErrorMessage = t('auth.authErrors.' + error.code) || t('auth.authErrors.UNKNOWN_ERROR');
-    errorMessage.value = authErrorMessage;
-  } else if (data?.user) {
-    // Login successful, redirect to homepage
-    await navigateTo(localePath('/'));
-  }
-};
-</script>
 ```
 
 ### Supported Error Codes

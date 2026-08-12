@@ -2,7 +2,7 @@
 
 ## Overview
 
-Comprehensive authentication and authorization service built on Better Auth. Provides email/password, social (Google, GitHub, WeChat), and phone number authentication with role-based access control, email verification, password reset, and internationalized error handling.
+Server-side authentication and authorization service built on Better Auth. It owns database-backed sessions, provider configuration, handlers and lifecycle hooks. Browser-safe React calls live in the separate `@vibechat/auth-client` workspace package.
 
 ## Setup Commands
 
@@ -32,7 +32,7 @@ TURNSTILE_SECRET_KEY="your-cloudflare-secret-key"
 - Better Auth core with Drizzle adapter for PostgreSQL
 - Plugin-based architecture (admin, phoneNumber, captcha, wechat, validator)
 - **Configuration split**: sensitive data in env vars, functional settings in `@config`
-- Framework-agnostic server core with React/Vue clients
+- Framework-agnostic server core; React clients are exported by `@vibechat/auth-client`
 - International error handling via `@libs/i18n`
 - Rate limiting and security middleware integration
 
@@ -57,7 +57,7 @@ export default toNodeHandler(auth);
 
 ### Client Usage (React)
 ```typescript
-import { authClientReact } from '@libs/auth/authClient';
+import { authClientReact } from '@vibechat/auth-client';
 
 // Session management
 const session = authClientReact.useSession();
@@ -103,26 +103,6 @@ await authClientReact.requestPasswordReset({
 const sessions = await authClientReact.listSessions();
 await authClientReact.revokeSession({ token: "session-token" });
 await authClientReact.revokeOtherSessions();
-```
-
-### Client Usage (Vue/Nuxt.js)
-```typescript
-import { authClientVue } from '@libs/auth/authClient';
-import { useAuth } from '@/composables/useAuth'; // Nuxt.js composable
-
-// Better Auth Vue client (direct)
-const session = authClientVue.useSession();
-const user = computed(() => session.value?.data?.user);
-
-// Nuxt.js composable (recommended)
-const { 
-  isAuthenticated, 
-  user, 
-  signOut, 
-  isAdmin,
-  hasRole,
-  requireAuth 
-} = useAuth();
 ```
 
 ### Error Handling with Internationalization
@@ -313,7 +293,7 @@ The auth library uses config values for:
 
 - **Better Auth Foundation**: Leverages mature authentication library with extensive plugin ecosystem
 - **Centralized Configuration**: All auth behavior controlled via `@config` - email verification, social providers, captcha, etc.
-- **Multi-Framework Support**: Unified server core with React and Vue client adapters
+- **Host Separation**: Server core stays in `libs/auth`; browser-safe React integration is versioned through `@vibechat/auth-client`
 - **Database Integration**: Drizzle ORM adapter with PostgreSQL for type-safe data operations
 - **Plugin Architecture**: Modular design with admin, phone, captcha, WeChat, and validation plugins
 - **Configuration-Driven Plugins**: Conditional plugin loading based on `@config` settings (captcha, social providers)

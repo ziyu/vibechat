@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, MessageCircleMore, Plus, Sparkles, UsersRound } from 'lucide-react'
-import { sortRooms } from '@libs/chat'
+import { sortRooms } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { ConversationRail } from './conversation-rail'

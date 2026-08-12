@@ -25,6 +25,14 @@ apps/
   backend/     Auth、产品 API 与上传（8002）
   docs-app/    文档站
 libs/          共享能力与界面基础
+packages/
+  api-contracts/       Web、Backend、Desktop 共用 API schema
+  auth-client/         浏览器安全的 Better Auth React client
+  product-core/        宿主无关的产品状态与用例
+  product-client/      可注入 origin/transport 的 HTTP client
+  matrix-client/       Matrix SDK 生命周期与产品投影
+  platform-contracts/  浏览器/Desktop 宿主能力端口
+libs/          单一 Backend 内部领域实现与尚未升级的通用能力
 config/        共享配置
 docs/          按分类与生命周期治理的产品与技术文档
 tests/         单元、API 与端到端测试

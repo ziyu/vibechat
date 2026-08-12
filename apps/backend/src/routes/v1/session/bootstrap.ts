@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { productApiErrorSchema, sessionBootstrapSchema } from '@libs/chat'
+import { productApiErrorSchema, sessionBootstrapSchema } from '@vibechat/api-contracts'
 import {
   createDefaultIdentityService,
   SynapseAdapterError,

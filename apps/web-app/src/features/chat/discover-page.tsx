@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, ArrowUpRight, Check, Heart, Search, ShieldCheck, Sparkles } from 'lucide-react'
-import type { SpaceCategory } from '@libs/chat'
+import type { SpaceCategory } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { SpaceGlyph } from './chat-primitives'

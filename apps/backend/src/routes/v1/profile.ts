@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import {
   productProfileSchema,
   updateProductProfileSchema,
-} from '@libs/chat'
+} from '@vibechat/api-contracts'
 import {
   createDefaultIdentityService,
   IdentityServiceError,

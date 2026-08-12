@@ -36,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@libs/react-shared/ui/dropdown-menu'
-import { formatMessageTime, getRoomMessages } from '@libs/chat'
+import { formatMessageTime, getRoomMessages } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { ConversationRail } from './conversation-rail'

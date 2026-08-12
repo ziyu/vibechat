@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SocialPerson } from "@libs/chat";
+import type { SocialPerson } from "@vibechat/api-contracts";
 import type { SocialRepository } from "@libs/social/contracts";
 import { SocialService, SocialServiceError } from "@libs/social/service";
 import type { FriendRequestRecord, SocialSnapshotRecords } from "@libs/social/types";

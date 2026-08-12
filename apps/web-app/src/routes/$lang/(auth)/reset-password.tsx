@@ -16,7 +16,7 @@ import { Label } from '@libs/react-shared/ui/label'
 import { FormError } from '@libs/react-shared/ui/form-error'
 import { Loader2 } from 'lucide-react'
 import { createValidators } from '@libs/validators'
-import { authClientReact } from '@libs/auth/authClient'
+import { authClientReact } from '@vibechat/auth-client'
 import type { z } from 'zod'
 import { useTranslation } from '@/hooks/use-translation'
 

@@ -1,4 +1,4 @@
-import type { AtmosphereSpace, ChatPerson } from '@libs/chat'
+import type { AtmosphereSpace, ChatPerson } from '@vibechat/product-core'
 import { cn } from '@libs/ui'
 import type { CSSProperties, ReactNode } from 'react'
 

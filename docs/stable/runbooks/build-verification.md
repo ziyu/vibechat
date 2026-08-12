@@ -21,7 +21,17 @@ pnpm typecheck
 pnpm build
 ```
 
-根目录 `pnpm build` 分别构建 `site-app`、`web-app` 和 `backend`。backend 默认验证 Cloudflare 目标；Node.js 目标可分别运行：
+只验证 workspace package 边界时可先运行：
+
+```bash
+pnpm boundaries:check
+pnpm typecheck:packages
+pnpm build:packages
+```
+
+这三项不能替代最终的根级 `typecheck` 与 `build`；它们用于快速发现隐式 root hoist、app 源码反向依赖和 package 间未声明依赖。
+
+根目录 `pnpm build` 先构建 `packages/*`，再分别构建 `site-app`、`web-app` 和 `backend`。backend 默认验证 Cloudflare 目标；Node.js 目标可分别运行：
 
 ```bash
 pnpm --dir apps/site-app build

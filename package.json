@@ -13,7 +13,8 @@
     "dev:backend": "turbo run dev --filter=@vibechat/backend",
     "dev:site": "turbo run dev --filter=@vibechat/site-app",
     "dev:docs": "turbo run dev --filter=docs-app",
-    "build": "turbo run build --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app",
+    "build": "turbo run build --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app",
+    "build:packages": "turbo run build --filter='./packages/*'",
     "build:backend": "turbo run build --filter=@vibechat/backend",
     "build:site": "turbo run build --filter=@vibechat/site-app",
     "build:docs": "turbo run build --filter=docs-app",
@@ -48,7 +49,8 @@
     "test:e2e:cf": "E2E_DB_DIALECT=d1 npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:ui": "npx playwright test --config=tests/e2e/playwright.config.ts --ui",
     "test:matrix:integration": "RUN_SYNAPSE_INTEGRATION=1 vitest run tests/integration/synapse-appservice.integration.test.ts",
-    "typecheck": "node scripts/check-app-boundaries.mjs && turbo run typecheck --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app",
+    "typecheck": "node scripts/check-app-boundaries.mjs && turbo run typecheck --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app",
+    "typecheck:packages": "turbo run typecheck --filter='./packages/*'",
     "email:compile": "tsx libs/email/templates/compile.ts",
     "email:test": "tsx libs/email/scripts.ts"
   },
@@ -76,6 +78,8 @@
     "vitest": "3.0.9"
   },
   "dependencies": {
+    "@vibechat/api-contracts": "workspace:*",
+    "@vibechat/product-core": "workspace:*",
     "@ai-sdk/deepseek": "1.0.23",
     "@ai-sdk/fal": "2.0.20",
     "@ai-sdk/google": "3.0.33",

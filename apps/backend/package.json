@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vibechat/api-contracts": "workspace:*",
     "@tanstack/react-router": "^1.120.3",
     "@tanstack/react-start": "^1.120.3",
     "drizzle-orm": "^0.40.1",

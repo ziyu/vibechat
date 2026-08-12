@@ -28,6 +28,11 @@ export const updateRoomPreferenceSchema = productRoomPreferenceSchema;
 
 export const updateSpaceFavoriteSchema = z.object({ favorite: z.boolean() });
 
+export const updateSpaceFavoriteResponseSchema = z.object({
+  spaceId: z.string().min(1),
+  favorite: z.boolean(),
+});
+
 export const atmosphereSpaceSchema = z.object({
   id: z.string().min(1),
   versionId: z.string().min(1),

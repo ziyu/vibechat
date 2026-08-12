@@ -1,0 +1,21 @@
+{
+  "name": "@vibechat/matrix-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vibechat/api-contracts": "workspace:*",
+    "@vibechat/product-core": "workspace:*",
+    "matrix-js-sdk": "42.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

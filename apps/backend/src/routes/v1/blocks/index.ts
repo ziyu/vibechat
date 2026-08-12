@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { blockUserSchema } from '@libs/chat'
+import { blockUserSchema } from '@vibechat/api-contracts'
 import { createDefaultSocialService, SocialServiceError } from '@libs/social'
 import { productApiError, productRequestId, requireProductSession } from '@/lib/product-api'
 import { socialServiceErrorResponse } from '@/lib/social-api'

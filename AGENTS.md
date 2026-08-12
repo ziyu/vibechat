@@ -89,9 +89,12 @@
 
 ### 1. 当前范围
 
-- `apps/web-app`：唯一产品应用，使用 TanStack Start、React、TanStack Router 和 Vite。
+- `apps/site-app`：官网与公开内容。
+- `apps/web-app`：产品 Web/PWA，使用 TanStack Start、React、TanStack Router 和 Vite。
+- `apps/backend`：共享认证、产品 API、上传与健康检查。
 - `apps/docs-app`：Fumadocs 文档站。
-- `libs/*`：共享能力与业务逻辑。
+- `packages/*`：有独立 exports、依赖和构建门槛的跨应用产品契约与客户端能力。
+- `libs/*`：尚未升级为 workspace package 的共享领域实现与通用能力。
 - `config/*`：共享静态选项和默认配置。
 - `libs/react-shared`：React 共享组件与 hooks。
 
@@ -99,7 +102,7 @@
 
 ### 2. 工程规则
 
-1. 共享业务和 provider 逻辑优先放在 `libs/*`，静态选项与默认值放在 `config/*`。
+1. 跨 app/运行时复用且需要稳定 exports、独立依赖与构建门槛的能力放在 `packages/*`；单一 Backend 内部领域实现和 provider 逻辑可继续放在 `libs/*`，静态选项与默认值放在 `config/*`。
 2. TanStack 页面、路由处理器和 `createServerFn` 负责组合与适配，不复制共享域逻辑。
 3. 页面和组件中的用户可见文本必须使用 i18n key；先更新 `libs/i18n/locales/en.ts`，再同步 `zh-CN.ts`。
 4. 所有用户可访问的页面和 API 都要核验认证、权限与资源归属。
@@ -126,7 +129,7 @@
 
 ### 3. Code
 
-- 按 `libs/*` → `config/*` → `apps/web-app` → i18n → 权限与计费的依赖方向实现。
+- 按 `packages/*` / `libs/*` → `config/*` → `apps/*` → i18n → 权限与计费的依赖方向实现。
 - 保持 API、服务端函数和客户端契约一致。
 
 ### 4. Verify

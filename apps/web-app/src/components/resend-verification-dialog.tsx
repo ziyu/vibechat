@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authClientReact } from "@libs/auth/authClient";
+import { authClientReact } from "@vibechat/auth-client";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import {

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import {
   roomMetadataLookupRequestSchema,
   roomMetadataLookupResponseSchema,
-} from '@libs/chat'
+} from '@vibechat/api-contracts'
 import { createDefaultRoomService } from '@libs/rooms'
 import {
   productApiError,

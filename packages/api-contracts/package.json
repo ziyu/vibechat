@@ -1,0 +1,26 @@
+{
+  "name": "@vibechat/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./media": "./src/media.ts",
+    "./product-state": "./src/product-state.ts",
+    "./profile": "./src/profile.ts",
+    "./rooms": "./src/rooms.ts",
+    "./session": "./src/session.ts",
+    "./social": "./src/social.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

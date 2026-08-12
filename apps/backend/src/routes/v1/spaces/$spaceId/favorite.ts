@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { updateSpaceFavoriteSchema } from '@libs/chat'
+import { updateSpaceFavoriteSchema } from '@vibechat/api-contracts'
 import {
   createDefaultProductStateService,
   ProductStateError,

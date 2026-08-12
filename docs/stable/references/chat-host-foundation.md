@@ -4,7 +4,7 @@
 > 文档类型：参考资料
 > 状态：生效
 > 更新日期：2026-08-12
-> 维护范围：TanStack Start Web 应用、`libs/chat`、产品状态 API 与聊天 E2E
+> 维护范围：TanStack Start Web 应用、`packages/api-contracts`、`packages/auth-client`、`packages/product-*`、`packages/matrix-client`、产品状态 API 与聊天 E2E
 > 不包含：第三方空间市场、iframe Runtime、Web Push 与生产部署拓扑
 
 ## 目标
@@ -26,15 +26,18 @@
 
 ## 代码边界
 
-### 共享领域层
+### 共享 Package 层
 
-`libs/chat/*` 定义前端当前使用的最小领域契约：
+跨宿主边界已拆为真正的 pnpm workspace packages：
 
-- `ChatRoom`、`ChatMessage`、`ChatPerson`、`AtmosphereSpace` 和产品状态响应契约。
-- 会话排序、搜索、消息追加和时间格式化。
-- session/profile、social、room、space 与 preference 的共享输入/输出 schema。
+- `@vibechat/api-contracts`：session/profile、social、room、space 与 preference 的 Zod 输入/输出 schema。
+- `@vibechat/auth-client`：浏览器安全的 Better Auth React client 与可注入 Backend base URL 的 factory；不包含 server auth、数据库或密钥配置。
+- `@vibechat/product-core`：`ChatRoom`、`ChatMessage`、`ChatPerson`、`AtmosphereSpace` 以及排序、搜索、消息追加和时间格式化。
+- `@vibechat/product-client`：可注入 API origin 与 transport 的产品 HTTP client；Web 使用同源网关，未来 Desktop 可使用独立 Backend origin。
+- `@vibechat/matrix-client`：`matrix-js-sdk` 生命周期、消息操作和产品 view model 投影；IndexedDB 由宿主注入。
+- `@vibechat/platform-contracts`：导航、存储、网络、定时器和 IndexedDB 的宿主能力端口。
 
-这些函数不依赖 React 或 TanStack Router。接入真实服务时，可以继续作为视图模型和纯规则层使用。
+上述 packages 均有独立 `package.json`、exports、tsconfig、依赖声明和 build/typecheck。`product-core`、contracts 与 platform contracts 不依赖 React 或 TanStack Router；`auth-client` 只依赖 Better Auth 和 React peer，不得导入服务端 `libs/auth`。当前 React screens 尚在 Web 内，待路由依赖通过 adapter 完成后再迁入 `product-react`。
 
 ### 应用与服务状态层
 
@@ -44,6 +47,8 @@
 - 启动一个 browser-only Matrix client，并将 room/timeline/presence 投影为宿主 view model。
 - 对页面暴露真实 action；失败时保持服务端/Matrix 状态，不创建本地假记录。
 - 以 `connecting/ready/unavailable/error` 明确表达服务状态。
+
+Chat feature 不再直接发起产品 API `fetch`；请求统一通过 `@vibechat/product-client`。Web 的导航、存储、联网和 IndexedDB adapter 位于 `apps/web-app/src/lib/product-platform.ts`。
 
 `libs/product-state` 通过 repository/service 保存用户偏好、每房间偏好和空间收藏。PostgreSQL 与 SQLite/D1 使用相同领域契约；API 必须校验 Better Auth session、房间参与权和内置空间 ID。
 
@@ -66,4 +71,4 @@
 
 ## 验收
 
-验收场景记录在 [`tests/e2e/TEST-CATALOG.md`](../../../tests/e2e/TEST-CATALOG.md) 的“登录后产品状态真实化”，自动化实现位于 [`tests/e2e/specs/chat-real-product-state.spec.ts`](../../../tests/e2e/specs/chat-real-product-state.spec.ts)。
+产品状态与 package 边界验收分别记录在 [`tests/e2e/TEST-CATALOG.md`](../../../tests/e2e/TEST-CATALOG.md) #35 和 #37；活动 Playwright 全量回归 36/36，package/领域单测 45/45。

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { atmosphereSpaceDirectorySchema, productLocaleSchema } from '@libs/chat'
+import { atmosphereSpaceDirectorySchema, productLocaleSchema } from '@vibechat/api-contracts'
 import { createDefaultProductStateService } from '@libs/product-state'
 import {
   productRequestId,

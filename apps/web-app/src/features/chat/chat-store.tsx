@@ -1,26 +1,22 @@
 'use client'
 
 import {
-  atmosphereSpaceDirectorySchema,
+  sessionBootstrapSchema,
+  type ProductStateSnapshotResponse,
+  type RoomBootstrap,
+  type SocialPerson,
+} from '@vibechat/api-contracts'
+import {
   appendMessageToState,
   createChatId,
-  productProfileSchema,
-  productPreferencesSchema,
-  productStateSnapshotSchema,
-  roomBootstrapSchema,
-  roomMetadataLookupResponseSchema,
-  sessionBootstrapSchema,
-  socialSnapshotSchema,
-  userSearchResponseSchema,
   type ChatState,
   type ChatLocale,
   type ChatMessage,
   type ChatPerson,
   type CreateRoomInput,
-  type ProductStateSnapshotResponse,
-  type RoomBootstrap,
-  type SocialPerson,
-} from '@libs/chat'
+} from '@vibechat/product-core'
+import { ProductApiClient, ProductApiClientError } from '@vibechat/product-client'
+import { browserProductPlatform } from '@/lib/product-platform'
 import {
   createContext,
   useCallback,
@@ -31,14 +27,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { MatrixClient, SyncState } from 'matrix-js-sdk'
-import type { MatrixRuntime } from './matrix-runtime'
+import type { MatrixClient, MatrixRuntime, SyncState } from '@vibechat/matrix-client'
 
 type RoomPreferences = Record<string, { pinned?: boolean; muted?: boolean }>
-type MatrixRuntimeModule = typeof import('./matrix-runtime')
+type MatrixRuntimeModule = typeof import('@vibechat/matrix-client')
 type ProductPreferences = ProductStateSnapshotResponse['preferences']
 type ConnectionState = SyncState | 'CONNECTING' | 'UNAVAILABLE' | 'ERROR'
 const legacyChatStorageKeys = ['vibechat-demo-state-v1', 'vibechat-chat-ui-v1']
+const productApi = new ProductApiClient()
 
 interface ChatContextValue {
   state: ChatState
@@ -206,14 +202,7 @@ export function ChatProvider({
     if (!matrixRoomIds.length) return
     for (const roomId of matrixRoomIds) roomMetadataLookupRef.current.add(roomId)
     try {
-      const response = await fetch('/v1/rooms/metadata', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ matrixRoomIds }),
-      })
-      if (!response.ok) throw new Error('ROOM_METADATA_LOOKUP_FAILED')
-      const metadata = roomMetadataLookupResponseSchema.parse(await response.json())
+      const metadata = await productApi.lookupRoomMetadata(matrixRoomIds)
       for (const room of metadata.rooms) {
         roomMetadataRef.current[room.matrixRoomId] = room
       }
@@ -225,12 +214,7 @@ export function ChatProvider({
   }, [refreshMatrixState])
 
   const refreshSocial = useCallback(async () => {
-    const response = await fetch('/v1/contacts', {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    })
-    if (!response.ok) throw new Error('SOCIAL_SNAPSHOT_FAILED')
-    const snapshot = socialSnapshotSchema.parse(await response.json())
+    const snapshot = await productApi.getSocialSnapshot()
     const people = new Map<string, ChatPerson>()
     for (const person of snapshot.contacts) {
       people.set(person.id, socialPersonToChatPerson(person))
@@ -262,29 +246,17 @@ export function ChatProvider({
 
     const start = async () => {
       try {
-        for (const key of legacyChatStorageKeys) window.localStorage.removeItem(key)
-        const response = await fetch('/v1/session/bootstrap', {
-          credentials: 'include',
-          headers: { accept: 'application/json' },
-        })
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.location.assign(`/${locale}/signin`)
-            return
-          }
-          throw new Error('SESSION_BOOTSTRAP_FAILED')
-        }
-        const parsed = sessionBootstrapSchema.safeParse(await response.json())
-        if (!parsed.success) throw new Error('SESSION_BOOTSTRAP_INVALID')
-        if (!parsed.data.user.onboardingCompleted) {
-          window.location.assign(`/${locale}/onboarding`)
+        for (const key of legacyChatStorageKeys) browserProductPlatform.storage.remove(key)
+        const bootstrap = await productApi.bootstrapSession()
+        if (!bootstrap.user.onboardingCompleted) {
+          browserProductPlatform.navigation.openOnboarding(locale)
           return
         }
-        if (parsed.data.matrix.status !== 'ready') {
-          profileRef.current = parsed.data.user
+        if (bootstrap.matrix.status !== 'ready') {
+          profileRef.current = bootstrap.user
           const nextState = createEmptyProductState()
-          nextState.currentUserId = parsed.data.user.id
-          nextState.people = [profileToChatPerson(parsed.data.user)]
+          nextState.currentUserId = bootstrap.user.id
+          nextState.people = [profileToChatPerson(bootstrap.user)]
           baseStateRef.current = nextState
           if (!disposed) {
             setState(nextState)
@@ -294,29 +266,13 @@ export function ChatProvider({
           return
         }
 
-        const [productStateResponse, spacesResponse, socialResponse] = await Promise.all([
-          fetch('/v1/product-state', { credentials: 'include', headers: { accept: 'application/json' } }),
-          fetch(`/v1/spaces?locale=${encodeURIComponent(locale)}`, {
-            credentials: 'include',
-            headers: { accept: 'application/json' },
-          }),
-          fetch('/v1/contacts', { credentials: 'include', headers: { accept: 'application/json' } }),
+        const [productState, directory, snapshot] = await Promise.all([
+          productApi.getProductState(),
+          productApi.getSpaces(locale),
+          productApi.getSocialSnapshot(),
         ])
-        if (!productStateResponse.ok || !spacesResponse.ok || !socialResponse.ok) {
-          throw new Error('PRODUCT_STATE_LOAD_FAILED')
-        }
-        const productState = productStateSnapshotSchema.parse(await productStateResponse.json())
-        const directory = atmosphereSpaceDirectorySchema.parse(await spacesResponse.json())
-        const snapshot = socialSnapshotSchema.parse(await socialResponse.json())
         if (productState.preferences.locale !== locale) {
-          const localeResponse = await fetch('/v1/product-state', {
-            method: 'PATCH',
-            credentials: 'include',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ locale }),
-          })
-          if (!localeResponse.ok) throw new Error('PRODUCT_LOCALE_SYNC_FAILED')
-          productState.preferences = productPreferencesSchema.parse(await localeResponse.json())
+          productState.preferences = await productApi.updateProductPreferences({ locale })
         }
         preferencesRef.current = Object.fromEntries(productState.roomPreferences.map((preference) => [
           preference.matrixRoomId,
@@ -324,8 +280,8 @@ export function ChatProvider({
         ]))
         setProductPreferences(productState.preferences)
         const nextBaseState = createEmptyProductState()
-        nextBaseState.currentUserId = parsed.data.user.id
-        nextBaseState.people = [profileToChatPerson(parsed.data.user)]
+        nextBaseState.currentUserId = bootstrap.user.id
+        nextBaseState.people = [profileToChatPerson(bootstrap.user)]
         nextBaseState.spaces = directory.spaces.map((space) => ({
           id: space.id,
           name: space.name,
@@ -343,7 +299,7 @@ export function ChatProvider({
         nextBaseState.favoriteSpaceIds = productState.favoriteSpaceIds
         baseStateRef.current = nextBaseState
         setState(nextBaseState)
-        profileRef.current = parsed.data.user
+        profileRef.current = bootstrap.user
         const people = new Map<string, ChatPerson>()
         for (const person of snapshot.contacts) people.set(person.id, socialPersonToChatPerson(person))
         for (const request of snapshot.incomingRequests) {
@@ -358,8 +314,10 @@ export function ChatProvider({
         socialBlockedUserIdsRef.current = snapshot.blockedUserIds
         // matrix-js-sdk is browser-only and intentionally excluded from the
         // server module graph. Loading it here keeps SSR and Vite HMR stable.
-        const matrixRuntime = await import('./matrix-runtime')
-        const runtime = await matrixRuntime.createMatrixRuntime(parsed.data.matrix)
+        const matrixRuntime = await import('@vibechat/matrix-client')
+        const runtime = await matrixRuntime.createMatrixRuntime(bootstrap.matrix, {
+          indexedDB: browserProductPlatform.indexedDB,
+        })
         if (disposed) {
           await runtime.stop()
           return
@@ -412,6 +370,10 @@ export function ChatProvider({
           setReady(true)
         }
       } catch (error) {
+        if (error instanceof ProductApiClientError && error.status === 401) {
+          browserProductPlatform.navigation.openSignIn(locale)
+          return
+        }
         console.error(
           '[chat] Product state bootstrap failed',
           error instanceof Error ? error.name : 'UnknownError',
@@ -439,7 +401,7 @@ export function ChatProvider({
       optimisticMessagesRef.current.clear()
       pendingTransactionIdsRef.current.clear()
       reconnectRetryAttemptsRef.current.clear()
-      for (const timerId of reconnectRetryTimersRef.current) window.clearTimeout(timerId)
+      for (const timerId of reconnectRetryTimersRef.current) browserProductPlatform.clearTimeout(timerId)
       reconnectRetryTimersRef.current.clear()
       profileRef.current = null
       const runtime = runtimeRef.current
@@ -459,13 +421,7 @@ export function ChatProvider({
         muted: current.muted || false,
         [key]: !current[key],
       }
-      const response = await fetch(`/v1/rooms/${encodeURIComponent(roomId)}/preferences`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(next),
-      })
-      if (!response.ok) throw new Error('ROOM_PREFERENCE_UPDATE_FAILED')
+      await productApi.updateRoomPreference(roomId, next)
       preferencesRef.current = { ...preferencesRef.current, [roomId]: next }
       refreshMatrixState()
     },
@@ -524,16 +480,16 @@ export function ChatProvider({
         // one idempotent retry with the original Matrix transaction id.
         if (
           allowReconnectRetry
-          && navigator.onLine
+          && browserProductPlatform.isOnline()
         ) {
           const retryAttempt = reconnectRetryAttemptsRef.current.get(transactionId) || 0
           if (retryAttempt >= 3) throw error
           reconnectRetryAttemptsRef.current.set(transactionId, retryAttempt + 1)
           const retryDelayMs = [800, 2_000, 4_000][retryAttempt]
-          const timerId = window.setTimeout(() => {
+          const timerId = browserProductPlatform.setTimeout(() => {
             reconnectRetryTimersRef.current.delete(timerId)
             const candidate = optimisticMessagesRef.current.get(transactionId)
-            if (!candidate || candidate.status !== 'failed' || !navigator.onLine) return
+            if (!candidate || candidate.status !== 'failed' || !browserProductPlatform.isOnline()) return
             void deliverOptimisticMessage(candidate, true).catch(() => undefined)
           }, retryDelayMs)
           reconnectRetryTimersRef.current.add(timerId)
@@ -649,8 +605,7 @@ export function ChatProvider({
         }
       }
     }
-    window.addEventListener('online', retryFailedMessages)
-    return () => window.removeEventListener('online', retryFailedMessages)
+    return browserProductPlatform.onOnline(retryFailedMessages)
   }, [deliverOptimisticMessage])
 
   const createRoom = useCallback(async (input: CreateRoomInput) => {
@@ -660,65 +615,39 @@ export function ChatProvider({
       .map((id) => state.people.find((person) => person.id === id))
       .filter((person): person is NonNullable<typeof person> => !!person)
     if (!space) throw new Error('ROOM_SPACE_NOT_FOUND')
-    const response = await fetch('/v1/rooms', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        spaceId: input.spaceId,
-        participantUserIds: input.participantIds,
-        instanceConfig: {},
-        clientRequestId: globalThis.crypto.randomUUID(),
-        name: participants.length
-          ? `${space.name} · ${participants.map((person) => person.displayName).join('、')}`
-          : space.name,
-      }),
+    const room = await productApi.createRoom({
+      spaceId: input.spaceId,
+      participantUserIds: input.participantIds,
+      instanceConfig: {},
+      clientRequestId: globalThis.crypto.randomUUID(),
+      name: participants.length
+        ? `${space.name} · ${participants.map((person) => person.displayName).join('、')}`
+        : space.name,
     })
-    if (!response.ok) throw new Error('ROOM_CREATE_FAILED')
-    return roomBootstrapSchema.parse(await response.json()).matrixRoomId
+    return room.matrixRoomId
   }, [locale, state.people, state.spaces])
 
   const searchUsers = useCallback(async (query: string) => {
-    const response = await fetch(`/v1/users/search?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
-    })
-    if (!response.ok) throw new Error('USER_SEARCH_FAILED')
-    return userSearchResponseSchema.parse(await response.json()).users
+    return productApi.searchUsers(query)
   }, [])
 
   const sendFriendRequest = useCallback(async (recipientUserId: string) => {
-    const response = await fetch('/v1/friend-requests', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ recipientUserId }),
-    })
-    if (!response.ok) throw new Error('FRIEND_REQUEST_FAILED')
+    await productApi.sendFriendRequest(recipientUserId)
     await refreshSocial()
   }, [refreshSocial])
 
   const acceptFriendRequest = useCallback(async (requestId: string) => {
-    const response = await fetch(`/v1/friend-requests/${encodeURIComponent(requestId)}/accept`, {
-      method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: '{}',
-    })
-    if (!response.ok) throw new Error('FRIEND_REQUEST_ACCEPT_FAILED')
+    await productApi.acceptFriendRequest(requestId)
     await refreshSocial()
   }, [refreshSocial])
 
   const rejectFriendRequest = useCallback(async (requestId: string) => {
-    const response = await fetch(`/v1/friend-requests/${encodeURIComponent(requestId)}/reject`, {
-      method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: '{}',
-    })
-    if (!response.ok) throw new Error('FRIEND_REQUEST_REJECT_FAILED')
+    await productApi.rejectFriendRequest(requestId)
     await refreshSocial()
   }, [refreshSocial])
 
   const updateContactRemark = useCallback(async (userId: string, remark: string | null) => {
-    const response = await fetch(`/v1/contacts/${encodeURIComponent(userId)}`, {
-      method: 'PATCH', credentials: 'include', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ remark }),
-    })
-    if (!response.ok) throw new Error('CONTACT_REMARK_UPDATE_FAILED')
+    await productApi.updateContactRemark(userId, remark)
     await refreshSocial()
   }, [refreshSocial])
 
@@ -727,19 +656,7 @@ export function ChatProvider({
     username: string
     avatarUrl?: string | null
   }) => {
-    const response = await fetch('/v1/profile', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(input),
-      })
-    if (!response.ok) {
-        const body = await response.json().catch(() => null) as {
-          error?: { code?: string }
-        } | null
-        throw new Error(body?.error?.code || 'PROFILE_UPDATE_FAILED')
-    }
-    const profile = productProfileSchema.parse(await response.json())
+    const profile = await productApi.updateProfile(input)
     if (profileRef.current) {
         profileRef.current = {
           ...profileRef.current,
@@ -754,22 +671,12 @@ export function ChatProvider({
   }, [refreshMatrixState])
 
   const blockUser = useCallback(async (userId: string) => {
-    const response = await fetch('/v1/blocks', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
-    if (!response.ok) throw new Error('SOCIAL_BLOCK_FAILED')
+    await productApi.blockUser(userId)
     await refreshSocial()
   }, [refreshSocial])
 
   const unblockUser = useCallback(async (userId: string) => {
-    const response = await fetch(`/v1/blocks/${encodeURIComponent(userId)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-    if (!response.ok) throw new Error('SOCIAL_UNBLOCK_FAILED')
+    await productApi.unblockUser(userId)
     await refreshSocial()
   }, [refreshSocial])
 
@@ -789,11 +696,7 @@ export function ChatProvider({
 
   const toggleFavoriteSpace = useCallback(async (spaceId: string) => {
     const favorite = !state.favoriteSpaceIds.includes(spaceId)
-    const response = await fetch(`/v1/spaces/${encodeURIComponent(spaceId)}/favorite`, {
-      method: 'PUT', credentials: 'include', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ favorite }),
-    })
-    if (!response.ok) throw new Error('SPACE_FAVORITE_UPDATE_FAILED')
+    await productApi.setFavoriteSpace(spaceId, favorite)
     const wasFavorite = baseStateRef.current.favoriteSpaceIds.includes(spaceId)
     const favoriteDelta = favorite === wasFavorite ? 0 : favorite ? 1 : -1
     baseStateRef.current = {
@@ -809,17 +712,12 @@ export function ChatProvider({
   }, [refreshMatrixState, state.favoriteSpaceIds])
 
   const updateProductPreferences = useCallback(async (patch: Partial<ProductPreferences>) => {
-    const response = await fetch('/v1/product-state', {
-      method: 'PATCH', credentials: 'include', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(patch),
-    })
-    if (!response.ok) throw new Error('PRODUCT_PREFERENCES_UPDATE_FAILED')
-    setProductPreferences(productPreferencesSchema.parse(await response.json()))
+    setProductPreferences(await productApi.updateProductPreferences(patch))
   }, [])
 
   const clearLocalChatData = useCallback(async () => {
     preferencesRef.current = {}
-    for (const key of legacyChatStorageKeys) window.localStorage.removeItem(key)
+    for (const key of legacyChatStorageKeys) browserProductPlatform.storage.remove(key)
     const runtime = runtimeRef.current
     runtimeRef.current = null
     matrixClientRef.current = null

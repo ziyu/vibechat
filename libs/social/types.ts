@@ -1,4 +1,4 @@
-import type { SocialPerson } from "@libs/chat";
+import type { SocialPerson } from "@vibechat/api-contracts";
 
 export type FriendRequestStatus = "pending" | "accepted" | "rejected";
 

@@ -18,7 +18,7 @@ Local port: `8002`. Browser traffic normally reaches it through the Web `8001` s
 
 ## Boundaries
 
-- HTTP routes parse and validate requests, call `libs/*` domain services, and shape responses.
+- HTTP routes parse and validate requests with `@vibechat/api-contracts`, call `libs/*` Backend domain services, and shape responses.
 - Do not import React product screens or another app.
 - Every user/resource route independently verifies session, permission, and ownership.
 - Preserve public `/api/auth/*`, `/api/upload`, and `/v1/*` response and Cookie contracts.

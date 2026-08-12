@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { updateContactSchema } from '@libs/chat'
+import { updateContactSchema } from '@vibechat/api-contracts'
 import { createDefaultSocialService, SocialServiceError } from '@libs/social'
 import {
   productApiError,

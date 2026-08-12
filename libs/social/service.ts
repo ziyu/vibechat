@@ -1,4 +1,4 @@
-import type { SocialFriendRequest, SocialSnapshot } from "@libs/chat";
+import type { SocialFriendRequest, SocialSnapshot } from "@vibechat/api-contracts";
 import type { SocialRepository } from "./contracts";
 import type { FriendRequestRecord } from "./types";
 

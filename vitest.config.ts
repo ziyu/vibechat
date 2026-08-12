@@ -12,6 +12,9 @@ export default defineConfig({
     alias: {
       '@config': resolve(__dirname, './config.ts'),
       '@libs': resolve(__dirname, './libs'),
+      '@vibechat/api-contracts': resolve(__dirname, './packages/api-contracts/src'),
+      '@vibechat/product-client': resolve(__dirname, './packages/product-client/src'),
+      '@vibechat/product-core': resolve(__dirname, './packages/product-core/src'),
       '@tests': resolve(__dirname, './tests'),
     },
   },

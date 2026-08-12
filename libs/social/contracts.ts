@@ -1,4 +1,4 @@
-import type { SocialPerson } from "@libs/chat";
+import type { SocialPerson } from "@vibechat/api-contracts";
 import type { FriendRequestRecord, SocialSnapshotRecords } from "./types";
 
 export interface SocialRepository {

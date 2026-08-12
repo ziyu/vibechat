@@ -1,4 +1,4 @@
-import { productApiErrorSchema } from '@libs/chat'
+import { productApiErrorSchema } from '@vibechat/api-contracts'
 
 export function productRequestId(request: Request) {
   return request.headers.get('x-request-id') || globalThis.crypto.randomUUID()

@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ArrowRight, Camera, Check, MessageCircle, UsersRound } from 'lucide-react'
-import type { ProductProfileResponse } from '@libs/chat'
+import type { ProductProfileResponse } from '@vibechat/api-contracts'
+import { ProductApiClient, ProductApiClientError } from '@vibechat/product-client'
+import { browserProductPlatform } from '@/lib/product-platform'
 import { useTranslation } from '@/hooks/use-translation'
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024
 const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const productApi = new ProductApiClient()
 
 export function OnboardingPage() {
   const { t, locale } = useTranslation()
@@ -31,15 +34,11 @@ export function OnboardingPage() {
 
   useEffect(() => {
     let disposed = false
-    void fetch('/v1/profile', { credentials: 'include' })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('PROFILE_LOAD_FAILED')
-        return response.json() as Promise<ProductProfileResponse>
-      })
+    void productApi.getProfile()
       .then((nextProfile) => {
         if (disposed) return
         if (nextProfile.onboardingCompleted) {
-          window.location.replace(`/${locale}/messages`)
+          browserProductPlatform.navigation.openMessages(locale)
           return
         }
         setProfile(nextProfile)
@@ -72,42 +71,21 @@ export function OnboardingPage() {
     try {
       let avatarUrl = profile?.avatarUrl || null
       if (avatarFile) {
-        const uploadBody = new FormData()
-        uploadBody.append('file', avatarFile)
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          credentials: 'include',
-          body: uploadBody,
-        })
-        if (!uploadResponse.ok) throw new Error('AVATAR_UPLOAD_FAILED')
-        const upload = await uploadResponse.json() as { data?: { url?: string } }
-        if (!upload.data?.url) throw new Error('AVATAR_UPLOAD_FAILED')
-        avatarUrl = upload.data.url
+        const upload = await productApi.uploadImage(avatarFile)
+        avatarUrl = upload.url
       }
 
-      const response = await fetch('/v1/profile', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          displayName,
-          username,
-          avatarUrl,
-          completeOnboarding: true,
-        }),
+      await productApi.updateProfile({
+        displayName,
+        username,
+        avatarUrl,
+        completeOnboarding: true,
       })
-      if (!response.ok) {
-        const body = await response.json().catch(() => null) as {
-          error?: { code?: string }
-        } | null
-        if (body?.error?.code === 'PROFILE_USERNAME_TAKEN') {
-          throw new Error('PROFILE_USERNAME_TAKEN')
-        }
-        throw new Error('PROFILE_UPDATE_FAILED')
-      }
-      window.location.assign(`/${locale}/messages`)
+      browserProductPlatform.navigation.openMessages(locale)
     } catch (cause) {
-      const code = cause instanceof Error ? cause.message : 'PROFILE_UPDATE_FAILED'
+      const code = cause instanceof ProductApiClientError
+        ? cause.code
+        : cause instanceof Error ? cause.message : 'PROFILE_UPDATE_FAILED'
       setError(code === 'PROFILE_USERNAME_TAKEN'
         ? t.chatApp.onboarding.usernameTaken
         : code === 'AVATAR_UPLOAD_FAILED'

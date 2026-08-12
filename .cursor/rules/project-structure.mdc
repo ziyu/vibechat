@@ -17,11 +17,18 @@ vibechat/
 │   ├── site-app/              # Public site and content
 │   ├── backend/               # Auth, product API, upload, health
 │   └── docs-app/              # Documentation site
+├── packages/                  # Real workspace package boundaries
+│   ├── api-contracts/         # Shared Zod DTO/contracts
+│   ├── auth-client/           # Browser-safe Better Auth React client
+│   ├── product-core/          # Runtime-agnostic product state/use cases
+│   ├── product-client/        # Injectable HTTP product client
+│   ├── matrix-client/         # Matrix SDK lifecycle and projections
+│   └── platform-contracts/    # Host capability ports
 ├── libs/                      # Libraries directory
 │   ├── database/             # Database related code
 │   │   ├── migrations/      # Database migrations
 │   │   └── schema/         # Database schema definitions
-│   ├── auth/                 # Authentication library
+│   ├── auth/                 # Server authentication implementation
 │   ├── email/                # Email service library
 │   ├── i18n/                 # Internationalization
 │   ├── permissions/          # Permission management

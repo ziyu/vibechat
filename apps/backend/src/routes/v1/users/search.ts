@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { userSearchResponseSchema } from '@libs/chat'
+import { userSearchResponseSchema } from '@vibechat/api-contracts'
 import { createDefaultSocialService } from '@libs/social'
 import { productApiError, productRequestId, requireProductSession } from '@/lib/product-api'
 import { withCfDb } from '@/lib/with-request-db'

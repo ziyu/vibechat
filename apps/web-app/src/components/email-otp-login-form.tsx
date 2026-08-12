@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { authClientReact } from '@libs/auth/authClient'
+import { authClientReact } from '@vibechat/auth-client'
 import { cn } from '@libs/ui/utils/cn'
 import { Button } from '@libs/react-shared/ui/button'
 import { Input } from '@libs/react-shared/ui/input'

@@ -25,9 +25,8 @@ import type {
   ChatReaction,
   ChatRoom,
   FriendRequest,
-  RoomBootstrap,
-  SessionBootstrap,
-} from '@libs/chat'
+} from '@vibechat/product-core'
+import type { RoomBootstrap, SessionBootstrap } from '@vibechat/api-contracts'
 
 export const VIBE_SPACE_STATE_EVENT = 'io.vibechat.space.instance.v1'
 
@@ -42,9 +41,10 @@ type ReadyMatrixBootstrap = Extract<SessionBootstrap['matrix'], { status: 'ready
 
 export async function createMatrixRuntime(
   matrix: ReadyMatrixBootstrap,
+  options: { indexedDB: IDBFactory },
 ): Promise<MatrixRuntime> {
   const store = new IndexedDBStore({
-    indexedDB: window.indexedDB,
+    indexedDB: options.indexedDB,
     dbName: `vibechat-sync-${matrix.deviceId}`,
   })
   const client = createClient({
@@ -524,3 +524,4 @@ export function projectMatrixChatState(
 }
 
 export { ClientEvent, EventType, RoomEvent, SyncState }
+export type { MatrixClient, SyncStateData } from 'matrix-js-sdk'

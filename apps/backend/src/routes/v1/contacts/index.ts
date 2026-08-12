@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { socialSnapshotSchema } from '@libs/chat'
+import { socialSnapshotSchema } from '@vibechat/api-contracts'
 import { createDefaultSocialService } from '@libs/social'
 import { productRequestId, requireProductSession } from '@/lib/product-api'
 import { withCfDb } from '@/lib/with-request-db'

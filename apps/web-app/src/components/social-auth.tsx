@@ -4,7 +4,7 @@ import {
   type SocialProvider,
 } from "@libs/react-shared/ui/social-button";
 import { cn } from "@libs/ui/utils/cn";
-import { authClientReact } from "@libs/auth/authClient";
+import { authClientReact } from "@vibechat/auth-client";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
