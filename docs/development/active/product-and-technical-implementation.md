@@ -65,11 +65,11 @@
 ### 任务
 
 - [ ] 建立稳定设计章节到代码目录、API、数据模型和测试的追踪矩阵。
-- [ ] 盘点当前路由与目标路由差距，明确旧 `/ai`、`/pricing`、`/dashboard` 等页面的保留或退场策略。
+- [x] 已在[Apps 边界与 Desktop 架构 RFC](../app-boundaries-and-desktop-architecture-rfc.md)盘点当前路由与目标路由差距，并提出旧 `/ai`、`/pricing`、`/dashboard` 等页面的评审/隔离原则。
 - [ ] 在 `tests/e2e/TEST-CATALOG.md` 写 A1 产品壳验收场景，不先写 Playwright selector。
 - [ ] 明确 MVP 设计系统、响应式断点、主导航和房间画布的实现边界。
 - [ ] 为后端、数据库、认证、Matrix/Synapse 和部署拓扑分别建立待评审决策项。
-- [ ] 列出阶段 1 开始前必须删除或隔离的脚手架耦合。
+- [x] 已在 Apps RFC 列出 app、API、路由、Cookie、浏览器全局对象和旧 SaaS 的隔离边界；具体删除项在 RFC Phase 0 建立 owner 后执行。
 
 ### 完成条件
 
@@ -101,6 +101,7 @@ A2 从[身份与 Session Bootstrap 实现参考](../../stable/references/identit
 | 氛围空间包格式、签名与版本不可变 | 待设计 | A3 实现前 |
 | iframe sandbox、CSP 与外部联网授权 | 待设计 | A3 安全实现前 |
 | SDK/CLI 包边界与公开仓库策略 | 待设计 | A4 开始前 |
+| 官网、Web 产品、API 与未来 Desktop 的 app/package 边界 | [Apps 边界与 Desktop 架构 RFC](../app-boundaries-and-desktop-architecture-rfc.md)评审中；建议共享产品 packages、独立部署入口、禁止 app-to-app import | A3 宿主实现扩张前完成 Phase 0 评审 |
 
 ## 8. 进度更新规则
 
