@@ -13,9 +13,9 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "utils": "@libs/ui/utils/cn",
-    "ui": "@libs/react-shared/ui",
+    "utils": "@vibechat/ui/utils/cn",
+    "ui": "@vibechat/react-shared/ui",
     "lib": "@/lib",
-    "hooks": "@libs/react-shared/hooks"
+    "hooks": "@vibechat/react-shared/hooks"
   }
 }

@@ -18,10 +18,6 @@ const PUBLIC_ENDPOINTS: Array<{ method: string; path: string }> = [
   // Public blog
   { method: 'GET', path: '/api/blog' },
 
-  // Payment webhooks (called by external payment providers)
-  { method: 'POST', path: '/api/payment/webhook/stripe' },
-  { method: 'POST', path: '/api/payment/webhook/paypal' },
-  { method: 'POST', path: '/api/payment/webhook/creem' },
 ];
 
 describe('Public Endpoints — accessible without auth', () => {

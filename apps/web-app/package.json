@@ -13,11 +13,14 @@
   "dependencies": {
     "@vibechat/api-contracts": "workspace:*",
     "@vibechat/auth-client": "workspace:*",
+    "@vibechat/i18n": "workspace:*",
     "@vibechat/matrix-client": "workspace:*",
     "@vibechat/platform-contracts": "workspace:*",
     "@vibechat/product-client": "workspace:*",
     "@vibechat/product-core": "workspace:*",
-    "@ai-sdk/react": "3.0.6",
+    "@vibechat/react-shared": "workspace:*",
+    "@vibechat/ui": "workspace:*",
+    "@vibechat/validators": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@marsidev/react-turnstile": "1.1.0",
     "@radix-ui/react-alert-dialog": "1.1.6",
@@ -55,9 +58,6 @@
     "tailwind-merge": "3.0.2",
     "tw-animate-css": "1.2.4",
     "use-stick-to-bottom": "1.1.1"
-  },
-  "peerDependencies": {
-    "ai": "*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",

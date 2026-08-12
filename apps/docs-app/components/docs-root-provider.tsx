@@ -10,7 +10,7 @@ import { config } from '@config';
 import {
   applyThemeToDocument,
   getStoredThemeState,
-} from '@libs/ui/themes';
+} from '@vibechat/ui/themes';
 
 type Props = {
   i18n: Omit<FumadocsI18nProps, 'children'>;

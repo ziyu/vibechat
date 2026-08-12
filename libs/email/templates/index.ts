@@ -1,4 +1,4 @@
-import { translations, defaultLocale, type SupportedLocale } from '@libs/i18n';
+import { translations, defaultLocale, type SupportedLocale } from '@vibechat/i18n';
 import { config } from '@config';
 import { AUTHENTICATION_OTP_HTML, RESET_PASSWORD_HTML, VERIFICATION_HTML } from './compiled';
 import { renderTemplate } from './render';

@@ -2,7 +2,7 @@
 
 ## Overview
 
-`apps/backend` is the shared VibeChat backend and the only active owner of Better Auth HTTP handlers, product `/v1` routes, product uploads, database health, and public Blog reads.
+`apps/backend` is the shared VibeChat backend and the only active owner of Better Auth HTTP handlers, product `/v1` routes, product uploads, database health, public Blog reads, and internal Admin APIs.
 
 ## Commands
 
@@ -21,8 +21,9 @@ Local port: `8002`. Browser traffic normally reaches it through the Web `8001` s
 - HTTP routes parse and validate requests with `@vibechat/api-contracts`, call `libs/*` Backend domain services, and shape responses.
 - Do not import React product screens or another app.
 - Every user/resource route independently verifies session, permission, and ownership.
+- Every `/api/admin/*` route uses the shared Admin authorization boundary and returns `401` for missing sessions and `403` for authenticated non-admin users.
 - Preserve public `/api/auth/*`, `/api/upload`, and `/v1/*` response and Cookie contracts.
 - Request-scoped database bindings go through `src/lib/with-request-db.ts`.
 - Cloudflare changes follow [`CF-NOTES.md`](./CF-NOTES.md) and the deployment Runbook.
 
-Old payment, AI, affiliate, credit, and generic Admin API routes are isolated under `legacy/backend` and are not part of this app.
+Old payment and AI routes remain isolated under `legacy/backend`; the reviewed Admin, affiliate, credit and pricing operations APIs are active Backend responsibilities.

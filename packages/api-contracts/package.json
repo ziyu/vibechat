@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./admin": "./src/admin.ts",
     "./media": "./src/media.ts",
     "./product-state": "./src/product-state.ts",
     "./profile": "./src/profile.ts",

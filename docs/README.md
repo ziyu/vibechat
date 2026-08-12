@@ -20,7 +20,7 @@
 
 - `docs/` 保存跨模块、跨应用的仓库级文档。
 - `apps/docs-app/content/` 保存发布到文档站的用户内容；它不是设计事实来源。
-- `libs/*/README*.md` 保存与包一起演进的使用说明。
+- `packages/*/README*.md` 与 `libs/*/README*.md` 保存与 package 或 Backend 内部领域一起演进的使用说明。
 - `*/AGENTS.md` 保存局部开发约束，不迁入 `docs/`。
 - `tests/**` 保存测试目录、测试计划和执行说明，测试结果以实际测试与目录内记录为准。
 

@@ -9,16 +9,11 @@
 import { requireEnvForService } from './config/utils';
 import { authConfig } from './config/auth';
 import { paymentConfig } from './config/payment';
-import { creditsConfig } from './config/credits';
 import { smsConfig } from './config/sms';
 import { emailConfig } from './config/email';
 import { captchaConfig } from './config/captcha';
 import { databaseConfig } from './config/database';
 import { storageConfig } from './config/storage';
-import { aiConfig } from './config/ai';
-import { aiImageConfig } from './config/aiImage';
-import { aiVideoConfig } from './config/aiVideo';
-import { affiliateConfig } from './config/affiliate';
 export {
   builtInChatSpaces,
   getBuiltInChatSpace,
@@ -151,14 +146,9 @@ export const config = {
   // Configurations from config/ folder
   auth: authConfig,
   payment: paymentConfig,
-  credits: creditsConfig,
   sms: smsConfig,
   email: emailConfig,
   captcha: captchaConfig,
   database: databaseConfig,
   storage: storageConfig,
-  ai: aiConfig,
-  aiImage: aiImageConfig,
-  aiVideo: aiVideoConfig,
-  affiliate: affiliateConfig,
 } as const;

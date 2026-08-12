@@ -1,8 +1,8 @@
 'use client'
 
 import { useParams, useNavigate, useRouterState } from '@tanstack/react-router'
-import { translations, type SupportedLocale, locales, type Translations } from '@libs/i18n'
-import { createNextTranslationFunction } from '@libs/validators'
+import { translations, type SupportedLocale, locales, type Translations } from '@vibechat/i18n'
+import { createNextTranslationFunction } from '@vibechat/validators'
 import { config } from '@config'
 
 export function useTranslation() {

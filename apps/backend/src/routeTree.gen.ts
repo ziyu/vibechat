@@ -25,12 +25,29 @@ import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/boot
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
 import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
 import { Route as V1BlocksUserIdRouteImport } from './routes/v1/blocks/$userId'
+import { Route as ApiUsersIdRouteImport } from './routes/api/users/$id'
 import { Route as ApiBlogSlugRouteImport } from './routes/api/blog/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAdminCommissionsRouteImport } from './routes/api/admin/commissions'
+import { Route as ApiAdminWithdrawalsIndexRouteImport } from './routes/api/admin/withdrawals/index'
+import { Route as ApiAdminUsersIndexRouteImport } from './routes/api/admin/users/index'
+import { Route as ApiAdminSubscriptionsIndexRouteImport } from './routes/api/admin/subscriptions/index'
+import { Route as ApiAdminStatsIndexRouteImport } from './routes/api/admin/stats/index'
+import { Route as ApiAdminPricingPlansIndexRouteImport } from './routes/api/admin/pricing-plans/index'
+import { Route as ApiAdminOrdersIndexRouteImport } from './routes/api/admin/orders/index'
+import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/index'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
 import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
 import { Route as V1FriendRequestsIdAcceptRouteImport } from './routes/v1/friend-requests/$id/accept'
+import { Route as ApiAdminWithdrawalsIdRouteImport } from './routes/api/admin/withdrawals/$id'
+import { Route as ApiAdminStatsMonthlyRouteImport } from './routes/api/admin/stats/monthly'
+import { Route as ApiAdminPricingPlansReorderRouteImport } from './routes/api/admin/pricing-plans/reorder'
+import { Route as ApiAdminPricingPlansImportRouteImport } from './routes/api/admin/pricing-plans/import'
+import { Route as ApiAdminBlogIdRouteImport } from './routes/api/admin/blog/$id'
+import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin/users/update/index'
+import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
+import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -112,6 +129,11 @@ const V1BlocksUserIdRoute = V1BlocksUserIdRouteImport.update({
   path: '/v1/blocks/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUsersIdRoute = ApiUsersIdRouteImport.update({
+  id: '/api/users/$id',
+  path: '/api/users/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBlogSlugRoute = ApiBlogSlugRouteImport.update({
   id: '/api/blog/$slug',
   path: '/api/blog/$slug',
@@ -120,6 +142,49 @@ const ApiBlogSlugRoute = ApiBlogSlugRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminCommissionsRoute = ApiAdminCommissionsRouteImport.update({
+  id: '/api/admin/commissions',
+  path: '/api/admin/commissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminWithdrawalsIndexRoute =
+  ApiAdminWithdrawalsIndexRouteImport.update({
+    id: '/api/admin/withdrawals/',
+    path: '/api/admin/withdrawals/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminUsersIndexRoute = ApiAdminUsersIndexRouteImport.update({
+  id: '/api/admin/users/',
+  path: '/api/admin/users/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSubscriptionsIndexRoute =
+  ApiAdminSubscriptionsIndexRouteImport.update({
+    id: '/api/admin/subscriptions/',
+    path: '/api/admin/subscriptions/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminStatsIndexRoute = ApiAdminStatsIndexRouteImport.update({
+  id: '/api/admin/stats/',
+  path: '/api/admin/stats/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPricingPlansIndexRoute =
+  ApiAdminPricingPlansIndexRouteImport.update({
+    id: '/api/admin/pricing-plans/',
+    path: '/api/admin/pricing-plans/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminOrdersIndexRoute = ApiAdminOrdersIndexRouteImport.update({
+  id: '/api/admin/orders/',
+  path: '/api/admin/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminBlogIndexRoute = ApiAdminBlogIndexRouteImport.update({
+  id: '/api/admin/blog/',
+  path: '/api/admin/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const V1SpacesSpaceIdFavoriteRoute = V1SpacesSpaceIdFavoriteRouteImport.update({
@@ -145,6 +210,51 @@ const V1FriendRequestsIdAcceptRoute =
     path: '/v1/friend-requests/$id/accept',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminWithdrawalsIdRoute = ApiAdminWithdrawalsIdRouteImport.update({
+  id: '/api/admin/withdrawals/$id',
+  path: '/api/admin/withdrawals/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminStatsMonthlyRoute = ApiAdminStatsMonthlyRouteImport.update({
+  id: '/api/admin/stats/monthly',
+  path: '/api/admin/stats/monthly',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPricingPlansReorderRoute =
+  ApiAdminPricingPlansReorderRouteImport.update({
+    id: '/api/admin/pricing-plans/reorder',
+    path: '/api/admin/pricing-plans/reorder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminPricingPlansImportRoute =
+  ApiAdminPricingPlansImportRouteImport.update({
+    id: '/api/admin/pricing-plans/import',
+    path: '/api/admin/pricing-plans/import',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminBlogIdRoute = ApiAdminBlogIdRouteImport.update({
+  id: '/api/admin/blog/$id',
+  path: '/api/admin/blog/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminUsersUpdateIndexRoute =
+  ApiAdminUsersUpdateIndexRouteImport.update({
+    id: '/api/admin/users/update/',
+    path: '/api/admin/users/update/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminUsersDeleteIndexRoute =
+  ApiAdminUsersDeleteIndexRouteImport.update({
+    id: '/api/admin/users/delete/',
+    path: '/api/admin/users/delete/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminCreditsTransactionsIndexRoute =
+  ApiAdminCreditsTransactionsIndexRouteImport.update({
+    id: '/api/admin/credits/transactions/',
+    path: '/api/admin/credits/transactions/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,8 +262,10 @@ export interface FileRoutesByFullPath {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
+  '/api/users/$id': typeof ApiUsersIdRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
@@ -165,10 +277,25 @@ export interface FileRoutesByFullPath {
   '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
   '/v1/spaces/': typeof V1SpacesIndexRoute
+  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
+  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
+  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
+  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
+  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
+  '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
+  '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
+  '/api/admin/stats/': typeof ApiAdminStatsIndexRoute
+  '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
+  '/api/admin/users/': typeof ApiAdminUsersIndexRoute
+  '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
+  '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
+  '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -176,8 +303,10 @@ export interface FileRoutesByTo {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
+  '/api/users/$id': typeof ApiUsersIdRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
@@ -189,10 +318,25 @@ export interface FileRoutesByTo {
   '/v1/friend-requests': typeof V1FriendRequestsIndexRoute
   '/v1/rooms': typeof V1RoomsIndexRoute
   '/v1/spaces': typeof V1SpacesIndexRoute
+  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
+  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
+  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
+  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
+  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/api/admin/blog': typeof ApiAdminBlogIndexRoute
+  '/api/admin/orders': typeof ApiAdminOrdersIndexRoute
+  '/api/admin/pricing-plans': typeof ApiAdminPricingPlansIndexRoute
+  '/api/admin/stats': typeof ApiAdminStatsIndexRoute
+  '/api/admin/subscriptions': typeof ApiAdminSubscriptionsIndexRoute
+  '/api/admin/users': typeof ApiAdminUsersIndexRoute
+  '/api/admin/withdrawals': typeof ApiAdminWithdrawalsIndexRoute
+  '/api/admin/credits/transactions': typeof ApiAdminCreditsTransactionsIndexRoute
+  '/api/admin/users/delete': typeof ApiAdminUsersDeleteIndexRoute
+  '/api/admin/users/update': typeof ApiAdminUsersUpdateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -201,8 +345,10 @@ export interface FileRoutesById {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
+  '/api/users/$id': typeof ApiUsersIdRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
@@ -214,10 +360,25 @@ export interface FileRoutesById {
   '/v1/friend-requests/': typeof V1FriendRequestsIndexRoute
   '/v1/rooms/': typeof V1RoomsIndexRoute
   '/v1/spaces/': typeof V1SpacesIndexRoute
+  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
+  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
+  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
+  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
+  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
+  '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
+  '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
+  '/api/admin/stats/': typeof ApiAdminStatsIndexRoute
+  '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
+  '/api/admin/users/': typeof ApiAdminUsersIndexRoute
+  '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
+  '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
+  '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -227,8 +388,10 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/api/admin/commissions'
     | '/api/auth/$'
     | '/api/blog/$slug'
+    | '/api/users/$id'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
@@ -240,10 +403,25 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/'
     | '/v1/rooms/'
     | '/v1/spaces/'
+    | '/api/admin/blog/$id'
+    | '/api/admin/pricing-plans/import'
+    | '/api/admin/pricing-plans/reorder'
+    | '/api/admin/stats/monthly'
+    | '/api/admin/withdrawals/$id'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/api/admin/blog/'
+    | '/api/admin/orders/'
+    | '/api/admin/pricing-plans/'
+    | '/api/admin/stats/'
+    | '/api/admin/subscriptions/'
+    | '/api/admin/users/'
+    | '/api/admin/withdrawals/'
+    | '/api/admin/credits/transactions/'
+    | '/api/admin/users/delete/'
+    | '/api/admin/users/update/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -251,8 +429,10 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/api/admin/commissions'
     | '/api/auth/$'
     | '/api/blog/$slug'
+    | '/api/users/$id'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
@@ -264,10 +444,25 @@ export interface FileRouteTypes {
     | '/v1/friend-requests'
     | '/v1/rooms'
     | '/v1/spaces'
+    | '/api/admin/blog/$id'
+    | '/api/admin/pricing-plans/import'
+    | '/api/admin/pricing-plans/reorder'
+    | '/api/admin/stats/monthly'
+    | '/api/admin/withdrawals/$id'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/api/admin/blog'
+    | '/api/admin/orders'
+    | '/api/admin/pricing-plans'
+    | '/api/admin/stats'
+    | '/api/admin/subscriptions'
+    | '/api/admin/users'
+    | '/api/admin/withdrawals'
+    | '/api/admin/credits/transactions'
+    | '/api/admin/users/delete'
+    | '/api/admin/users/update'
   id:
     | '__root__'
     | '/'
@@ -275,8 +470,10 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/api/admin/commissions'
     | '/api/auth/$'
     | '/api/blog/$slug'
+    | '/api/users/$id'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/rooms/metadata'
@@ -288,10 +485,25 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/'
     | '/v1/rooms/'
     | '/v1/spaces/'
+    | '/api/admin/blog/$id'
+    | '/api/admin/pricing-plans/import'
+    | '/api/admin/pricing-plans/reorder'
+    | '/api/admin/stats/monthly'
+    | '/api/admin/withdrawals/$id'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/api/admin/blog/'
+    | '/api/admin/orders/'
+    | '/api/admin/pricing-plans/'
+    | '/api/admin/stats/'
+    | '/api/admin/subscriptions/'
+    | '/api/admin/users/'
+    | '/api/admin/withdrawals/'
+    | '/api/admin/credits/transactions/'
+    | '/api/admin/users/delete/'
+    | '/api/admin/users/update/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -300,8 +512,10 @@ export interface RootRouteChildren {
   ApiUploadRoute: typeof ApiUploadRoute
   V1ProductStateRoute: typeof V1ProductStateRoute
   V1ProfileRoute: typeof V1ProfileRoute
+  ApiAdminCommissionsRoute: typeof ApiAdminCommissionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiBlogSlugRoute: typeof ApiBlogSlugRoute
+  ApiUsersIdRoute: typeof ApiUsersIdRoute
   V1BlocksUserIdRoute: typeof V1BlocksUserIdRoute
   V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
@@ -313,10 +527,25 @@ export interface RootRouteChildren {
   V1FriendRequestsIndexRoute: typeof V1FriendRequestsIndexRoute
   V1RoomsIndexRoute: typeof V1RoomsIndexRoute
   V1SpacesIndexRoute: typeof V1SpacesIndexRoute
+  ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
+  ApiAdminPricingPlansImportRoute: typeof ApiAdminPricingPlansImportRoute
+  ApiAdminPricingPlansReorderRoute: typeof ApiAdminPricingPlansReorderRoute
+  ApiAdminStatsMonthlyRoute: typeof ApiAdminStatsMonthlyRoute
+  ApiAdminWithdrawalsIdRoute: typeof ApiAdminWithdrawalsIdRoute
   V1FriendRequestsIdAcceptRoute: typeof V1FriendRequestsIdAcceptRoute
   V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
+  ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
+  ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
+  ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
+  ApiAdminStatsIndexRoute: typeof ApiAdminStatsIndexRoute
+  ApiAdminSubscriptionsIndexRoute: typeof ApiAdminSubscriptionsIndexRoute
+  ApiAdminUsersIndexRoute: typeof ApiAdminUsersIndexRoute
+  ApiAdminWithdrawalsIndexRoute: typeof ApiAdminWithdrawalsIndexRoute
+  ApiAdminCreditsTransactionsIndexRoute: typeof ApiAdminCreditsTransactionsIndexRoute
+  ApiAdminUsersDeleteIndexRoute: typeof ApiAdminUsersDeleteIndexRoute
+  ApiAdminUsersUpdateIndexRoute: typeof ApiAdminUsersUpdateIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -433,6 +662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1BlocksUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/users/$id': {
+      id: '/api/users/$id'
+      path: '/api/users/$id'
+      fullPath: '/api/users/$id'
+      preLoaderRoute: typeof ApiUsersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/blog/$slug': {
       id: '/api/blog/$slug'
       path: '/api/blog/$slug'
@@ -445,6 +681,62 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/commissions': {
+      id: '/api/admin/commissions'
+      path: '/api/admin/commissions'
+      fullPath: '/api/admin/commissions'
+      preLoaderRoute: typeof ApiAdminCommissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/withdrawals/': {
+      id: '/api/admin/withdrawals/'
+      path: '/api/admin/withdrawals'
+      fullPath: '/api/admin/withdrawals/'
+      preLoaderRoute: typeof ApiAdminWithdrawalsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users/': {
+      id: '/api/admin/users/'
+      path: '/api/admin/users'
+      fullPath: '/api/admin/users/'
+      preLoaderRoute: typeof ApiAdminUsersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/subscriptions/': {
+      id: '/api/admin/subscriptions/'
+      path: '/api/admin/subscriptions'
+      fullPath: '/api/admin/subscriptions/'
+      preLoaderRoute: typeof ApiAdminSubscriptionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/stats/': {
+      id: '/api/admin/stats/'
+      path: '/api/admin/stats'
+      fullPath: '/api/admin/stats/'
+      preLoaderRoute: typeof ApiAdminStatsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/pricing-plans/': {
+      id: '/api/admin/pricing-plans/'
+      path: '/api/admin/pricing-plans'
+      fullPath: '/api/admin/pricing-plans/'
+      preLoaderRoute: typeof ApiAdminPricingPlansIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/orders/': {
+      id: '/api/admin/orders/'
+      path: '/api/admin/orders'
+      fullPath: '/api/admin/orders/'
+      preLoaderRoute: typeof ApiAdminOrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/blog/': {
+      id: '/api/admin/blog/'
+      path: '/api/admin/blog'
+      fullPath: '/api/admin/blog/'
+      preLoaderRoute: typeof ApiAdminBlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/spaces/$spaceId/favorite': {
@@ -475,6 +767,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1FriendRequestsIdAcceptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/withdrawals/$id': {
+      id: '/api/admin/withdrawals/$id'
+      path: '/api/admin/withdrawals/$id'
+      fullPath: '/api/admin/withdrawals/$id'
+      preLoaderRoute: typeof ApiAdminWithdrawalsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/stats/monthly': {
+      id: '/api/admin/stats/monthly'
+      path: '/api/admin/stats/monthly'
+      fullPath: '/api/admin/stats/monthly'
+      preLoaderRoute: typeof ApiAdminStatsMonthlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/pricing-plans/reorder': {
+      id: '/api/admin/pricing-plans/reorder'
+      path: '/api/admin/pricing-plans/reorder'
+      fullPath: '/api/admin/pricing-plans/reorder'
+      preLoaderRoute: typeof ApiAdminPricingPlansReorderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/pricing-plans/import': {
+      id: '/api/admin/pricing-plans/import'
+      path: '/api/admin/pricing-plans/import'
+      fullPath: '/api/admin/pricing-plans/import'
+      preLoaderRoute: typeof ApiAdminPricingPlansImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/blog/$id': {
+      id: '/api/admin/blog/$id'
+      path: '/api/admin/blog/$id'
+      fullPath: '/api/admin/blog/$id'
+      preLoaderRoute: typeof ApiAdminBlogIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users/update/': {
+      id: '/api/admin/users/update/'
+      path: '/api/admin/users/update'
+      fullPath: '/api/admin/users/update/'
+      preLoaderRoute: typeof ApiAdminUsersUpdateIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users/delete/': {
+      id: '/api/admin/users/delete/'
+      path: '/api/admin/users/delete'
+      fullPath: '/api/admin/users/delete/'
+      preLoaderRoute: typeof ApiAdminUsersDeleteIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/credits/transactions/': {
+      id: '/api/admin/credits/transactions/'
+      path: '/api/admin/credits/transactions'
+      fullPath: '/api/admin/credits/transactions/'
+      preLoaderRoute: typeof ApiAdminCreditsTransactionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -484,8 +832,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadRoute: ApiUploadRoute,
   V1ProductStateRoute: V1ProductStateRoute,
   V1ProfileRoute: V1ProfileRoute,
+  ApiAdminCommissionsRoute: ApiAdminCommissionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiBlogSlugRoute: ApiBlogSlugRoute,
+  ApiUsersIdRoute: ApiUsersIdRoute,
   V1BlocksUserIdRoute: V1BlocksUserIdRoute,
   V1ContactsUserIdRoute: V1ContactsUserIdRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
@@ -497,10 +847,25 @@ const rootRouteChildren: RootRouteChildren = {
   V1FriendRequestsIndexRoute: V1FriendRequestsIndexRoute,
   V1RoomsIndexRoute: V1RoomsIndexRoute,
   V1SpacesIndexRoute: V1SpacesIndexRoute,
+  ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,
+  ApiAdminPricingPlansImportRoute: ApiAdminPricingPlansImportRoute,
+  ApiAdminPricingPlansReorderRoute: ApiAdminPricingPlansReorderRoute,
+  ApiAdminStatsMonthlyRoute: ApiAdminStatsMonthlyRoute,
+  ApiAdminWithdrawalsIdRoute: ApiAdminWithdrawalsIdRoute,
   V1FriendRequestsIdAcceptRoute: V1FriendRequestsIdAcceptRoute,
   V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
+  ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
+  ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
+  ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,
+  ApiAdminStatsIndexRoute: ApiAdminStatsIndexRoute,
+  ApiAdminSubscriptionsIndexRoute: ApiAdminSubscriptionsIndexRoute,
+  ApiAdminUsersIndexRoute: ApiAdminUsersIndexRoute,
+  ApiAdminWithdrawalsIndexRoute: ApiAdminWithdrawalsIndexRoute,
+  ApiAdminCreditsTransactionsIndexRoute: ApiAdminCreditsTransactionsIndexRoute,
+  ApiAdminUsersDeleteIndexRoute: ApiAdminUsersDeleteIndexRoute,
+  ApiAdminUsersUpdateIndexRoute: ApiAdminUsersUpdateIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

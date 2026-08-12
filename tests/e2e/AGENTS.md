@@ -25,28 +25,25 @@ Without these, `pnpm test:e2e` will fail with "Executable doesn't exist" errors.
 
 ## Running Tests
 
-> `pnpm dev` starts backend on 8002, product Web on 8001, and the public site on 8003.
+> `pnpm dev` starts Backend on 8002, product Web on 8001, the public Site on 8003, and Admin on 8005.
 
 ```bash
-# 1) Start the three active TanStack applications
+# 1) Start the four active TanStack applications
 pnpm dev
 
-# 2) For Stripe payment tests, also start webhook forwarding in another terminal
-stripe listen --forward-to localhost:8001/api/payment/webhook/stripe
-
-# 3) Run all E2E tests
+# 2) Run all active E2E tests
 pnpm test:e2e
 
 # Cloudflare Workers + local D1
 pnpm test:e2e:cf
 
-# 4) Interactive UI mode (for debugging)
+# 3) Interactive UI mode (for debugging)
 pnpm test:e2e:ui
 
-# 5) Headed mode (watch tests in a real browser window)
+# 4) Headed mode (watch tests in a real browser window)
 pnpm test:e2e -- --headed
 
-# 6) Run a specific test file or grep pattern
+# 5) Run a specific test file or grep pattern
 pnpm test:e2e -- --grep "Stripe"
 pnpm test:e2e -- --headed --grep "Admin Panel"
 ```

@@ -18,7 +18,7 @@
 3. 将共享后端边界抽到 `apps/backend`，Web 可通过同源网关访问，Desktop 通过显式 API origin 访问。
 4. Web 与 Desktop 共同组合 `packages/product-*`、`packages/matrix-client` 和平台能力接口；任何 app 不得导入另一个 app。
 5. `apps/desktop-app` 打包本地产品前端资源，不把线上 `web-app` 当远程 WebView 页面。
-6. 旧 AI、计费、推广和通用后台能力先隔离，不默认迁入新的产品 app 或产品 API。
+6. 旧 AI、计费和用户侧推广能力继续隔离；经单独评审确认有价值的通用运营后台迁入独立 Admin App。
 7. 采用渐进迁移，不进行目录整体复制或一次性重写。
 
 Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当前拆分不会封死 Desktop；是否进入正式产品路线，需要在完成 Desktop 技术 spike 后更新稳定设计和产品路线图。
@@ -77,7 +77,7 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 
 随后已完成 Phase 1 的第一组真实 packages：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client` 与 `platform-contracts` 均成为 pnpm workspace package，并由活动 Web/Backend 消费。聊天 feature 已消除产品 API 相对 `fetch`，Matrix IndexedDB 与导航/存储/网络能力改为宿主注入；Better Auth React client 也已与服务端 `libs/auth` 分离。尚未完成的是 screen 层的 TanStack Router 解耦、`product-react`，以及 Backend app-independent handler。
 
-六个 package 与 Backend/Web/Site 已通过根级 typecheck/build，活动 Playwright + Synapse 回归 36/36。Cloudflare Workers bundle、`/api/health` 与未登录 session bootstrap 401 契约也已在读取根开发环境的本地 D1 preview 中通过。
+首批六个产品 package 与后续提升的 `i18n`、`validators`、`ui`、`react-shared` 共同形成十个真实 workspace packages；Backend/Web/Site/Admin 均纳入根级 typecheck/build。活动 Playwright + Synapse 基线此前为 36/36，Admin 迁移后的完整结果记录在 TEST-CATALOG #38 与独立实施记录中。Cloudflare Workers bundle、`/api/health` 与未登录 session bootstrap 401 契约也已在读取根开发环境的本地 D1 preview 中通过。
 
 ## 3. 设计目标与非目标
 
@@ -96,7 +96,7 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 - 本 RFC 不立即实现 Desktop。
 - 不在本轮确定 Desktop 正式发布日期或支持的操作系统矩阵。
 - 不把全部 `libs/*` 一次性重命名或迁入 `packages/*`。
-- 不借拆分把旧 AI、支付、推广、博客和通用后台自动认定为 VibeChat 产品范围。
+- 不借拆分把旧 AI、支付和用户侧推广自动认定为 VibeChat 产品范围；Admin 只恢复已评审的运营能力。
 - 不在主站复制一套登录态和聊天业务逻辑。
 - 不通过 iframe 或远程 WebView 把线上 Web 产品直接包装为 Desktop。
 - 不在 app 拆分中改变 Matrix、产品数据库和 Better Auth 的数据权威。
@@ -110,7 +110,7 @@ flowchart LR
     Desktop["apps/desktop-app\n本地 Desktop 宿主"]
     API["apps/backend\n共享后端、产品 API 与 Auth"]
     Docs["apps/docs-app\n开发者与用户文档"]
-    Review["apps/admin-review\n未来空间审核后台"]
+    Admin["apps/admin-app\n运营与未来空间审核"]
 
     ProductReact["packages/product-react\n共享产品 screens/providers"]
     ProductCore["packages/product-core\n纯状态与用例"]
@@ -136,7 +136,7 @@ flowchart LR
     Web --> API
     Desktop --> API
     Site -. "只链接产品入口" .-> Web
-    Review --> API
+    Admin --> API
 ```
 
 ### 4.1 App 职责
@@ -146,9 +146,9 @@ flowchart LR
 | `site-app` | 首页、功能说明、公开 blog、下载入口、法律页面、SEO | 数据库、Matrix SDK、聊天 store、管理后台、产品 Cookie 逻辑 |
 | `web-app` | 认证 UI、onboarding、messages、contacts、discover、me、rooms、PWA 能力 | 官网内容管理、旧 SaaS 页面、领域数据库写入、另一个 app 的源码 |
 | `desktop-app` | Desktop 启动、窗口、深链、系统通知、文件选择、安全存储、更新、平台适配 | 加载线上产品 URL、直接访问数据库、复制 Web feature |
-| `backend` | Better Auth HTTP 挂载、产品 `/v1`、上传授权、Matrix identity/room bridge、请求级 DB/日志 | 产品 React 页面、Matrix 浏览器 sync、官网内容 |
+| `backend` | Better Auth HTTP 挂载、产品 `/v1`、上传授权、Matrix identity/room bridge、Admin API、请求级 DB/日志 | 产品 React 页面、Matrix 浏览器 sync、官网内容 |
 | `docs-app` | 用户、SDK、CLI 和部署文档 | 产品运行时依赖 |
-| `admin-review` | A4 空间审核、撤销和治理 | 继承旧 SaaS 通用 admin；在 A4 前创建空 app |
+| `admin-app` | 用户、订阅、订单、积分、定价、Blog、佣金和提现运营；A4 空间审核、撤销和治理 | 直接访问数据库、继承未评审旧产品页、导入另一个 app |
 
 ### 4.2 本地端口建议
 
@@ -158,7 +158,7 @@ flowchart LR
 | 产品 API | `8002` |
 | 官网 | `8003` |
 | 文档 | `8004` |
-| 审核后台 | `8005` |
+| Admin 运营后台 | `8005` |
 | Desktop Vite dev server | `8006` |
 | 预留 | `8007` |
 | Synapse | `8008` |
@@ -284,7 +284,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | `/api/upload` | `backend` 的产品媒体接口 | 拆分头像/产品媒体与旧通用上传 |
 | pricing/payment/dashboard/affiliate | 待产品决策 | 不自动迁移；在旧 app 中隔离或退场 |
 | AI/image/video/premium/upload demo | 旧脚手架隔离/退场 | 不进入 VibeChat 产品 Web/Desktop |
-| 现有通用 admin | 旧脚手架隔离/退场 | 不等同于未来 `admin-review` |
+| 现有通用 admin | `admin-app` + Backend Admin API | 只迁入经评审的运营域；未来 A4 作为同一宿主模块加入 |
 
 主站拆出后，当前 `web-app` 中未决旧路由可以短期保留在兼容部署，但必须有 feature flag、owner 和删除条件；不能成为 `site-app` 或新产品 package 的依赖。
 
@@ -364,7 +364,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 - 删除 Web 中已经切走的 route/handler 和兼容代理。
 - 清理未采用的 legacy SaaS 库、配置、环境变量和测试。
 - 每个 app 有独立 CI、artifact、部署 Runbook、回滚和 owner。
-- A4 开始时再创建真正的 `admin-review`。
+- `admin-app` 独立构建、权限和运营回归持续作为发布门槛；A4 开始时在同一宿主增加审核模块。
 
 ## 10. 验证矩阵
 
@@ -404,7 +404,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | pricing/payment/affiliate/AI | 默认不迁移；逐项产品评审 | Phase 3 前 |
 | `docs-app` 是否重命名 | 暂不重命名；等 apps 拆分稳定后统一命名 | Phase 6 |
 
-已决策：`web-app`、`site-app`、`backend`、`docs-app` 采用当前名称；未来确有实现和验收时再创建 `desktop-app` 与 `admin-review`，本轮不生成空 app。
+已决策：`web-app`、`site-app`、`backend`、`docs-app` 与 `admin-app` 采用当前名称；Admin 已有真实运营职责和验收，不另建重复的 `admin-review`。未来 Desktop 确有 spike 和验收时再创建 `desktop-app`。
 
 ## 13. RFC 完成条件
 

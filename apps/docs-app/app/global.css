@@ -7,7 +7,7 @@
 @import "tw-animate-css";
 
 /* Import shared UI styles from Vibe Chat theme system LAST to ensure theme variables take precedence */
-@import "../../../libs/ui/styles/index.css";
+@import "@vibechat/ui/styles/index.css";
 
 @custom-variant dark (&:is(.dark *));  
 
@@ -72,4 +72,4 @@
   }
 }
 
-/* Prose overrides are now shared via libs/ui/styles/prose.css */
+/* Prose overrides are shared via @vibechat/ui styles. */

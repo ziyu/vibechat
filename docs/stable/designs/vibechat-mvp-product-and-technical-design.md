@@ -270,7 +270,7 @@ apps/
   backend/               共享后端、产品 API 与 Better Auth
   docs-app/              SDK、用户与部署文档
   desktop-app/           后续 Desktop spike 通过后创建
-  admin-review/          A4 开始时创建的内部审核后台
+  admin-app/             独立运营后台；A4 在此加入空间审核模块
 packages/
   auth/                  Better Auth 服务端配置、客户端和邮件适配器
   sdk/                   @vibechat/sdk
@@ -1977,4 +1977,4 @@ Playwright 使用至少三个账号测试：
 
 本文件最初在工程基线建立前创建，作为第一份产品与技术基线。当时环境曾引用 `RTK.md`，但仓库中不存在该文件；如果后续补充，开始实施前必须重新检查其中约束并更新本文档。
 
-当前工程实现：官网位于 `apps/site-app`，产品 Web/PWA 位于 `apps/web-app`，共享 backend 位于 `apps/backend`，三者均使用 TanStack Start、TanStack Router 和 Vite 并可独立构建。Web 通过同源网关访问 backend，保持 Better Auth Cookie 与公开 `/api`、`/v1` 路径稳定；旧 SaaS 页面/API 已隔离出活动路由图。Desktop 与 `admin-review` 尚未创建，必须分别等待 Desktop spike 与 A4 审核阶段。
+当前工程实现：官网位于 `apps/site-app`，产品 Web/PWA 位于 `apps/web-app`，共享 backend 位于 `apps/backend`，内部运营位于 `apps/admin-app`；四者均使用 TanStack Start、TanStack Router 和 Vite 并可独立构建。Web 与 Admin 通过各自同源网关访问 backend，保持 Better Auth Cookie 与公开 `/api`、`/v1` 路径稳定；未评审的旧 SaaS 页面/API 已隔离出活动路由图。Admin 当前覆盖用户、订阅、订单、积分、定价、Blog、佣金与提现，A4 空间审核作为该 app 的新模块加入。Desktop 尚未创建，必须等待 Desktop spike。

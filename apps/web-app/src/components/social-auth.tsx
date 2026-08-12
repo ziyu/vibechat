@@ -2,8 +2,8 @@ import { useState } from "react";
 import {
   SocialButton,
   type SocialProvider,
-} from "@libs/react-shared/ui/social-button";
-import { cn } from "@libs/ui/utils/cn";
+} from "@vibechat/react-shared/ui/social-button";
+import { cn } from "@vibechat/ui/utils/cn";
 import { authClientReact } from "@vibechat/auth-client";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "@/hooks/use-translation";

@@ -7,7 +7,7 @@ import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { blog } from '@/lib/source';
 import { config } from '@config';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 
 // MDX component type that accepts components prop
 type MDXContent = (props: { components?: MDXComponents }) => React.ReactNode;

@@ -27,13 +27,13 @@ Vibe Chat 的操作型文档统一称为 Runbook。每份 Runbook 应提供前�
 - [积分](./credits.md)
 - [返利](./affiliate.md)
 
-## AI 与支付
+## 运营能力
 
-- [AI 对话](./ai/chat.md)
-- [AI 图片](./ai/image.md)
-- [AI 视频](./ai/video.md)
-- [支付配置](./payment/overview.md)
-- [支付测试](./payment-testing.md)
+- [Admin 动态定价](./payment/dynamic-pricing.md)
+- [积分账本](./credits.md)
+- [佣金与提现运营](./affiliate.md)
+
+AI 与支付 provider 当前不属于活动基线，历史 Runbook 位于 `docs/archive/legacy-provider-runbooks/`。
 
 ## 部署与文档
 

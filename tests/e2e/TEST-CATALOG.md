@@ -1254,6 +1254,26 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 ---
 
+## 38. 独立 Admin App 与运营管理链路
+
+**文件：** `specs/admin-app.spec.ts`、`tests/api/admin-permission.test.ts` ｜ **优先级：** P0 ｜ **Admin 8005 / Backend 8002 / SQLite**
+
+旧脚手架中仍有价值的运营后台迁入独立 Admin App；浏览器不直接依赖数据库或服务端领域实现，所有读取和 mutation 通过统一 Backend 权限边界完成。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立宿主 | 打开 `http://localhost:8005/en/admin` → Admin 壳层和运营导航可见 → Admin 可独立 typecheck/build，不进入 Web 产品 route tree |
+| 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → 转到本地化登录引导 → 管理 API 返回 `401`，不泄露统计或用户数据 |
+| 3 | 非管理员拒绝 | 普通真实用户访问 Admin 页面 → 显示无权限状态 → 管理 API 返回 `403`，前端篡改角色不能绕过 Backend |
+| 4 | 管理员会话 | seeded Admin 通过 Web 登录后访问 `8005` → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
+| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 空状态/数据态/失败态可辨认，不使用 fixture |
+| 6 | 用户管理 mutation | Admin 打开测试用户详情并修改可恢复字段或角色 → Backend 校验管理员权限与输入 → 刷新后数据库值一致，再恢复原值 |
+| 7 | 定价与内容写入边界 | 管理定价或 Blog 的创建/更新/排序/删除操作通过 Backend 完成 → 非管理员执行同请求仍被拒绝 |
+| 8 | App 与 libs 边界 | Admin 不导入 database、server Auth、payment/AI provider、storage 或 Backend 内部领域库 → 无活动消费者的旧库被删除 → 保留库均有引用证据 |
+| 9 | 产品无回归 | Backend/Web/Site/Admin 根级 typecheck/build、管理权限测试和完整活动聊天 E2E 通过 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1273,6 +1293,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 | ✅ | 35 | 登录后产品状态真实化 | SQLite、本地 Synapse、双 Chromium Context | 9 |
 | ✅ | 36 | Apps 拆分与同源 Backend 网关 | backend/Web/Site、SQLite、本地 Synapse | 7 |
 | ✅ | 37 | 跨宿主 Workspace Package 边界 | pnpm workspace、backend/Web/Site、SQLite、本地 Synapse | 8 |
+| ✅ | 38 | 独立 Admin App 与运营管理链路 | Admin/Backend、SQLite、seeded Admin/普通用户 | 9 |
 
 ---
 
@@ -1282,6 +1303,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-12 | Packages + Backend + Web + Site + Admin + Synapse + D1 | 150 | 0 | 0 | Admin/libs 清理最终回归：活动领域单测 103 项（含提现拒绝只退款一次）、完整 Chromium E2E 39 项、Admin 权限 API 8 项；另完成 10 package + 4 app 根级 typecheck/build、文档站 build，以及 Workers/D1 health 200、未登录 Admin/bootstrap 401 smoke |
 | 2026-08-12 | Packages + Backend + Web + Site + Synapse + Vitest | 81 | 0 | 0 | Package 边界最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state/product-client/product-core 单测 45 项；另完成 6 package + 3 app 根级 typecheck/build、Workers build/health/未登录 bootstrap 401 与文档站 build |
 | 2026-08-12 | Backend + Web + Site + Synapse + Vitest | 75 | 0 | 0 | Apps 拆分最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state 单测 39 项；另完成三 app Node build、Backend Workers/D1 preview 与文档站 build |
 | 2026-08-12 | Backend + Web + Site + Synapse | 23 | 0 | 0 | Apps 物理拆分定向回归：官网、同源 Auth/API、真实 Matrix 房间消息与持久化产品状态 |

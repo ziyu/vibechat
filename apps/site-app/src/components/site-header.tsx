@@ -1,8 +1,8 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { Globe2 } from 'lucide-react'
 import { config } from '@config'
-import type { SupportedLocale } from '@libs/i18n'
-import { Logo } from '@libs/react-shared/ui/logo'
+import type { SupportedLocale } from '@vibechat/i18n'
+import { Logo } from '@vibechat/react-shared/ui/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useTranslation } from '@/hooks/use-translation'
 

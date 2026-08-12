@@ -10,6 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vibechat/i18n": "workspace:*",
+    "@vibechat/react-shared": "workspace:*",
+    "@vibechat/ui": "workspace:*",
+    "@vibechat/validators": "workspace:*",
     "@tanstack/react-router": "^1.120.3",
     "@tanstack/react-start": "^1.120.3",
     "lucide-react": "0.484.0",

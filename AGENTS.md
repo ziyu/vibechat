@@ -36,8 +36,8 @@
 | 修改某个应用或库 | 目标目录及父目录中适用的 `AGENTS.md`、README、相关稳定设计 |
 | 用户可见功能 | 产品设计、相关开发中文档、公开用户文档、`tests/e2e/TEST-CATALOG.md` |
 | 认证与权限 | `libs/auth/README*.md`、`libs/permissions/AGENTS.md`、相关设计与 Runbook |
-| 计费、支付或积分 | `libs/payment/README*.md`、`libs/credits/AGENTS.md`、相关设计与 Runbook |
-| AI 能力 | `libs/ai/AGENTS.md`、provider 参考资料、相关 Runbook |
+| 计费、支付或积分 | `libs/credits/AGENTS.md`、`libs/pricing/README*.md`、相关设计与 Runbook；旧支付 provider 仅见 `legacy/libs/payment` |
+| AI 能力 | 先完成产品评审；旧 provider 实现仅见 `legacy/libs/ai`，不得接回活动 app |
 | 部署或服务端运行时 | 对应部署 Runbook、`apps/backend/CF-NOTES.md` |
 | 测试 | `tests/e2e/AGENTS.md`、`tests/e2e/TEST-CATALOG.md` 和对应测试目录说明 |
 | 文档新增、迁移或重写 | 生命周期规范、对应类型模板、文档验证标准 |
@@ -91,12 +91,13 @@
 
 - `apps/site-app`：官网与公开内容。
 - `apps/web-app`：产品 Web/PWA，使用 TanStack Start、React、TanStack Router 和 Vite。
+- `apps/admin-app`：运营管理与后续空间审核，使用独立 TanStack Start runtime。
 - `apps/backend`：共享认证、产品 API、上传与健康检查。
 - `apps/docs-app`：Fumadocs 文档站。
 - `packages/*`：有独立 exports、依赖和构建门槛的跨应用产品契约与客户端能力。
 - `libs/*`：尚未升级为 workspace package 的共享领域实现与通用能力。
 - `config/*`：共享静态选项和默认配置。
-- `libs/react-shared`：React 共享组件与 hooks。
+- `packages/react-shared`：React 共享组件与 hooks。
 
 不要依据旧 TinyShip、多框架或已归档文档恢复不存在的应用结构。当前仓库结构和 MVP 产品边界以现行文档与代码为准。
 
@@ -104,7 +105,7 @@
 
 1. 跨 app/运行时复用且需要稳定 exports、独立依赖与构建门槛的能力放在 `packages/*`；单一 Backend 内部领域实现和 provider 逻辑可继续放在 `libs/*`，静态选项与默认值放在 `config/*`。
 2. TanStack 页面、路由处理器和 `createServerFn` 负责组合与适配，不复制共享域逻辑。
-3. 页面和组件中的用户可见文本必须使用 i18n key；先更新 `libs/i18n/locales/en.ts`，再同步 `zh-CN.ts`。
+3. 页面和组件中的用户可见文本必须使用 i18n key；先更新 `packages/i18n/src/locales/en.ts`，再同步 `zh-CN.ts`。
 4. 所有用户可访问的页面和 API 都要核验认证、权限与资源归属。
 5. 消耗积分或资金的流程必须覆盖计费、失败退款、规范交易代码、翻译文案和对账元数据。
 6. 上传与存储复用 `libs/storage`，明确大小、类型、数量、尺寸和下游输入限制。

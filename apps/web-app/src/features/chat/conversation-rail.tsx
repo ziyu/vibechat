@@ -20,7 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@libs/react-shared/ui/dropdown-menu'
+} from '@vibechat/react-shared/ui/dropdown-menu'
 import { filterRooms, formatRoomTime } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'

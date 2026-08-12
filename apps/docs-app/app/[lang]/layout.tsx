@@ -6,7 +6,7 @@ import { ThemeScript } from '@/components/theme-script';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { i18n } from '@/lib/i18n';
 import { config } from '@config';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 import { DocsRootProvider } from '@/components/docs-root-provider';
 
 // Define i18n UI with translations for language switcher

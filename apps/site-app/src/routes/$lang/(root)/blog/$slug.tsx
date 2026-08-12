@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '@/hooks/use-translation'
 import ReactMarkdown from 'react-markdown'
 import { ChevronLeft } from 'lucide-react'
-import { Skeleton } from '@libs/react-shared/ui/skeleton'
+import { Skeleton } from '@vibechat/react-shared/ui/skeleton'
 
 export const Route = createFileRoute('/$lang/(root)/blog/$slug')({
   head: ({ params }) => seoHead(params.lang, (t) => t.blog.metadata),

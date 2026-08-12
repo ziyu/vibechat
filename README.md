@@ -8,6 +8,7 @@ Vibe Chat 是一个以“氛围空间”为核心的新一代聊天产品。每�
 
 - 产品 Web 应用：React、TanStack Start、TanStack Router、Vite
 - 公开官网：独立 TanStack Start 应用
+- 运营后台：独立 TanStack Start 应用，复用共享 Backend Admin API
 - 共享后端：独立 TanStack Start server runtime；Web 通过同源网关接入
 - 工程组织：pnpm workspace、Turborepo
 - 文档站：Fumadocs
@@ -23,8 +24,8 @@ apps/
   site-app/    官网与公开内容（8003）
   web-app/     产品 Web/PWA（8001）
   backend/     Auth、产品 API 与上传（8002）
+  admin-app/   运营后台与后续空间审核（8005）
   docs-app/    文档站
-libs/          共享能力与界面基础
 packages/
   api-contracts/       Web、Backend、Desktop 共用 API schema
   auth-client/         浏览器安全的 Better Auth React client
@@ -32,6 +33,10 @@ packages/
   product-client/      可注入 origin/transport 的 HTTP client
   matrix-client/       Matrix SDK 生命周期与产品投影
   platform-contracts/  浏览器/Desktop 宿主能力端口
+  i18n/                跨应用翻译契约
+  validators/          跨应用输入校验
+  ui/                  主题、图标与样式契约
+  react-shared/        跨 React 应用组件、hooks 与 provider
 libs/          单一 Backend 内部领域实现与尚未升级的通用能力
 config/        共享配置
 docs/          按分类与生命周期治理的产品与技术文档
@@ -53,7 +58,7 @@ npm run matrix:dev:up
 npm run test:matrix:integration
 ```
 
-`pnpm dev` 同时启动三项活动服务：访问 `http://localhost:8003/zh-CN` 查看官网，访问 `http://localhost:8001/zh-CN/messages` 进入聊天产品；`http://localhost:8002` 是独立 backend，浏览器业务仍经 `8001/api/*` 与 `8001/v1/*` 的同源网关访问。
+`pnpm dev` 同时启动四项活动服务：访问 `http://localhost:8003/zh-CN` 查看官网，访问 `http://localhost:8001/zh-CN/messages` 进入聊天产品，访问 `http://localhost:8005/zh-CN/admin` 进入运营后台；`http://localhost:8002` 是独立 Backend，浏览器业务经各自应用的同源网关访问。
 
 文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。
 当前聊天宿主的实现范围与后续接入点见[聊天宿主基础实现](docs/stable/references/chat-host-foundation.md)。

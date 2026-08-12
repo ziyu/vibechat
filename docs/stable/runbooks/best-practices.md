@@ -14,13 +14,13 @@
 | --- | --- |
 | 共享业务与 Provider 逻辑 | `libs/*` |
 | 静态选项和默认配置 | `config/*`、`config.ts` |
-| React 共享组件与 hooks | `libs/react-shared` |
+| React 共享组件与 hooks | `packages/react-shared/src` |
 | 官网页面 | `apps/site-app/src/routes/$lang/**` |
 | 产品页面 | `apps/web-app/src/routes/$lang/**` |
 | 产品 API、Auth 与上传 | `apps/backend/src/routes/**` |
 | Web 同源网关 | `apps/web-app/src/routes/api/$.ts`、`v1/$.ts` |
 | 旧 SaaS 快照 | `legacy/*`（不参与构建） |
-| 翻译 | `libs/i18n/locales/en.ts`、`zh-CN.ts` |
+| 翻译 | `packages/i18n/src/locales/en.ts`、`zh-CN.ts` |
 
 ## 标准开发流程
 

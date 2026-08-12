@@ -69,7 +69,6 @@ export default defineConfig({
               'better-sqlite3',
               'pg',
               'nanoid',
-              'stripe',
               'zod',
             ],
           },

@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { cn } from "@libs/ui/utils/cn";
-import { Button } from "@libs/react-shared/ui/button";
+import { cn } from "@vibechat/ui/utils/cn";
+import { Button } from "@vibechat/react-shared/ui/button";
 import { authClientReact } from "@vibechat/auth-client";
-import { Input } from "@libs/react-shared/ui/input";
-import { Label } from "@libs/react-shared/ui/label";
-import { FormError } from "@libs/react-shared/ui/form-error";
-import { Turnstile } from "@libs/react-shared/ui/turnstile";
-import { CountrySelect } from "@libs/react-shared/ui/country-select";
+import { Input } from "@vibechat/react-shared/ui/input";
+import { Label } from "@vibechat/react-shared/ui/label";
+import { FormError } from "@vibechat/react-shared/ui/form-error";
+import { Turnstile } from "@vibechat/react-shared/ui/turnstile";
+import { CountrySelect } from "@vibechat/react-shared/ui/country-select";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@libs/react-shared/ui/input-otp";
+} from "@vibechat/react-shared/ui/input-otp";
 import { Loader2 } from "lucide-react";
-import { createValidators } from "@libs/validators";
+import { createValidators } from "@vibechat/validators";
 import type { z } from "zod";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
@@ -240,6 +240,8 @@ export function PhoneLoginForm({
             </div>
 
             <Turnstile
+              enabled={config.captcha.enabled}
+              siteKey={config.captcha.cloudflare.siteKey}
               key={turnstileKey}
               onSuccess={(token: string) => setTurnstileToken(token)}
               onError={() => setTurnstileToken(null)}

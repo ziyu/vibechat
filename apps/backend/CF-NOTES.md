@@ -10,6 +10,15 @@ Known pitfalls and constraints when running TanStack Start on Cloudflare Workers
 | `pnpm preview:cf` | Full build + `wrangler dev` (closest to production) |
 | `pnpm build` | Production build (CF_DEPLOY=1 enabled by default) |
 
+Better Auth refuses its default secret in the Workers production preset. Local preview must inject a non-default development secret through a Wrangler binding (or `.dev.vars`), for example:
+
+```bash
+pnpm run build:cf
+pnpm exec wrangler dev --port 8012 --var 'BETTER_AUTH_SECRET:local-preview-secret-at-least-32-chars'
+```
+
+Setting a parent-shell variable without `--var` does not guarantee that it reaches the workerd environment. Never commit a production secret; production uses `wrangler secret put BETTER_AUTH_SECRET`.
+
 ## Known pitfalls
 
 ### 1. Duplicate React instances → "Invalid hook call"

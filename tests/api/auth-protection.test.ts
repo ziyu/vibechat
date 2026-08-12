@@ -15,31 +15,8 @@ import { describe, test, expect, beforeAll } from 'vitest';
 import { api, ensureServerRunning } from './helpers';
 
 const PROTECTED_ENDPOINTS: Array<{ method: string; path: string }> = [
-  // ── Credits ──────────────────────────────────────────────
-  { method: 'GET', path: '/api/credits/balance' },
-  { method: 'GET', path: '/api/credits/transactions' },
-  { method: 'GET', path: '/api/credits/status' },
-
-  // ── Orders ───────────────────────────────────────────────
-  { method: 'GET', path: '/api/orders' },
-
-  // ── Subscription ─────────────────────────────────────────
-  { method: 'GET', path: '/api/subscription/status' },
-  { method: 'POST', path: '/api/subscription/portal' },
-
-  // ── AI Features ──────────────────────────────────────────
-  { method: 'POST', path: '/api/chat' },
-  { method: 'POST', path: '/api/image-generate' },
-  { method: 'POST', path: '/api/video-generate' },
-  { method: 'GET', path: '/api/video-generate/status' },
-
   // ── Upload ───────────────────────────────────────────────
   { method: 'POST', path: '/api/upload' },
-
-  // ── Payment (user-initiated, requires session) ──────────
-  { method: 'POST', path: '/api/payment/initiate' },
-  { method: 'GET', path: '/api/payment/query' },
-  { method: 'POST', path: '/api/payment/cancel' },
 
   // ── Admin ────────────────────────────────────────────────
   { method: 'GET', path: '/api/admin/users' },

@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@libs/react-shared/ui/dialog'
+} from '@vibechat/react-shared/ui/dialog'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'

@@ -7,10 +7,10 @@ import { nanoid } from "nanoid";
 
 import { db, user, account, session, verification, isSqliteDialect } from '@libs/database'
 import { sendSMS } from '@libs/sms';
-import { emailSignInSchema, emailSignUpSchema } from '@libs/validators/user'
+import { emailSignInSchema, emailSignUpSchema } from '@vibechat/validators/user'
 import { wechatPlugin } from './plugins/wechat'
 import { sendAuthenticationOtpEmail, sendVerificationEmail, sendResetPasswordEmail } from '@libs/email'
-import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@libs/i18n'
+import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@vibechat/i18n'
 import { config } from '@config'
 import { drainMatrixSessionRevocations, enqueueMatrixSessionRevocation } from './session-lifecycle'
 export { toNextJsHandler } from "better-auth/next-js";
@@ -44,15 +44,31 @@ function getRefererInfo(request?: Request): { locale: string; lastSegment: strin
 export const auth = betterAuth({
   appName: 'vibechat',
   trustedOrigins: (request) => {
-    const origins = [process.env.APP_BASE_URL, process.env.BETTER_AUTH_URL]
+    const origins = [
+      process.env.APP_BASE_URL,
+      process.env.BETTER_AUTH_URL,
+      process.env.ADMIN_APP_ORIGIN,
+    ]
       .filter((origin): origin is string => !!origin)
     if (process.env.NODE_ENV !== 'production' && request) {
       const requestUrl = new URL(request.url)
       if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
         origins.push(requestUrl.origin)
       }
+
+      const requestOrigin = request.headers.get('origin')
+      if (requestOrigin) {
+        try {
+          const originUrl = new URL(requestOrigin)
+          if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
+            origins.push(originUrl.origin)
+          }
+        } catch {
+          // Better Auth will reject malformed origins; they must not enter the allowlist.
+        }
+      }
     }
-    return origins
+    return [...new Set(origins)]
   },
   database: drizzleAdapter(db, {
     provider: isSqliteDialect() ? 'sqlite' : 'pg',

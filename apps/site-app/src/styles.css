@@ -2,9 +2,9 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-@import "../../../libs/ui/styles/index.css";
+@import "@vibechat/ui/styles/index.css";
 
-@source "../../../libs/react-shared/**/*.{ts,tsx}";
+@source "../../../packages/react-shared/src/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 

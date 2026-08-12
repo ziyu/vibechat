@@ -1,5 +1,5 @@
 import { Moon, Sun } from 'lucide-react'
-import { useTheme } from '@libs/react-shared/hooks/use-theme'
+import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
 import { useTranslation } from '@/hooks/use-translation'
 
 export function ThemeToggle() {

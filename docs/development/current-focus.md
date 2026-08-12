@@ -11,9 +11,9 @@
 
 Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)、session 撤销 worker、[真实 Matrix 房间与 Timeline](./active/matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./active/social-matrix-invitations.md)、[完整消息操作与资料基础](./active/matrix-message-profile-foundation.md)以及[登录后产品状态真实化](./active/real-product-state-cutover.md)均已完成。当前主线进入 A3“氛围空间 Runtime”：先形成 manifest、版本不可变、sandbox 和 capability 协议的可执行 spec，再实现第三方空间运行边界。
 
-工程边界已采纳并开始实施[Apps 边界与 Desktop 架构 RFC](./app-boundaries-and-desktop-architecture-rfc.md)：官网、产品 Web 与共享 backend 已成为独立构建单元，旧 SaaS 页面/API 已退出活动路由图。A3 可以继续设计，但新增宿主能力必须通过共享 contract/platform port 表达，不再把产品逻辑直接固化到 TanStack route、相对 `fetch` 或浏览器全局对象中。
+工程边界已采纳并实施[Apps 边界与 Desktop 架构 RFC](./app-boundaries-and-desktop-architecture-rfc.md)：官网、产品 Web、Admin 与共享 Backend 已成为独立构建单元，旧 SaaS 页面/API 已退出活动路由图。旧通用 Admin 中仍有价值的运营能力已恢复到 `apps/admin-app`，其服务端 API 归属共享 Backend；完成证据见[已归档 Admin App 迁移记录](../archive/admin-app-migration.md)。后续 A4 空间审核也进入这一唯一 Admin 宿主。A3 可以继续设计，但新增宿主能力必须通过共享 contract/platform port 表达，不再把产品逻辑直接固化到 TanStack route、相对 `fetch` 或浏览器全局对象中。
 
-首批跨宿主 workspace packages 已建立并接入：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client` 与 `platform-contracts`。这些边界有独立 manifests、exports、依赖和构建门槛；`libs/*` 继续保存尚只属于 Backend 或仍待评审的领域实现，不再承担所有共享源码。
+跨宿主 workspace packages 已建立并接入：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client`、`platform-contracts`、`i18n`、`validators`、`ui` 与 `react-shared`。这些边界有独立 manifests、exports、依赖和构建门槛；`libs/*` 只保存 Backend 单宿主领域实现，不再承担跨应用共享源码。
 
 ## 当前约束
 
@@ -21,6 +21,7 @@ Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md
 - 官网位于 `apps/site-app`，本地端口 `8003`；只承载公开首页、Blog 与产品入口。
 - 共享 backend 位于 `apps/backend`，本地端口 `8002`；承载 Better Auth、产品 `/v1`、产品上传、健康检查和官网 Blog 读取。
 - 文档站位于 `apps/docs-app`。
+- 独立 Admin App 位于 `apps/admin-app`，本地端口 `8005`；只消费 Backend API，不直接导入数据库或 Backend 内部领域实现。
 - 旧 SaaS 页面、API 和 E2E 分别隔离在 `legacy/web-app`、`legacy/backend` 与 `tests/e2e/legacy`，不参与活动构建或默认产品回归。
 - `scripts/check-app-boundaries.mjs` 阻止 app-to-app 导入，以及 Site/Web 对数据库、支付、AI、存储和服务端 Auth 的直接导入。
 - 跨宿主且需要稳定导出的能力进入 `packages/*`；单一 Backend 内部领域实现继续放在 `libs/*`，是否升级为 package 依据第二个真实消费者、独立发布或隔离依赖的证据评审。

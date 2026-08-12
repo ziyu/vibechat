@@ -10,12 +10,12 @@
 | 原位置 | 新位置 | 分类 | 原因 |
 | --- | --- | --- | --- |
 | `docs/PRODUCT_AND_TECH_DESIGN.md` | `docs/stable/designs/vibechat-mvp-product-and-technical-design.md` | 长期稳定 / 设计 | 当前 VibeChat MVP 产品与技术基线 |
-| `docs/implementation/affiliate-system.md` | `docs/stable/designs/affiliate-system.md` | 长期稳定 / 设计 | 按当前共享域和 TanStack API 重写 |
+| `docs/implementation/affiliate-system.md` | `docs/archive/affiliate-system.md` | 已归档 / 设计 | 用户返利闭环已退出活动 Backend，只保留 Admin 历史运营 |
 | `docs/implementation/auth-middleware-design.md` | `docs/stable/designs/auth-middleware.md` | 长期稳定 / 设计 | 改为当前 TanStack `beforeLoad` 与 API 授权设计 |
 | `docs/implementation/configuration-system*.md` | `docs/stable/designs/configuration-system*.md` | 长期稳定 / 设计 | 改为 `config.ts` 与 `config/*` 的当前契约 |
 | `docs/implementation/dynamic-pricing.md` | `docs/stable/designs/dynamic-pricing.md` | 长期稳定 / 设计 | 按当前 `libs/pricing` 和管理路由重写 |
 | `docs/implementation/build-verification.md` | `docs/stable/runbooks/build-verification.md` | 长期稳定 / Runbook | 操作步骤不属于设计文档 |
-| `docs/implementation/video-generation-provider-params-comparison.md` | `docs/stable/references/video-generation-provider-parameters.md` | 长期稳定 / 参考资料 | 参数对照属于查表资料 |
+| `docs/implementation/video-generation-provider-params-comparison.md` | `docs/archive/legacy-provider-references/video-generation-provider-parameters.md` | 已归档 / 参考资料 | AI provider 已退出活动实现，参数对照只用于追溯 |
 | `docs/user-guide/**` | `docs/stable/runbooks/**` | 长期稳定 / Runbook | 用户操作文档统一改为 Runbook |
 | `docs/release/*` | `docs/stable/release-notes/*` | 长期稳定 / 发布说明 | 已发生的交付事实 |
 | `ROADMAP.md` | `docs/stable/plans/product-roadmap.md` | 长期稳定 / 计划 | 用当前产品阶段重写旧路线图 |

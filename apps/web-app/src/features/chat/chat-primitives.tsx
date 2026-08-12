@@ -1,5 +1,5 @@
 import type { AtmosphereSpace, ChatPerson } from '@vibechat/product-core'
-import { cn } from '@libs/ui'
+import { cn } from '@vibechat/ui'
 import type { CSSProperties, ReactNode } from 'react'
 
 export function PersonAvatar({

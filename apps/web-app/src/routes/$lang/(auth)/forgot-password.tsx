@@ -9,14 +9,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
-import { Button } from '@libs/react-shared/ui/button'
-import { Input } from '@libs/react-shared/ui/input'
-import { Label } from '@libs/react-shared/ui/label'
-import { FormError } from '@libs/react-shared/ui/form-error'
-import { Turnstile } from '@libs/react-shared/ui/turnstile'
+} from '@vibechat/react-shared/ui/card'
+import { Button } from '@vibechat/react-shared/ui/button'
+import { Input } from '@vibechat/react-shared/ui/input'
+import { Label } from '@vibechat/react-shared/ui/label'
+import { FormError } from '@vibechat/react-shared/ui/form-error'
+import { Turnstile } from '@vibechat/react-shared/ui/turnstile'
 import { Loader2 } from 'lucide-react'
-import { createValidators } from '@libs/validators'
+import { createValidators } from '@vibechat/validators'
 import { authClientReact } from '@vibechat/auth-client'
 import type { z } from 'zod'
 import { useTranslation } from '@/hooks/use-translation'
@@ -133,6 +133,8 @@ function ForgotPasswordPage() {
                 </div>
 
                 <Turnstile
+                  enabled={config.captcha.enabled}
+                  siteKey={config.captcha.cloudflare.siteKey}
                   key={turnstileKey}
                   onSuccess={(token: string) => setTurnstileToken(token)}
                   onError={() => setTurnstileToken(null)}

@@ -12,12 +12,7 @@ File: `tests/api/auth-protection.test.ts`
 Checks that protected endpoints return `401` when no session cookie is provided.
 
 Covered endpoint groups:
-- Credits: `/api/credits/balance`, `/api/credits/transactions`, `/api/credits/status`
-- Orders: `/api/orders`
-- Subscription: `/api/subscription/status`, `/api/subscription/portal`
-- AI: `/api/chat`, `/api/image-generate`, `/api/video-generate`, `/api/video-generate/status`
 - Upload: `/api/upload`
-- Payment (user-initiated): `/api/payment/initiate`, `/api/payment/query`, `/api/payment/cancel`
 - Admin: `/api/admin/users`, `/api/admin/orders`, `/api/admin/subscriptions`, `/api/admin/credits/transactions`, `/api/admin/blog`
 - User management: `/api/users/:id` (tested with a fake ID)
 
@@ -46,34 +41,17 @@ Assertion is `status !== 401` (response may be `200`, `400`, `404`, etc. dependi
 Covered endpoints:
 - `/api/health`
 - `/api/blog`
-- `/api/payment/webhook/stripe`
-- `/api/payment/webhook/paypal`
-- `/api/payment/webhook/creem`
-
-### 4) Ownership boundary for user-scoped APIs
-
-File: `tests/api/ownership-boundary.test.ts`
-
-Checks cross-user isolation for user-scoped data APIs.
-Current coverage uses `/api/orders` with two real users:
-- User A has order A (seeded directly in DB)
-- User B has order B (seeded directly in DB)
-- A calling `/api/orders` must not see order B
-- B calling `/api/orders` must not see order A
-- B querying A's order via `/api/payment/query` must not succeed (`status !== 200`)
+Legacy payment, AI and user purchase endpoints are no longer active Backend routes. Their former tests live under `legacy/tests` and are not permission evidence for the current app.
 
 This catches IDOR-style regressions where an endpoint accidentally leaks another user's data.
 
 ## How to run
 
-1. Start one app on port `8001`:
-   - `pnpm dev:next`
-   - `pnpm dev:nuxt`
-   - `pnpm dev:tanstack`
+1. Start Backend and Web on ports `8002` and `8001`: `pnpm dev:web`
 2. Run API tests:
    - `pnpm test:api`
 
-The same suite is designed to run against all three apps (one app at a time on port `8001`).
+The suite targets the shared Backend directly by default. Browser-host behavior and same-origin gateways are covered by Playwright.
 
 ## Scope and non-goals
 

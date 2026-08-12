@@ -2,9 +2,9 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { seoHead } from '@/lib/seo'
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/hooks/use-translation'
-import { Button } from '@libs/react-shared/ui/button'
+import { Button } from '@vibechat/react-shared/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Skeleton } from '@libs/react-shared/ui/skeleton'
+import { Skeleton } from '@vibechat/react-shared/ui/skeleton'
 
 const PAGE_SIZE = 12
 

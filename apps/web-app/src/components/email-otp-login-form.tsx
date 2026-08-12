@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { authClientReact } from '@vibechat/auth-client'
-import { cn } from '@libs/ui/utils/cn'
-import { Button } from '@libs/react-shared/ui/button'
-import { Input } from '@libs/react-shared/ui/input'
-import { Label } from '@libs/react-shared/ui/label'
-import { FormError } from '@libs/react-shared/ui/form-error'
-import { Turnstile } from '@libs/react-shared/ui/turnstile'
+import { cn } from '@vibechat/ui/utils/cn'
+import { Button } from '@vibechat/react-shared/ui/button'
+import { Input } from '@vibechat/react-shared/ui/input'
+import { Label } from '@vibechat/react-shared/ui/label'
+import { FormError } from '@vibechat/react-shared/ui/form-error'
+import { Turnstile } from '@vibechat/react-shared/ui/turnstile'
 import { useTranslation } from '@/hooks/use-translation'
 import { config } from '@config'
 import { postAuthPath } from '@/lib/auth-return'
@@ -131,6 +131,8 @@ export function EmailOtpLoginForm({
           </div>
 
           <Turnstile
+            enabled={config.captcha.enabled}
+            siteKey={config.captcha.cloudflare.siteKey}
             key={turnstileKey}
             onSuccess={(token: string) => setTurnstileToken(token)}
             onError={() => setTurnstileToken(null)}

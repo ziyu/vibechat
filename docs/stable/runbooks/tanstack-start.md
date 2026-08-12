@@ -16,7 +16,7 @@
 | 产品组件 | `apps/web-app/src/components`、`src/features` |
 | 应用 hooks | `apps/web-app/src/hooks` |
 | 应用服务端适配 | `apps/web-app/src/lib` |
-| 共享 React UI | `libs/react-shared` |
+| 共享 React UI | `packages/react-shared/src` |
 | 业务逻辑 | `libs/*` |
 | 配置 | `config/*`、`config.ts` |
 
@@ -25,7 +25,7 @@
 - 多语言页面位于 `src/routes/$lang/**`。
 - 官网页面位于 `site-app`；产品 Web 的活动页面只包含 `(auth)`、`(chat)`、onboarding 和产品根入口。
 - 保护页面通过 `beforeLoad` 调用 `src/lib/auth-guard.ts`。
-- 用户可见字符串使用 `libs/i18n`，页面不得硬编码文案。
+- 用户可见字符串使用 `packages/i18n`，页面不得硬编码文案。
 
 ## API 与 Server Function
 

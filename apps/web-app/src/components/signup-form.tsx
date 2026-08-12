@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClientReact } from "@vibechat/auth-client";
-import { createValidators } from "@libs/validators";
+import { createValidators } from "@vibechat/validators";
 import type { z } from "zod";
-import { cn } from "@libs/ui/utils/cn";
-import { Button } from "@libs/react-shared/ui/button";
-import { Input } from "@libs/react-shared/ui/input";
-import { Label } from "@libs/react-shared/ui/label";
-import { FormError } from "@libs/react-shared/ui/form-error";
-import { Alert, AlertDescription, AlertTitle } from "@libs/react-shared/ui/alert";
-import { Turnstile } from "@libs/react-shared/ui/turnstile";
+import { cn } from "@vibechat/ui/utils/cn";
+import { Button } from "@vibechat/react-shared/ui/button";
+import { Input } from "@vibechat/react-shared/ui/input";
+import { Label } from "@vibechat/react-shared/ui/label";
+import { FormError } from "@vibechat/react-shared/ui/form-error";
+import { Alert, AlertDescription, AlertTitle } from "@vibechat/react-shared/ui/alert";
+import { Turnstile } from "@vibechat/react-shared/ui/turnstile";
 import { ResendVerificationDialog } from "./resend-verification-dialog";
 import { Inbox } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
@@ -226,6 +226,8 @@ export function SignupForm({
           </div>
 
           <Turnstile
+            enabled={config.captcha.enabled}
+            siteKey={config.captcha.cloudflare.siteKey}
             key={turnstileKey}
             onSuccess={(token: string) => setTurnstileToken(token)}
             onError={() => setTurnstileToken(null)}

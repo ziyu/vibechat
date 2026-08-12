@@ -22,12 +22,17 @@ async function sourceFiles(directory) {
 
 const activeRoots = [
   'apps/backend/src',
+  'apps/admin-app/src',
   'apps/site-app/src',
   'apps/web-app/src',
   'packages/api-contracts/src',
   'packages/auth-client/src',
+  'packages/i18n/src',
   'packages/matrix-client/src',
   'packages/platform-contracts/src',
+  'packages/react-shared/src',
+  'packages/ui/src',
+  'packages/validators/src',
   'packages/product-client/src',
   'packages/product-core/src',
 ]
@@ -44,12 +49,26 @@ const serverOnlyClientImports = [
   '@libs/social',
   '@libs/rooms',
   '@libs/product-state',
+  '@libs/affiliate',
+  '@libs/permissions',
+  '@libs/pricing',
 ]
 const packageDependencyPolicy = {
   '@vibechat/api-contracts': new Set(),
   '@vibechat/auth-client': new Set(),
+  '@vibechat/i18n': new Set(),
   '@vibechat/product-core': new Set(),
   '@vibechat/platform-contracts': new Set(),
+  '@vibechat/ui': new Set(),
+  '@vibechat/validators': new Set([
+    '@vibechat/api-contracts',
+    '@vibechat/i18n',
+  ]),
+  '@vibechat/react-shared': new Set([
+    '@vibechat/i18n',
+    '@vibechat/ui',
+    '@vibechat/validators',
+  ]),
   '@vibechat/product-client': new Set(['@vibechat/api-contracts']),
   '@vibechat/matrix-client': new Set([
     '@vibechat/api-contracts',
@@ -74,13 +93,14 @@ for (const file of files) {
       if (specifier.startsWith('@/') || specifier.startsWith('@libs/')) {
         failures.push(`${file}: package imports repository source alias (${specifier})`)
       }
-      if (specifier.startsWith('@vibechat/')
-        && specifier !== sourcePackage
-        && !packageDependencyPolicy[sourcePackage].has(specifier)) {
-        failures.push(`${file}: package dependency is not allowed (${sourcePackage} -> ${specifier})`)
+      const dependencyPackage = specifier.match(/^(@vibechat\/[^/]+)/)?.[1]
+      if (dependencyPackage
+        && dependencyPackage !== sourcePackage
+        && !packageDependencyPolicy[sourcePackage].has(dependencyPackage)) {
+        failures.push(`${file}: package dependency is not allowed (${sourcePackage} -> ${dependencyPackage})`)
       }
     }
-    if (file.startsWith('apps/site-app/') || file.startsWith('apps/web-app/')) {
+    if (file.startsWith('apps/site-app/') || file.startsWith('apps/web-app/') || file.startsWith('apps/admin-app/')) {
       if (serverOnlyClientImports.some((prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`))) {
         failures.push(`${file}: client host imports server-only module (${specifier})`)
       }

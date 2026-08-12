@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { i18n } from '@/lib/i18n';
 import { Logo } from '@/components/ui/logo';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 
 /**
  * Shared layout configurations

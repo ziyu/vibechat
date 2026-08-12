@@ -6,8 +6,8 @@ import {
   translations,
   type SupportedLocale,
   type Translations,
-} from '@libs/i18n'
-import { createNextTranslationFunction } from '@libs/validators'
+} from '@vibechat/i18n'
+import { createNextTranslationFunction } from '@vibechat/validators'
 import { config } from '@config'
 
 export function useTranslation() {

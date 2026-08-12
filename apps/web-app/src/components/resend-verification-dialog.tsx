@@ -8,11 +8,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@libs/react-shared/ui/dialog";
-import { Button } from "@libs/react-shared/ui/button";
-import { Input } from "@libs/react-shared/ui/input";
-import { Label } from "@libs/react-shared/ui/label";
-import { Turnstile } from "@libs/react-shared/ui/turnstile";
+} from "@vibechat/react-shared/ui/dialog";
+import { Button } from "@vibechat/react-shared/ui/button";
+import { Input } from "@vibechat/react-shared/ui/input";
+import { Label } from "@vibechat/react-shared/ui/label";
+import { Turnstile } from "@vibechat/react-shared/ui/turnstile";
 import { toast } from "sonner";
 
 interface ResendVerificationDialogProps {
@@ -102,6 +102,8 @@ export function ResendVerificationDialog({
           </div>
 
           <Turnstile
+            enabled={config.captcha.enabled}
+            siteKey={config.captcha.cloudflare.siteKey}
             key={turnstileKey}
             onSuccess={(token: string) => setTurnstileToken(token)}
             onError={() => setTurnstileToken(null)}

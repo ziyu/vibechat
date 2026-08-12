@@ -9,9 +9,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
+} from '@vibechat/react-shared/ui/card'
 import { useTranslation } from '@/hooks/use-translation'
-import { Button } from '@libs/react-shared/ui/button'
+import { Button } from '@vibechat/react-shared/ui/button'
 import { useEffect, useState } from 'react'
 
 export const Route = createFileRoute('/$lang/(auth)/signin')({

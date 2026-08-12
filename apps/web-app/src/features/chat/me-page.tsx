@@ -17,8 +17,8 @@ import {
   RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
-import { useTheme } from '@libs/react-shared/hooks/use-theme'
-import type { SupportedLocale } from '@libs/i18n'
+import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
+import type { SupportedLocale } from '@vibechat/i18n'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { PersonAvatar } from './chat-primitives'
