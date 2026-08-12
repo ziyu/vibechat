@@ -12,7 +12,7 @@ import { seedCommissionBalance } from '../helpers/commission';
  * Also covers the rejection flow (balance refunded).
  *
  * Prerequisites:
- * 1. Dev server running on port 7001
+ * 1. Dev server running on port 8001
  * 2. Admin user exists (admin@example.com / admin123)
  */
 
@@ -54,7 +54,7 @@ test.describe('Affiliate Withdrawal Flow', () => {
     // Set up admin session — wait to avoid rate limiting
     await new Promise(r => setTimeout(r, 3000));
     adminContext = await browser.newContext({
-      extraHTTPHeaders: { 'Origin': 'http://localhost:7001' },
+      extraHTTPHeaders: { 'Origin': 'http://localhost:8001' },
     });
     adminPage = await adminContext.newPage();
 

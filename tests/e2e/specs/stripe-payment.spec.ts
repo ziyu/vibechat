@@ -12,9 +12,9 @@ import { signUpViaAPI } from '../helpers/auth';
  *      balance is updated.
  *
  * Prerequisites:
- * 1. Dev server running on port 7001 (`pnpm dev`)
+ * 1. Dev server running on port 8001 (`pnpm dev`)
  * 2. Stripe CLI forwarding webhooks:
- *    `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe`
+ *    `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe`
  * 3. Stripe test mode enabled (using test API keys in .env)
  *
  * These tests use Stripe's test card number 4242 4242 4242 4242
@@ -314,7 +314,7 @@ test.describe('Stripe Payment Flow', () => {
     if (balance === 0) {
       console.warn(
         `[stripe-payment] Credits balance is still 0 after ${MAX_ATTEMPTS} polls. ` +
-        `Ensure 'stripe listen --forward-to localhost:7001/api/payment/webhook/stripe' is running.`
+        `Ensure 'stripe listen --forward-to localhost:8001/api/payment/webhook/stripe' is running.`
       );
     }
     expect(balance).toBeGreaterThanOrEqual(100);

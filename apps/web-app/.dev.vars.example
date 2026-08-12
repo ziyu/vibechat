@@ -2,8 +2,8 @@
 # Copy this file to `.dev.vars` (do not commit `.dev.vars`).
 
 # Use local Worker URL for local auth callbacks
-APP_BASE_URL=http://localhost:8788
-BETTER_AUTH_URL=http://localhost:8788
+APP_BASE_URL=http://localhost:8001
+BETTER_AUTH_URL=http://localhost:8001
 
 # Minimal required backend variables for local startup
 DATABASE_URL=postgresql://username:password@localhost:5432/shipeasy_dev

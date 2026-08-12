@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：支付沙盒、Webhook 与回跳验证
 
 本文档介绍如何在本地开发环境中测试支付功能，包括各支付平台的测试模式配置和 Webhook 调试方法。
@@ -91,7 +91,7 @@ DODO_PAYMENTS_TEST_MODE=true
 
 ```bash
 # 使用 ngrok 创建公网隧道
-npx ngrok http 7001
+npx ngrok http 8001
 ```
 
 将隧道地址配置到各支付平台：
@@ -120,7 +120,7 @@ scoop install stripe
 stripe login
 
 # 3. 启动 webhook 转发
-stripe listen --forward-to localhost:7001/api/payment/webhook/stripe
+stripe listen --forward-to localhost:8001/api/payment/webhook/stripe
 
 # 4. CLI 会显示 webhook 签名密钥，复制到环境变量
 # 输出示例：whsec_1234567890abcdef...
@@ -138,7 +138,7 @@ stripe listen --forward-to localhost:7001/api/payment/webhook/stripe
 
 ```bash
 # 1. 启动 ngrok 隧道
-ngrok http 7001
+ngrok http 8001
 
 # 2. 复制 ngrok 提供的 https 地址
 # 示例：https://abc123.ngrok.io
@@ -163,7 +163,7 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 ```bash
 # 监控 webhook 事件（使用 Stripe CLI 时）
-stripe listen --forward-to localhost:7001/api/payment/webhook/stripe --events checkout.session.completed,customer.subscription.updated
+stripe listen --forward-to localhost:8001/api/payment/webhook/stripe --events checkout.session.completed,customer.subscription.updated
 
 # 发送预定义的测试事件
 stripe trigger checkout.session.completed
@@ -205,7 +205,7 @@ stripe trigger customer.subscription.created # 模拟订阅创建
 **方法二：手动发送自定义 webhook**
 ```bash
 # 发送自定义的 webhook 数据到本地端点
-curl -X POST http://localhost:7001/api/payment/webhook/stripe \
+curl -X POST http://localhost:8001/api/payment/webhook/stripe \
   -H "Content-Type: application/json" \
   -H "Stripe-Signature: YOUR_TEST_SIGNATURE" \
   -d '{
@@ -233,13 +233,13 @@ curl -X POST http://localhost:7001/api/payment/webhook/stripe \
 
 ```bash
 # 步骤1：启动 Stripe webhook 监听
-stripe listen --forward-to localhost:7001/api/payment/webhook/stripe
+stripe listen --forward-to localhost:8001/api/payment/webhook/stripe
 
 # 步骤2：启动本地应用
 pnpm run dev
 
 # 步骤3：访问支付页面，使用测试卡完成真实支付流程
-open http://localhost:7001/pricing
+open http://localhost:8001/pricing
 
 # 步骤4：观察控制台输出，验证 webhook 处理逻辑
 ```

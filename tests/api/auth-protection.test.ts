@@ -5,7 +5,7 @@
  * a session cookie. This catches missing auth guards — especially in
  * TanStack Start where there is no global API middleware.
  *
- * Run against whichever app is on port 7001:
+ * Run against whichever app is on port 8001:
  *   pnpm dev:next   && pnpm test:api
  *   pnpm dev:nuxt   && pnpm test:api
  *   pnpm dev:tanstack && pnpm test:api

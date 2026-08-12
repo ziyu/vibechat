@@ -19,8 +19,8 @@
 	// Non-sensitive environment variables
 	"vars": {
 		"DB_DIALECT": "d1",
-		"APP_BASE_URL": "http://localhost:7001",
-		"BETTER_AUTH_URL": "http://localhost:7001",
+		"APP_BASE_URL": "http://localhost:8001",
+		"BETTER_AUTH_URL": "http://localhost:8001",
 		"VITE_STORAGE_PROVIDER": "r2"
 	},
 	"r2_buckets": [

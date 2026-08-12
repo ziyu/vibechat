@@ -25,14 +25,14 @@ Without these, `pnpm test:e2e` will fail with "Executable doesn't exist" errors.
 
 ## Running Tests
 
-> The TanStack Start app runs on port 7001.
+> The TanStack Start app runs on port 8001.
 
 ```bash
 # 1) Start the TanStack Start dev server
 pnpm dev
 
 # 2) For Stripe payment tests, also start webhook forwarding in another terminal
-stripe listen --forward-to localhost:7001/api/payment/webhook/stripe
+stripe listen --forward-to localhost:8001/api/payment/webhook/stripe
 
 # 3) Run all E2E tests
 pnpm test:e2e

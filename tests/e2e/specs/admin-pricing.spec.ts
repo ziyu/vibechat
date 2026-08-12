@@ -60,7 +60,7 @@ test.describe('Admin Pricing Management', () => {
       const page = await adminContext.newPage();
       try {
         const res = await page.request.get(API.adminPricingPlans, {
-          headers: { Origin: 'http://localhost:7001' },
+          headers: { Origin: 'http://localhost:8001' },
         });
         if (res.ok()) {
           const data = await res.json();
@@ -69,7 +69,7 @@ test.describe('Admin Pricing Management', () => {
             if (!isSeed) {
               await page.request.delete(
                 `${API.adminPricingPlans}?id=${plan.id}&hard=true`,
-                { headers: { Origin: 'http://localhost:7001' } },
+                { headers: { Origin: 'http://localhost:8001' } },
               );
             }
           }
@@ -223,7 +223,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Verify via API that i18n data was correctly saved
     const res = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
     const data = await res.json();
 
@@ -266,7 +266,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Verify plan exists via API and get its ID
     const apiRes = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
     const apiData = await apiRes.json();
     const apiPlan = (apiData.plans || []).find(
@@ -276,7 +276,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Navigate directly to the edit page by URL (avoids client-side nav auth race)
     await page.goto(
-      `http://localhost:7001/en/admin/pricing/${apiPlan.id}`,
+      `http://localhost:8001/en/admin/pricing/${apiPlan.id}`,
       { timeout: TIMEOUTS.navigation }
     );
     await page.waitForLoadState('networkidle');
@@ -298,7 +298,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Find the plan ID via API
     const apiRes = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
     const apiData = await apiRes.json();
     const plan = (apiData.plans || []).find(
@@ -308,7 +308,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Navigate directly to edit page
     await page.goto(
-      `http://localhost:7001/en/admin/pricing/${plan.id}`,
+      `http://localhost:8001/en/admin/pricing/${plan.id}`,
       { timeout: TIMEOUTS.navigation }
     );
     await page.waitForLoadState('networkidle');
@@ -331,7 +331,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Verify the update via API
     const verifyRes = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
     const verifyData = await verifyRes.json();
     const updatedPlan = (verifyData.plans || []).find(
@@ -418,7 +418,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Now hard-delete via API to clean up
     const plansRes = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
     const plansData = await plansRes.json();
     const testPlan = plansData.plans.find(
@@ -428,7 +428,7 @@ test.describe('Admin Pricing Management', () => {
     if (testPlan) {
       const delRes = await page.request.delete(
         `${API.adminPricingPlans}?id=${testPlan.id}&hard=true`,
-        { headers: { Origin: 'http://localhost:7001' } }
+        { headers: { Origin: 'http://localhost:8001' } }
       );
       expect(delRes.ok()).toBeTruthy();
     }
@@ -449,7 +449,7 @@ test.describe('Admin Pricing Management', () => {
     const page = await adminPage();
 
     const res = await page.request.post(API.adminPricingImport, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
 
     expect(res.ok(), `Import failed: ${res.status()}`).toBeTruthy();
@@ -571,7 +571,7 @@ test.describe('Admin Pricing Management', () => {
     const page = await context.newPage();
 
     const res = await page.request.get(API.adminPricingPlans, {
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: 'http://localhost:8001' },
     });
 
     expect([401, 403]).toContain(res.status());

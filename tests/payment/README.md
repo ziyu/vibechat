@@ -156,7 +156,7 @@ tests/payment/
 
 1. **检查网络连接**:
    ```bash
-   curl -I http://localhost:7001/api/health
+   curl -I http://localhost:8001/api/health
    ```
 
 2. **验证数据库连接**:

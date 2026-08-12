@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：`apps/web-app` Playwright 回归
 
 ## 前置条件
@@ -18,7 +18,7 @@
 pnpm dev
 ```
 
-确认 `http://localhost:7001/api/health` 返回成功。
+确认 `http://localhost:8001/api/health` 返回成功。
 
 ## 2. 运行相关用例
 

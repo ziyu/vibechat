@@ -2,11 +2,11 @@
  * Minimal API test helpers.
  *
  * Uses native fetch (Node 22+) — no extra dependencies.
- * Tests run against whichever app is serving on BASE_URL (default :7001).
+ * Tests run against whichever app is serving on BASE_URL (default :8001).
  */
 
 export const BASE_URL =
-  process.env.API_TEST_BASE_URL || 'http://localhost:7001';
+  process.env.API_TEST_BASE_URL || 'http://localhost:8001';
 
 export function uniqueEmail(prefix = 'api'): string {
   const slug = prefix.startsWith('e2e-') ? prefix.slice(4) : prefix;

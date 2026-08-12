@@ -14,9 +14,9 @@ export class SynapseAdapterError extends Error {
 
   constructor(
     code: SynapseAdapterErrorCode,
-    options: { status?: number; matrixErrorCode?: string } = {},
+    options: { status?: number; matrixErrorCode?: string; cause?: unknown } = {},
   ) {
-    super(code);
+    super(code, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "SynapseAdapterError";
     this.code = code;
     this.status = options.status ?? null;
@@ -229,8 +229,8 @@ export class SynapseAppserviceAdapter implements SynapseAdapter {
         },
         body: JSON.stringify(body),
       });
-    } catch {
-      throw new SynapseAdapterError("SYNAPSE_UNREACHABLE");
+    } catch (cause) {
+      throw new SynapseAdapterError("SYNAPSE_UNREACHABLE", { cause });
     }
   }
 }

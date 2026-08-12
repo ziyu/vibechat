@@ -13,7 +13,7 @@ import { seedCredits } from '../helpers/credits';
  * 1. At least the Qwen (Aliyun BaiLian) API key is configured
  *    (QWEN_API_KEY / DASHSCOPE_API_KEY in .env)
  * 2. Credits are seeded via direct SQL in beforeAll (500 credits)
- * 3. Dev server running on port 7001
+ * 3. Dev server running on port 8001
  *
  * Page structure discovered via agent-browser:
  *   - h1: "AI Image Generation"

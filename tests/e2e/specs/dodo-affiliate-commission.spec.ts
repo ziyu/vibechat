@@ -10,7 +10,7 @@ import { signUpViaAPI } from '../helpers/auth';
  *   → Webhook fires → Referrer's commission balance increases
  *
  * Prerequisites:
- * 1. Dev server running on port 7001
+ * 1. Dev server running on port 8001
  * 2. Dodo webhook tunnel running:
  *    `dodo wh listen` or cloudflared/ngrok → /api/payment/webhook/dodo
  * 3. .env has DODO_PAYMENTS_API_KEY, DODO_PAYMENTS_WEBHOOK_KEY, DODO_PAYMENTS_TEST_MODE="true"
@@ -219,7 +219,7 @@ test.describe('Affiliate Commission via Dodo Payment', () => {
 
     refereeContext = await browser.newContext({
       extraHTTPHeaders: {
-        'Origin': 'http://localhost:7001',
+        'Origin': 'http://localhost:8001',
       },
     });
     refereePage = await refereeContext.newPage();

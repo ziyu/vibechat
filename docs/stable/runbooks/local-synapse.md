@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：本地 Synapse、Application Service adapter、真实 Matrix bootstrap 验证
 
 ## 用途与边界
@@ -38,7 +38,7 @@ npm run test:matrix:integration
 将以下本地值放入临时 shell 或未提交的 `.env.local`：
 
 ```dotenv
-MATRIX_HOMESERVER_URL="http://localhost:8008"
+MATRIX_HOMESERVER_URL="http://127.0.0.1:8008"
 MATRIX_PUBLIC_HOMESERVER_URL="http://localhost:8008"
 MATRIX_SERVER_NAME="localhost"
 MATRIX_APPSERVICE_TOKEN="vibechat-local-appservice-token"
@@ -46,7 +46,7 @@ MATRIX_TOKEN_ENCRYPTION_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 MATRIX_USER_PREFIX="vibe_"
 ```
 
-随后使用隔离 SQLite 启动 Web app，并设置 `E2E_MATRIX_EXPECT_READY=1` 运行 `chat-auth-bootstrap.spec.ts`。正常无 Matrix 配置的 E2E 仍断言 unavailable。
+随后使用隔离 SQLite 启动 Web app；产品默认地址是 `http://localhost:8001`。服务端内部地址使用 `127.0.0.1` 避免本机 IPv4/IPv6 解析差异，浏览器公开地址继续使用 `localhost`。设置 `E2E_MATRIX_EXPECT_READY=1` 可运行 `chat-auth-bootstrap.spec.ts`；正常无 Matrix 配置的 E2E 仍断言 unavailable。
 
 ## 停止与清理
 

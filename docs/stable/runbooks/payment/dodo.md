@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：Dodo Payments
 
 Dodo Payments 是一个全球化的支付平台，采用 Merchant of Record（记录商家）模式，替开发者处理税务、合规和退款等事务，特别适合面向全球市场的 SaaS 和数字产品。
@@ -114,10 +114,10 @@ Dodo Payments 的 Webhook 需要公网可访问的 URL，本地开发时需要�
 
 ```bash
 # 方案一：使用 cloudflared（推荐）
-cloudflared tunnel --url http://localhost:7001
+cloudflared tunnel --url http://localhost:8001
 
 # 方案二：使用 ngrok
-npx ngrok http 7001
+npx ngrok http 8001
 ```
 
 将隧道地址配置到 Dodo Dashboard：

@@ -48,7 +48,7 @@ export default defineConfig({
       }
     : undefined,
   server: {
-    port: 7001,
+    port: 8001,
     // Allow the Cloudflare Tunnel hostname used for local payment webhooks.
     // Keep this explicit instead of allowing arbitrary Host headers.
     allowedHosts: ['test.vikingship.uk'],

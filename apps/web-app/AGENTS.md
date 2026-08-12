@@ -11,10 +11,10 @@ The product frontend for this monorepo, built on TanStack Router + TanStack Star
 pnpm install
 
 # Development
-pnpm dev                   # Standard Vite dev server on port 7001
+pnpm dev                   # Standard Vite dev server on port 8001
 
 # Cloudflare Workers development
-pnpm --dir apps/web-app dev:cf  # CF_DEPLOY=1 Vite dev server on port 7001
+pnpm --dir apps/web-app dev:cf  # CF_DEPLOY=1 Vite dev server on port 8001
 
 # Build & start
 pnpm build                 # Vite production build
@@ -167,7 +167,7 @@ pnpm build
 
 # Dev server
 pnpm dev
-# Visit http://localhost:7001
+# Visit http://localhost:8001
 
 # E2E (start app first, then run from repo root)
 npx playwright test --config=tests/e2e/playwright.config.ts

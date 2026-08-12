@@ -31,7 +31,7 @@ const RETRY_CONFIG = {
 };
 
 const E2E_ORIGIN = new URL(
-  process.env.E2E_BASE_URL || 'http://localhost:7001',
+  process.env.E2E_BASE_URL || 'http://localhost:8001',
 ).origin;
 
 /**

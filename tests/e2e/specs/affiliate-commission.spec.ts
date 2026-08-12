@@ -13,9 +13,9 @@ import { signUpViaAPI } from '../helpers/auth';
  * where referral info was lost during payment initiation.
  *
  * Prerequisites:
- * 1. Dev server running on port 7001
+ * 1. Dev server running on port 8001
  * 2. Stripe CLI forwarding webhooks:
- *    `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe`
+ *    `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe`
  * 3. Stripe test mode keys in .env
  * 4. AFFILIATE_ENABLED=true (default)
  */
@@ -90,7 +90,7 @@ test.describe('Affiliate Commission via Stripe Payment', () => {
     // Use extraHTTPHeaders to set Origin for CSRF protection
     refereeContext = await browser.newContext({
       extraHTTPHeaders: {
-        'Origin': 'http://localhost:7001',
+        'Origin': 'http://localhost:8001',
       },
     });
     refereePage = await refereeContext.newPage();
@@ -215,7 +215,7 @@ test.describe('Affiliate Commission via Stripe Payment', () => {
       if (attempt === MAX_ATTEMPTS) {
         console.warn(
           `[affiliate-commission] Commission balance unchanged after ${MAX_ATTEMPTS} polls. ` +
-          `Ensure 'stripe listen --forward-to localhost:7001/api/payment/webhook/stripe' is running.`
+          `Ensure 'stripe listen --forward-to localhost:8001/api/payment/webhook/stripe' is running.`
         );
       }
     }

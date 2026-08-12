@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 7001",
-    "dev:cf": "CF_DEPLOY=1 vite dev --port 7001",
-    "preview:cf": "pnpm run build:cf && pnpm exec wrangler dev --port 7001",
+    "dev": "vite dev --port 8001",
+    "dev:cf": "CF_DEPLOY=1 vite dev --port 8001",
+    "preview:cf": "pnpm run build:cf && pnpm exec wrangler dev --port 8001",
     "build": "CF_DEPLOY=1 vite build",
     "build:node": "vite build",
     "build:cf": "CF_DEPLOY=1 vite build",

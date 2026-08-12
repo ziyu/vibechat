@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { productApiErrorSchema, sessionBootstrapSchema } from '@libs/chat'
-import { createDefaultIdentityService } from '@libs/identity'
+import {
+  createDefaultIdentityService,
+  SynapseAdapterError,
+} from '@libs/identity'
 import { withCfDb } from '@/lib/with-request-db'
 
 function getRequestId(request: Request) {
@@ -30,6 +33,14 @@ function productError(
       'x-request-id': requestId,
     },
   })
+}
+
+function safeCauseCode(error: SynapseAdapterError) {
+  const cause = error.cause
+  if (!cause || typeof cause !== 'object') return null
+  const nested = 'cause' in cause ? cause.cause : null
+  if (!nested || typeof nested !== 'object' || !('code' in nested)) return null
+  return typeof nested.code === 'string' ? nested.code : null
 }
 
 export const Route = createFileRoute('/v1/session/bootstrap')({
@@ -87,6 +98,14 @@ export const Route = createFileRoute('/v1/session/bootstrap')({
           console.error('[session-bootstrap] Failed to bootstrap session', {
             requestId,
             errorName: error instanceof Error ? error.name : 'UnknownError',
+            ...(error instanceof SynapseAdapterError
+              ? {
+                  errorCode: error.code,
+                  upstreamStatus: error.status,
+                  matrixErrorCode: error.matrixErrorCode,
+                  networkErrorCode: safeCauseCode(error),
+                }
+              : {}),
           })
           return productError(
             request,

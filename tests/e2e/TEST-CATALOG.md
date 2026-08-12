@@ -176,8 +176,8 @@
 **文件：** `specs/stripe-payment.spec.ts` ｜ **优先级：** P0
 
 > ⚠️ **前置条件：**
-> 1. 开发服务器在 7001 端口运行
-> 2. `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe` 正在运行
+> 1. 开发服务器在 8001 端口运行
+> 2. `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe` 正在运行
 > 3. `.env` 中配置了 Stripe 测试模式的 API Key
 
 完整的 Stripe 支付端到端流程，覆盖**订阅购买**和**积分购买**两个链路。使用测试卡号 `4242 4242 4242 4242` 模拟支付，不产生真实扣款。
@@ -511,7 +511,7 @@ seedCredits 实现 (helpers/credits.ts):
 
 > ⚠️ **前置条件：**
 > 1. `.env` 中配置了 Creem 测试模式的 API Key 和 Webhook Secret
-> 2. Creem webhook 转发已配置到 `localhost:7001/api/payment/webhook/creem`
+> 2. Creem webhook 转发已配置到 `localhost:8001/api/payment/webhook/creem`
 > 3. Creem 产品已创建并配置了 `creemProductId`
 
 Creem 与 Stripe 流程类似，都是页面跳转到托管 Checkout 页面完成支付，通过 webhook 回调通知后端。
@@ -900,8 +900,8 @@ processReferralCommission → 计算佣金 → 写入 commission 表 → 增加�
 **文件：** `specs/affiliate-commission.spec.ts` ｜ **优先级：** P0
 
 > ⚠️ **前置条件：**
-> 1. 开发服务器在 7001 端口运行
-> 2. `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe` 正在运行
+> 1. 开发服务器在 8001 端口运行
+> 2. `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe` 正在运行
 > 3. `.env` 中配置了 Stripe 测试模式的 API Key
 > 4. 显式配置 `AFFILIATE_ENABLED=true`（默认关闭）
 

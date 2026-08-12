@@ -12,8 +12,8 @@ import { signUpViaAPI } from '../helpers/auth';
  *      to Creem Checkout and payment completion.
  *
  * Prerequisites:
- * 1. Dev server running on port 7001 (`pnpm dev`)
- * 2. Cloudflared tunnel running (forwards webhooks to localhost:7001)
+ * 1. Dev server running on port 8001 (`pnpm dev`)
+ * 2. Cloudflared tunnel running (forwards webhooks to localhost:8001)
  * 3. .env has CREEM_API_KEY, CREEM_WEBHOOK_SECRET, CREEM_SERVER_URL (test mode)
  * 4. Creem products created with correct creemProductId in config/payment.ts
  *

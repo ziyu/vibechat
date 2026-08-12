@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E Test Configuration
  *
- * The TanStack Start app uses port 7001.
+ * The TanStack Start app uses port 8001.
  * Start the dev server manually with `pnpm dev` before running tests.
  *
  * Then run: pnpm test:e2e
@@ -24,7 +24,7 @@ export default defineConfig({
   globalTeardown: './global-teardown.ts',
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:7001',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:8001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

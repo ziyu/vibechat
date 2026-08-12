@@ -34,7 +34,7 @@
 ```env
 # 认证配置
 BETTER_AUTH_SECRET="your-secret-key-here-32-characters-minimum"
-BETTER_AUTH_URL="http://localhost:7001"
+BETTER_AUTH_URL="http://localhost:8001"
 
 # Google OAuth
 GOOGLE_CLIENT_ID="your-google-client-id"
@@ -449,7 +449,7 @@ plugins: [
 {
   "user": { /* 用户信息 */ },
   "dev": {
-    "verificationUrl": "http://localhost:7001/api/auth/verify-email?token=...",
+    "verificationUrl": "http://localhost:8001/api/auth/verify-email?token=...",
     "message": "Development mode: Use this verification URL instead of checking email"
   }
 }
@@ -479,7 +479,7 @@ plugins: [
 {
   "success": true,
   "dev": {
-    "resetUrl": "http://localhost:7001/api/auth/reset-password?token=...",
+    "resetUrl": "http://localhost:8001/api/auth/reset-password?token=...",
     "message": "Development mode: Use this reset URL instead of checking email"
   }
 }

@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：GitHub OAuth
 
 本文档介绍如何配置 GitHub OAuth 社交登录。
@@ -34,7 +34,7 @@ GITHUB_CLIENT_SECRET="your_github_client_secret"
 
 **本地开发环境**：
 ```
-http://localhost:7001/api/auth/callback/github
+http://localhost:8001/api/auth/callback/github
 ```
 
 **生产环境**：

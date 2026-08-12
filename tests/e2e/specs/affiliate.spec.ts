@@ -122,7 +122,7 @@ test.describe('Affiliate System', () => {
       expect(referralCode).toBeTruthy();
 
       // Step 2: Create referee (User B) with the referral cookie
-      const baseUrl = 'http://localhost:7001';
+      const baseUrl = 'http://localhost:8001';
       const refereeContext = await browser.newContext({
         baseURL: baseUrl,
         extraHTTPHeaders: { Origin: baseUrl },

@@ -75,7 +75,7 @@ export const config = {
      * This will be used for all callback URLs and webhooks
      */
     get baseUrl() {
-      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:7001');
+      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:8001');
     },
 
     /**

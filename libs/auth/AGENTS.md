@@ -9,7 +9,7 @@ Comprehensive authentication and authorization service built on Better Auth. Pro
 ```bash
 # Core environment variables required (add to .env):
 BETTER_AUTH_SECRET="your-secret-key-here-32-characters-minimum"
-BETTER_AUTH_URL="http://localhost:7001"
+BETTER_AUTH_URL="http://localhost:8001"
 
 # Social providers (optional)
 GOOGLE_CLIENT_ID="your-google-client-id"
@@ -260,7 +260,7 @@ The auth library uses config values for:
 ```bash
 # Test authentication flows in all three apps:
 # Next.js: http://localhost:3000/signin
-# Nuxt.js: http://localhost:7001/signin
+# Nuxt.js: http://localhost:8001/signin
 
 # Development mode features:
 # 1. Check console for verification URLs and OTP codes

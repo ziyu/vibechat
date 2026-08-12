@@ -2,7 +2,7 @@
 
 Vibe Chat 是一个以“氛围空间”为核心的新一代聊天产品。每个聊天房间由独立的氛围空间定义会话画布、消息呈现和互动方式。
 
-当前仓库已经具备可运行的聊天宿主和真实基础闭环：Better Auth Email OTP、首次资料设置、产品 profile、好友请求/联系人/私有备注/屏蔽、Synapse Application Service identity、session/device 撤销、参与者 ACL、幂等 Matrix 建房与邀请均已接入。浏览器使用 `matrix-js-sdk` 完成 `/sync`、IndexedDB timeline 缓存、transaction local echo、文字/媒体、回复、回应、编辑、删除、typing、历史搜索和离线重发；“我的”可热更新资料、管理浏览器会话和清理本地 Matrix 缓存。Synapse 未配置或用户未登录时才显式退回 fixture 预览。
+当前仓库已经具备可运行的聊天宿主和真实基础闭环：Better Auth Email OTP、首次资料设置、产品 profile、好友请求/联系人/私有备注/屏蔽、Synapse Application Service identity、session/device 撤销、参与者 ACL、幂等 Matrix 建房与邀请均已接入。浏览器使用 `matrix-js-sdk` 完成 `/sync`、IndexedDB timeline 缓存、transaction local echo、文字/媒体、回复、回应、编辑、删除、typing、历史搜索和离线重发；“我的”可热更新资料、管理浏览器会话和清理本地 Matrix 缓存。Synapse 未配置、用户未登录或 bootstrap 失败时显式失败关闭，不加载 fixture 或浏览器模拟状态。
 
 ## 当前技术基线
 
@@ -41,7 +41,7 @@ npm run matrix:dev:up
 npm run test:matrix:integration
 ```
 
-启动后访问 `http://localhost:7001/zh-CN/messages` 进入聊天预览；如果该端口已被其他本地服务占用，可以在 `apps/web-app` 下直接为 Vite 指定其他端口。
+启动后访问 `http://localhost:8001/zh-CN/messages` 进入聊天产品。`8001` 是产品 Web 应用的仓库默认端口；认证回调、API/E2E、Docker 和公开 Runbook 使用同一基准地址。
 
 文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。
 当前聊天宿主的实现范围与后续接入点见[聊天宿主基础实现](docs/stable/references/chat-host-foundation.md)。

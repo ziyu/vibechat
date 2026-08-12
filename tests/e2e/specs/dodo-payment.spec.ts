@@ -13,8 +13,8 @@ import { signUpViaAPI } from '../helpers/auth';
  *   C) Credits — buy "100 Credits Dodo", verify dashboard credits balance.
  *
  * Prerequisites:
- * 1. Dev server running on port 7001 (`pnpm dev`)
- * 2. Webhook tunnel running (forwards webhooks to localhost:7001):
+ * 1. Dev server running on port 8001 (`pnpm dev`)
+ * 2. Webhook tunnel running (forwards webhooks to localhost:8001):
  *    - Dodo CLI: `dodo wh listen`
  *    - Or: cloudflared/ngrok tunnel → /api/payment/webhook/dodo
  * 3. .env has DODO_PAYMENTS_API_KEY, DODO_PAYMENTS_WEBHOOK_KEY, DODO_PAYMENTS_TEST_MODE="true"

@@ -18,7 +18,7 @@ config({ path: resolve(__dirname, '../../../.env') });
  *   C) Credits — buy "100 Credits PayPal", verify dashboard credits balance.
  *
  * Prerequisites:
- * 1. Dev server running on port 7001 (`pnpm dev`)
+ * 1. Dev server running on port 8001 (`pnpm dev`)
  * 2. .env has PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_SANDBOX="true"
  * 3. .env has PAYPAL_E2E_USER_NAME and PAYPAL_E2E_USER_PWD (sandbox buyer)
  * 4. PayPal sandbox plan ID configured in config/payment.ts (paypalPlanId)

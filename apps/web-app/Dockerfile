@@ -46,9 +46,9 @@ RUN mkdir -p /app/data
 RUN chown -R appuser:nodejs /app
 USER appuser
 
-EXPOSE 7001
+EXPOSE 8001
 
-ENV PORT=7001
+ENV PORT=8001
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
