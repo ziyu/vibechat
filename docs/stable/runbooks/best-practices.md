@@ -3,12 +3,12 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-12
+> 更新日期：2026-08-13
 > 维护范围：日常功能开发与交付
 
 ## 应用边界
 
-仓库有三个活动运行应用：`apps/site-app`（官网）、`apps/web-app`（产品 Web/PWA）和 `apps/backend`（共享后端）。`apps/docs-app` 是独立文档站，不是产品实现。
+仓库有四个活动运行应用：`apps/site-app`（官网）、`apps/web-app`（产品 Web/PWA）、`apps/backend`（共享后端）和 `apps/admin-app`（运营后台）。`apps/docs-app` 是独立文档站，不是产品实现。
 
 | 内容 | 放置位置 |
 | --- | --- |
@@ -17,9 +17,9 @@
 | React 共享组件与 hooks | `packages/react-shared/src` |
 | 官网页面 | `apps/site-app/src/routes/$lang/**` |
 | 产品页面 | `apps/web-app/src/routes/$lang/**` |
-| 产品 API、Auth 与上传 | `apps/backend/src/routes/**` |
+| 产品 API、Auth、上传、支付与 AI | `apps/backend/src/routes/**` |
+| 运营页面 | `apps/admin-app/src/routes/$lang/admin/**` |
 | Web 同源网关 | `apps/web-app/src/routes/api/$.ts`、`v1/$.ts` |
-| 旧 SaaS 快照 | `legacy/*`（不参与构建） |
 | 翻译 | `packages/i18n/src/locales/en.ts`、`zh-CN.ts` |
 
 ## 标准开发流程

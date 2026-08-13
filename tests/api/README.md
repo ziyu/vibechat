@@ -13,6 +13,8 @@ Checks that protected endpoints return `401` when no session cookie is provided.
 
 Covered endpoint groups:
 - Upload: `/api/upload`
+- Account and billing: `/api/credits/*`, `/api/orders`, `/api/subscription/*`, `/api/affiliate/*`, `/api/withdrawal/*`
+- AI and payments: `/api/chat`, `/api/image-generate`, `/api/video-generate/*`, `/api/payment/*`
 - Admin: `/api/admin/users`, `/api/admin/orders`, `/api/admin/subscriptions`, `/api/admin/credits/transactions`, `/api/admin/blog`
 - User management: `/api/users/:id` (tested with a fake ID)
 
@@ -41,7 +43,7 @@ Assertion is `status !== 401` (response may be `200`, `400`, `404`, etc. dependi
 Covered endpoints:
 - `/api/health`
 - `/api/blog`
-Legacy payment, AI and user purchase endpoints are no longer active Backend routes. Their former tests live under `legacy/tests` and are not permission evidence for the current app.
+Payment, AI and user purchase endpoints are active Backend routes. Their unauthenticated and cross-user boundaries are covered by the active permission and ownership suites; provider business behavior is additionally covered by unit and Playwright tests.
 
 This catches IDOR-style regressions where an endpoint accidentally leaks another user's data.
 

@@ -6,7 +6,7 @@ import { Input } from '@vibechat/react-shared/ui/input'
 import { Switch } from '@vibechat/react-shared/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@vibechat/react-shared/ui/select'
 import { Label } from '@vibechat/react-shared/ui/label'
-import { adminUserRoles } from '@vibechat/api-contracts/admin'
+import { adminUpdateUserSchema, adminUserRoles } from '@vibechat/api-contracts/admin'
 import { SaveIcon, Trash2Icon } from 'lucide-react'
 import { authClientReact } from "@vibechat/auth-client"
 import { useForm, Controller } from "react-hook-form"
@@ -48,6 +48,7 @@ function UserDetailPage() {
     phoneNumber: z.string().nullable().optional(),
     emailVerified: z.boolean().default(false),
     phoneNumberVerified: z.boolean().default(false),
+    kycVerified: z.boolean().default(false),
     banned: z.boolean().default(false),
     banReason: z.string().nullable().optional(),
   })
@@ -73,6 +74,7 @@ function UserDetailPage() {
       role: adminUserRoles.user,
       emailVerified: false,
       phoneNumberVerified: false,
+      kycVerified: false,
       banned: false,
     },
     mode: 'onBlur',
@@ -118,10 +120,22 @@ function UserDetailPage() {
 
     try {
       if (isEditMode && id) {
+        const formData = data as UpdateUserFormData
+        const updatePayload = adminUpdateUserSchema.parse({
+          name: formData.name,
+          image: formData.image || null,
+          phoneNumber: formData.phoneNumber || null,
+          emailVerified: formData.emailVerified,
+          phoneNumberVerified: formData.phoneNumberVerified,
+          kycVerified: formData.kycVerified,
+          role: formData.role,
+          banned: formData.banned,
+          banReason: formData.banReason || null,
+        })
         const response = await fetch(`/api/users/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(updatePayload),
         })
         if (!response.ok) {
           const payload = await response.json().catch(() => null)
@@ -373,6 +387,24 @@ function UserDetailPage() {
             </div>
 
             <div className="flex items-center justify-between">
+              <Label htmlFor="kycVerified" className="font-semibold">
+                {t.admin.users.form.labels.kycVerified}
+              </Label>
+              <Controller
+                name="kycVerified"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="kycVerified"
+                    data-testid="admin-user-kyc"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
               <Label htmlFor="banned" className="font-semibold">
                 {t.admin.users.form.labels.banned}
               </Label>
@@ -424,6 +456,7 @@ function UserDetailPage() {
             <div className="flex space-x-4">
               <Button
                 type="submit"
+                data-testid="admin-user-save"
                 className="flex items-center gap-2"
               >
                 <SaveIcon className="h-4 w-4" />

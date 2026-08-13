@@ -39,6 +39,14 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `PUT` | `/v1/rooms/:roomId/preferences` | Persist the current user's pin/mute state for a real Matrix room |
 | `GET` | `/v1/spaces?locale=en` | Read the server-owned built-in atmosphere directory and version/capability metadata |
 | `PUT` | `/v1/spaces/:spaceId/favorite` | Persist the current account's built-in space favorite |
+| `GET` | `/api/credits/status`, `/api/credits/transactions` | Current user's balance and ledger |
+| `GET` | `/api/orders`, `/api/subscription/status` | Current user's purchases and entitlement |
+| `GET/POST` | `/api/affiliate/*`, `/api/withdrawal/*` | Referral attribution, commissions and KYC-gated withdrawal |
+| `POST` | `/api/payment/initiate` | Start an idempotent server-priced checkout |
+| `POST` | `/api/chat`, `/api/image-generate`, `/api/video-generate` | Billable AI generation with failure refunds |
+| `POST` | `/api/upload` | Authenticated image upload with type and size limits |
+
+Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry.
 
 ## Product state example
 

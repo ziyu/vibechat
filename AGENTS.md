@@ -36,8 +36,8 @@
 | 修改某个应用或库 | 目标目录及父目录中适用的 `AGENTS.md`、README、相关稳定设计 |
 | 用户可见功能 | 产品设计、相关开发中文档、公开用户文档、`tests/e2e/TEST-CATALOG.md` |
 | 认证与权限 | `libs/auth/README*.md`、`libs/permissions/AGENTS.md`、相关设计与 Runbook |
-| 计费、支付或积分 | `libs/credits/AGENTS.md`、`libs/pricing/README*.md`、相关设计与 Runbook；旧支付 provider 仅见 `legacy/libs/payment` |
-| AI 能力 | 先完成产品评审；旧 provider 实现仅见 `legacy/libs/ai`，不得接回活动 app |
+| 计费、支付或积分 | `libs/credits/AGENTS.md`、`libs/payment/AGENTS.md`、`libs/pricing/README*.md`、相关设计与 Runbook |
+| AI 能力 | `libs/ai/AGENTS.md`、AI Runbook、积分 Runbook 与相关验收记录 |
 | 部署或服务端运行时 | 对应部署 Runbook、`apps/backend/CF-NOTES.md` |
 | 测试 | `tests/e2e/AGENTS.md`、`tests/e2e/TEST-CATALOG.md` 和对应测试目录说明 |
 | 文档新增、迁移或重写 | 生命周期规范、对应类型模板、文档验证标准 |

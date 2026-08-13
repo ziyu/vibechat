@@ -29,10 +29,17 @@ export const productApiErrorSchema = z.object({
   error: z.object({
     code: z.string().min(1),
     message: z.string().min(1),
-    details: z.record(z.string(), z.unknown()),
-    requestId: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).default({}),
+    requestId: z.string().min(1).nullable().default(null),
   }),
 })
+
+/** Flat error shape used by existing Backend endpoints during contract normalization. */
+export const flatProductApiErrorSchema = z.object({
+  error: z.string().min(1),
+  message: z.string().min(1).optional(),
+  requestId: z.string().min(1).nullable().optional(),
+}).passthrough()
 
 export type SessionBootstrap = z.infer<typeof sessionBootstrapSchema>
 export type ProductApiError = z.infer<typeof productApiErrorSchema>

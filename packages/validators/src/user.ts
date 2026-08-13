@@ -64,6 +64,7 @@ export function createValidators(t: TranslationFunction) {
     role: z.enum([adminUserRoles.admin, adminUserRoles.user]),
     phoneNumber: z.string().nullable().optional(),
     phoneNumberVerified: z.boolean(),
+    kycVerified: z.boolean(),
     banned: z.boolean(),
     banReason: z.string().nullable().optional(),
   });

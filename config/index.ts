@@ -17,9 +17,14 @@ export { getEnv, getEnvForService, requireEnvForService, requireEnvWithFallback 
 // Re-export individual configs for direct access
 export { authConfig } from './auth';
 export { paymentConfig } from './payment';
+export { creditsConfig, resolveFixedConsumption, type FixedConsumptionConfig } from './credits';
 export { smsConfig } from './sms';
 export { emailConfig } from './email';
 export { captchaConfig } from './captcha';
 export { databaseConfig } from './database';
 export { storageConfig } from './storage';
+export { aiConfig } from './ai';
+export { aiImageConfig } from './aiImage';
+export { aiVideoConfig } from './aiVideo';
+export { affiliateConfig } from './affiliate';
 export { builtInChatSpaces, getBuiltInChatSpace, type BuiltInChatSpaceConfig } from './chat';

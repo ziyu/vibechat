@@ -71,6 +71,20 @@
       "when": 1786498531684,
       "tag": "0009_nice_bloodaxe",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786625938661,
+      "tag": "0010_numerous_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786632257905,
+      "tag": "0011_jittery_sphinx",
+      "breakpoints": true
     }
   ]
 }

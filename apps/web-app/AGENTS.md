@@ -4,7 +4,7 @@
 
 `apps/web-app` is the VibeChat product Web/PWA host. It owns authentication UI, onboarding, chat routes, Matrix browser runtime composition, and a thin same-origin gateway to `apps/backend`.
 
-It does not own the public site, product API business handlers, database access, payment/AI legacy pages, or the future Desktop host.
+It does not own the public site, product API business handlers, database access, payment/AI provider implementations, or the future Desktop host. It does own the authenticated product UI for account, billing, upload, and AI capabilities exposed by the shared Backend.
 
 ## Commands
 
@@ -31,13 +31,14 @@ src/routes/
 ├── $lang.tsx
 ├── $lang/(auth)/*               # signin/signup/OTP/reset
 ├── $lang/(chat)/*               # messages/rooms/contacts/discover/me
+├── $lang/(product)/*            # account/services/payment returns/AI
 ├── $lang/onboarding.tsx
 ├── $lang/(root)/index.tsx       # localized root -> messages
 ├── api/$.ts                     # same-origin backend gateway only
 └── v1/$.ts                      # same-origin backend gateway only
 ```
 
-Old SaaS pages and components live under `legacy/web-app` and are not part of the route tree.
+Account, billing, upload, and AI product surfaces belong inside the authenticated product shell. Keep one product shell and route compatibility aliases; do not create a second SaaS layout.
 
 ## Boundaries
 

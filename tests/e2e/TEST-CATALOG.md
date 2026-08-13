@@ -1,6 +1,6 @@
 # E2E 测试流程目录
 
-本文档记录当前产品 E2E 与历史脚手架验收。`specs/` 是默认执行的 VibeChat 活动产品回归；旧 AI、支付、Affiliate、通用 Admin 等用例已迁入 `legacy/`，仅保留为历史证据，不参与默认 `pnpm test:e2e`。
+本文档记录当前产品 E2E 与历史验收记录。`specs/` 是默认执行的 VibeChat 活动产品回归；AI、支付、Affiliate 与 Admin 的有效场景已经重写进活动套件，旧脚手架测试不再保留为可执行源码。
 
 > 编写规范和架构约定请查看 [`AGENTS.md`](./AGENTS.md)。
 
@@ -44,6 +44,7 @@
 - [34. 首次资料设置与联系人备注](#34-首次资料设置与联系人备注)
 - [35. 登录后产品状态真实化](#35-登录后产品状态真实化)
 - [36. Apps 拆分与同源 Backend 网关](#36-apps-拆分与同源-backend-网关)
+- [39. Legacy 产品能力完整迁移](#39-legacy-产品能力完整迁移)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1231,7 +1232,7 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 | 4 | 同源 Auth | 经 `8001/api/auth/*` 注册、登录、读取 session、退出 → Cookie 生命周期与拆分前一致 |
 | 5 | 同源产品 API | 经 `8001/v1/*` 完成 bootstrap、profile、social、rooms、spaces 与 product state → 真实 Matrix/数据库链路不变 |
 | 6 | 构建边界 | site、web、backend 分别 typecheck/build → Site/Web 不导入数据库、支付、AI、存储或 server Auth → app-to-app import 被边界检查拒绝 |
-| 7 | Legacy 隔离 | 旧 AI、支付、affiliate 和通用 Admin 源码保留在 `legacy/*`，不进入活动 route tree 或默认 E2E |
+| 7 | Legacy 隔离（历史阶段） | 该阶段曾隔离旧 AI、支付、affiliate 和通用 Admin；后续 #39 已评审恢复并替代此临时状态 |
 
 ---
 
@@ -1266,11 +1267,31 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 | 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → 转到本地化登录引导 → 管理 API 返回 `401`，不泄露统计或用户数据 |
 | 3 | 非管理员拒绝 | 普通真实用户访问 Admin 页面 → 显示无权限状态 → 管理 API 返回 `403`，前端篡改角色不能绕过 Backend |
 | 4 | 管理员会话 | seeded Admin 通过 Web 密码登录并提交 `callbackURL=http://localhost:8005/en/admin` → Better Auth 接受受信 Admin 回跳 → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
-| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 空状态/数据态/失败态可辨认，不使用 fixture |
+| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 每个同源 API 禁止重定向并返回 JSON → 页面等待对应请求成功后呈现空状态或数据态，不使用 fixture，也不能用页面标题掩盖加载失败 |
 | 6 | 用户管理 mutation | Admin 打开测试用户详情并修改可恢复字段或角色 → Backend 校验管理员权限与输入 → 刷新后数据库值一致，再恢复原值 |
 | 7 | 定价与内容写入边界 | 管理定价或 Blog 的创建/更新/排序/删除操作通过 Backend 完成 → 非管理员执行同请求仍被拒绝 |
 | 8 | App 与 libs 边界 | Admin 不导入 database、server Auth、payment/AI provider、storage 或 Backend 内部领域库 → 无活动消费者的旧库被删除 → 保留库均有引用证据 |
 | 9 | 产品无回归 | Backend/Web/Site/Admin 根级 typecheck/build、管理权限测试和完整活动聊天 E2E 通过 |
+
+---
+
+## 39. Legacy 产品能力完整迁移
+
+**文件：** `specs/account-services-ai.spec.ts`、`specs/admin-app.spec.ts`、API ownership suites 与领域单元测试 ｜ **优先级：** P0 ｜ **Web 8001 / Backend 8002 / Admin 8005**
+
+旧源码只有在进入当前 app/package/lib 边界并通过真实用户链路后才算迁移。外部 provider 可以因缺少沙盒凭据跳过真实供应商步骤，但本地权限、输入、幂等、账本和失败补偿不能跳过。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 账户中心 | 用户登录 → 查看真实资料、订单、订阅、积分与安全状态 → 修改密码/账户操作经过 Better Auth → 不显示其他用户数据 |
+| 2 | 定价与上传 | 公共定价读取活动计划 → 登录用户发起购买 → 金额由服务端计划决定；通用媒体上传校验类型/大小/数量并复用 storage |
+| 3 | 积分账本 | 查询自己的余额/流水 → 并发扣减不透支 → 增加/扣减与账本原子 → AI/provider 失败退款且只退款一次 |
+| 4 | 推荐与提现 | 推荐码归因 → 领取奖励幂等 → 支付佣金只生成一次 → 用户只能查看自己记录并申请提现 → 管理拒绝只退款一次 |
+| 5 | 六支付 Provider | Stripe、PayPal、Creem、Dodo、微信、支付宝各自创建支付 → 验证回调/Webhook → 订单/订阅/积分入账 → 重复通知不重复履约 |
+| 6 | AI 对话 | 有积分用户发起对话 → Backend 选择允许的 provider/model → 流式或完整响应 → 账单元数据可对账；无 key/失败时明确错误并退款 |
+| 7 | 图片与视频 | 服务端校验模型、尺寸、时长和输入 → 创建生成任务 → 查询真实状态/结果 → 失败退款，不以浏览器轮询作为账务权威 |
+| 8 | Admin 深度运营 | 用户/订阅/订单/积分筛选、定价 CRUD、Blog CRUD、佣金/提现处理通过真实 Backend；非管理员全部拒绝 |
+| 9 | Legacy 清理 | 活动路由、API、领域服务、测试和文档均有 owner → 默认构建/E2E 覆盖恢复能力 → 删除不再是唯一实现的 legacy 快照 |
 
 ---
 
@@ -1294,6 +1315,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 | ✅ | 36 | Apps 拆分与同源 Backend 网关 | backend/Web/Site、SQLite、本地 Synapse | 7 |
 | ✅ | 37 | 跨宿主 Workspace Package 边界 | pnpm workspace、backend/Web/Site、SQLite、本地 Synapse | 8 |
 | ✅ | 38 | 独立 Admin App 与运营管理链路 | Admin/Backend、SQLite、seeded Admin/普通用户 | 9 |
+| ✅ | 39 | 产品能力完整迁移 | Web/Backend/Admin、SQLite、本地 Synapse | 9 |
 
 ---
 
@@ -1303,6 +1325,8 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-14 | Web + Backend + Admin + Site + Synapse | 53 | 0 | 0 | 产品能力迁移最终 Chromium 回归：账户/安全、上传真实失败关闭、AI 结算退款、支付失败幂等、推荐奖励、提现 KYC、Admin CRUD 与完整 Matrix 聊天链路；另通过 Application Service 集成、API ownership、领域单元测试、10 packages 与四 app 构建、Workers 预览和 docs 静态导出 |
+| 2026-08-13 | Admin + Backend + Web | 3 | 0 | 0 | 修复 `/$lang/admin/*` 与 `/api/admin/*` 同名路由碰撞；Admin E2E 禁止接口重定向、校验 JSON content-type，并等待八个运营页面的真实 API 成功响应；另完成中文用户/订阅管理页浏览器走查、10 packages + 4 apps typecheck、packages + Backend/Web/Site/Admin/Docs build |
 | 2026-08-13 | Better Auth + Web + Admin + Workers | 6 | 0 | 0 | Admin callbackURL 修复：trusted origins 安全单测 3 项、Admin Chromium E2E 3 项；另完成真实中文网页登录回跳、14 package typecheck、全量 build、Docs build，以及 Workers health 200 / 显式 Admin callback 进入凭据查询验证 |
 | 2026-08-12 | Packages + Backend + Web + Site + Admin + Synapse + D1 | 150 | 0 | 0 | Admin/libs 清理最终回归：活动领域单测 103 项（含提现拒绝只退款一次）、完整 Chromium E2E 39 项、Admin 权限 API 8 项；另完成 10 package + 4 app 根级 typecheck/build、文档站 build，以及 Workers/D1 health 200、未登录 Admin/bootstrap 401 smoke |
 | 2026-08-12 | Packages + Backend + Web + Site + Synapse + Vitest | 81 | 0 | 0 | Package 边界最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state/product-client/product-core 单测 45 项；另完成 6 package + 3 app 根级 typecheck/build、Workers build/health/未登录 bootstrap 401 与文档站 build |

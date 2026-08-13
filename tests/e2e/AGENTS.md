@@ -88,27 +88,15 @@ tests/e2e/
 ├── helpers/
 │   ├── constants.ts              # URL paths, API endpoints, timeouts, test user data
 │   ├── auth.ts                   # Auth helper functions (sign-up, sign-in, sign-out)
-│   └── credits.ts                # Credit seeding (direct SQL for AI test users)
+│   ├── credits.ts                # Credit seeding (direct SQL for AI test users)
+│   └── affiliate.ts              # Commission-balance prerequisite seeding
 └── specs/
-    ├── public-pages.spec.ts      # App boundary and public smoke tests
-    ├── auth-flow.spec.ts         # Authentication flow tests
-    ├── access-control.spec.ts    # Access control tests
-    ├── dashboard.spec.ts         # Dashboard tests
-    ├── pricing.spec.ts           # Pricing page tests
-    ├── ai-features.spec.ts       # AI feature page tests
-    ├── stripe-payment.spec.ts    # Stripe payment flow tests
-    ├── profile-update.spec.ts    # Profile update tests
-    ├── password-change.spec.ts   # Password change tests
-    ├── i18n-switching.spec.ts    # Language switching tests
-    ├── upload-page.spec.ts       # Upload page tests
-    ├── admin-panel.spec.ts       # Admin panel tests
-    ├── ai-chat.spec.ts           # AI chat real interaction tests
-    ├── ai-image-generate.spec.ts # AI image generation real tests
-    ├── creem-payment.spec.ts     # Creem payment flow tests
-    ├── paypal-payment.spec.ts    # PayPal payment flow tests
-    ├── affiliate.spec.ts         # Affiliate/referral system tests
-    ├── admin-affiliate.spec.ts   # Admin commission/withdrawal management tests
-└── legacy/                      # Isolated old SaaS tests, excluded by default
+    ├── public-pages.spec.ts       # Four-app boundary and public smoke tests
+    ├── auth-flow.spec.ts          # Authentication flow tests
+    ├── account-services-ai.spec.ts # Account/payment/referral/AI real chains
+    ├── admin-app.spec.ts          # Admin permissions, CRUD, KYC and withdrawal
+    ├── chat-*.spec.ts             # Product/Matrix/session/chat chains
+    └── i18n-switching.spec.ts     # Language switching tests
 ```
 
 ---

@@ -41,6 +41,12 @@ export const publicConfig = {
       },
     },
   },
+  ai: aiConfig,
+  aiImage: aiImageConfig,
+  aiVideo: aiVideoConfig,
 } as const
 
 export { publicConfig as config }
+import { aiConfig } from './ai'
+import { aiImageConfig } from './aiImage'
+import { aiVideoConfig } from './aiVideo'

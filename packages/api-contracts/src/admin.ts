@@ -18,6 +18,7 @@ export const adminUserListItemSchema = z.object({
   referralCode: z.string().nullable(),
   referredByCode: z.string().nullable(),
   commissionBalance: z.union([z.string(), z.number()]).nullable(),
+  kycVerified: z.boolean(),
   referredBy: z.object({
     name: z.string().nullable(),
     email: z.string().email(),
@@ -40,6 +41,7 @@ export const adminUpdateUserSchema = z.object({
   phoneNumber: z.string().trim().max(32).nullable().optional(),
   emailVerified: z.boolean().optional(),
   phoneNumberVerified: z.boolean().optional(),
+  kycVerified: z.boolean().optional(),
   role: adminUserRoleSchema.optional(),
   banned: z.boolean().optional(),
   banReason: z.string().trim().max(500).nullable().optional(),

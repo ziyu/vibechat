@@ -14,6 +14,7 @@ import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@v
 import { config } from '@config'
 import { drainMatrixSessionRevocations, enqueueMatrixSessionRevocation } from './session-lifecycle'
 import { getTrustedAuthOrigins } from './trusted-origins'
+import { assertAccountDeletionAllowed } from './account-deletion'
 export { toNextJsHandler } from "better-auth/next-js";
 /**
  * 从 referer URL 中提取信息
@@ -112,8 +113,18 @@ export const auth = betterAuth({
   },
   // https://www.better-auth.com/docs/concepts/users-accounts#delete-user
   user: {
+    additionalFields: {
+      // Managed by operations through the Admin API; never accepted from signup/profile input.
+      kycVerified: {
+        type: 'boolean',
+        required: true,
+        defaultValue: false,
+        input: false,
+      },
+    },
     deleteUser: {
-      enabled: true
+      enabled: true,
+      beforeDelete: async (user) => assertAccountDeletionAllowed(user.id),
     }
   },
   // https://www.better-auth.com/docs/concepts/email

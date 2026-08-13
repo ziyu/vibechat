@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：RFC
 > 状态：已采纳，实施中
-> 更新日期：2026-08-12
+> 更新日期：2026-08-13
 > 维护范围：`apps/*`、共享前端 packages、产品 API、Web/PWA 与未来 Desktop 宿主
 > 稳定来源：[VibeChat MVP 版本产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -18,7 +18,7 @@
 3. 将共享后端边界抽到 `apps/backend`，Web 可通过同源网关访问，Desktop 通过显式 API origin 访问。
 4. Web 与 Desktop 共同组合 `packages/product-*`、`packages/matrix-client` 和平台能力接口；任何 app 不得导入另一个 app。
 5. `apps/desktop-app` 打包本地产品前端资源，不把线上 `web-app` 当远程 WebView 页面。
-6. 旧 AI、计费和用户侧推广能力继续隔离；经单独评审确认有价值的通用运营后台迁入独立 Admin App。
+6. AI、计费和用户侧推广经后续产品评审后进入共享 Backend 与唯一 Web 产品 shell；通用运营能力进入独立 Admin App。
 7. 采用渐进迁移，不进行目录整体复制或一次性重写。
 
 Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当前拆分不会封死 Desktop；是否进入正式产品路线，需要在完成 Desktop 技术 spike 后更新稳定设计和产品路线图。
@@ -70,7 +70,7 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 - `apps/site-app` 独立承载官网与 Blog，默认端口 `8003`；构建不包含 Matrix、数据库、支付、AI provider 或服务端 Auth。
 - `apps/web-app` 已收敛为认证、onboarding 与聊天产品宿主，默认端口 `8001`；`/api/*` 与 `/v1/*` 只保留同源传输适配。
 - `apps/backend` 独立承载 Better Auth、产品 `/v1`、上传、健康检查与 Blog 读取，默认端口 `8002`。
-- 未进入 VibeChat 当前范围的旧页面、API 与 E2E 已分别隔离到 `legacy/web-app`、`legacy/backend` 与 `tests/e2e/legacy`，不参与活动 route tree 或默认回归。
+- 后续产品评审恢复了账户、支付、积分、推荐、提现和 AI；活动实现已进入 Web/Backend/Admin 与默认回归，旧快照完成对照后删除。
 - `scripts/check-app-boundaries.mjs` 已阻止 app-to-app import，并阻止 Site/Web 直接导入数据库、支付、AI、存储与服务端 Auth。
 
 本轮有意保留两项后续工作：`backend` 的首个 runtime adapter 仍使用 TanStack Start server route；聊天 feature 仍待通过 Phase 1 的 `api-contracts`、`product-client` 与宿主 ports 消除相对 `fetch` 和 TanStack 依赖。因此 Phase 1 与 Phase 2 的长期退出标准尚未全部满足。
@@ -96,7 +96,7 @@ Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当
 - 本 RFC 不立即实现 Desktop。
 - 不在本轮确定 Desktop 正式发布日期或支持的操作系统矩阵。
 - 不把全部 `libs/*` 一次性重命名或迁入 `packages/*`。
-- 不借拆分把旧 AI、支付和用户侧推广自动认定为 VibeChat 产品范围；Admin 只恢复已评审的运营能力。
+- AI、支付和用户侧推广必须经过独立产品评审；本次恢复决策及验收见[产品能力迁移完成记录](../archive/legacy-capability-migration.md)。
 - 不在主站复制一套登录态和聊天业务逻辑。
 - 不通过 iframe 或远程 WebView 把线上 Web 产品直接包装为 Desktop。
 - 不在 app 拆分中改变 Matrix、产品数据库和 Better Auth 的数据权威。
@@ -282,8 +282,8 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | `/v1/*` | `backend` | Web 只保留同源透传，业务 handler 只有一份 |
 | `/api/auth/*` | `backend` | 保持公开路径和 Web 同源代理 |
 | `/api/upload` | `backend` 的产品媒体接口 | 拆分头像/产品媒体与旧通用上传 |
-| pricing/payment/dashboard/affiliate | 待产品决策 | 不自动迁移；在旧 app 中隔离或退场 |
-| AI/image/video/premium/upload demo | 旧脚手架隔离/退场 | 不进入 VibeChat 产品 Web/Desktop |
+| pricing/payment/dashboard/affiliate | `web-app` 产品 shell + `backend` | 已评审恢复；页面不直接导入 provider/数据库 |
+| AI/image/video/premium/upload | `web-app` 产品 shell + `backend` | 已评审恢复；任务、计费和存储由 Backend 持有 |
 | 现有通用 admin | `admin-app` + Backend Admin API | 只迁入经评审的运营域；未来 A4 作为同一宿主模块加入 |
 
 主站拆出后，当前 `web-app` 中未决旧路由可以短期保留在兼容部署，但必须有 feature flag、owner 和删除条件；不能成为 `site-app` 或新产品 package 的依赖。
@@ -401,7 +401,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | API runtime | 先抽标准 handler，再比较 Cloudflare Workers 与 Node 部署；不把 TanStack route 当长期 API 框架 | Phase 2 前 |
 | Desktop 壳 | Tauri 2 为默认 spike 候选，真实验证后决策 | Phase 5 前 |
 | Desktop 认证 | 系统浏览器 + 一次性 code 为目标模型，具体 Better Auth 集成待 spike | Phase 5 前 |
-| pricing/payment/affiliate/AI | 默认不迁移；逐项产品评审 | Phase 3 前 |
+| pricing/payment/affiliate/AI | 已评审迁移至 Web/Backend/Admin；Desktop 复用方式仍需独立 spike | 已决策 |
 | `docs-app` 是否重命名 | 暂不重命名；等 apps 拆分稳定后统一命名 | Phase 6 |
 
 已决策：`web-app`、`site-app`、`backend`、`docs-app` 与 `admin-app` 采用当前名称；Admin 已有真实运营职责和验收，不另建重复的 `admin-review`。未来 Desktop 确有 spike 和验收时再创建 `desktop-app`。

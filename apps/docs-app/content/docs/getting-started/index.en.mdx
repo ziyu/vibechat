@@ -29,7 +29,9 @@ pnpm install
 pnpm dev
 ```
 
-The product app will be available at `http://localhost:8001`.
+The product app will be available at `http://localhost:8001`, the shared backend at `8002`, the public site at `8003`, and the Admin app at `8005`.
+
+Run `pnpm db:migrate:sqlite && pnpm db:seed:sqlite` first when using the local SQLite profile. Seeded credentials are printed by the seed command.
 
 ### 3. Run the Documentation Site
 

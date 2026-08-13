@@ -5,6 +5,20 @@ import { SharedAppProvider } from '@vibechat/react-shared/providers/app-context'
 import { useTranslation } from '@/hooks/use-translation'
 
 export const Route = createFileRoute('/$lang')({
+  params: {
+    parse: (params) => {
+      // `/api/$` is intentionally a splat gateway route. Without excluding the
+      // reserved `api` segment here, a longer page route such as
+      // `/$lang/admin/users` wins route ranking for `/api/admin/users` and the
+      // locale guard redirects the API request to the Admin dashboard.
+      if (params.lang.toLowerCase() === 'api') {
+        throw new Error('The api path segment is reserved')
+      }
+
+      return params
+    },
+  },
+  skipRouteOnParseError: { params: true },
   beforeLoad: ({ params }) => {
     if (!isValidLocale(params.lang)) {
       throw redirect({

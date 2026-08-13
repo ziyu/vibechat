@@ -11,6 +11,12 @@
 
 @custom-variant dark (&:is(.dark *));  
 
+/* Tailwind currently has no logical negative inset utility. Fumadocs uses it
+   for step counters, so define the utility at the consuming app boundary. */
+@utility -inset-s-4 {
+  inset-inline-start: calc(var(--spacing) * -4);
+}
+
 @theme inline {
   /* Inherit color system from CSS variables */
   --color-background: var(--background);

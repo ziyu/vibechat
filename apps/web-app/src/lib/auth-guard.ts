@@ -38,6 +38,21 @@ const getAuthSession = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
+const getSubscriptionAccess = createServerFn({ method: 'GET' }).handler(async () => {
+  try {
+    const response = await fetchFromBackend('/api/subscription/status')
+    if (!response.ok) return { hasSubscription: false, isLifetime: false }
+    const status = await response.json() as { hasSubscription?: boolean; isLifetime?: boolean }
+    return {
+      hasSubscription: Boolean(status.hasSubscription),
+      isLifetime: Boolean(status.isLifetime),
+    }
+  } catch (error) {
+    console.error('[auth-guard] subscription lookup failed:', error)
+    return { hasSubscription: false, isLifetime: false }
+  }
+})
+
 /**
  * Redirect authenticated users away from auth pages (signin, signup, etc.)
  * to the chat product. Use in `beforeLoad` of auth routes.
@@ -74,4 +89,15 @@ export async function requireAuth({
     })
   }
   return { user }
+}
+
+/** Require an active subscription or lifetime entitlement for premium pages. */
+export async function requireSubscription({ params }: { params: { lang: string } }) {
+  const authResult = await getAuthSession()
+  if (!authResult?.user) {
+    throw redirect({ to: '/$lang/signin', params: { lang: params.lang } })
+  }
+  const status = await getSubscriptionAccess()
+  if (status.hasSubscription || status.isLifetime) return { user: authResult.user }
+  throw redirect({ to: '/$lang/services', params: { lang: params.lang } })
 }

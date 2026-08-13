@@ -10,5 +10,5 @@
 - Inject routing, translation, public branding and theme options through props or `SharedAppProvider`.
 - Use `@vibechat/ui` for theme CSS and class merging.
 - Add package dependencies here instead of relying on a consuming app's transitive dependencies.
-- AI/payment-specific components remain archived under `legacy/libs/react-shared` until a reviewed product scope restores them.
+- Product-specific AI/payment screens stay in `apps/web-app`; promote only genuinely cross-host, framework-neutral primitives into this package.
 - Run `pnpm --filter @vibechat/react-shared typecheck` and `pnpm --filter @vibechat/react-shared build` after changes.

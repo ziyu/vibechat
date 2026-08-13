@@ -1,7 +1,7 @@
 /**
  * Payment Configuration
  */
-import { getEnv } from './utils';
+import { getEnv, getEnvForService, requireEnvForService } from './utils';
 
 export const paymentConfig = {
   /**
@@ -10,6 +10,195 @@ export const paymentConfig = {
    * - 'dynamic': Plans are read from the pricing_plan database table (admin-managed)
    */
   pricingMode: (getEnv('PRICING_MODE') || 'static') as 'static' | 'dynamic',
+
+  /**
+   * Available Payment Providers
+   */
+  providers: {
+    /**
+     * WeChat Pay Configuration
+     */
+    wechat: {
+      get appId() {
+        return requireEnvForService('WECHAT_PAY_APP_ID', 'WeChat Pay');
+      },
+      get mchId() {
+        return requireEnvForService('WECHAT_PAY_MCH_ID', 'WeChat Pay');
+      },
+      get apiKey() {
+        return requireEnvForService('WECHAT_PAY_API_KEY', 'WeChat Pay');
+      },
+      get notifyUrl() {
+        // Need to set as public address, use reverse proxy for local dev
+        return requireEnvForService('WECHAT_PAY_NOTIFY_URL', 'WeChat Pay');
+      },
+      /**
+       * WeChat Pay Certificates (PEM format with \n escape sequences)
+       * These replace the need for certificate files
+       */
+      get privateKey() {
+        const pemKey = requireEnvForService('WECHAT_PAY_PRIVATE_KEY', 'WeChat Pay');
+        return Buffer.from(pemKey, 'utf8');
+      },
+      get publicKey() {
+        const pemKey = requireEnvForService('WECHAT_PAY_PUBLIC_KEY', 'WeChat Pay');
+        return Buffer.from(pemKey, 'utf8');
+      },
+      /**
+       * WeChat Pay Payment Public Key (for signature verification)
+       * This is the official WeChat Pay public key for verifying signatures
+       */
+      get paymentPublicKey() {
+        const pemKey = getEnvForService('WECHAT_PAY_PAYMENT_PUBLIC_KEY', 'WeChat Pay Payment Public Key');
+        return pemKey ? Buffer.from(pemKey, 'utf8') : undefined;
+      },
+      /**
+       * WeChat Pay Public Key ID
+       * This is used to identify which WeChat Pay public key to use for verification
+       */
+      get publicKeyId() {
+        return getEnvForService('WECHAT_PAY_PUBLIC_KEY_ID', 'WeChat Pay Public Key ID');
+      }
+    },
+
+    /**
+     * Stripe Configuration
+     */
+    stripe: {
+      get secretKey() {
+        return requireEnvForService('STRIPE_SECRET_KEY', 'Stripe');
+      },
+      get publicKey() {
+        return requireEnvForService('STRIPE_PUBLIC_KEY', 'Stripe');
+      },
+      get webhookSecret() {
+        return requireEnvForService('STRIPE_WEBHOOK_SECRET', 'Stripe');
+      }
+    },
+
+    /**
+     * Creem Configuration
+     */
+    creem: {
+      get apiKey() {
+        return requireEnvForService('CREEM_API_KEY', 'Creem');
+      },
+      get serverUrl() {
+        return getEnv('CREEM_SERVER_URL') || 'https://test-api.creem.io';
+      },
+      get webhookSecret() {
+        return requireEnvForService('CREEM_WEBHOOK_SECRET', 'Creem');
+      }
+    },
+
+    /**
+     * Alipay Configuration
+     * Reference: https://opendocs.alipay.com/open/00dn7o (Sandbox environment)
+     */
+    alipay: {
+      get appId() {
+        return requireEnvForService('ALIPAY_APP_ID', 'Alipay');
+      },
+      /**
+       * Application private key (PEM format with \n escape sequences)
+       * Used to sign API requests to Alipay
+       */
+      get appPrivateKey() {
+        return requireEnvForService('ALIPAY_APP_PRIVATE_KEY', 'Alipay');
+      },
+      /**
+       * Alipay public key (PEM format with \n escape sequences)
+       * Used to verify Alipay signatures on webhook notifications
+       */
+      get alipayPublicKey() {
+        return requireEnvForService('ALIPAY_PUBLIC_KEY', 'Alipay');
+      },
+      get notifyUrl() {
+        // Need to set as public address, use reverse proxy for local dev
+        return requireEnvForService('ALIPAY_NOTIFY_URL', 'Alipay');
+      },
+      /**
+       * Whether to use sandbox environment for testing
+       * Sandbox gateway: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+       * Production gateway: https://openapi.alipay.com/gateway.do
+       */
+      get sandbox() {
+        return getEnv('ALIPAY_SANDBOX') === 'true';
+      },
+      /**
+       * Gateway URL (automatically determined by sandbox mode)
+       */
+      get gateway() {
+        const sandbox = getEnv('ALIPAY_SANDBOX') === 'true';
+        return sandbox
+          ? 'https://openapi-sandbox.dl.alipaydev.com/gateway.do'
+          : 'https://openapi.alipay.com/gateway.do';
+      }
+    },
+
+    /**
+     * PayPal Configuration
+     * Reference: https://developer.paypal.com/docs/checkout/
+     * Supports one-time payments (Orders API) and subscriptions (Subscriptions API)
+     */
+    paypal: {
+      /**
+       * PayPal Client ID from Developer Dashboard
+       * Get from: https://developer.paypal.com/dashboard/applications
+       */
+      get clientId() {
+        return requireEnvForService('PAYPAL_CLIENT_ID', 'PayPal');
+      },
+      /**
+       * PayPal Client Secret from Developer Dashboard
+       * Used for server-side API authentication
+       */
+      get clientSecret() {
+        return requireEnvForService('PAYPAL_CLIENT_SECRET', 'PayPal');
+      },
+      /**
+       * PayPal Webhook ID for signature verification
+       * Get from: PayPal Developer Dashboard -> Webhooks
+       */
+      get webhookId() {
+        return requireEnvForService('PAYPAL_WEBHOOK_ID', 'PayPal');
+      },
+      /**
+       * Whether to use sandbox environment for testing
+       * Sandbox: https://api-m.sandbox.paypal.com
+       * Production: https://api-m.paypal.com
+       */
+      get sandbox() {
+        return getEnv('PAYPAL_SANDBOX') === 'true';
+      },
+      /**
+       * PayPal API Base URL (automatically determined by sandbox mode)
+       */
+      get apiBaseUrl() {
+        const sandbox = getEnv('PAYPAL_SANDBOX') === 'true';
+        return sandbox
+          ? 'https://api-m.sandbox.paypal.com'
+          : 'https://api-m.paypal.com';
+      }
+    },
+
+    /**
+     * Dodo Payments Configuration (Global market, Merchant of Record)
+     * Reference: https://docs.dodopayments.com/developer-resources/sdks/typescript
+     * Products must be created in the Dodo Payments Dashboard
+     */
+    dodo: {
+      get apiKey() {
+        return requireEnvForService('DODO_PAYMENTS_API_KEY', 'Dodo Payments');
+      },
+      get webhookSecret() {
+        return requireEnvForService('DODO_PAYMENTS_WEBHOOK_KEY', 'Dodo Payments');
+      },
+      get testMode() {
+        return getEnv('DODO_PAYMENTS_TEST_MODE') === 'true';
+      },
+    }
+  },
 
   /**
    * Subscription Plans

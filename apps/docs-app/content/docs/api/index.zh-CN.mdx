@@ -39,6 +39,14 @@ const response = await fetch('/v1/product-state', {
 | `PUT` | `/v1/rooms/:roomId/preferences` | 保存当前用户对真实 Matrix 房间的置顶/静音状态 |
 | `GET` | `/v1/spaces?locale=zh-CN` | 获取服务端官方内置空间目录及版本/能力信息 |
 | `PUT` | `/v1/spaces/:spaceId/favorite` | 保存当前账号的官方空间收藏 |
+| `GET` | `/api/credits/status`、`/api/credits/transactions` | 当前用户积分余额与账本 |
+| `GET` | `/api/orders`、`/api/subscription/status` | 当前用户订单与权益 |
+| `GET/POST` | `/api/affiliate/*`、`/api/withdrawal/*` | 推荐归因、佣金与 KYC 提现 |
+| `POST` | `/api/payment/initiate` | 按服务端价格发起幂等结账 |
+| `POST` | `/api/chat`、`/api/image-generate`、`/api/video-generate` | 带失败退款的 AI 生成 |
+| `POST` | `/api/upload` | 校验类型和大小的登录态图片上传 |
+
+支付成功/取消页只负责展示，履约权威来自验签后的 provider 回调。AI 任务和账本接口绑定当前用户，重试同一操作必须复用稳定 request ID。
 
 ## 产品状态示例
 

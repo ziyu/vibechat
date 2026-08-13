@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./account": "./src/account.ts",
+    "./ai": "./src/ai.ts",
     "./admin": "./src/admin.ts",
     "./media": "./src/media.ts",
     "./product-state": "./src/product-state.ts",

@@ -14,7 +14,10 @@ export function baseOptions(locale: string): BaseLayoutProps {
   const t = translations[locale as keyof typeof translations] || translations.en;
 
   return {
-    i18n,
+    // Locale state is already provided by DocsRootProvider. Passing Fumadocs'
+    // server i18n API here would serialize its translations() function into a
+    // client layout on static export.
+    i18n: true,
     nav: {
       title: <Logo size="md" />,
     },

@@ -26,4 +26,4 @@ Local port: `8002`. Browser traffic normally reaches it through the Web `8001` s
 - Request-scoped database bindings go through `src/lib/with-request-db.ts`.
 - Cloudflare changes follow [`CF-NOTES.md`](./CF-NOTES.md) and the deployment Runbook.
 
-Old payment and AI routes remain isolated under `legacy/backend`; the reviewed Admin, affiliate, credit and pricing operations APIs are active Backend responsibilities.
+Payment, AI, affiliate, credit, pricing and account APIs are active Backend responsibilities. Keep provider SDKs and database mutations inside Backend-owned `libs/*`; Web and Admin only consume the HTTP contracts.

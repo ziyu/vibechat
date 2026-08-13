@@ -2,6 +2,7 @@ import {
   atmosphereSpaceDirectorySchema,
   friendRequestMutationResponseSchema,
   productApiErrorSchema,
+  flatProductApiErrorSchema,
   productPreferencesSchema,
   productProfileSchema,
   productStateSnapshotSchema,
@@ -20,6 +21,29 @@ import {
   type SocialPerson,
   type UpdateProductProfile,
   type ContractSchema,
+  pricingPlansResponseSchema,
+  creditStatusResponseSchema,
+  creditTransactionsResponseSchema,
+  ordersResponseSchema,
+  subscriptionStatusResponseSchema,
+  affiliateStatsResponseSchema,
+  commissionsResponseSchema,
+  referralsResponseSchema,
+  withdrawalsResponseSchema,
+  withdrawalRequestInputSchema,
+  withdrawalRequestResponseSchema,
+  paymentInitiateInputSchema,
+  paymentInitiateResponseSchema,
+  subscriptionPortalResponseSchema,
+  type WithdrawalRequestInput,
+  type PaymentInitiateInput,
+  imageGenerationInputSchema,
+  imageGenerationResponseSchema,
+  videoGenerationInputSchema,
+  videoGenerationResponseSchema,
+  videoTaskStatusResponseSchema,
+  type ImageGenerationInput,
+  type VideoGenerationInput,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -64,6 +88,25 @@ export class ProductApiClient {
     return this.baseUrl ? new URL(path, this.baseUrl) : path
   }
 
+  private async parseError(response: Response): Promise<ProductApiError | null> {
+    const raw = await response.json().catch(() => null)
+    const parsed = productApiErrorSchema.safeParse(raw)
+    if (parsed.success) return parsed.data
+
+    const flat = flatProductApiErrorSchema.safeParse(raw)
+    if (!flat.success) return null
+    return {
+      error: {
+        code: flat.data.error.toUpperCase(),
+        message: flat.data.message || flat.data.error,
+        details: Object.fromEntries(
+          Object.entries(flat.data).filter(([key]) => !['error', 'message', 'requestId'].includes(key)),
+        ),
+        requestId: flat.data.requestId || null,
+      },
+    }
+  }
+
   private async request<T>(
     path: string,
     schema: ContractSchema<T>,
@@ -78,9 +121,7 @@ export class ProductApiClient {
       headers,
     })
     if (!response.ok) {
-      const raw = await response.json().catch(() => null)
-      const parsed = productApiErrorSchema.safeParse(raw)
-      throw new ProductApiClientError(response, parsed.success ? parsed.data : null, fallbackCode)
+      throw new ProductApiClientError(response, await this.parseError(response), fallbackCode)
     }
     return schema.parse(await response.json())
   }
@@ -179,9 +220,10 @@ export class ProductApiClient {
     )
   }
 
-  async uploadImage(file: File) {
+  async uploadImage(file: File, provider?: 'oss' | 's3' | 'r2' | 'cos') {
     const body = new FormData()
     body.append('file', file)
+    if (provider) body.append('provider', provider)
     const response = await this.transport.fetch(this.resolve('/api/upload'), {
       method: 'POST',
       credentials: 'include',
@@ -191,15 +233,73 @@ export class ProductApiClient {
     return uploadImageResponseSchema.parse(await response.json()).data
   }
 
+  getPricingPlans(locale: string) {
+    return this.request(`/api/pricing/plans?locale=${encodeURIComponent(locale)}`, pricingPlansResponseSchema, 'PRICING_LOAD_FAILED')
+  }
+
+  getCreditStatus() {
+    return this.request('/api/credits/status', creditStatusResponseSchema, 'CREDIT_STATUS_FAILED')
+  }
+
+  getCreditTransactions(page = 1, limit = 10) {
+    return this.request(`/api/credits/transactions?page=${page}&limit=${limit}`, creditTransactionsResponseSchema, 'CREDIT_TRANSACTIONS_FAILED')
+  }
+
+  getOrders(page = 1, limit = 10) {
+    return this.request(`/api/orders?page=${page}&limit=${limit}`, ordersResponseSchema, 'ORDERS_FAILED')
+  }
+
+  getSubscriptionStatus() {
+    return this.request('/api/subscription/status', subscriptionStatusResponseSchema, 'SUBSCRIPTION_STATUS_FAILED')
+  }
+
+  createSubscriptionPortal(provider?: string, returnUrl?: string) {
+    return this.request('/api/subscription/portal', subscriptionPortalResponseSchema, 'SUBSCRIPTION_PORTAL_FAILED', this.jsonInit('POST', { provider, returnUrl }))
+  }
+
+  getAffiliateStats() {
+    return this.request('/api/affiliate/stats', affiliateStatsResponseSchema, 'AFFILIATE_STATS_FAILED')
+  }
+
+  getCommissions(page = 1, limit = 10) {
+    return this.request(`/api/affiliate/commissions?page=${page}&limit=${limit}`, commissionsResponseSchema, 'COMMISSIONS_FAILED')
+  }
+
+  getReferrals(page = 1, limit = 10) {
+    return this.request(`/api/affiliate/referrals?page=${page}&limit=${limit}`, referralsResponseSchema, 'REFERRALS_FAILED')
+  }
+
+  getWithdrawals(page = 1, limit = 10) {
+    return this.request(`/api/withdrawal/history?page=${page}&limit=${limit}`, withdrawalsResponseSchema, 'WITHDRAWALS_FAILED')
+  }
+
+  requestWithdrawal(input: WithdrawalRequestInput) {
+    return this.request('/api/withdrawal/request', withdrawalRequestResponseSchema, 'WITHDRAWAL_REQUEST_FAILED', this.jsonInit('POST', withdrawalRequestInputSchema.parse(input)))
+  }
+
+  initiatePayment(input: PaymentInitiateInput) {
+    return this.request('/api/payment/initiate', paymentInitiateResponseSchema, 'PAYMENT_INITIATE_FAILED', this.jsonInit('POST', paymentInitiateInputSchema.parse(input)))
+  }
+
+  generateImage(input: ImageGenerationInput) {
+    return this.request('/api/image-generate', imageGenerationResponseSchema, 'IMAGE_GENERATION_FAILED', this.jsonInit('POST', imageGenerationInputSchema.parse(input)))
+  }
+
+  generateVideo(input: VideoGenerationInput) {
+    return this.request('/api/video-generate', videoGenerationResponseSchema, 'VIDEO_GENERATION_FAILED', this.jsonInit('POST', videoGenerationInputSchema.parse(input)))
+  }
+
+  getVideoTask(taskId: string) {
+    return this.request(`/api/video-generate/status?taskId=${encodeURIComponent(taskId)}`, videoTaskStatusResponseSchema, 'VIDEO_STATUS_FAILED')
+  }
+
   private async requestWithoutBody(path: string, fallbackCode: string, init: RequestInit) {
     const response = await this.transport.fetch(this.resolve(path), {
       credentials: 'include',
       ...init,
     })
     if (!response.ok) {
-      const raw = await response.json().catch(() => null)
-      const parsed = productApiErrorSchema.safeParse(raw)
-      throw new ProductApiClientError(response, parsed.success ? parsed.data : null, fallbackCode)
+      throw new ProductApiClientError(response, await this.parseError(response), fallbackCode)
     }
   }
 }

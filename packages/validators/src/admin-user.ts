@@ -23,6 +23,7 @@ export function createAdminUserValidators(t: TranslationFunction) {
       .or(z.literal('')),
     emailVerified: z.boolean(),
     phoneNumberVerified: z.boolean(),
+    kycVerified: z.boolean(),
     banned: z.boolean(),
     banReason: z.string()
       .optional()

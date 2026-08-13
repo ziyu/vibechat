@@ -3,6 +3,7 @@ import { isValidLocale } from '@vibechat/i18n'
 import { config } from '@config'
 import { SharedAppProvider } from '@vibechat/react-shared/providers/app-context'
 import { useTranslation } from '@/hooks/use-translation'
+import { ReferralClaim } from '@/features/account/referral-claim'
 
 export const Route = createFileRoute('/$lang')({
   beforeLoad: ({ params }) => {
@@ -21,6 +22,7 @@ function LangLayout() {
 
   return (
     <SharedAppProvider value={{ t, locale }}>
+      <ReferralClaim />
       <Outlet />
     </SharedAppProvider>
   )

@@ -53,6 +53,7 @@ export type {
   NewContact,
   NewFriendRequest,
 } from './schema/pg/social'
+export type { AiGenerationTask, NewAiGenerationTask } from './schema/pg/ai-generation-task'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -68,6 +69,7 @@ export { roomIndex } from './schema/room'
 export { roomUserPreference, spaceFavorite, userPreference } from './schema/product-state'
 export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
+export { aiGenerationTask } from './schema/ai-generation-task'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -93,6 +95,7 @@ import {
   matrixSessionBinding as _matrixSessionBinding,
   userProfile as _userProfile,
 } from './schema/identity'
+import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-task'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
@@ -105,6 +108,7 @@ const _schema = {
   block: _block, contact: _contact, friendRequest: _friendRequest,
   userProfile: _userProfile, matrixIdentity: _matrixIdentity,
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
+  aiGenerationTask: _aiGenerationTask,
 }
 
 // ---------------------------------------------------------------------------

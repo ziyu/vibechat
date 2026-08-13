@@ -1,7 +1,7 @@
 'use client'
 
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Compass, ContactRound, MessageCircleMore, UserRound } from 'lucide-react'
+import { Compass, ContactRound, MessageCircleMore, Shapes, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
 import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
@@ -12,8 +12,8 @@ import { authClientReact } from '@vibechat/auth-client'
 import { browserProductPlatform } from '@/lib/product-platform'
 
 interface NavItem {
-  id: 'messages' | 'contacts' | 'discover' | 'me'
-  to: '/$lang/messages' | '/$lang/contacts' | '/$lang/discover' | '/$lang/me'
+  id: 'messages' | 'contacts' | 'discover' | 'services' | 'me'
+  to: '/$lang/messages' | '/$lang/contacts' | '/$lang/discover' | '/$lang/services' | '/$lang/me'
   icon: LucideIcon
   label: string
 }
@@ -32,6 +32,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
   const currentUser = state.people.find((person) => person.id === state.currentUserId)
   const inRoom = pathname.includes('/rooms/')
+  const section = pathname.split('/')[2]
 
   const leaveProduct = async () => {
     await clearLocalChatData().catch(() => undefined)
@@ -72,6 +73,12 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
       label: t.chatApp.nav.discover,
     },
     {
+      id: 'services',
+      to: '/$lang/services',
+      icon: Shapes,
+      label: t.chatApp.nav.services,
+    },
+    {
       id: 'me',
       to: '/$lang/me',
       icon: UserRound,
@@ -80,7 +87,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   ]
 
   const isActive = (item: NavItem) => {
-    const section = pathname.split('/')[2]
     if (item.id === 'messages') return section === 'messages' || section === 'rooms'
     return section === item.id
   }

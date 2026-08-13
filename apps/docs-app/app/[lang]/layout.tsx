@@ -11,14 +11,12 @@ import { DocsRootProvider } from '@/components/docs-root-provider';
 
 // Define i18n UI with translations for language switcher
 const { provider } = defineI18nUI(i18n, {
-  translations: {
-    en: {
-      displayName: 'English',
-    },
-    'zh-CN': {
-      displayName: '中文',
-      search: '搜索文档',
-    },
+  en: {
+    displayName: 'English',
+  },
+  'zh-CN': {
+    displayName: '中文',
+    search: '搜索文档',
   },
 });
 

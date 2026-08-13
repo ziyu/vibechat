@@ -2,12 +2,13 @@
 
 ## Scope
 
-`libs/credits` is a read-only Backend-internal ledger query module consumed by the Admin transactions API.
+`libs/credits` is the Backend-internal credit ledger used by user APIs, AI billing, payment fulfillment, affiliate rewards and Admin queries.
 
 ## Rules
 
-- Keep all access behind `requireAdminAPI`; never expose cross-user ledger data through a user route.
-- Bound pagination and validate query inputs in the API adapter.
-- Preserve stable sorting and transaction/user join fields expected by Admin.
-- Balance mutation, purchases, bonuses and AI consumption are archived under `legacy/libs/credits`; restore them only with a reviewed billing design, atomicity tests, refund handling and reconciliation metadata.
-- Run Admin API/E2E and Backend Node + Workers builds after changes.
+- User routes may expose only the authenticated user's balance and ledger; global queries remain behind `requireAdminAPI`.
+- Every mutation requires a stable transaction ID. Retries must return the existing outcome and never duplicate a ledger row.
+- Balance mutation and ledger insertion remain atomic on PostgreSQL, SQLite and D1; conditional consumption must not overdraw.
+- AI and provider failures use a deterministic refund transaction ID and reconciliation metadata.
+- Bound pagination and validate query inputs in the API adapter; preserve Admin sorting and join fields.
+- Run credit/unit, user ownership, Admin API/E2E and Backend Node + Workers builds after changes.

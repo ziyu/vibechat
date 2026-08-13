@@ -126,9 +126,13 @@ export const Route = createFileRoute('/api/upload')({
             success: true,
             data: { key: uploadResult.key, url, size: uploadResult.size, contentType: file.type, originalName: file.name, provider, ...(expiresAt && { expiresAt }) },
           })
-        } catch (error: any) {
-          console.error('Upload error:', error)
-          return Response.json({ error: 'Failed to upload file', message: error.message }, { status: 500 })
+        } catch (error) {
+          const value = error && typeof error === 'object' ? error as { name?: unknown; code?: unknown } : null
+          console.error('Upload provider error:', {
+            name: typeof value?.name === 'string' ? value.name : 'Error',
+            code: typeof value?.code === 'string' ? value.code : undefined,
+          })
+          return Response.json({ error: 'Storage provider is unavailable' }, { status: 503 })
         }
       }),
     },

@@ -8,6 +8,7 @@ export const withdrawalRequestSchema = z.object({
   amount: z.coerce.number().finite().positive(),
   paymentMethod: withdrawalMethodSchema,
   paymentAccount: z.string().trim().min(1).max(200),
+  requestId: z.string().regex(/^[A-Za-z0-9:_-]{8,128}$/).optional(),
 })
 
 /**

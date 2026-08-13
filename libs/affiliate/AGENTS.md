@@ -2,12 +2,14 @@
 
 ## Scope
 
-`libs/affiliate` is a Backend-internal Admin operations module. It currently owns only processing existing withdrawal records and refunding a reserved commission balance when an Admin rejects a request.
+`libs/affiliate` owns Backend-internal referral attribution, signup bonuses, payment commissions, withdrawal reservations and Admin processing.
 
 ## Rules
 
-- Every caller must be behind `requireAdminAPI`; this module does not authenticate requests itself.
+- HTTP callers authenticate independently: user routes bind operations to the session user; Admin processing stays behind `requireAdminAPI`.
 - Terminal withdrawal states are immutable. Claim a non-terminal record with a conditional update before refunding, so concurrent requests cannot refund twice.
 - Money remains stored as decimal strings; validate parsed amounts before arithmetic.
-- Referral claim, commission creation, signup bonuses and user withdrawal requests are archived under `legacy/libs/affiliate` and must not be restored without product review, ownership APIs and E2E.
-- Run Admin API/E2E and Backend Node + Workers builds after changes.
+- Referral attribution, signup bonuses, commission creation and withdrawal requests require deterministic idempotency keys.
+- New accounts are not KYC verified; only an Admin may set `kycVerified`, and withdrawals must fail closed until then.
+- Keep the configured affiliate currency consistent with all commission-bearing plans.
+- Run affiliate/credit unit tests, ownership checks, user/Admin E2E and Backend Node + Workers builds after changes.

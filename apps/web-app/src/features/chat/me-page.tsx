@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Bell,
+  CreditCard,
   Camera,
   ChevronRight,
   CircleHelp,
@@ -17,6 +18,7 @@ import {
   RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
 import type { SupportedLocale } from '@vibechat/i18n'
 import { useTranslation } from '@/hooks/use-translation'
@@ -411,6 +413,11 @@ export function MePage() {
           </SettingsGroup>
 
           <SettingsGroup title={t.chatApp.me.about}>
+            <SettingsRow icon={<CreditCard />} title={t.chatApp.me.accountCenter} description={t.chatApp.me.accountCenterDescription}>
+              <Link to="/$lang/account" params={{ lang: locale }} className="vc-settings-action">
+                {t.chatApp.me.manage}<ChevronRight />
+              </Link>
+            </SettingsRow>
             <SettingsRow icon={<ShieldCheck />} title={t.chatApp.me.hostSafety} description={t.chatApp.me.hostSafetyDescription}>
               <ChevronRight />
             </SettingsRow>

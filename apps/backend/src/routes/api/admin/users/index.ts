@@ -101,6 +101,7 @@ export const Route = createFileRoute('/api/admin/users/')({
               referralCode: user.referralCode,
               referredByCode: user.referredByCode,
               commissionBalance: user.commissionBalance,
+              kycVerified: user.kycVerified,
               createdAt: user.createdAt,
               updatedAt: user.updatedAt,
             })
