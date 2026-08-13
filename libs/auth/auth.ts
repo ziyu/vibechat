@@ -13,6 +13,7 @@ import { sendAuthenticationOtpEmail, sendVerificationEmail, sendResetPasswordEma
 import { locales, defaultLocale, getTranslation, type SupportedLocale } from '@vibechat/i18n'
 import { config } from '@config'
 import { drainMatrixSessionRevocations, enqueueMatrixSessionRevocation } from './session-lifecycle'
+import { getTrustedAuthOrigins } from './trusted-origins'
 export { toNextJsHandler } from "better-auth/next-js";
 /**
  * 从 referer URL 中提取信息
@@ -43,33 +44,7 @@ function getRefererInfo(request?: Request): { locale: string; lastSegment: strin
 
 export const auth = betterAuth({
   appName: 'vibechat',
-  trustedOrigins: (request) => {
-    const origins = [
-      process.env.APP_BASE_URL,
-      process.env.BETTER_AUTH_URL,
-      process.env.ADMIN_APP_ORIGIN,
-    ]
-      .filter((origin): origin is string => !!origin)
-    if (process.env.NODE_ENV !== 'production' && request) {
-      const requestUrl = new URL(request.url)
-      if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
-        origins.push(requestUrl.origin)
-      }
-
-      const requestOrigin = request.headers.get('origin')
-      if (requestOrigin) {
-        try {
-          const originUrl = new URL(requestOrigin)
-          if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
-            origins.push(originUrl.origin)
-          }
-        } catch {
-          // Better Auth will reject malformed origins; they must not enter the allowlist.
-        }
-      }
-    }
-    return [...new Set(origins)]
-  },
+  trustedOrigins: (request) => getTrustedAuthOrigins(request),
   database: drizzleAdapter(db, {
     provider: isSqliteDialect() ? 'sqlite' : 'pg',
     schema: {

@@ -3,6 +3,7 @@ import { ADMIN_USER, TIMEOUTS, uniqueEmail } from '../helpers/constants'
 import { signInViaAPI, signUpViaAPI } from '../helpers/auth'
 
 const ADMIN_ORIGIN = process.env.ADMIN_E2E_ORIGIN || 'http://localhost:8005'
+const WEB_ORIGIN = process.env.E2E_BASE_URL || 'http://localhost:8001'
 const adminUrl = (path = '') => `${ADMIN_ORIGIN}/en/admin${path}`
 
 test.describe('Independent Admin App', () => {
@@ -37,8 +38,15 @@ test.describe('Independent Admin App', () => {
   test('admin reads every active operations domain', async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
-    const signIn = await signInViaAPI(page, ADMIN_USER)
-    expect(signIn.ok(), await signIn.text()).toBeTruthy()
+    const callbackURL = adminUrl()
+    const signIn = await page.request.post(`${WEB_ORIGIN}/api/auth/sign-in/email`, {
+      data: { ...ADMIN_USER, callbackURL },
+      headers: { Origin: WEB_ORIGIN },
+    })
+    expect(
+      signIn.ok(),
+      `Admin callback sign-in failed (${signIn.status()}): ${await signIn.text()}`,
+    ).toBeTruthy()
 
     await page.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
     await expect(page.getByTestId('admin-shell')).toBeVisible()
