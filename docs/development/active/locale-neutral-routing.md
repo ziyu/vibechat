@@ -1,7 +1,7 @@
 # 多应用无前缀本地化集成记录
 
 > 生命周期：开发中
-> 状态：验证中
+> 状态：待合并
 > 更新日期：2026-08-14
 > 维护范围：`apps/site-app`、`apps/web-app`、`apps/admin-app`、`packages/i18n` 与 E2E
 
@@ -33,4 +33,4 @@ Site、产品 Web 与 Admin 使用稳定的业务资源 URL，语言只作为用
 - `tests/e2e/specs/i18n-switching.spec.ts` 与 `public-pages.spec.ts` 在 Chromium 中分别 5/5 通过。
 - 真实浏览器确认 Site `/blog?page=1#posts` 切换语言后 URL 不变，Web 与 Admin 读取同一语言偏好，Admin 旧前缀保留 query/hash 后跳转，未支持语言路径返回本地化 404；浏览器控制台无 error。
 
-剩余完成条件仅为提交推送后确认 PR 与最新 `main` 可合并。
+所有实现与验证条件已经满足；待 PR 合并后归档本记录。
