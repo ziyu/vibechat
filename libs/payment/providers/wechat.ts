@@ -1,18 +1,14 @@
 import { PaymentProvider, PaymentParams, PaymentResult, WebhookVerification, PaymentPlan } from '../types';
 import { config } from '@config';
-import type { CreditPlan, Plan } from '@config';
+import type { Plan } from '@config';
 import { db } from '@libs/database';
 import { order, orderStatus } from '@libs/database/schema/order';
-import { subscription, subscriptionStatus, paymentTypes } from '@libs/database/schema/subscription';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { utcNow } from '@libs/database/utils/utc';
+import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 import { X509Certificate } from '@peculiar/x509';
 import { ofetch } from 'ofetch';
-import { creditService, TransactionTypeCode } from '@libs/credits';
-import { processReferralCommission } from '@libs/affiliate';
-import { getPlanById } from '@libs/pricing';
+import { fulfillPaidOrder } from '../fulfillment';
+import { summarizePaymentError } from '../error';
 
 // 微信支付分为两大部分 ：https://pay.weixin.qq.com/doc/v3/merchant/4012365342 特别注意这个文档中的图
 // 1 发送请求 生成签名
@@ -148,7 +144,7 @@ export class WechatPayProvider implements PaymentProvider {
       // 4. 平台证书在 verifySignature 中按需获取更合理
       
     } catch (error) {
-      console.error('Error loading certificates from environment variables:', error);
+      console.error('Error loading certificates from environment variables:', summarizePaymentError(error));
       throw new Error('Failed to load WeChat Pay certificates. Please ensure WECHAT_PAY_PRIVATE_KEY_BASE64 and WECHAT_PAY_PUBLIC_KEY_BASE64 are set correctly.');
     }
   }
@@ -159,7 +155,7 @@ export class WechatPayProvider implements PaymentProvider {
       const certificate = new X509Certificate(new Uint8Array(certificateData));
       return certificate.serialNumber;
     } catch (error) {
-      console.error('Error getting certificate serial number:', error);
+      console.error('Error getting certificate serial number:', summarizePaymentError(error));
       throw new Error('Failed to get certificate serial number');
     }
   }
@@ -167,7 +163,6 @@ export class WechatPayProvider implements PaymentProvider {
   // https://pay.weixin.qq.com/doc/v3/merchant/4012365336
   private async sign(method: string, path: string, timestamp: string, nonce: string, body?: string) {
     const message = `${method}\n${path}\n${timestamp}\n${nonce}\n${body || ''}\n`;
-    console.log('message:', JSON.stringify(message));
     const signature = crypto.createSign('RSA-SHA256')
       .update(message)
       .sign(this.privateKey, 'base64');
@@ -198,7 +193,7 @@ export class WechatPayProvider implements PaymentProvider {
         console.log('Successfully updated platform certificates');
       }
     } catch (error) {
-      console.error('Failed to fetch platform certificates:', error);
+      console.error('Failed to fetch platform certificates:', summarizePaymentError(error));
       throw error;
     }
   }
@@ -226,7 +221,7 @@ export class WechatPayProvider implements PaymentProvider {
           // Don't return false immediately, try platform certificate method as fallback
         }
       } catch (error) {
-        console.error('Error during WeChat Pay public key verification:', error);
+        console.error('Error during WeChat Pay public key verification:', summarizePaymentError(error));
         // Continue to platform certificate verification as fallback
       }
     }
@@ -248,7 +243,7 @@ export class WechatPayProvider implements PaymentProvider {
         await this.fetchPlatformCertificates();
         platformPublicKey = this.platformCertificates.get(serialNo);
       } catch (error) {
-        console.error('Failed to fetch platform certificates:', error);
+        console.error('Failed to fetch platform certificates:', summarizePaymentError(error));
       }
     }
 
@@ -270,7 +265,7 @@ export class WechatPayProvider implements PaymentProvider {
       
       return isValid;
     } catch (error) {
-      console.error('Error during platform certificate verification:', error);
+      console.error('Error during platform certificate verification:', summarizePaymentError(error));
       return false;
     }
   }
@@ -326,7 +321,7 @@ export class WechatPayProvider implements PaymentProvider {
         wechatpaySerial
       );
     } catch (error) {
-      console.error('Error verifying response signature:', error);
+      console.error('Error verifying response signature:', summarizePaymentError(error));
       return false;
     }
   }
@@ -356,26 +351,18 @@ export class WechatPayProvider implements PaymentProvider {
       'Wechatpay-Serial': this.publicKeyId ? this.publicKeyId : this.serialNo
     };
 
-    console.log('Request details:', {
-      url,
-      method,
-      headers,
-      body: data
-    });
+    console.log('WeChat Pay request:', { method, path });
 
     try {
       // 使用 ofetch 获取完整响应（包含响应头）
-      const response = await ofetch.raw(url, {
+      const response = await ofetch.raw<string, 'text'>(url, {
         method,
         body: data,
-        headers
+        headers,
+        responseType: 'text',
       });
 
-      console.log('Response details:', {
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: response._data
-      });
+      console.log('WeChat Pay response:', { method, path, status: response.status });
 
       // 验证响应签名（除非明确跳过）
       // 根据微信官方文档：https://pay.weixin.qq.com/doc/v3/merchant/4013053249
@@ -383,24 +370,16 @@ export class WechatPayProvider implements PaymentProvider {
       if (!skipSignatureVerification) {
         const isSignatureValid = await this.verifyResponseSignature(response);
         if (!isSignatureValid) {
-          console.warn('WeChat Pay response signature verification failed, but continuing...');
-          // 签名验证失败时的处理策略：
-          // 1. 记录警告日志以便监控和调试
-          // 2. 不直接抛出错误，因为可能是微信的签名探测流量
-          // 3. 在生产环境中，可以根据业务需求决定是否要舍弃该应答
+          throw new Error('WeChat Pay response signature verification failed');
         }
       } else {
         console.log('Skipping response signature verification for this request');
       }
 
-      return response._data;
+      if (!response._data) return {};
+      return JSON.parse(response._data);
     } catch (error: any) {
-      console.error('Response error details:', {
-        status: error.status,
-        statusText: error.statusText,
-        message: error.message,
-        data: error.data
-      });
+      console.error('WeChat Pay response error:', { method, path, ...summarizePaymentError(error) });
       throw error;
     }
   }
@@ -434,13 +413,13 @@ export class WechatPayProvider implements PaymentProvider {
         return {
           paymentUrl: result.code_url,
           providerOrderId: params.orderId,
-          metadata: { result }
+          metadata: { paymentMode: 'native' }
         };
       } else {
-        throw new Error(`微信支付下单失败: ${JSON.stringify(result)}`);
+        throw new Error('微信支付下单失败：支付服务未返回二维码地址');
       }
     } catch (error) {
-      console.error('微信支付创建订单失败:', error);
+      console.error('微信支付创建订单失败:', summarizePaymentError(error));
       throw error;
     }
   }
@@ -479,7 +458,7 @@ export class WechatPayProvider implements PaymentProvider {
       
       // 关闭订单成功时返回204状态码，无响应体
       // 当使用ofetch时，204状态码会返回空对象 {}
-      console.log('Close order response:', response);
+      console.log('WeChat Pay order close request completed');
       
       // 更新本地订单状态
       try {
@@ -488,15 +467,15 @@ export class WechatPayProvider implements PaymentProvider {
             status: orderStatus.CANCELED,
             updatedAt: new Date()
           })
-          .where(eq(order.id, orderId));
+          .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
       } catch (dbError) {
-        console.error('更新订单状态失败:', dbError);
+        console.error('更新订单状态失败:', summarizePaymentError(dbError));
         // 即使数据库更新失败，只要微信那边关闭成功，我们仍然返回true
       }
       
       return true;
     } catch (error) {
-      console.error('关闭微信支付订单失败:', error);
+      console.error('关闭微信支付订单失败:', summarizePaymentError(error));
       return false;
     }
   }
@@ -506,14 +485,6 @@ export class WechatPayProvider implements PaymentProvider {
       const { headers, body } = typeof payload === 'string' ? { headers: {}, body: payload } : payload;
       const timestamp = headers['wechatpay-timestamp'];
       const nonce = headers['wechatpay-nonce'];
-      
-      console.log('Webhook verification details:', {
-        timestamp,
-        nonce,
-        body,
-        signature,
-        headers
-      });
       
       const isValid = await this.verifySignature(timestamp, nonce, body, signature, headers['wechatpay-serial']);
 
@@ -536,140 +507,33 @@ export class WechatPayProvider implements PaymentProvider {
           notification.resource.nonce
         );
 
-        console.log('Decrypted webhook data:', decryptedData);
-        
         // 使用解密后的订单号
         const orderId = decryptedData.out_trade_no;
         
-        // 更新订单状态
-        await db.update(order)
-          .set({ 
-            status: orderStatus.PAID,
-            providerOrderId: decryptedData.transaction_id,
-            updatedAt: new Date()
-          })
-          .where(eq(order.id, orderId));
-
-        await processReferralCommission(orderId);
-          
-        // 获取订单信息
-        const orderRecord = await db.query.order.findFirst({
-          where: eq(order.id, orderId)
+        await fulfillPaidOrder({
+          orderId,
+          providerOrderId: decryptedData.transaction_id,
+          providerEventId: notification.id,
+          paidAmount: decryptedData.amount.total / 100,
+          paidCurrency: decryptedData.amount.currency,
+          metadata: {
+            tradeState: decryptedData.trade_state,
+            tradeStateDescription: decryptedData.trade_state_desc,
+            successTime: decryptedData.success_time,
+          },
         });
-        
-        if (orderRecord) {
-          const plan = (await getPlanById(orderRecord.planId) || config.payment.plans[orderRecord.planId as keyof typeof config.payment.plans]) as PaymentPlan;
-          const now = utcNow();
-          
-          // Handle credit pack purchase
-          if (plan.duration.type === 'credits' && plan.credits) {
-            console.log(`WeChat credit pack purchase - Adding ${plan.credits} credits to user ${orderRecord.userId}`);
-            
-            await creditService.addCredits({
-              userId: orderRecord.userId,
-              amount: plan.credits,
-              type: 'purchase',
-              orderId: orderId,
-              description: TransactionTypeCode.PURCHASE,
-              metadata: {
-                transactionId: decryptedData.transaction_id,
-                planId: orderRecord.planId,
-                provider: 'wechat'
-              }
-            });
-            
-            return { success: true, orderId };
-          }
-          
-          // Handle regular subscription payment
-          const months = plan.duration.months ?? 1;
-          
-          // Check if user already has active subscription
-          const existingSubscription = await db.query.subscription.findFirst({
-            where: and(
-              eq(subscription.userId, orderRecord.userId),
-              eq(subscription.planId, orderRecord.planId),
-              eq(subscription.status, subscriptionStatus.ACTIVE)
-            ),
-            orderBy: [desc(subscription.periodEnd)]
-          });
-          
-          // Calculate new period end time
-          const newPeriodEnd = new Date(now);
-          if (months >= 9999) {
-            // Lifetime subscription: set to 100 years
-            newPeriodEnd.setFullYear(newPeriodEnd.getFullYear() + 100);
-          } else {
-            // Regular subscription: add months
-            newPeriodEnd.setMonth(newPeriodEnd.getMonth() + months);
-          }
-          
-          if (existingSubscription) {
-            // If subscription exists, extend the end date
-            const existingPeriodEnd = existingSubscription.periodEnd;
-            const extensionStart = existingPeriodEnd > now 
-              ? existingPeriodEnd 
-              : now;
-            
-            // Calculate new end time based on extension start
-            const extensionEnd = new Date(extensionStart);
-            if (months >= 9999) {
-              extensionEnd.setFullYear(extensionEnd.getFullYear() + 100);
-            } else {
-              extensionEnd.setMonth(extensionEnd.getMonth() + months);
-            }
-            
-            await db.update(subscription)
-              .set({
-                periodEnd: extensionEnd,
-                updatedAt: now,
-                metadata: JSON.stringify({
-                  ...JSON.parse(existingSubscription.metadata || '{}'),
-                  renewed: true,
-                  lastTransactionId: decryptedData.transaction_id,
-                  lastTradeState: decryptedData.trade_state,
-                  lastTradeStateDesc: decryptedData.trade_state_desc,
-                  lastSuccessTime: decryptedData.success_time,
-                  isLifetime: months >= 9999
-                })
-              })
-              .where(eq(subscription.id, existingSubscription.id));
-          } else {
-            // Create new subscription if none exists
-            await db.insert(subscription).values({
-              id: randomUUID(),
-              userId: orderRecord.userId,
-              planId: orderRecord.planId,
-              status: subscriptionStatus.ACTIVE,
-              paymentType: paymentTypes.ONE_TIME,
-              periodStart: now,
-              periodEnd: newPeriodEnd,
-              cancelAtPeriodEnd: false,
-              metadata: JSON.stringify({
-                transactionId: decryptedData.transaction_id,
-                tradeState: decryptedData.trade_state,
-                tradeStateDesc: decryptedData.trade_state_desc,
-                successTime: decryptedData.success_time,
-                isLifetime: months >= 9999
-              })
-            });
-          }
-        }
         
         return { success: true, orderId };
       }
       
       return { success: true };
     } catch (err) {
-      console.error('处理微信支付回调失败:', err);
+      console.error('处理微信支付回调失败:', summarizePaymentError(err));
       return { success: false };
     }
   }
 
-  async queryOrder(orderId: string): Promise<{
-    status: 'pending' | 'paid' | 'failed';
-    transaction?: WechatPaymentTransaction;
-  }> {
+  async queryOrder(orderId: string): Promise<import('../types').OrderQueryResult> {
     try {
       const result = await this.request('GET', `/v3/pay/transactions/out-trade-no/${orderId}?mchid=${this.mchId}`);
 
@@ -678,18 +542,18 @@ export class WechatPayProvider implements PaymentProvider {
         
         switch (transaction.trade_state) {
           case 'SUCCESS':
-            return { status: 'paid', transaction };
+            return { status: 'paid' };
           case 'NOTPAY':
           case 'USERPAYING':
-            return { status: 'pending', transaction };
+            return { status: 'pending' };
           default:
-            return { status: 'failed', transaction };
+            return { status: 'failed' };
         }
       }
 
       return { status: 'pending' };
     } catch (err) {
-      console.error('查询微信支付订单状态失败:', err);
+      console.error('查询微信支付订单状态失败:', summarizePaymentError(err));
       return { status: 'failed' };
     }
   }

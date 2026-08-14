@@ -6,19 +6,17 @@ import { ThemeScript } from '@/components/theme-script';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { i18n } from '@/lib/i18n';
 import { config } from '@config';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 import { DocsRootProvider } from '@/components/docs-root-provider';
 
 // Define i18n UI with translations for language switcher
 const { provider } = defineI18nUI(i18n, {
-  translations: {
-    en: {
-      displayName: 'English',
-    },
-    'zh-CN': {
-      displayName: '中文',
-      search: '搜索文档',
-    },
+  en: {
+    displayName: 'English',
+  },
+  'zh-CN': {
+    displayName: '中文',
+    search: '搜索文档',
   },
 });
 

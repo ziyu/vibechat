@@ -13,90 +13,45 @@ import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PaymentCancelRouteImport } from './routes/payment-cancel'
 import { Route as LangRouteImport } from './routes/$lang'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as V1SplatRouteImport } from './routes/v1/$'
+import { Route as ReferralCodeRouteImport } from './routes/referral/$code'
+import { Route as ApiVideoGenerateRouteImport } from './routes/api/video-generate'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
-import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiImageGenerateRouteImport } from './routes/api/image-generate'
-import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as LangAdminRouteImport } from './routes/$lang/admin'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as LangOnboardingRouteImport } from './routes/$lang/onboarding'
 import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
+import { Route as LangproductRouteRouteImport } from './routes/$lang/(product)/route'
+import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
 import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
-import { Route as ApiVideoGenerateIndexRouteImport } from './routes/api/video-generate/index'
-import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
-import { Route as LangAdminIndexRouteImport } from './routes/$lang/admin/index'
+import { Route as V1ContactsIndexRouteImport } from './routes/v1/contacts/index'
 import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
-import { Route as ApiWithdrawalRequestRouteImport } from './routes/api/withdrawal/request'
-import { Route as ApiWithdrawalHistoryRouteImport } from './routes/api/withdrawal/history'
+import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
 import { Route as ApiVideoGenerateStatusRouteImport } from './routes/api/video-generate/status'
-import { Route as ApiUsersIdRouteImport } from './routes/api/users/$id'
-import { Route as ApiSubscriptionStatusRouteImport } from './routes/api/subscription/status'
-import { Route as ApiSubscriptionPortalRouteImport } from './routes/api/subscription/portal'
-import { Route as ApiPricingPlansRouteImport } from './routes/api/pricing/plans'
-import { Route as ApiPaymentQueryRouteImport } from './routes/api/payment/query'
-import { Route as ApiPaymentInitiateRouteImport } from './routes/api/payment/initiate'
-import { Route as ApiPaymentCancelRouteImport } from './routes/api/payment/cancel'
-import { Route as ApiCreditsTransactionsRouteImport } from './routes/api/credits/transactions'
-import { Route as ApiCreditsStatusRouteImport } from './routes/api/credits/status'
-import { Route as ApiCreditsBalanceRouteImport } from './routes/api/credits/balance'
-import { Route as ApiBlogSlugRouteImport } from './routes/api/blog/$slug'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiAffiliateStatsRouteImport } from './routes/api/affiliate/stats'
-import { Route as ApiAffiliateReferralsRouteImport } from './routes/api/affiliate/referrals'
-import { Route as ApiAffiliateCommissionsRouteImport } from './routes/api/affiliate/commissions'
-import { Route as ApiAffiliateClaimRouteImport } from './routes/api/affiliate/claim'
-import { Route as ApiAdminCommissionsRouteImport } from './routes/api/admin/commissions'
-import { Route as LangrootVideoGenerateRouteImport } from './routes/$lang/(root)/video-generate'
-import { Route as LangrootUploadRouteImport } from './routes/$lang/(root)/upload'
-import { Route as LangrootPricingRouteImport } from './routes/$lang/(root)/pricing'
-import { Route as LangrootPremiumFeaturesRouteImport } from './routes/$lang/(root)/premium-features'
-import { Route as LangrootPaymentSuccessRouteImport } from './routes/$lang/(root)/payment-success'
-import { Route as LangrootPaymentCancelRouteImport } from './routes/$lang/(root)/payment-cancel'
-import { Route as LangrootImageGenerateRouteImport } from './routes/$lang/(root)/image-generate'
-import { Route as LangrootDashboardRouteImport } from './routes/$lang/(root)/dashboard'
-import { Route as LangrootAiRouteImport } from './routes/$lang/(root)/ai'
+import { Route as LangproductVideoGenerateRouteImport } from './routes/$lang/(product)/video-generate'
+import { Route as LangproductUploadRouteImport } from './routes/$lang/(product)/upload'
+import { Route as LangproductServicesRouteImport } from './routes/$lang/(product)/services'
+import { Route as LangproductPricingRouteImport } from './routes/$lang/(product)/pricing'
+import { Route as LangproductPremiumFeaturesRouteImport } from './routes/$lang/(product)/premium-features'
+import { Route as LangproductPaymentSuccessRouteImport } from './routes/$lang/(product)/payment-success'
+import { Route as LangproductPaymentCancelRouteImport } from './routes/$lang/(product)/payment-cancel'
+import { Route as LangproductImageGenerateRouteImport } from './routes/$lang/(product)/image-generate'
+import { Route as LangproductDashboardRouteImport } from './routes/$lang/(product)/dashboard'
+import { Route as LangproductAiRouteImport } from './routes/$lang/(product)/ai'
+import { Route as LangproductAccountRouteImport } from './routes/$lang/(product)/account'
+import { Route as LangchatMessagesRouteImport } from './routes/$lang/(chat)/messages'
+import { Route as LangchatMeRouteImport } from './routes/$lang/(chat)/me'
+import { Route as LangchatContactsRouteImport } from './routes/$lang/(chat)/contacts'
 import { Route as LangauthWechatRouteImport } from './routes/$lang/(auth)/wechat'
 import { Route as LangauthSignupRouteImport } from './routes/$lang/(auth)/signup'
 import { Route as LangauthSigninRouteImport } from './routes/$lang/(auth)/signin'
 import { Route as LangauthResetPasswordRouteImport } from './routes/$lang/(auth)/reset-password'
 import { Route as LangauthForgotPasswordRouteImport } from './routes/$lang/(auth)/forgot-password'
 import { Route as LangauthCellphoneRouteImport } from './routes/$lang/(auth)/cellphone'
-import { Route as ApiAdminWithdrawalsIndexRouteImport } from './routes/api/admin/withdrawals/index'
-import { Route as ApiAdminUsersIndexRouteImport } from './routes/api/admin/users/index'
-import { Route as ApiAdminSubscriptionsIndexRouteImport } from './routes/api/admin/subscriptions/index'
-import { Route as ApiAdminStatsIndexRouteImport } from './routes/api/admin/stats/index'
-import { Route as ApiAdminPricingPlansIndexRouteImport } from './routes/api/admin/pricing-plans/index'
-import { Route as ApiAdminOrdersIndexRouteImport } from './routes/api/admin/orders/index'
-import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/index'
-import { Route as LangAdminWithdrawalsIndexRouteImport } from './routes/$lang/admin/withdrawals/index'
-import { Route as LangAdminUsersIndexRouteImport } from './routes/$lang/admin/users/index'
-import { Route as LangAdminSubscriptionsIndexRouteImport } from './routes/$lang/admin/subscriptions/index'
-import { Route as LangAdminPricingIndexRouteImport } from './routes/$lang/admin/pricing/index'
-import { Route as LangAdminOrdersIndexRouteImport } from './routes/$lang/admin/orders/index'
-import { Route as LangAdminCreditsIndexRouteImport } from './routes/$lang/admin/credits/index'
-import { Route as LangAdminCommissionsIndexRouteImport } from './routes/$lang/admin/commissions/index'
-import { Route as LangAdminBlogIndexRouteImport } from './routes/$lang/admin/blog/index'
-import { Route as LangrootBlogIndexRouteImport } from './routes/$lang/(root)/blog/index'
-import { Route as ApiPaymentWebhookWechatRouteImport } from './routes/api/payment/webhook/wechat'
-import { Route as ApiPaymentWebhookStripeRouteImport } from './routes/api/payment/webhook/stripe'
-import { Route as ApiPaymentWebhookPaypalRouteImport } from './routes/api/payment/webhook/paypal'
-import { Route as ApiPaymentWebhookDodoRouteImport } from './routes/api/payment/webhook/dodo'
-import { Route as ApiPaymentWebhookCreemRouteImport } from './routes/api/payment/webhook/creem'
-import { Route as ApiPaymentWebhookAlipayRouteImport } from './routes/api/payment/webhook/alipay'
-import { Route as ApiPaymentVerifyStripeRouteImport } from './routes/api/payment/verify/stripe'
-import { Route as ApiPaymentVerifyCreemRouteImport } from './routes/api/payment/verify/creem'
-import { Route as ApiPaymentReturnPaypalRouteImport } from './routes/api/payment/return/paypal'
-import { Route as ApiAdminWithdrawalsIdRouteImport } from './routes/api/admin/withdrawals/$id'
-import { Route as ApiAdminStatsMonthlyRouteImport } from './routes/api/admin/stats/monthly'
-import { Route as ApiAdminPricingPlansReorderRouteImport } from './routes/api/admin/pricing-plans/reorder'
-import { Route as ApiAdminPricingPlansImportRouteImport } from './routes/api/admin/pricing-plans/import'
-import { Route as ApiAdminBlogIdRouteImport } from './routes/api/admin/blog/$id'
-import { Route as LangrootBlogSlugRouteImport } from './routes/$lang/(root)/blog/$slug'
-import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin/users/update/index'
-import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
-import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
-import { Route as LangAdminUsersIdIndexRouteImport } from './routes/$lang/admin/users/$id/index'
-import { Route as LangAdminPricingIdIndexRouteImport } from './routes/$lang/admin/pricing/$id/index'
-import { Route as LangAdminBlogIdIndexRouteImport } from './routes/$lang/admin/blog/$id/index'
+import { Route as LangchatDiscoverRouteRouteImport } from './routes/$lang/(chat)/discover/route'
+import { Route as LangchatDiscoverIndexRouteImport } from './routes/$lang/(chat)/discover/index'
+import { Route as LangchatRoomsRoomIdRouteImport } from './routes/$lang/(chat)/rooms/$roomId'
+import { Route as LangchatDiscoverSpacesSpaceIdRouteImport } from './routes/$lang/(chat)/discover/spaces/$spaceId'
 
 const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
   id: '/payment-success',
@@ -118,14 +73,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1SplatRoute = V1SplatRouteImport.update({
+  id: '/v1/$',
+  path: '/v1/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferralCodeRoute = ReferralCodeRouteImport.update({
+  id: '/referral/$code',
+  path: '/referral/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVideoGenerateRoute = ApiVideoGenerateRouteImport.update({
+  id: '/api/video-generate',
+  path: '/api/video-generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadRoute = ApiUploadRouteImport.update({
   id: '/api/upload',
   path: '/api/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrdersRoute = ApiOrdersRouteImport.update({
-  id: '/api/orders',
-  path: '/api/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImageGenerateRoute = ApiImageGenerateRouteImport.update({
@@ -133,193 +98,126 @@ const ApiImageGenerateRoute = ApiImageGenerateRouteImport.update({
   path: '/api/image-generate',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiHealthRoute = ApiHealthRouteImport.update({
-  id: '/api/health',
-  path: '/api/health',
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LangAdminRoute = LangAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const LangOnboardingRoute = LangOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => LangRoute,
 } as any)
 const LangrootRouteRoute = LangrootRouteRouteImport.update({
   id: '/(root)',
   getParentRoute: () => LangRoute,
 } as any)
+const LangproductRouteRoute = LangproductRouteRouteImport.update({
+  id: '/(product)',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangchatRouteRoute = LangchatRouteRouteImport.update({
+  id: '/(chat)',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangauthRouteRoute = LangauthRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => LangRoute,
 } as any)
-const ApiVideoGenerateIndexRoute = ApiVideoGenerateIndexRouteImport.update({
-  id: '/api/video-generate/',
-  path: '/api/video-generate/',
+const V1ContactsIndexRoute = V1ContactsIndexRouteImport.update({
+  id: '/v1/contacts/',
+  path: '/v1/contacts/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBlogIndexRoute = ApiBlogIndexRouteImport.update({
-  id: '/api/blog/',
-  path: '/api/blog/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LangAdminIndexRoute = LangAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LangAdminRoute,
 } as any)
 const LangrootIndexRoute = LangrootIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LangrootRouteRoute,
 } as any)
-const ApiWithdrawalRequestRoute = ApiWithdrawalRequestRouteImport.update({
-  id: '/api/withdrawal/request',
-  path: '/api/withdrawal/request',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWithdrawalHistoryRoute = ApiWithdrawalHistoryRouteImport.update({
-  id: '/api/withdrawal/history',
-  path: '/api/withdrawal/history',
+const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
+  id: '/v1/rooms/metadata',
+  path: '/v1/rooms/metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVideoGenerateStatusRoute = ApiVideoGenerateStatusRouteImport.update({
-  id: '/api/video-generate/status',
-  path: '/api/video-generate/status',
-  getParentRoute: () => rootRouteImport,
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => ApiVideoGenerateRoute,
 } as any)
-const ApiUsersIdRoute = ApiUsersIdRouteImport.update({
-  id: '/api/users/$id',
-  path: '/api/users/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSubscriptionStatusRoute = ApiSubscriptionStatusRouteImport.update({
-  id: '/api/subscription/status',
-  path: '/api/subscription/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSubscriptionPortalRoute = ApiSubscriptionPortalRouteImport.update({
-  id: '/api/subscription/portal',
-  path: '/api/subscription/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPricingPlansRoute = ApiPricingPlansRouteImport.update({
-  id: '/api/pricing/plans',
-  path: '/api/pricing/plans',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentQueryRoute = ApiPaymentQueryRouteImport.update({
-  id: '/api/payment/query',
-  path: '/api/payment/query',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentInitiateRoute = ApiPaymentInitiateRouteImport.update({
-  id: '/api/payment/initiate',
-  path: '/api/payment/initiate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentCancelRoute = ApiPaymentCancelRouteImport.update({
-  id: '/api/payment/cancel',
-  path: '/api/payment/cancel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCreditsTransactionsRoute = ApiCreditsTransactionsRouteImport.update({
-  id: '/api/credits/transactions',
-  path: '/api/credits/transactions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCreditsStatusRoute = ApiCreditsStatusRouteImport.update({
-  id: '/api/credits/status',
-  path: '/api/credits/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCreditsBalanceRoute = ApiCreditsBalanceRouteImport.update({
-  id: '/api/credits/balance',
-  path: '/api/credits/balance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBlogSlugRoute = ApiBlogSlugRouteImport.update({
-  id: '/api/blog/$slug',
-  path: '/api/blog/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAffiliateStatsRoute = ApiAffiliateStatsRouteImport.update({
-  id: '/api/affiliate/stats',
-  path: '/api/affiliate/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAffiliateReferralsRoute = ApiAffiliateReferralsRouteImport.update({
-  id: '/api/affiliate/referrals',
-  path: '/api/affiliate/referrals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAffiliateCommissionsRoute = ApiAffiliateCommissionsRouteImport.update({
-  id: '/api/affiliate/commissions',
-  path: '/api/affiliate/commissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAffiliateClaimRoute = ApiAffiliateClaimRouteImport.update({
-  id: '/api/affiliate/claim',
-  path: '/api/affiliate/claim',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminCommissionsRoute = ApiAdminCommissionsRouteImport.update({
-  id: '/api/admin/commissions',
-  path: '/api/admin/commissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LangrootVideoGenerateRoute = LangrootVideoGenerateRouteImport.update({
-  id: '/video-generate',
-  path: '/video-generate',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootUploadRoute = LangrootUploadRouteImport.update({
+const LangproductVideoGenerateRoute =
+  LangproductVideoGenerateRouteImport.update({
+    id: '/video-generate',
+    path: '/video-generate',
+    getParentRoute: () => LangproductRouteRoute,
+  } as any)
+const LangproductUploadRoute = LangproductUploadRouteImport.update({
   id: '/upload',
   path: '/upload',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => LangproductRouteRoute,
 } as any)
-const LangrootPricingRoute = LangrootPricingRouteImport.update({
+const LangproductServicesRoute = LangproductServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => LangproductRouteRoute,
+} as any)
+const LangproductPricingRoute = LangproductPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => LangproductRouteRoute,
 } as any)
-const LangrootPremiumFeaturesRoute = LangrootPremiumFeaturesRouteImport.update({
-  id: '/premium-features',
-  path: '/premium-features',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootPaymentSuccessRoute = LangrootPaymentSuccessRouteImport.update({
-  id: '/payment-success',
-  path: '/payment-success',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootPaymentCancelRoute = LangrootPaymentCancelRouteImport.update({
-  id: '/payment-cancel',
-  path: '/payment-cancel',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootImageGenerateRoute = LangrootImageGenerateRouteImport.update({
-  id: '/image-generate',
-  path: '/image-generate',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootDashboardRoute = LangrootDashboardRouteImport.update({
+const LangproductPremiumFeaturesRoute =
+  LangproductPremiumFeaturesRouteImport.update({
+    id: '/premium-features',
+    path: '/premium-features',
+    getParentRoute: () => LangproductRouteRoute,
+  } as any)
+const LangproductPaymentSuccessRoute =
+  LangproductPaymentSuccessRouteImport.update({
+    id: '/payment-success',
+    path: '/payment-success',
+    getParentRoute: () => LangproductRouteRoute,
+  } as any)
+const LangproductPaymentCancelRoute =
+  LangproductPaymentCancelRouteImport.update({
+    id: '/payment-cancel',
+    path: '/payment-cancel',
+    getParentRoute: () => LangproductRouteRoute,
+  } as any)
+const LangproductImageGenerateRoute =
+  LangproductImageGenerateRouteImport.update({
+    id: '/image-generate',
+    path: '/image-generate',
+    getParentRoute: () => LangproductRouteRoute,
+  } as any)
+const LangproductDashboardRoute = LangproductDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => LangproductRouteRoute,
 } as any)
-const LangrootAiRoute = LangrootAiRouteImport.update({
+const LangproductAiRoute = LangproductAiRouteImport.update({
   id: '/ai',
   path: '/ai',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => LangproductRouteRoute,
+} as any)
+const LangproductAccountRoute = LangproductAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => LangproductRouteRoute,
+} as any)
+const LangchatMessagesRoute = LangchatMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatMeRoute = LangchatMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatContactsRoute = LangchatContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => LangchatRouteRoute,
 } as any)
 const LangauthWechatRoute = LangauthWechatRouteImport.update({
   id: '/wechat',
@@ -351,376 +249,107 @@ const LangauthCellphoneRoute = LangauthCellphoneRouteImport.update({
   path: '/cellphone',
   getParentRoute: () => LangauthRouteRoute,
 } as any)
-const ApiAdminWithdrawalsIndexRoute =
-  ApiAdminWithdrawalsIndexRouteImport.update({
-    id: '/api/admin/withdrawals/',
-    path: '/api/admin/withdrawals/',
-    getParentRoute: () => rootRouteImport,
+const LangchatDiscoverRouteRoute = LangchatDiscoverRouteRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatDiscoverIndexRoute = LangchatDiscoverIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LangchatDiscoverRouteRoute,
+} as any)
+const LangchatRoomsRoomIdRoute = LangchatRoomsRoomIdRouteImport.update({
+  id: '/rooms/$roomId',
+  path: '/rooms/$roomId',
+  getParentRoute: () => LangchatRouteRoute,
+} as any)
+const LangchatDiscoverSpacesSpaceIdRoute =
+  LangchatDiscoverSpacesSpaceIdRouteImport.update({
+    id: '/spaces/$spaceId',
+    path: '/spaces/$spaceId',
+    getParentRoute: () => LangchatDiscoverRouteRoute,
   } as any)
-const ApiAdminUsersIndexRoute = ApiAdminUsersIndexRouteImport.update({
-  id: '/api/admin/users/',
-  path: '/api/admin/users/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminSubscriptionsIndexRoute =
-  ApiAdminSubscriptionsIndexRouteImport.update({
-    id: '/api/admin/subscriptions/',
-    path: '/api/admin/subscriptions/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminStatsIndexRoute = ApiAdminStatsIndexRouteImport.update({
-  id: '/api/admin/stats/',
-  path: '/api/admin/stats/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminPricingPlansIndexRoute =
-  ApiAdminPricingPlansIndexRouteImport.update({
-    id: '/api/admin/pricing-plans/',
-    path: '/api/admin/pricing-plans/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminOrdersIndexRoute = ApiAdminOrdersIndexRouteImport.update({
-  id: '/api/admin/orders/',
-  path: '/api/admin/orders/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminBlogIndexRoute = ApiAdminBlogIndexRouteImport.update({
-  id: '/api/admin/blog/',
-  path: '/api/admin/blog/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LangAdminWithdrawalsIndexRoute =
-  LangAdminWithdrawalsIndexRouteImport.update({
-    id: '/withdrawals/',
-    path: '/withdrawals/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminUsersIndexRoute = LangAdminUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminSubscriptionsIndexRoute =
-  LangAdminSubscriptionsIndexRouteImport.update({
-    id: '/subscriptions/',
-    path: '/subscriptions/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminPricingIndexRoute = LangAdminPricingIndexRouteImport.update({
-  id: '/pricing/',
-  path: '/pricing/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminOrdersIndexRoute = LangAdminOrdersIndexRouteImport.update({
-  id: '/orders/',
-  path: '/orders/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminCreditsIndexRoute = LangAdminCreditsIndexRouteImport.update({
-  id: '/credits/',
-  path: '/credits/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminCommissionsIndexRoute =
-  LangAdminCommissionsIndexRouteImport.update({
-    id: '/commissions/',
-    path: '/commissions/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminBlogIndexRoute = LangAdminBlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangrootBlogIndexRoute = LangrootBlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const ApiPaymentWebhookWechatRoute = ApiPaymentWebhookWechatRouteImport.update({
-  id: '/api/payment/webhook/wechat',
-  path: '/api/payment/webhook/wechat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentWebhookStripeRoute = ApiPaymentWebhookStripeRouteImport.update({
-  id: '/api/payment/webhook/stripe',
-  path: '/api/payment/webhook/stripe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentWebhookPaypalRoute = ApiPaymentWebhookPaypalRouteImport.update({
-  id: '/api/payment/webhook/paypal',
-  path: '/api/payment/webhook/paypal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentWebhookDodoRoute = ApiPaymentWebhookDodoRouteImport.update({
-  id: '/api/payment/webhook/dodo',
-  path: '/api/payment/webhook/dodo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentWebhookCreemRoute = ApiPaymentWebhookCreemRouteImport.update({
-  id: '/api/payment/webhook/creem',
-  path: '/api/payment/webhook/creem',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentWebhookAlipayRoute = ApiPaymentWebhookAlipayRouteImport.update({
-  id: '/api/payment/webhook/alipay',
-  path: '/api/payment/webhook/alipay',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentVerifyStripeRoute = ApiPaymentVerifyStripeRouteImport.update({
-  id: '/api/payment/verify/stripe',
-  path: '/api/payment/verify/stripe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentVerifyCreemRoute = ApiPaymentVerifyCreemRouteImport.update({
-  id: '/api/payment/verify/creem',
-  path: '/api/payment/verify/creem',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPaymentReturnPaypalRoute = ApiPaymentReturnPaypalRouteImport.update({
-  id: '/api/payment/return/paypal',
-  path: '/api/payment/return/paypal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminWithdrawalsIdRoute = ApiAdminWithdrawalsIdRouteImport.update({
-  id: '/api/admin/withdrawals/$id',
-  path: '/api/admin/withdrawals/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminStatsMonthlyRoute = ApiAdminStatsMonthlyRouteImport.update({
-  id: '/api/admin/stats/monthly',
-  path: '/api/admin/stats/monthly',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminPricingPlansReorderRoute =
-  ApiAdminPricingPlansReorderRouteImport.update({
-    id: '/api/admin/pricing-plans/reorder',
-    path: '/api/admin/pricing-plans/reorder',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminPricingPlansImportRoute =
-  ApiAdminPricingPlansImportRouteImport.update({
-    id: '/api/admin/pricing-plans/import',
-    path: '/api/admin/pricing-plans/import',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminBlogIdRoute = ApiAdminBlogIdRouteImport.update({
-  id: '/api/admin/blog/$id',
-  path: '/api/admin/blog/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LangrootBlogSlugRoute = LangrootBlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const ApiAdminUsersUpdateIndexRoute =
-  ApiAdminUsersUpdateIndexRouteImport.update({
-    id: '/api/admin/users/update/',
-    path: '/api/admin/users/update/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminUsersDeleteIndexRoute =
-  ApiAdminUsersDeleteIndexRouteImport.update({
-    id: '/api/admin/users/delete/',
-    path: '/api/admin/users/delete/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminCreditsTransactionsIndexRoute =
-  ApiAdminCreditsTransactionsIndexRouteImport.update({
-    id: '/api/admin/credits/transactions/',
-    path: '/api/admin/credits/transactions/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LangAdminUsersIdIndexRoute = LangAdminUsersIdIndexRouteImport.update({
-  id: '/users/$id/',
-  path: '/users/$id/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminPricingIdIndexRoute = LangAdminPricingIdIndexRouteImport.update({
-  id: '/pricing/$id/',
-  path: '/pricing/$id/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminBlogIdIndexRoute = LangAdminBlogIdIndexRouteImport.update({
-  id: '/blog/$id/',
-  path: '/blog/$id/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$lang': typeof LangrootRouteRouteWithChildren
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
-  '/$lang/admin': typeof LangAdminRouteWithChildren
-  '/api/chat': typeof ApiChatRoute
-  '/api/health': typeof ApiHealthRoute
+  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
-  '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
+  '/referral/$code': typeof ReferralCodeRoute
+  '/v1/$': typeof V1SplatRoute
+  '/$lang/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/reset-password': typeof LangauthResetPasswordRoute
   '/$lang/signin': typeof LangauthSigninRoute
   '/$lang/signup': typeof LangauthSignupRoute
   '/$lang/wechat': typeof LangauthWechatRoute
-  '/$lang/ai': typeof LangrootAiRoute
-  '/$lang/dashboard': typeof LangrootDashboardRoute
-  '/$lang/image-generate': typeof LangrootImageGenerateRoute
-  '/$lang/payment-cancel': typeof LangrootPaymentCancelRoute
-  '/$lang/payment-success': typeof LangrootPaymentSuccessRoute
-  '/$lang/premium-features': typeof LangrootPremiumFeaturesRoute
-  '/$lang/pricing': typeof LangrootPricingRoute
-  '/$lang/upload': typeof LangrootUploadRoute
-  '/$lang/video-generate': typeof LangrootVideoGenerateRoute
-  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
-  '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
-  '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
-  '/api/affiliate/referrals': typeof ApiAffiliateReferralsRoute
-  '/api/affiliate/stats': typeof ApiAffiliateStatsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/blog/$slug': typeof ApiBlogSlugRoute
-  '/api/credits/balance': typeof ApiCreditsBalanceRoute
-  '/api/credits/status': typeof ApiCreditsStatusRoute
-  '/api/credits/transactions': typeof ApiCreditsTransactionsRoute
-  '/api/payment/cancel': typeof ApiPaymentCancelRoute
-  '/api/payment/initiate': typeof ApiPaymentInitiateRoute
-  '/api/payment/query': typeof ApiPaymentQueryRoute
-  '/api/pricing/plans': typeof ApiPricingPlansRoute
-  '/api/subscription/portal': typeof ApiSubscriptionPortalRoute
-  '/api/subscription/status': typeof ApiSubscriptionStatusRoute
-  '/api/users/$id': typeof ApiUsersIdRoute
+  '/$lang/contacts': typeof LangchatContactsRoute
+  '/$lang/me': typeof LangchatMeRoute
+  '/$lang/messages': typeof LangchatMessagesRoute
+  '/$lang/account': typeof LangproductAccountRoute
+  '/$lang/ai': typeof LangproductAiRoute
+  '/$lang/dashboard': typeof LangproductDashboardRoute
+  '/$lang/image-generate': typeof LangproductImageGenerateRoute
+  '/$lang/payment-cancel': typeof LangproductPaymentCancelRoute
+  '/$lang/payment-success': typeof LangproductPaymentSuccessRoute
+  '/$lang/premium-features': typeof LangproductPremiumFeaturesRoute
+  '/$lang/pricing': typeof LangproductPricingRoute
+  '/$lang/services': typeof LangproductServicesRoute
+  '/$lang/upload': typeof LangproductUploadRoute
+  '/$lang/video-generate': typeof LangproductVideoGenerateRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
-  '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
-  '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/$lang/': typeof LangrootIndexRoute
-  '/$lang/admin/': typeof LangAdminIndexRoute
-  '/api/blog/': typeof ApiBlogIndexRoute
-  '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
-  '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
-  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
-  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
-  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
-  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
-  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
-  '/api/payment/return/paypal': typeof ApiPaymentReturnPaypalRoute
-  '/api/payment/verify/creem': typeof ApiPaymentVerifyCreemRoute
-  '/api/payment/verify/stripe': typeof ApiPaymentVerifyStripeRoute
-  '/api/payment/webhook/alipay': typeof ApiPaymentWebhookAlipayRoute
-  '/api/payment/webhook/creem': typeof ApiPaymentWebhookCreemRoute
-  '/api/payment/webhook/dodo': typeof ApiPaymentWebhookDodoRoute
-  '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
-  '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
-  '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
-  '/$lang/blog/': typeof LangrootBlogIndexRoute
-  '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits/': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders/': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing/': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions/': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users/': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals/': typeof LangAdminWithdrawalsIndexRoute
-  '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
-  '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
-  '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
-  '/api/admin/stats/': typeof ApiAdminStatsIndexRoute
-  '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
-  '/api/admin/users/': typeof ApiAdminUsersIndexRoute
-  '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
-  '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
-  '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
-  '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
+  '/v1/contacts/': typeof V1ContactsIndexRoute
+  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
+  '/$lang/discover/': typeof LangchatDiscoverIndexRoute
+  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$lang': typeof LangrootIndexRoute
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
-  '/api/chat': typeof ApiChatRoute
-  '/api/health': typeof ApiHealthRoute
+  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
-  '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
+  '/referral/$code': typeof ReferralCodeRoute
+  '/v1/$': typeof V1SplatRoute
   '/$lang/cellphone': typeof LangauthCellphoneRoute
   '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/reset-password': typeof LangauthResetPasswordRoute
   '/$lang/signin': typeof LangauthSigninRoute
   '/$lang/signup': typeof LangauthSignupRoute
   '/$lang/wechat': typeof LangauthWechatRoute
-  '/$lang/ai': typeof LangrootAiRoute
-  '/$lang/dashboard': typeof LangrootDashboardRoute
-  '/$lang/image-generate': typeof LangrootImageGenerateRoute
-  '/$lang/payment-cancel': typeof LangrootPaymentCancelRoute
-  '/$lang/payment-success': typeof LangrootPaymentSuccessRoute
-  '/$lang/premium-features': typeof LangrootPremiumFeaturesRoute
-  '/$lang/pricing': typeof LangrootPricingRoute
-  '/$lang/upload': typeof LangrootUploadRoute
-  '/$lang/video-generate': typeof LangrootVideoGenerateRoute
-  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
-  '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
-  '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
-  '/api/affiliate/referrals': typeof ApiAffiliateReferralsRoute
-  '/api/affiliate/stats': typeof ApiAffiliateStatsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/blog/$slug': typeof ApiBlogSlugRoute
-  '/api/credits/balance': typeof ApiCreditsBalanceRoute
-  '/api/credits/status': typeof ApiCreditsStatusRoute
-  '/api/credits/transactions': typeof ApiCreditsTransactionsRoute
-  '/api/payment/cancel': typeof ApiPaymentCancelRoute
-  '/api/payment/initiate': typeof ApiPaymentInitiateRoute
-  '/api/payment/query': typeof ApiPaymentQueryRoute
-  '/api/pricing/plans': typeof ApiPricingPlansRoute
-  '/api/subscription/portal': typeof ApiSubscriptionPortalRoute
-  '/api/subscription/status': typeof ApiSubscriptionStatusRoute
-  '/api/users/$id': typeof ApiUsersIdRoute
+  '/$lang/contacts': typeof LangchatContactsRoute
+  '/$lang/me': typeof LangchatMeRoute
+  '/$lang/messages': typeof LangchatMessagesRoute
+  '/$lang/account': typeof LangproductAccountRoute
+  '/$lang/ai': typeof LangproductAiRoute
+  '/$lang/dashboard': typeof LangproductDashboardRoute
+  '/$lang/image-generate': typeof LangproductImageGenerateRoute
+  '/$lang/payment-cancel': typeof LangproductPaymentCancelRoute
+  '/$lang/payment-success': typeof LangproductPaymentSuccessRoute
+  '/$lang/premium-features': typeof LangproductPremiumFeaturesRoute
+  '/$lang/pricing': typeof LangproductPricingRoute
+  '/$lang/services': typeof LangproductServicesRoute
+  '/$lang/upload': typeof LangproductUploadRoute
+  '/$lang/video-generate': typeof LangproductVideoGenerateRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
-  '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
-  '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
-  '/$lang/admin': typeof LangAdminIndexRoute
-  '/api/blog': typeof ApiBlogIndexRoute
-  '/api/video-generate': typeof ApiVideoGenerateIndexRoute
-  '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
-  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
-  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
-  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
-  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
-  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
-  '/api/payment/return/paypal': typeof ApiPaymentReturnPaypalRoute
-  '/api/payment/verify/creem': typeof ApiPaymentVerifyCreemRoute
-  '/api/payment/verify/stripe': typeof ApiPaymentVerifyStripeRoute
-  '/api/payment/webhook/alipay': typeof ApiPaymentWebhookAlipayRoute
-  '/api/payment/webhook/creem': typeof ApiPaymentWebhookCreemRoute
-  '/api/payment/webhook/dodo': typeof ApiPaymentWebhookDodoRoute
-  '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
-  '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
-  '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
-  '/$lang/blog': typeof LangrootBlogIndexRoute
-  '/$lang/admin/blog': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals': typeof LangAdminWithdrawalsIndexRoute
-  '/api/admin/blog': typeof ApiAdminBlogIndexRoute
-  '/api/admin/orders': typeof ApiAdminOrdersIndexRoute
-  '/api/admin/pricing-plans': typeof ApiAdminPricingPlansIndexRoute
-  '/api/admin/stats': typeof ApiAdminStatsIndexRoute
-  '/api/admin/subscriptions': typeof ApiAdminSubscriptionsIndexRoute
-  '/api/admin/users': typeof ApiAdminUsersIndexRoute
-  '/api/admin/withdrawals': typeof ApiAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id': typeof LangAdminUsersIdIndexRoute
-  '/api/admin/credits/transactions': typeof ApiAdminCreditsTransactionsIndexRoute
-  '/api/admin/users/delete': typeof ApiAdminUsersDeleteIndexRoute
-  '/api/admin/users/update': typeof ApiAdminUsersUpdateIndexRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
+  '/v1/contacts': typeof V1ContactsIndexRoute
+  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
+  '/$lang/discover': typeof LangchatDiscoverIndexRoute
+  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -729,89 +358,44 @@ export interface FileRoutesById {
   '/payment-cancel': typeof PaymentCancelRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/$lang/(auth)': typeof LangauthRouteRouteWithChildren
+  '/$lang/(chat)': typeof LangchatRouteRouteWithChildren
+  '/$lang/(product)': typeof LangproductRouteRouteWithChildren
   '/$lang/(root)': typeof LangrootRouteRouteWithChildren
-  '/$lang/admin': typeof LangAdminRouteWithChildren
-  '/api/chat': typeof ApiChatRoute
-  '/api/health': typeof ApiHealthRoute
+  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
-  '/api/orders': typeof ApiOrdersRoute
   '/api/upload': typeof ApiUploadRoute
+  '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
+  '/referral/$code': typeof ReferralCodeRoute
+  '/v1/$': typeof V1SplatRoute
+  '/$lang/(chat)/discover': typeof LangchatDiscoverRouteRouteWithChildren
   '/$lang/(auth)/cellphone': typeof LangauthCellphoneRoute
   '/$lang/(auth)/forgot-password': typeof LangauthForgotPasswordRoute
   '/$lang/(auth)/reset-password': typeof LangauthResetPasswordRoute
   '/$lang/(auth)/signin': typeof LangauthSigninRoute
   '/$lang/(auth)/signup': typeof LangauthSignupRoute
   '/$lang/(auth)/wechat': typeof LangauthWechatRoute
-  '/$lang/(root)/ai': typeof LangrootAiRoute
-  '/$lang/(root)/dashboard': typeof LangrootDashboardRoute
-  '/$lang/(root)/image-generate': typeof LangrootImageGenerateRoute
-  '/$lang/(root)/payment-cancel': typeof LangrootPaymentCancelRoute
-  '/$lang/(root)/payment-success': typeof LangrootPaymentSuccessRoute
-  '/$lang/(root)/premium-features': typeof LangrootPremiumFeaturesRoute
-  '/$lang/(root)/pricing': typeof LangrootPricingRoute
-  '/$lang/(root)/upload': typeof LangrootUploadRoute
-  '/$lang/(root)/video-generate': typeof LangrootVideoGenerateRoute
-  '/api/admin/commissions': typeof ApiAdminCommissionsRoute
-  '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
-  '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
-  '/api/affiliate/referrals': typeof ApiAffiliateReferralsRoute
-  '/api/affiliate/stats': typeof ApiAffiliateStatsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/blog/$slug': typeof ApiBlogSlugRoute
-  '/api/credits/balance': typeof ApiCreditsBalanceRoute
-  '/api/credits/status': typeof ApiCreditsStatusRoute
-  '/api/credits/transactions': typeof ApiCreditsTransactionsRoute
-  '/api/payment/cancel': typeof ApiPaymentCancelRoute
-  '/api/payment/initiate': typeof ApiPaymentInitiateRoute
-  '/api/payment/query': typeof ApiPaymentQueryRoute
-  '/api/pricing/plans': typeof ApiPricingPlansRoute
-  '/api/subscription/portal': typeof ApiSubscriptionPortalRoute
-  '/api/subscription/status': typeof ApiSubscriptionStatusRoute
-  '/api/users/$id': typeof ApiUsersIdRoute
+  '/$lang/(chat)/contacts': typeof LangchatContactsRoute
+  '/$lang/(chat)/me': typeof LangchatMeRoute
+  '/$lang/(chat)/messages': typeof LangchatMessagesRoute
+  '/$lang/(product)/account': typeof LangproductAccountRoute
+  '/$lang/(product)/ai': typeof LangproductAiRoute
+  '/$lang/(product)/dashboard': typeof LangproductDashboardRoute
+  '/$lang/(product)/image-generate': typeof LangproductImageGenerateRoute
+  '/$lang/(product)/payment-cancel': typeof LangproductPaymentCancelRoute
+  '/$lang/(product)/payment-success': typeof LangproductPaymentSuccessRoute
+  '/$lang/(product)/premium-features': typeof LangproductPremiumFeaturesRoute
+  '/$lang/(product)/pricing': typeof LangproductPricingRoute
+  '/$lang/(product)/services': typeof LangproductServicesRoute
+  '/$lang/(product)/upload': typeof LangproductUploadRoute
+  '/$lang/(product)/video-generate': typeof LangproductVideoGenerateRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
-  '/api/withdrawal/history': typeof ApiWithdrawalHistoryRoute
-  '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
+  '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/$lang/(root)/': typeof LangrootIndexRoute
-  '/$lang/admin/': typeof LangAdminIndexRoute
-  '/api/blog/': typeof ApiBlogIndexRoute
-  '/api/video-generate/': typeof ApiVideoGenerateIndexRoute
-  '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
-  '/api/admin/blog/$id': typeof ApiAdminBlogIdRoute
-  '/api/admin/pricing-plans/import': typeof ApiAdminPricingPlansImportRoute
-  '/api/admin/pricing-plans/reorder': typeof ApiAdminPricingPlansReorderRoute
-  '/api/admin/stats/monthly': typeof ApiAdminStatsMonthlyRoute
-  '/api/admin/withdrawals/$id': typeof ApiAdminWithdrawalsIdRoute
-  '/api/payment/return/paypal': typeof ApiPaymentReturnPaypalRoute
-  '/api/payment/verify/creem': typeof ApiPaymentVerifyCreemRoute
-  '/api/payment/verify/stripe': typeof ApiPaymentVerifyStripeRoute
-  '/api/payment/webhook/alipay': typeof ApiPaymentWebhookAlipayRoute
-  '/api/payment/webhook/creem': typeof ApiPaymentWebhookCreemRoute
-  '/api/payment/webhook/dodo': typeof ApiPaymentWebhookDodoRoute
-  '/api/payment/webhook/paypal': typeof ApiPaymentWebhookPaypalRoute
-  '/api/payment/webhook/stripe': typeof ApiPaymentWebhookStripeRoute
-  '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
-  '/$lang/(root)/blog/': typeof LangrootBlogIndexRoute
-  '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits/': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders/': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing/': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions/': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users/': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals/': typeof LangAdminWithdrawalsIndexRoute
-  '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
-  '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
-  '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
-  '/api/admin/stats/': typeof ApiAdminStatsIndexRoute
-  '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
-  '/api/admin/users/': typeof ApiAdminUsersIndexRoute
-  '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
-  '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
-  '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
-  '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
+  '/v1/contacts/': typeof V1ContactsIndexRoute
+  '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
+  '/$lang/(chat)/discover/': typeof LangchatDiscoverIndexRoute
+  '/$lang/(chat)/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -820,18 +404,24 @@ export interface FileRouteTypes {
     | '/$lang'
     | '/payment-cancel'
     | '/payment-success'
-    | '/$lang/admin'
-    | '/api/chat'
-    | '/api/health'
+    | '/$lang/onboarding'
+    | '/api/$'
     | '/api/image-generate'
-    | '/api/orders'
     | '/api/upload'
+    | '/api/video-generate'
+    | '/referral/$code'
+    | '/v1/$'
+    | '/$lang/discover'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
     | '/$lang/reset-password'
     | '/$lang/signin'
     | '/$lang/signup'
     | '/$lang/wechat'
+    | '/$lang/contacts'
+    | '/$lang/me'
+    | '/$lang/messages'
+    | '/$lang/account'
     | '/$lang/ai'
     | '/$lang/dashboard'
     | '/$lang/image-generate'
@@ -839,86 +429,39 @@ export interface FileRouteTypes {
     | '/$lang/payment-success'
     | '/$lang/premium-features'
     | '/$lang/pricing'
+    | '/$lang/services'
     | '/$lang/upload'
     | '/$lang/video-generate'
-    | '/api/admin/commissions'
-    | '/api/affiliate/claim'
-    | '/api/affiliate/commissions'
-    | '/api/affiliate/referrals'
-    | '/api/affiliate/stats'
-    | '/api/auth/$'
-    | '/api/blog/$slug'
-    | '/api/credits/balance'
-    | '/api/credits/status'
-    | '/api/credits/transactions'
-    | '/api/payment/cancel'
-    | '/api/payment/initiate'
-    | '/api/payment/query'
-    | '/api/pricing/plans'
-    | '/api/subscription/portal'
-    | '/api/subscription/status'
-    | '/api/users/$id'
     | '/api/video-generate/status'
-    | '/api/withdrawal/history'
-    | '/api/withdrawal/request'
+    | '/v1/rooms/metadata'
     | '/$lang/'
-    | '/$lang/admin/'
-    | '/api/blog/'
-    | '/api/video-generate/'
-    | '/$lang/blog/$slug'
-    | '/api/admin/blog/$id'
-    | '/api/admin/pricing-plans/import'
-    | '/api/admin/pricing-plans/reorder'
-    | '/api/admin/stats/monthly'
-    | '/api/admin/withdrawals/$id'
-    | '/api/payment/return/paypal'
-    | '/api/payment/verify/creem'
-    | '/api/payment/verify/stripe'
-    | '/api/payment/webhook/alipay'
-    | '/api/payment/webhook/creem'
-    | '/api/payment/webhook/dodo'
-    | '/api/payment/webhook/paypal'
-    | '/api/payment/webhook/stripe'
-    | '/api/payment/webhook/wechat'
-    | '/$lang/blog/'
-    | '/$lang/admin/blog/'
-    | '/$lang/admin/commissions/'
-    | '/$lang/admin/credits/'
-    | '/$lang/admin/orders/'
-    | '/$lang/admin/pricing/'
-    | '/$lang/admin/subscriptions/'
-    | '/$lang/admin/users/'
-    | '/$lang/admin/withdrawals/'
-    | '/api/admin/blog/'
-    | '/api/admin/orders/'
-    | '/api/admin/pricing-plans/'
-    | '/api/admin/stats/'
-    | '/api/admin/subscriptions/'
-    | '/api/admin/users/'
-    | '/api/admin/withdrawals/'
-    | '/$lang/admin/blog/$id/'
-    | '/$lang/admin/pricing/$id/'
-    | '/$lang/admin/users/$id/'
-    | '/api/admin/credits/transactions/'
-    | '/api/admin/users/delete/'
-    | '/api/admin/users/update/'
+    | '/v1/contacts/'
+    | '/$lang/rooms/$roomId'
+    | '/$lang/discover/'
+    | '/$lang/discover/spaces/$spaceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$lang'
     | '/payment-cancel'
     | '/payment-success'
-    | '/api/chat'
-    | '/api/health'
+    | '/$lang/onboarding'
+    | '/api/$'
     | '/api/image-generate'
-    | '/api/orders'
     | '/api/upload'
+    | '/api/video-generate'
+    | '/referral/$code'
+    | '/v1/$'
     | '/$lang/cellphone'
     | '/$lang/forgot-password'
     | '/$lang/reset-password'
     | '/$lang/signin'
     | '/$lang/signup'
     | '/$lang/wechat'
+    | '/$lang/contacts'
+    | '/$lang/me'
+    | '/$lang/messages'
+    | '/$lang/account'
     | '/$lang/ai'
     | '/$lang/dashboard'
     | '/$lang/image-generate'
@@ -926,68 +469,15 @@ export interface FileRouteTypes {
     | '/$lang/payment-success'
     | '/$lang/premium-features'
     | '/$lang/pricing'
+    | '/$lang/services'
     | '/$lang/upload'
     | '/$lang/video-generate'
-    | '/api/admin/commissions'
-    | '/api/affiliate/claim'
-    | '/api/affiliate/commissions'
-    | '/api/affiliate/referrals'
-    | '/api/affiliate/stats'
-    | '/api/auth/$'
-    | '/api/blog/$slug'
-    | '/api/credits/balance'
-    | '/api/credits/status'
-    | '/api/credits/transactions'
-    | '/api/payment/cancel'
-    | '/api/payment/initiate'
-    | '/api/payment/query'
-    | '/api/pricing/plans'
-    | '/api/subscription/portal'
-    | '/api/subscription/status'
-    | '/api/users/$id'
     | '/api/video-generate/status'
-    | '/api/withdrawal/history'
-    | '/api/withdrawal/request'
-    | '/$lang/admin'
-    | '/api/blog'
-    | '/api/video-generate'
-    | '/$lang/blog/$slug'
-    | '/api/admin/blog/$id'
-    | '/api/admin/pricing-plans/import'
-    | '/api/admin/pricing-plans/reorder'
-    | '/api/admin/stats/monthly'
-    | '/api/admin/withdrawals/$id'
-    | '/api/payment/return/paypal'
-    | '/api/payment/verify/creem'
-    | '/api/payment/verify/stripe'
-    | '/api/payment/webhook/alipay'
-    | '/api/payment/webhook/creem'
-    | '/api/payment/webhook/dodo'
-    | '/api/payment/webhook/paypal'
-    | '/api/payment/webhook/stripe'
-    | '/api/payment/webhook/wechat'
-    | '/$lang/blog'
-    | '/$lang/admin/blog'
-    | '/$lang/admin/commissions'
-    | '/$lang/admin/credits'
-    | '/$lang/admin/orders'
-    | '/$lang/admin/pricing'
-    | '/$lang/admin/subscriptions'
-    | '/$lang/admin/users'
-    | '/$lang/admin/withdrawals'
-    | '/api/admin/blog'
-    | '/api/admin/orders'
-    | '/api/admin/pricing-plans'
-    | '/api/admin/stats'
-    | '/api/admin/subscriptions'
-    | '/api/admin/users'
-    | '/api/admin/withdrawals'
-    | '/$lang/admin/blog/$id'
-    | '/$lang/admin/pricing/$id'
-    | '/$lang/admin/users/$id'
-    | '/api/admin/credits/transactions'
-    | '/api/admin/users/delete'
-    | '/api/admin/users/update'
+    | '/v1/rooms/metadata'
+    | '/v1/contacts'
+    | '/$lang/rooms/$roomId'
+    | '/$lang/discover'
+    | '/$lang/discover/spaces/$spaceId'
   id:
     | '__root__'
     | '/'
@@ -995,89 +485,44 @@ export interface FileRouteTypes {
     | '/payment-cancel'
     | '/payment-success'
     | '/$lang/(auth)'
+    | '/$lang/(chat)'
+    | '/$lang/(product)'
     | '/$lang/(root)'
-    | '/$lang/admin'
-    | '/api/chat'
-    | '/api/health'
+    | '/$lang/onboarding'
+    | '/api/$'
     | '/api/image-generate'
-    | '/api/orders'
     | '/api/upload'
+    | '/api/video-generate'
+    | '/referral/$code'
+    | '/v1/$'
+    | '/$lang/(chat)/discover'
     | '/$lang/(auth)/cellphone'
     | '/$lang/(auth)/forgot-password'
     | '/$lang/(auth)/reset-password'
     | '/$lang/(auth)/signin'
     | '/$lang/(auth)/signup'
     | '/$lang/(auth)/wechat'
-    | '/$lang/(root)/ai'
-    | '/$lang/(root)/dashboard'
-    | '/$lang/(root)/image-generate'
-    | '/$lang/(root)/payment-cancel'
-    | '/$lang/(root)/payment-success'
-    | '/$lang/(root)/premium-features'
-    | '/$lang/(root)/pricing'
-    | '/$lang/(root)/upload'
-    | '/$lang/(root)/video-generate'
-    | '/api/admin/commissions'
-    | '/api/affiliate/claim'
-    | '/api/affiliate/commissions'
-    | '/api/affiliate/referrals'
-    | '/api/affiliate/stats'
-    | '/api/auth/$'
-    | '/api/blog/$slug'
-    | '/api/credits/balance'
-    | '/api/credits/status'
-    | '/api/credits/transactions'
-    | '/api/payment/cancel'
-    | '/api/payment/initiate'
-    | '/api/payment/query'
-    | '/api/pricing/plans'
-    | '/api/subscription/portal'
-    | '/api/subscription/status'
-    | '/api/users/$id'
+    | '/$lang/(chat)/contacts'
+    | '/$lang/(chat)/me'
+    | '/$lang/(chat)/messages'
+    | '/$lang/(product)/account'
+    | '/$lang/(product)/ai'
+    | '/$lang/(product)/dashboard'
+    | '/$lang/(product)/image-generate'
+    | '/$lang/(product)/payment-cancel'
+    | '/$lang/(product)/payment-success'
+    | '/$lang/(product)/premium-features'
+    | '/$lang/(product)/pricing'
+    | '/$lang/(product)/services'
+    | '/$lang/(product)/upload'
+    | '/$lang/(product)/video-generate'
     | '/api/video-generate/status'
-    | '/api/withdrawal/history'
-    | '/api/withdrawal/request'
+    | '/v1/rooms/metadata'
     | '/$lang/(root)/'
-    | '/$lang/admin/'
-    | '/api/blog/'
-    | '/api/video-generate/'
-    | '/$lang/(root)/blog/$slug'
-    | '/api/admin/blog/$id'
-    | '/api/admin/pricing-plans/import'
-    | '/api/admin/pricing-plans/reorder'
-    | '/api/admin/stats/monthly'
-    | '/api/admin/withdrawals/$id'
-    | '/api/payment/return/paypal'
-    | '/api/payment/verify/creem'
-    | '/api/payment/verify/stripe'
-    | '/api/payment/webhook/alipay'
-    | '/api/payment/webhook/creem'
-    | '/api/payment/webhook/dodo'
-    | '/api/payment/webhook/paypal'
-    | '/api/payment/webhook/stripe'
-    | '/api/payment/webhook/wechat'
-    | '/$lang/(root)/blog/'
-    | '/$lang/admin/blog/'
-    | '/$lang/admin/commissions/'
-    | '/$lang/admin/credits/'
-    | '/$lang/admin/orders/'
-    | '/$lang/admin/pricing/'
-    | '/$lang/admin/subscriptions/'
-    | '/$lang/admin/users/'
-    | '/$lang/admin/withdrawals/'
-    | '/api/admin/blog/'
-    | '/api/admin/orders/'
-    | '/api/admin/pricing-plans/'
-    | '/api/admin/stats/'
-    | '/api/admin/subscriptions/'
-    | '/api/admin/users/'
-    | '/api/admin/withdrawals/'
-    | '/$lang/admin/blog/$id/'
-    | '/$lang/admin/pricing/$id/'
-    | '/$lang/admin/users/$id/'
-    | '/api/admin/credits/transactions/'
-    | '/api/admin/users/delete/'
-    | '/api/admin/users/update/'
+    | '/v1/contacts/'
+    | '/$lang/(chat)/rooms/$roomId'
+    | '/$lang/(chat)/discover/'
+    | '/$lang/(chat)/discover/spaces/$spaceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1085,57 +530,14 @@ export interface RootRouteChildren {
   LangRoute: typeof LangRouteWithChildren
   PaymentCancelRoute: typeof PaymentCancelRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
-  ApiChatRoute: typeof ApiChatRoute
-  ApiHealthRoute: typeof ApiHealthRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   ApiImageGenerateRoute: typeof ApiImageGenerateRoute
-  ApiOrdersRoute: typeof ApiOrdersRoute
   ApiUploadRoute: typeof ApiUploadRoute
-  ApiAdminCommissionsRoute: typeof ApiAdminCommissionsRoute
-  ApiAffiliateClaimRoute: typeof ApiAffiliateClaimRoute
-  ApiAffiliateCommissionsRoute: typeof ApiAffiliateCommissionsRoute
-  ApiAffiliateReferralsRoute: typeof ApiAffiliateReferralsRoute
-  ApiAffiliateStatsRoute: typeof ApiAffiliateStatsRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiBlogSlugRoute: typeof ApiBlogSlugRoute
-  ApiCreditsBalanceRoute: typeof ApiCreditsBalanceRoute
-  ApiCreditsStatusRoute: typeof ApiCreditsStatusRoute
-  ApiCreditsTransactionsRoute: typeof ApiCreditsTransactionsRoute
-  ApiPaymentCancelRoute: typeof ApiPaymentCancelRoute
-  ApiPaymentInitiateRoute: typeof ApiPaymentInitiateRoute
-  ApiPaymentQueryRoute: typeof ApiPaymentQueryRoute
-  ApiPricingPlansRoute: typeof ApiPricingPlansRoute
-  ApiSubscriptionPortalRoute: typeof ApiSubscriptionPortalRoute
-  ApiSubscriptionStatusRoute: typeof ApiSubscriptionStatusRoute
-  ApiUsersIdRoute: typeof ApiUsersIdRoute
-  ApiVideoGenerateStatusRoute: typeof ApiVideoGenerateStatusRoute
-  ApiWithdrawalHistoryRoute: typeof ApiWithdrawalHistoryRoute
-  ApiWithdrawalRequestRoute: typeof ApiWithdrawalRequestRoute
-  ApiBlogIndexRoute: typeof ApiBlogIndexRoute
-  ApiVideoGenerateIndexRoute: typeof ApiVideoGenerateIndexRoute
-  ApiAdminBlogIdRoute: typeof ApiAdminBlogIdRoute
-  ApiAdminPricingPlansImportRoute: typeof ApiAdminPricingPlansImportRoute
-  ApiAdminPricingPlansReorderRoute: typeof ApiAdminPricingPlansReorderRoute
-  ApiAdminStatsMonthlyRoute: typeof ApiAdminStatsMonthlyRoute
-  ApiAdminWithdrawalsIdRoute: typeof ApiAdminWithdrawalsIdRoute
-  ApiPaymentReturnPaypalRoute: typeof ApiPaymentReturnPaypalRoute
-  ApiPaymentVerifyCreemRoute: typeof ApiPaymentVerifyCreemRoute
-  ApiPaymentVerifyStripeRoute: typeof ApiPaymentVerifyStripeRoute
-  ApiPaymentWebhookAlipayRoute: typeof ApiPaymentWebhookAlipayRoute
-  ApiPaymentWebhookCreemRoute: typeof ApiPaymentWebhookCreemRoute
-  ApiPaymentWebhookDodoRoute: typeof ApiPaymentWebhookDodoRoute
-  ApiPaymentWebhookPaypalRoute: typeof ApiPaymentWebhookPaypalRoute
-  ApiPaymentWebhookStripeRoute: typeof ApiPaymentWebhookStripeRoute
-  ApiPaymentWebhookWechatRoute: typeof ApiPaymentWebhookWechatRoute
-  ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
-  ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
-  ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
-  ApiAdminStatsIndexRoute: typeof ApiAdminStatsIndexRoute
-  ApiAdminSubscriptionsIndexRoute: typeof ApiAdminSubscriptionsIndexRoute
-  ApiAdminUsersIndexRoute: typeof ApiAdminUsersIndexRoute
-  ApiAdminWithdrawalsIndexRoute: typeof ApiAdminWithdrawalsIndexRoute
-  ApiAdminCreditsTransactionsIndexRoute: typeof ApiAdminCreditsTransactionsIndexRoute
-  ApiAdminUsersDeleteIndexRoute: typeof ApiAdminUsersDeleteIndexRoute
-  ApiAdminUsersUpdateIndexRoute: typeof ApiAdminUsersUpdateIndexRoute
+  ApiVideoGenerateRoute: typeof ApiVideoGenerateRouteWithChildren
+  ReferralCodeRoute: typeof ReferralCodeRoute
+  V1SplatRoute: typeof V1SplatRoute
+  V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
+  V1ContactsIndexRoute: typeof V1ContactsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1168,18 +570,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/$': {
+      id: '/v1/$'
+      path: '/v1/$'
+      fullPath: '/v1/$'
+      preLoaderRoute: typeof V1SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referral/$code': {
+      id: '/referral/$code'
+      path: '/referral/$code'
+      fullPath: '/referral/$code'
+      preLoaderRoute: typeof ReferralCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/video-generate': {
+      id: '/api/video-generate'
+      path: '/api/video-generate'
+      fullPath: '/api/video-generate'
+      preLoaderRoute: typeof ApiVideoGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/upload': {
       id: '/api/upload'
       path: '/api/upload'
       fullPath: '/api/upload'
       preLoaderRoute: typeof ApiUploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/orders': {
-      id: '/api/orders'
-      path: '/api/orders'
-      fullPath: '/api/orders'
-      preLoaderRoute: typeof ApiOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/image-generate': {
@@ -1189,25 +605,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImageGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/health': {
-      id: '/api/health'
-      path: '/api/health'
-      fullPath: '/api/health'
-      preLoaderRoute: typeof ApiHealthRouteImport
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/admin': {
-      id: '/$lang/admin'
-      path: '/admin'
-      fullPath: '/$lang/admin'
-      preLoaderRoute: typeof LangAdminRouteImport
+    '/$lang/onboarding': {
+      id: '/$lang/onboarding'
+      path: '/onboarding'
+      fullPath: '/$lang/onboarding'
+      preLoaderRoute: typeof LangOnboardingRouteImport
       parentRoute: typeof LangRoute
     }
     '/$lang/(root)': {
@@ -1217,6 +626,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootRouteRouteImport
       parentRoute: typeof LangRoute
     }
+    '/$lang/(product)': {
+      id: '/$lang/(product)'
+      path: ''
+      fullPath: '/$lang'
+      preLoaderRoute: typeof LangproductRouteRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/(chat)': {
+      id: '/$lang/(chat)'
+      path: ''
+      fullPath: '/$lang'
+      preLoaderRoute: typeof LangchatRouteRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/(auth)': {
       id: '/$lang/(auth)'
       path: ''
@@ -1224,26 +647,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangauthRouteRouteImport
       parentRoute: typeof LangRoute
     }
-    '/api/video-generate/': {
-      id: '/api/video-generate/'
-      path: '/api/video-generate'
-      fullPath: '/api/video-generate/'
-      preLoaderRoute: typeof ApiVideoGenerateIndexRouteImport
+    '/v1/contacts/': {
+      id: '/v1/contacts/'
+      path: '/v1/contacts'
+      fullPath: '/v1/contacts/'
+      preLoaderRoute: typeof V1ContactsIndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/api/blog/': {
-      id: '/api/blog/'
-      path: '/api/blog'
-      fullPath: '/api/blog/'
-      preLoaderRoute: typeof ApiBlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/admin/': {
-      id: '/$lang/admin/'
-      path: '/'
-      fullPath: '/$lang/admin/'
-      preLoaderRoute: typeof LangAdminIndexRouteImport
-      parentRoute: typeof LangAdminRoute
     }
     '/$lang/(root)/': {
       id: '/$lang/(root)/'
@@ -1252,208 +661,117 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangrootIndexRouteImport
       parentRoute: typeof LangrootRouteRoute
     }
-    '/api/withdrawal/request': {
-      id: '/api/withdrawal/request'
-      path: '/api/withdrawal/request'
-      fullPath: '/api/withdrawal/request'
-      preLoaderRoute: typeof ApiWithdrawalRequestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/withdrawal/history': {
-      id: '/api/withdrawal/history'
-      path: '/api/withdrawal/history'
-      fullPath: '/api/withdrawal/history'
-      preLoaderRoute: typeof ApiWithdrawalHistoryRouteImport
+    '/v1/rooms/metadata': {
+      id: '/v1/rooms/metadata'
+      path: '/v1/rooms/metadata'
+      fullPath: '/v1/rooms/metadata'
+      preLoaderRoute: typeof V1RoomsMetadataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/video-generate/status': {
       id: '/api/video-generate/status'
-      path: '/api/video-generate/status'
+      path: '/status'
       fullPath: '/api/video-generate/status'
       preLoaderRoute: typeof ApiVideoGenerateStatusRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiVideoGenerateRoute
     }
-    '/api/users/$id': {
-      id: '/api/users/$id'
-      path: '/api/users/$id'
-      fullPath: '/api/users/$id'
-      preLoaderRoute: typeof ApiUsersIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/subscription/status': {
-      id: '/api/subscription/status'
-      path: '/api/subscription/status'
-      fullPath: '/api/subscription/status'
-      preLoaderRoute: typeof ApiSubscriptionStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/subscription/portal': {
-      id: '/api/subscription/portal'
-      path: '/api/subscription/portal'
-      fullPath: '/api/subscription/portal'
-      preLoaderRoute: typeof ApiSubscriptionPortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/pricing/plans': {
-      id: '/api/pricing/plans'
-      path: '/api/pricing/plans'
-      fullPath: '/api/pricing/plans'
-      preLoaderRoute: typeof ApiPricingPlansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/query': {
-      id: '/api/payment/query'
-      path: '/api/payment/query'
-      fullPath: '/api/payment/query'
-      preLoaderRoute: typeof ApiPaymentQueryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/initiate': {
-      id: '/api/payment/initiate'
-      path: '/api/payment/initiate'
-      fullPath: '/api/payment/initiate'
-      preLoaderRoute: typeof ApiPaymentInitiateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/cancel': {
-      id: '/api/payment/cancel'
-      path: '/api/payment/cancel'
-      fullPath: '/api/payment/cancel'
-      preLoaderRoute: typeof ApiPaymentCancelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/credits/transactions': {
-      id: '/api/credits/transactions'
-      path: '/api/credits/transactions'
-      fullPath: '/api/credits/transactions'
-      preLoaderRoute: typeof ApiCreditsTransactionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/credits/status': {
-      id: '/api/credits/status'
-      path: '/api/credits/status'
-      fullPath: '/api/credits/status'
-      preLoaderRoute: typeof ApiCreditsStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/credits/balance': {
-      id: '/api/credits/balance'
-      path: '/api/credits/balance'
-      fullPath: '/api/credits/balance'
-      preLoaderRoute: typeof ApiCreditsBalanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/blog/$slug': {
-      id: '/api/blog/$slug'
-      path: '/api/blog/$slug'
-      fullPath: '/api/blog/$slug'
-      preLoaderRoute: typeof ApiBlogSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/affiliate/stats': {
-      id: '/api/affiliate/stats'
-      path: '/api/affiliate/stats'
-      fullPath: '/api/affiliate/stats'
-      preLoaderRoute: typeof ApiAffiliateStatsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/affiliate/referrals': {
-      id: '/api/affiliate/referrals'
-      path: '/api/affiliate/referrals'
-      fullPath: '/api/affiliate/referrals'
-      preLoaderRoute: typeof ApiAffiliateReferralsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/affiliate/commissions': {
-      id: '/api/affiliate/commissions'
-      path: '/api/affiliate/commissions'
-      fullPath: '/api/affiliate/commissions'
-      preLoaderRoute: typeof ApiAffiliateCommissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/affiliate/claim': {
-      id: '/api/affiliate/claim'
-      path: '/api/affiliate/claim'
-      fullPath: '/api/affiliate/claim'
-      preLoaderRoute: typeof ApiAffiliateClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/commissions': {
-      id: '/api/admin/commissions'
-      path: '/api/admin/commissions'
-      fullPath: '/api/admin/commissions'
-      preLoaderRoute: typeof ApiAdminCommissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/(root)/video-generate': {
-      id: '/$lang/(root)/video-generate'
+    '/$lang/(product)/video-generate': {
+      id: '/$lang/(product)/video-generate'
       path: '/video-generate'
       fullPath: '/$lang/video-generate'
-      preLoaderRoute: typeof LangrootVideoGenerateRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductVideoGenerateRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/upload': {
-      id: '/$lang/(root)/upload'
+    '/$lang/(product)/upload': {
+      id: '/$lang/(product)/upload'
       path: '/upload'
       fullPath: '/$lang/upload'
-      preLoaderRoute: typeof LangrootUploadRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductUploadRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/pricing': {
-      id: '/$lang/(root)/pricing'
+    '/$lang/(product)/services': {
+      id: '/$lang/(product)/services'
+      path: '/services'
+      fullPath: '/$lang/services'
+      preLoaderRoute: typeof LangproductServicesRouteImport
+      parentRoute: typeof LangproductRouteRoute
+    }
+    '/$lang/(product)/pricing': {
+      id: '/$lang/(product)/pricing'
       path: '/pricing'
       fullPath: '/$lang/pricing'
-      preLoaderRoute: typeof LangrootPricingRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductPricingRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/premium-features': {
-      id: '/$lang/(root)/premium-features'
+    '/$lang/(product)/premium-features': {
+      id: '/$lang/(product)/premium-features'
       path: '/premium-features'
       fullPath: '/$lang/premium-features'
-      preLoaderRoute: typeof LangrootPremiumFeaturesRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductPremiumFeaturesRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/payment-success': {
-      id: '/$lang/(root)/payment-success'
+    '/$lang/(product)/payment-success': {
+      id: '/$lang/(product)/payment-success'
       path: '/payment-success'
       fullPath: '/$lang/payment-success'
-      preLoaderRoute: typeof LangrootPaymentSuccessRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductPaymentSuccessRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/payment-cancel': {
-      id: '/$lang/(root)/payment-cancel'
+    '/$lang/(product)/payment-cancel': {
+      id: '/$lang/(product)/payment-cancel'
       path: '/payment-cancel'
       fullPath: '/$lang/payment-cancel'
-      preLoaderRoute: typeof LangrootPaymentCancelRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductPaymentCancelRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/image-generate': {
-      id: '/$lang/(root)/image-generate'
+    '/$lang/(product)/image-generate': {
+      id: '/$lang/(product)/image-generate'
       path: '/image-generate'
       fullPath: '/$lang/image-generate'
-      preLoaderRoute: typeof LangrootImageGenerateRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductImageGenerateRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/dashboard': {
-      id: '/$lang/(root)/dashboard'
+    '/$lang/(product)/dashboard': {
+      id: '/$lang/(product)/dashboard'
       path: '/dashboard'
       fullPath: '/$lang/dashboard'
-      preLoaderRoute: typeof LangrootDashboardRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductDashboardRouteImport
+      parentRoute: typeof LangproductRouteRoute
     }
-    '/$lang/(root)/ai': {
-      id: '/$lang/(root)/ai'
+    '/$lang/(product)/ai': {
+      id: '/$lang/(product)/ai'
       path: '/ai'
       fullPath: '/$lang/ai'
-      preLoaderRoute: typeof LangrootAiRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      preLoaderRoute: typeof LangproductAiRouteImport
+      parentRoute: typeof LangproductRouteRoute
+    }
+    '/$lang/(product)/account': {
+      id: '/$lang/(product)/account'
+      path: '/account'
+      fullPath: '/$lang/account'
+      preLoaderRoute: typeof LangproductAccountRouteImport
+      parentRoute: typeof LangproductRouteRoute
+    }
+    '/$lang/(chat)/messages': {
+      id: '/$lang/(chat)/messages'
+      path: '/messages'
+      fullPath: '/$lang/messages'
+      preLoaderRoute: typeof LangchatMessagesRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
+    '/$lang/(chat)/me': {
+      id: '/$lang/(chat)/me'
+      path: '/me'
+      fullPath: '/$lang/me'
+      preLoaderRoute: typeof LangchatMeRouteImport
+      parentRoute: typeof LangchatRouteRoute
+    }
+    '/$lang/(chat)/contacts': {
+      id: '/$lang/(chat)/contacts'
+      path: '/contacts'
+      fullPath: '/$lang/contacts'
+      preLoaderRoute: typeof LangchatContactsRouteImport
+      parentRoute: typeof LangchatRouteRoute
     }
     '/$lang/(auth)/wechat': {
       id: '/$lang/(auth)/wechat'
@@ -1497,264 +815,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangauthCellphoneRouteImport
       parentRoute: typeof LangauthRouteRoute
     }
-    '/api/admin/withdrawals/': {
-      id: '/api/admin/withdrawals/'
-      path: '/api/admin/withdrawals'
-      fullPath: '/api/admin/withdrawals/'
-      preLoaderRoute: typeof ApiAdminWithdrawalsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/$lang/(chat)/discover': {
+      id: '/$lang/(chat)/discover'
+      path: '/discover'
+      fullPath: '/$lang/discover'
+      preLoaderRoute: typeof LangchatDiscoverRouteRouteImport
+      parentRoute: typeof LangchatRouteRoute
     }
-    '/api/admin/users/': {
-      id: '/api/admin/users/'
-      path: '/api/admin/users'
-      fullPath: '/api/admin/users/'
-      preLoaderRoute: typeof ApiAdminUsersIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/$lang/(chat)/discover/': {
+      id: '/$lang/(chat)/discover/'
+      path: '/'
+      fullPath: '/$lang/discover/'
+      preLoaderRoute: typeof LangchatDiscoverIndexRouteImport
+      parentRoute: typeof LangchatDiscoverRouteRoute
     }
-    '/api/admin/subscriptions/': {
-      id: '/api/admin/subscriptions/'
-      path: '/api/admin/subscriptions'
-      fullPath: '/api/admin/subscriptions/'
-      preLoaderRoute: typeof ApiAdminSubscriptionsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/$lang/(chat)/rooms/$roomId': {
+      id: '/$lang/(chat)/rooms/$roomId'
+      path: '/rooms/$roomId'
+      fullPath: '/$lang/rooms/$roomId'
+      preLoaderRoute: typeof LangchatRoomsRoomIdRouteImport
+      parentRoute: typeof LangchatRouteRoute
     }
-    '/api/admin/stats/': {
-      id: '/api/admin/stats/'
-      path: '/api/admin/stats'
-      fullPath: '/api/admin/stats/'
-      preLoaderRoute: typeof ApiAdminStatsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/pricing-plans/': {
-      id: '/api/admin/pricing-plans/'
-      path: '/api/admin/pricing-plans'
-      fullPath: '/api/admin/pricing-plans/'
-      preLoaderRoute: typeof ApiAdminPricingPlansIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/orders/': {
-      id: '/api/admin/orders/'
-      path: '/api/admin/orders'
-      fullPath: '/api/admin/orders/'
-      preLoaderRoute: typeof ApiAdminOrdersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/blog/': {
-      id: '/api/admin/blog/'
-      path: '/api/admin/blog'
-      fullPath: '/api/admin/blog/'
-      preLoaderRoute: typeof ApiAdminBlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/admin/withdrawals/': {
-      id: '/$lang/admin/withdrawals/'
-      path: '/withdrawals'
-      fullPath: '/$lang/admin/withdrawals/'
-      preLoaderRoute: typeof LangAdminWithdrawalsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/users/': {
-      id: '/$lang/admin/users/'
-      path: '/users'
-      fullPath: '/$lang/admin/users/'
-      preLoaderRoute: typeof LangAdminUsersIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/subscriptions/': {
-      id: '/$lang/admin/subscriptions/'
-      path: '/subscriptions'
-      fullPath: '/$lang/admin/subscriptions/'
-      preLoaderRoute: typeof LangAdminSubscriptionsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/pricing/': {
-      id: '/$lang/admin/pricing/'
-      path: '/pricing'
-      fullPath: '/$lang/admin/pricing/'
-      preLoaderRoute: typeof LangAdminPricingIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/orders/': {
-      id: '/$lang/admin/orders/'
-      path: '/orders'
-      fullPath: '/$lang/admin/orders/'
-      preLoaderRoute: typeof LangAdminOrdersIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/credits/': {
-      id: '/$lang/admin/credits/'
-      path: '/credits'
-      fullPath: '/$lang/admin/credits/'
-      preLoaderRoute: typeof LangAdminCreditsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/commissions/': {
-      id: '/$lang/admin/commissions/'
-      path: '/commissions'
-      fullPath: '/$lang/admin/commissions/'
-      preLoaderRoute: typeof LangAdminCommissionsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/blog/': {
-      id: '/$lang/admin/blog/'
-      path: '/blog'
-      fullPath: '/$lang/admin/blog/'
-      preLoaderRoute: typeof LangAdminBlogIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/(root)/blog/': {
-      id: '/$lang/(root)/blog/'
-      path: '/blog'
-      fullPath: '/$lang/blog/'
-      preLoaderRoute: typeof LangrootBlogIndexRouteImport
-      parentRoute: typeof LangrootRouteRoute
-    }
-    '/api/payment/webhook/wechat': {
-      id: '/api/payment/webhook/wechat'
-      path: '/api/payment/webhook/wechat'
-      fullPath: '/api/payment/webhook/wechat'
-      preLoaderRoute: typeof ApiPaymentWebhookWechatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/webhook/stripe': {
-      id: '/api/payment/webhook/stripe'
-      path: '/api/payment/webhook/stripe'
-      fullPath: '/api/payment/webhook/stripe'
-      preLoaderRoute: typeof ApiPaymentWebhookStripeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/webhook/paypal': {
-      id: '/api/payment/webhook/paypal'
-      path: '/api/payment/webhook/paypal'
-      fullPath: '/api/payment/webhook/paypal'
-      preLoaderRoute: typeof ApiPaymentWebhookPaypalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/webhook/dodo': {
-      id: '/api/payment/webhook/dodo'
-      path: '/api/payment/webhook/dodo'
-      fullPath: '/api/payment/webhook/dodo'
-      preLoaderRoute: typeof ApiPaymentWebhookDodoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/webhook/creem': {
-      id: '/api/payment/webhook/creem'
-      path: '/api/payment/webhook/creem'
-      fullPath: '/api/payment/webhook/creem'
-      preLoaderRoute: typeof ApiPaymentWebhookCreemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/webhook/alipay': {
-      id: '/api/payment/webhook/alipay'
-      path: '/api/payment/webhook/alipay'
-      fullPath: '/api/payment/webhook/alipay'
-      preLoaderRoute: typeof ApiPaymentWebhookAlipayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/verify/stripe': {
-      id: '/api/payment/verify/stripe'
-      path: '/api/payment/verify/stripe'
-      fullPath: '/api/payment/verify/stripe'
-      preLoaderRoute: typeof ApiPaymentVerifyStripeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/verify/creem': {
-      id: '/api/payment/verify/creem'
-      path: '/api/payment/verify/creem'
-      fullPath: '/api/payment/verify/creem'
-      preLoaderRoute: typeof ApiPaymentVerifyCreemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/payment/return/paypal': {
-      id: '/api/payment/return/paypal'
-      path: '/api/payment/return/paypal'
-      fullPath: '/api/payment/return/paypal'
-      preLoaderRoute: typeof ApiPaymentReturnPaypalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/withdrawals/$id': {
-      id: '/api/admin/withdrawals/$id'
-      path: '/api/admin/withdrawals/$id'
-      fullPath: '/api/admin/withdrawals/$id'
-      preLoaderRoute: typeof ApiAdminWithdrawalsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/stats/monthly': {
-      id: '/api/admin/stats/monthly'
-      path: '/api/admin/stats/monthly'
-      fullPath: '/api/admin/stats/monthly'
-      preLoaderRoute: typeof ApiAdminStatsMonthlyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/pricing-plans/reorder': {
-      id: '/api/admin/pricing-plans/reorder'
-      path: '/api/admin/pricing-plans/reorder'
-      fullPath: '/api/admin/pricing-plans/reorder'
-      preLoaderRoute: typeof ApiAdminPricingPlansReorderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/pricing-plans/import': {
-      id: '/api/admin/pricing-plans/import'
-      path: '/api/admin/pricing-plans/import'
-      fullPath: '/api/admin/pricing-plans/import'
-      preLoaderRoute: typeof ApiAdminPricingPlansImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/blog/$id': {
-      id: '/api/admin/blog/$id'
-      path: '/api/admin/blog/$id'
-      fullPath: '/api/admin/blog/$id'
-      preLoaderRoute: typeof ApiAdminBlogIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/(root)/blog/$slug': {
-      id: '/$lang/(root)/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/$lang/blog/$slug'
-      preLoaderRoute: typeof LangrootBlogSlugRouteImport
-      parentRoute: typeof LangrootRouteRoute
-    }
-    '/api/admin/users/update/': {
-      id: '/api/admin/users/update/'
-      path: '/api/admin/users/update'
-      fullPath: '/api/admin/users/update/'
-      preLoaderRoute: typeof ApiAdminUsersUpdateIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/users/delete/': {
-      id: '/api/admin/users/delete/'
-      path: '/api/admin/users/delete'
-      fullPath: '/api/admin/users/delete/'
-      preLoaderRoute: typeof ApiAdminUsersDeleteIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/credits/transactions/': {
-      id: '/api/admin/credits/transactions/'
-      path: '/api/admin/credits/transactions'
-      fullPath: '/api/admin/credits/transactions/'
-      preLoaderRoute: typeof ApiAdminCreditsTransactionsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$lang/admin/users/$id/': {
-      id: '/$lang/admin/users/$id/'
-      path: '/users/$id'
-      fullPath: '/$lang/admin/users/$id/'
-      preLoaderRoute: typeof LangAdminUsersIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/pricing/$id/': {
-      id: '/$lang/admin/pricing/$id/'
-      path: '/pricing/$id'
-      fullPath: '/$lang/admin/pricing/$id/'
-      preLoaderRoute: typeof LangAdminPricingIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/blog/$id/': {
-      id: '/$lang/admin/blog/$id/'
-      path: '/blog/$id'
-      fullPath: '/$lang/admin/blog/$id/'
-      preLoaderRoute: typeof LangAdminBlogIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+    '/$lang/(chat)/discover/spaces/$spaceId': {
+      id: '/$lang/(chat)/discover/spaces/$spaceId'
+      path: '/spaces/$spaceId'
+      fullPath: '/$lang/discover/spaces/$spaceId'
+      preLoaderRoute: typeof LangchatDiscoverSpacesSpaceIdRouteImport
+      parentRoute: typeof LangchatDiscoverRouteRoute
     }
   }
 }
@@ -1781,144 +868,126 @@ const LangauthRouteRouteWithChildren = LangauthRouteRoute._addFileChildren(
   LangauthRouteRouteChildren,
 )
 
+interface LangchatDiscoverRouteRouteChildren {
+  LangchatDiscoverIndexRoute: typeof LangchatDiscoverIndexRoute
+  LangchatDiscoverSpacesSpaceIdRoute: typeof LangchatDiscoverSpacesSpaceIdRoute
+}
+
+const LangchatDiscoverRouteRouteChildren: LangchatDiscoverRouteRouteChildren = {
+  LangchatDiscoverIndexRoute: LangchatDiscoverIndexRoute,
+  LangchatDiscoverSpacesSpaceIdRoute: LangchatDiscoverSpacesSpaceIdRoute,
+}
+
+const LangchatDiscoverRouteRouteWithChildren =
+  LangchatDiscoverRouteRoute._addFileChildren(
+    LangchatDiscoverRouteRouteChildren,
+  )
+
+interface LangchatRouteRouteChildren {
+  LangchatDiscoverRouteRoute: typeof LangchatDiscoverRouteRouteWithChildren
+  LangchatContactsRoute: typeof LangchatContactsRoute
+  LangchatMeRoute: typeof LangchatMeRoute
+  LangchatMessagesRoute: typeof LangchatMessagesRoute
+  LangchatRoomsRoomIdRoute: typeof LangchatRoomsRoomIdRoute
+}
+
+const LangchatRouteRouteChildren: LangchatRouteRouteChildren = {
+  LangchatDiscoverRouteRoute: LangchatDiscoverRouteRouteWithChildren,
+  LangchatContactsRoute: LangchatContactsRoute,
+  LangchatMeRoute: LangchatMeRoute,
+  LangchatMessagesRoute: LangchatMessagesRoute,
+  LangchatRoomsRoomIdRoute: LangchatRoomsRoomIdRoute,
+}
+
+const LangchatRouteRouteWithChildren = LangchatRouteRoute._addFileChildren(
+  LangchatRouteRouteChildren,
+)
+
+interface LangproductRouteRouteChildren {
+  LangproductAccountRoute: typeof LangproductAccountRoute
+  LangproductAiRoute: typeof LangproductAiRoute
+  LangproductDashboardRoute: typeof LangproductDashboardRoute
+  LangproductImageGenerateRoute: typeof LangproductImageGenerateRoute
+  LangproductPaymentCancelRoute: typeof LangproductPaymentCancelRoute
+  LangproductPaymentSuccessRoute: typeof LangproductPaymentSuccessRoute
+  LangproductPremiumFeaturesRoute: typeof LangproductPremiumFeaturesRoute
+  LangproductPricingRoute: typeof LangproductPricingRoute
+  LangproductServicesRoute: typeof LangproductServicesRoute
+  LangproductUploadRoute: typeof LangproductUploadRoute
+  LangproductVideoGenerateRoute: typeof LangproductVideoGenerateRoute
+}
+
+const LangproductRouteRouteChildren: LangproductRouteRouteChildren = {
+  LangproductAccountRoute: LangproductAccountRoute,
+  LangproductAiRoute: LangproductAiRoute,
+  LangproductDashboardRoute: LangproductDashboardRoute,
+  LangproductImageGenerateRoute: LangproductImageGenerateRoute,
+  LangproductPaymentCancelRoute: LangproductPaymentCancelRoute,
+  LangproductPaymentSuccessRoute: LangproductPaymentSuccessRoute,
+  LangproductPremiumFeaturesRoute: LangproductPremiumFeaturesRoute,
+  LangproductPricingRoute: LangproductPricingRoute,
+  LangproductServicesRoute: LangproductServicesRoute,
+  LangproductUploadRoute: LangproductUploadRoute,
+  LangproductVideoGenerateRoute: LangproductVideoGenerateRoute,
+}
+
+const LangproductRouteRouteWithChildren =
+  LangproductRouteRoute._addFileChildren(LangproductRouteRouteChildren)
+
 interface LangrootRouteRouteChildren {
-  LangrootAiRoute: typeof LangrootAiRoute
-  LangrootDashboardRoute: typeof LangrootDashboardRoute
-  LangrootImageGenerateRoute: typeof LangrootImageGenerateRoute
-  LangrootPaymentCancelRoute: typeof LangrootPaymentCancelRoute
-  LangrootPaymentSuccessRoute: typeof LangrootPaymentSuccessRoute
-  LangrootPremiumFeaturesRoute: typeof LangrootPremiumFeaturesRoute
-  LangrootPricingRoute: typeof LangrootPricingRoute
-  LangrootUploadRoute: typeof LangrootUploadRoute
-  LangrootVideoGenerateRoute: typeof LangrootVideoGenerateRoute
   LangrootIndexRoute: typeof LangrootIndexRoute
-  LangrootBlogSlugRoute: typeof LangrootBlogSlugRoute
-  LangrootBlogIndexRoute: typeof LangrootBlogIndexRoute
 }
 
 const LangrootRouteRouteChildren: LangrootRouteRouteChildren = {
-  LangrootAiRoute: LangrootAiRoute,
-  LangrootDashboardRoute: LangrootDashboardRoute,
-  LangrootImageGenerateRoute: LangrootImageGenerateRoute,
-  LangrootPaymentCancelRoute: LangrootPaymentCancelRoute,
-  LangrootPaymentSuccessRoute: LangrootPaymentSuccessRoute,
-  LangrootPremiumFeaturesRoute: LangrootPremiumFeaturesRoute,
-  LangrootPricingRoute: LangrootPricingRoute,
-  LangrootUploadRoute: LangrootUploadRoute,
-  LangrootVideoGenerateRoute: LangrootVideoGenerateRoute,
   LangrootIndexRoute: LangrootIndexRoute,
-  LangrootBlogSlugRoute: LangrootBlogSlugRoute,
-  LangrootBlogIndexRoute: LangrootBlogIndexRoute,
 }
 
 const LangrootRouteRouteWithChildren = LangrootRouteRoute._addFileChildren(
   LangrootRouteRouteChildren,
 )
 
-interface LangAdminRouteChildren {
-  LangAdminIndexRoute: typeof LangAdminIndexRoute
-  LangAdminBlogIndexRoute: typeof LangAdminBlogIndexRoute
-  LangAdminCommissionsIndexRoute: typeof LangAdminCommissionsIndexRoute
-  LangAdminCreditsIndexRoute: typeof LangAdminCreditsIndexRoute
-  LangAdminOrdersIndexRoute: typeof LangAdminOrdersIndexRoute
-  LangAdminPricingIndexRoute: typeof LangAdminPricingIndexRoute
-  LangAdminSubscriptionsIndexRoute: typeof LangAdminSubscriptionsIndexRoute
-  LangAdminUsersIndexRoute: typeof LangAdminUsersIndexRoute
-  LangAdminWithdrawalsIndexRoute: typeof LangAdminWithdrawalsIndexRoute
-  LangAdminBlogIdIndexRoute: typeof LangAdminBlogIdIndexRoute
-  LangAdminPricingIdIndexRoute: typeof LangAdminPricingIdIndexRoute
-  LangAdminUsersIdIndexRoute: typeof LangAdminUsersIdIndexRoute
-}
-
-const LangAdminRouteChildren: LangAdminRouteChildren = {
-  LangAdminIndexRoute: LangAdminIndexRoute,
-  LangAdminBlogIndexRoute: LangAdminBlogIndexRoute,
-  LangAdminCommissionsIndexRoute: LangAdminCommissionsIndexRoute,
-  LangAdminCreditsIndexRoute: LangAdminCreditsIndexRoute,
-  LangAdminOrdersIndexRoute: LangAdminOrdersIndexRoute,
-  LangAdminPricingIndexRoute: LangAdminPricingIndexRoute,
-  LangAdminSubscriptionsIndexRoute: LangAdminSubscriptionsIndexRoute,
-  LangAdminUsersIndexRoute: LangAdminUsersIndexRoute,
-  LangAdminWithdrawalsIndexRoute: LangAdminWithdrawalsIndexRoute,
-  LangAdminBlogIdIndexRoute: LangAdminBlogIdIndexRoute,
-  LangAdminPricingIdIndexRoute: LangAdminPricingIdIndexRoute,
-  LangAdminUsersIdIndexRoute: LangAdminUsersIdIndexRoute,
-}
-
-const LangAdminRouteWithChildren = LangAdminRoute._addFileChildren(
-  LangAdminRouteChildren,
-)
-
 interface LangRouteChildren {
   LangauthRouteRoute: typeof LangauthRouteRouteWithChildren
+  LangchatRouteRoute: typeof LangchatRouteRouteWithChildren
+  LangproductRouteRoute: typeof LangproductRouteRouteWithChildren
   LangrootRouteRoute: typeof LangrootRouteRouteWithChildren
-  LangAdminRoute: typeof LangAdminRouteWithChildren
+  LangOnboardingRoute: typeof LangOnboardingRoute
 }
 
 const LangRouteChildren: LangRouteChildren = {
   LangauthRouteRoute: LangauthRouteRouteWithChildren,
+  LangchatRouteRoute: LangchatRouteRouteWithChildren,
+  LangproductRouteRoute: LangproductRouteRouteWithChildren,
   LangrootRouteRoute: LangrootRouteRouteWithChildren,
-  LangAdminRoute: LangAdminRouteWithChildren,
+  LangOnboardingRoute: LangOnboardingRoute,
 }
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
+
+interface ApiVideoGenerateRouteChildren {
+  ApiVideoGenerateStatusRoute: typeof ApiVideoGenerateStatusRoute
+}
+
+const ApiVideoGenerateRouteChildren: ApiVideoGenerateRouteChildren = {
+  ApiVideoGenerateStatusRoute: ApiVideoGenerateStatusRoute,
+}
+
+const ApiVideoGenerateRouteWithChildren =
+  ApiVideoGenerateRoute._addFileChildren(ApiVideoGenerateRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LangRoute: LangRouteWithChildren,
   PaymentCancelRoute: PaymentCancelRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
-  ApiChatRoute: ApiChatRoute,
-  ApiHealthRoute: ApiHealthRoute,
+  ApiSplatRoute: ApiSplatRoute,
   ApiImageGenerateRoute: ApiImageGenerateRoute,
-  ApiOrdersRoute: ApiOrdersRoute,
   ApiUploadRoute: ApiUploadRoute,
-  ApiAdminCommissionsRoute: ApiAdminCommissionsRoute,
-  ApiAffiliateClaimRoute: ApiAffiliateClaimRoute,
-  ApiAffiliateCommissionsRoute: ApiAffiliateCommissionsRoute,
-  ApiAffiliateReferralsRoute: ApiAffiliateReferralsRoute,
-  ApiAffiliateStatsRoute: ApiAffiliateStatsRoute,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiBlogSlugRoute: ApiBlogSlugRoute,
-  ApiCreditsBalanceRoute: ApiCreditsBalanceRoute,
-  ApiCreditsStatusRoute: ApiCreditsStatusRoute,
-  ApiCreditsTransactionsRoute: ApiCreditsTransactionsRoute,
-  ApiPaymentCancelRoute: ApiPaymentCancelRoute,
-  ApiPaymentInitiateRoute: ApiPaymentInitiateRoute,
-  ApiPaymentQueryRoute: ApiPaymentQueryRoute,
-  ApiPricingPlansRoute: ApiPricingPlansRoute,
-  ApiSubscriptionPortalRoute: ApiSubscriptionPortalRoute,
-  ApiSubscriptionStatusRoute: ApiSubscriptionStatusRoute,
-  ApiUsersIdRoute: ApiUsersIdRoute,
-  ApiVideoGenerateStatusRoute: ApiVideoGenerateStatusRoute,
-  ApiWithdrawalHistoryRoute: ApiWithdrawalHistoryRoute,
-  ApiWithdrawalRequestRoute: ApiWithdrawalRequestRoute,
-  ApiBlogIndexRoute: ApiBlogIndexRoute,
-  ApiVideoGenerateIndexRoute: ApiVideoGenerateIndexRoute,
-  ApiAdminBlogIdRoute: ApiAdminBlogIdRoute,
-  ApiAdminPricingPlansImportRoute: ApiAdminPricingPlansImportRoute,
-  ApiAdminPricingPlansReorderRoute: ApiAdminPricingPlansReorderRoute,
-  ApiAdminStatsMonthlyRoute: ApiAdminStatsMonthlyRoute,
-  ApiAdminWithdrawalsIdRoute: ApiAdminWithdrawalsIdRoute,
-  ApiPaymentReturnPaypalRoute: ApiPaymentReturnPaypalRoute,
-  ApiPaymentVerifyCreemRoute: ApiPaymentVerifyCreemRoute,
-  ApiPaymentVerifyStripeRoute: ApiPaymentVerifyStripeRoute,
-  ApiPaymentWebhookAlipayRoute: ApiPaymentWebhookAlipayRoute,
-  ApiPaymentWebhookCreemRoute: ApiPaymentWebhookCreemRoute,
-  ApiPaymentWebhookDodoRoute: ApiPaymentWebhookDodoRoute,
-  ApiPaymentWebhookPaypalRoute: ApiPaymentWebhookPaypalRoute,
-  ApiPaymentWebhookStripeRoute: ApiPaymentWebhookStripeRoute,
-  ApiPaymentWebhookWechatRoute: ApiPaymentWebhookWechatRoute,
-  ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
-  ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
-  ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,
-  ApiAdminStatsIndexRoute: ApiAdminStatsIndexRoute,
-  ApiAdminSubscriptionsIndexRoute: ApiAdminSubscriptionsIndexRoute,
-  ApiAdminUsersIndexRoute: ApiAdminUsersIndexRoute,
-  ApiAdminWithdrawalsIndexRoute: ApiAdminWithdrawalsIndexRoute,
-  ApiAdminCreditsTransactionsIndexRoute: ApiAdminCreditsTransactionsIndexRoute,
-  ApiAdminUsersDeleteIndexRoute: ApiAdminUsersDeleteIndexRoute,
-  ApiAdminUsersUpdateIndexRoute: ApiAdminUsersUpdateIndexRoute,
+  ApiVideoGenerateRoute: ApiVideoGenerateRouteWithChildren,
+  ReferralCodeRoute: ReferralCodeRoute,
+  V1SplatRoute: V1SplatRoute,
+  V1RoomsMetadataRoute: V1RoomsMetadataRoute,
+  V1ContactsIndexRoute: V1ContactsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -129,8 +129,5 @@ export function createVideoProvider(
   }
 }
 
-// Legacy alias for backwards compatibility
-export const createProvider = createChatProvider;
-
 // Re-export the default fal instance for convenience
 export { fal } from '@ai-sdk/fal';

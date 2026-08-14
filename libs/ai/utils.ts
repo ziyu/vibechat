@@ -3,11 +3,14 @@ import type { UIMessage } from 'ai';
 import { createChatProvider } from './providers';
 import { getProviderConfig } from './config';
 import type { ChatProviderName } from './types';
+import { summarizeAIError } from './error';
 
 interface StreamOptions {
   messages: UIMessage[];
   provider?: ChatProviderName;
   model?: string;
+  maxOutputTokens?: number;
+  abortSignal?: AbortSignal;
 }
 
 interface UsageData {
@@ -28,7 +31,7 @@ interface StreamResponseWithUsage {
  * Returns both the response and a promise for usage data
  * Note: In AI SDK v6, convertToModelMessages is async
  */
-export async function streamResponseWithUsage({ messages, provider, model }: StreamOptions): Promise<StreamResponseWithUsage> {
+export async function streamResponseWithUsage({ messages, provider, model, maxOutputTokens, abortSignal }: StreamOptions): Promise<StreamResponseWithUsage> {
   // Validate messages
   if (!messages || !Array.isArray(messages)) {
     throw new Error('Invalid messages: messages must be an array');
@@ -47,6 +50,8 @@ export async function streamResponseWithUsage({ messages, provider, model }: Str
   const providerName = provider || 'openai';
   const config = getProviderConfig(providerName);
   const aiProvider = createChatProvider(providerName, config);
+  const { config: appConfig } = await import('@config');
+  const resolvedModel = model || appConfig.ai.defaultModels[providerName];
   
   // AI SDK v6: convertToModelMessages is now async
   const modelMessages = await convertToModelMessages(messages);
@@ -54,8 +59,15 @@ export async function streamResponseWithUsage({ messages, provider, model }: Str
   // Note: Using 'any' cast due to version mismatch between @ai-sdk/* packages
   // This is safe as the runtime behavior is correct
   const result = streamText({
-    model: aiProvider(model as string) as any,
+    model: aiProvider(resolvedModel) as any,
     messages: modelMessages,
+    maxOutputTokens,
+    abortSignal,
+    // The SDK default prints full provider request/response objects. Keep logs
+    // useful without retaining prompts, response bodies, headers or keys.
+    onError: ({ error }) => {
+      console.error('AI provider stream error:', summarizeAIError(error));
+    },
   });
   
   const response = result.toUIMessageStreamResponse({
@@ -77,7 +89,7 @@ export async function streamResponseWithUsage({ messages, provider, model }: Str
     response,
     usage: usagePromise,
     provider: providerName,
-    model: model || 'default'
+    model: resolvedModel
   };
 }
 

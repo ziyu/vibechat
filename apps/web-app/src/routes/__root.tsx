@@ -1,23 +1,20 @@
 /// <reference types="vite/client" />
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import {
   Outlet,
   createRootRoute,
   HeadContent,
   Scripts,
-  useLoaderData,
   useRouterState,
 } from '@tanstack/react-router'
 import { config } from '@config'
-import { getPublicFeatureFlags } from '@/lib/feature-flags'
-import { locales } from '@libs/i18n'
-import { ThemeProvider } from '@libs/react-shared/hooks/use-theme'
-import { ThemeScript } from '@libs/react-shared/components/theme-script'
-import { Toaster } from '@libs/react-shared/ui/sonner'
+import { locales } from '@vibechat/i18n'
+import { ThemeProvider } from '@vibechat/react-shared/hooks/use-theme'
+import { ThemeScript } from '@vibechat/react-shared/components/theme-script'
+import { Toaster } from '@vibechat/react-shared/ui/sonner'
 import '../styles.css'
 
 export const Route = createRootRoute({
-  loader: () => getPublicFeatureFlags(),
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -33,33 +30,7 @@ export const Route = createRootRoute({
   component: RootComponent,
 })
 
-export function useAffiliateEnabled() {
-  return useLoaderData({
-    from: '__root__',
-    select: (data) => data.affiliateEnabled,
-  })
-}
-
-function useReferralCapture() {
-  useEffect(() => {
-    const url = new URL(window.location.href)
-    const ref = url.searchParams.get('ref')
-    if (!ref) return
-    const referralCookieName = config.affiliate.cookie.name
-    const existing = document.cookie.split(';').some(c => c.trim().startsWith(`${referralCookieName}=`))
-    if (!existing) {
-      const expires = new Date(
-        Date.now() + config.affiliate.cookie.expiryDays * 24 * 60 * 60 * 1000,
-      ).toUTCString()
-      document.cookie = `${referralCookieName}=${encodeURIComponent(ref)}; path=/; expires=${expires}; samesite=lax`
-    }
-    url.searchParams.delete('ref')
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-  }, [])
-}
-
 function RootComponent() {
-  useReferralCapture()
   return (
     <RootDocument>
       <Outlet />
@@ -82,10 +53,18 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
     <html lang={lang} suppressHydrationWarning>
       <head>
         <HeadContent />
-        <ThemeScript />
+        <ThemeScript
+          storageKey={config.app.theme.storageKey}
+          defaultTheme={config.app.theme.defaultTheme}
+          defaultColorScheme={config.app.theme.defaultColorScheme}
+        />
       </head>
       <body className="antialiased">
-        <ThemeProvider>
+        <ThemeProvider
+          storageKey={config.app.theme.storageKey}
+          defaultTheme={config.app.theme.defaultTheme}
+          defaultColorScheme={config.app.theme.defaultColorScheme}
+        >
           {children}
           <Toaster />
         </ThemeProvider>

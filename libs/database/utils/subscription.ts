@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { subscription, subscriptionStatus } from '../schema/subscription';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { utcNow } from './utc';
 
 /**
@@ -18,6 +18,7 @@ export async function checkSubscriptionStatus(userId: string) {
         eq(subscription.status, subscriptionStatus.ACTIVE)
       )
     )
+    .orderBy(desc(subscription.periodEnd))
     .limit(1);
   if (!userSub.length) return null;
 
@@ -60,4 +61,4 @@ export async function isLifetimeMember(userId: string) {
   
   const metadata = sub.metadata ? JSON.parse(sub.metadata) : {};
   return !!metadata.isLifetime;
-} 
+}

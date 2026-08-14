@@ -105,7 +105,7 @@ export async function applyReferralCodeToUser(
     return { applied: false, reason: 'user_not_found' };
   }
 
-  if (userRecord[0].referredByCode) {
+  if (userRecord[0].referredByCode && userRecord[0].referredByCode !== referralCode) {
     return { applied: false, reason: 'already_claimed' };
   }
 
@@ -123,9 +123,22 @@ export async function applyReferralCodeToUser(
     return { applied: false, reason: 'self_referral' };
   }
 
-  await db.update(user)
-    .set({ referredByCode: referralCode, updatedAt: new Date() })
-    .where(eq(user.id, userId));
+  if (!userRecord[0].referredByCode) {
+    const updated = await db.update(user)
+      .set({ referredByCode: referralCode, updatedAt: new Date() })
+      .where(and(eq(user.id, userId), isNull(user.referredByCode)))
+      .returning({ id: user.id });
+    if (updated.length === 0) {
+      const [concurrent] = await db
+        .select({ referredByCode: user.referredByCode })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
+      if (concurrent?.referredByCode !== referralCode) {
+        return { applied: false, reason: 'already_claimed' };
+      }
+    }
+  }
 
   let bonusGranted = true;
   let bonusError: string | undefined;
@@ -140,6 +153,7 @@ export async function applyReferralCodeToUser(
         type: 'bonus',
         description: TransactionTypeCode.REFERRAL_SIGNUP_BONUS,
         metadata: { referrerId: referrer[0].id, referralCode },
+        transactionId: `referral:referee:${userId}`,
       });
     }
 
@@ -151,6 +165,7 @@ export async function applyReferralCodeToUser(
         type: 'bonus',
         description: TransactionTypeCode.REFERRAL_REFERRER_BONUS,
         metadata: { refereeId: userId, referralCode },
+        transactionId: `referral:referrer:${userId}`,
       });
     }
   } catch (error) {

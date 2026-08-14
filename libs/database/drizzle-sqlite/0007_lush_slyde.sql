@@ -1,0 +1,1 @@
+ALTER TABLE `room_index` ADD `participant_user_ids_json` text DEFAULT '[]' NOT NULL;

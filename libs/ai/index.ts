@@ -3,7 +3,6 @@ export {
   createChatProvider, 
   createImageProvider, 
   createVideoProvider,
-  createProvider, // Legacy alias
   fal 
 } from './providers';
 export { 
@@ -14,6 +13,17 @@ export {
   hasCapability,
 } from './config';
 export { streamResponse, streamResponseWithUsage } from './utils';
+export { summarizeAIError } from './error';
+export {
+  CHAT_MAX_MESSAGES,
+  CHAT_MAX_REQUEST_BYTES,
+  CHAT_MAX_OUTPUT_TOKENS,
+  calculateChatReservationCredits,
+  getChatRequestBytes,
+  reserveChatCredits,
+  settleChatCredits,
+  refundChatCredits,
+} from './chat-billing';
 export { 
   generateImageResponse, 
   calculateImageCreditCost,
@@ -33,6 +43,21 @@ export { aiImageConfig } from '../../config/aiImage';
 
 // Re-export video config from config folder
 export { aiVideoConfig } from '../../config/aiVideo';
+export {
+  createImageTaskRecord,
+  getImageTaskRecord,
+  markImageTaskFailed,
+  markImageTaskSucceeded,
+} from './image-task-store';
+export {
+  attachVideoProviderTask,
+  createVideoTaskRecord,
+  getVideoTaskRecord,
+  markVideoTaskFailed,
+  markVideoTaskRefunded,
+  markVideoTaskSucceeded,
+  reserveVideoTaskRecord,
+} from './video-task-store';
 
 import { createChatProvider } from './providers';
 import { getConfig, getProviderConfig } from './config';

@@ -25,28 +25,25 @@ Without these, `pnpm test:e2e` will fail with "Executable doesn't exist" errors.
 
 ## Running Tests
 
-> The TanStack Start app runs on port 7001.
+> `pnpm dev` starts Backend on 8002, product Web on 8001, the public Site on 8003, and Admin on 8005.
 
 ```bash
-# 1) Start the TanStack Start dev server
+# 1) Start the four active TanStack applications
 pnpm dev
 
-# 2) For Stripe payment tests, also start webhook forwarding in another terminal
-stripe listen --forward-to localhost:7001/api/payment/webhook/stripe
-
-# 3) Run all E2E tests
+# 2) Run all active E2E tests
 pnpm test:e2e
 
 # Cloudflare Workers + local D1
 pnpm test:e2e:cf
 
-# 4) Interactive UI mode (for debugging)
+# 3) Interactive UI mode (for debugging)
 pnpm test:e2e:ui
 
-# 5) Headed mode (watch tests in a real browser window)
+# 4) Headed mode (watch tests in a real browser window)
 pnpm test:e2e -- --headed
 
-# 6) Run a specific test file or grep pattern
+# 5) Run a specific test file or grep pattern
 pnpm test:e2e -- --grep "Stripe"
 pnpm test:e2e -- --headed --grep "Admin Panel"
 ```
@@ -91,27 +88,15 @@ tests/e2e/
 ├── helpers/
 │   ├── constants.ts              # URL paths, API endpoints, timeouts, test user data
 │   ├── auth.ts                   # Auth helper functions (sign-up, sign-in, sign-out)
-│   └── credits.ts                # Credit seeding (direct SQL for AI test users)
+│   ├── credits.ts                # Credit seeding (direct SQL for AI test users)
+│   └── affiliate.ts              # Commission-balance prerequisite seeding
 └── specs/
-    ├── public-pages.spec.ts      # Public page smoke tests
-    ├── auth-flow.spec.ts         # Authentication flow tests
-    ├── access-control.spec.ts    # Access control tests
-    ├── dashboard.spec.ts         # Dashboard tests
-    ├── pricing.spec.ts           # Pricing page tests
-    ├── ai-features.spec.ts       # AI feature page tests
-    ├── stripe-payment.spec.ts    # Stripe payment flow tests
-    ├── profile-update.spec.ts    # Profile update tests
-    ├── password-change.spec.ts   # Password change tests
-    ├── i18n-switching.spec.ts    # Language switching tests
-    ├── upload-page.spec.ts       # Upload page tests
-    ├── admin-panel.spec.ts       # Admin panel tests
-    ├── ai-chat.spec.ts           # AI chat real interaction tests
-    ├── ai-image-generate.spec.ts # AI image generation real tests
-    ├── creem-payment.spec.ts     # Creem payment flow tests
-    ├── paypal-payment.spec.ts    # PayPal payment flow tests
-    ├── affiliate.spec.ts         # Affiliate/referral system tests
-    ├── admin-affiliate.spec.ts   # Admin commission/withdrawal management tests
-    └── admin-pricing.spec.ts     # Admin dynamic pricing management tests
+    ├── public-pages.spec.ts       # Four-app boundary and public smoke tests
+    ├── auth-flow.spec.ts          # Authentication flow tests
+    ├── account-services-ai.spec.ts # Account/payment/referral/AI real chains
+    ├── admin-app.spec.ts          # Admin permissions, CRUD, KYC and withdrawal
+    ├── chat-*.spec.ts             # Product/Matrix/session/chat chains
+    └── i18n-switching.spec.ts     # Language switching tests
 ```
 
 ---

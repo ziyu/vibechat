@@ -1,0 +1,1 @@
+ALTER TABLE "room_index" ADD COLUMN "participant_user_ids_json" jsonb DEFAULT '[]'::jsonb NOT NULL;

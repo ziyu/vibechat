@@ -14,13 +14,11 @@ RUN corepack enable && corepack prepare pnpm@9.4.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json config.ts tsconfig.json .npmrc ./
 COPY config ./config
 COPY apps/web-app ./apps/web-app
+COPY packages ./packages
 COPY libs ./libs
 COPY scripts ./scripts
 
 ARG NODE_OPTIONS="--max-old-space-size=6144"
-
-# Copy .env file if it exists (for local builds)
-COPY .env* ./
 
 ENV BUILD_TIME=true
 ENV NODE_OPTIONS=${NODE_OPTIONS}
@@ -46,9 +44,9 @@ RUN mkdir -p /app/data
 RUN chown -R appuser:nodejs /app
 USER appuser
 
-EXPOSE 7001
+EXPOSE 8001
 
-ENV PORT=7001
+ENV PORT=8001
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 

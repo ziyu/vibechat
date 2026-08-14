@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { i18n } from '@/lib/i18n';
 import { Logo } from '@/components/ui/logo';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 
 /**
  * Shared layout configurations
@@ -14,7 +14,10 @@ export function baseOptions(locale: string): BaseLayoutProps {
   const t = translations[locale as keyof typeof translations] || translations.en;
 
   return {
-    i18n,
+    // Locale state is already provided by DocsRootProvider. Passing Fumadocs'
+    // server i18n API here would serialize its translations() function into a
+    // client layout on static export.
+    i18n: true,
     nav: {
       title: <Logo size="md" />,
     },

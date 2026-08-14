@@ -18,18 +18,17 @@ export function calculateCreditConsumption(params: CalculateConsumptionParams): 
 
   // Dynamic consumption mode: calculate based on token usage
   const { tokensPerCredit, modelMultipliers } = creditsConfig.dynamicConsumption;
-  
+
   // Get model-specific multiplier or default
   const multiplier = modelMultipliers[model] ?? modelMultipliers['default'] ?? 1.0;
-  
+
   // Calculate credits: (tokens / tokensPerCredit) * multiplier
   // Use Math.ceil to round up (minimum 1 credit per operation)
   const credits = Math.ceil((totalTokens / tokensPerCredit) * multiplier);
-  
+
   // Ensure minimum of 1 credit consumed per operation
   return Math.max(1, credits);
 }
-
 /**
  * Get the estimated credits for a fixed consumption operation
  * Useful for showing users expected cost before executing

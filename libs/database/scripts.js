@@ -1,4 +1,5 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
@@ -21,6 +22,12 @@ function runCommand(command, description) {
   }
 }
 
+function ensureSqliteDirectory() {
+  const configuredPath = process.env.SQLITE_DB_PATH || './data/local.sqlite';
+  const databasePath = path.resolve(process.cwd(), configuredPath);
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+}
+
 // 获取命令行参数
 const [, , command] = process.argv;
 
@@ -28,68 +35,74 @@ const [, , command] = process.argv;
 switch (command) {
   // --- PostgreSQL 命令 ---
   case 'check':
-    runCommand('tsx ./libs/database/check-connection.ts', '检查数据库连接');
+    runCommand('./node_modules/.bin/tsx ./libs/database/check-connection.ts', '检查数据库连接');
     break;
     
   case 'push':
-    runCommand('npx drizzle-kit push', '推送数据库架构到数据库');
+    runCommand('./node_modules/.bin/drizzle-kit push', '推送数据库架构到数据库');
     break;
     
   case 'generate':
-    runCommand('npx drizzle-kit generate', '生成数据库迁移文件');
+    runCommand('./node_modules/.bin/drizzle-kit generate', '生成数据库迁移文件');
     break;
     
   case 'migrate':
-    runCommand('npx drizzle-kit migrate', '应用数据库迁移');
+    runCommand('./node_modules/.bin/drizzle-kit migrate', '应用数据库迁移');
     break;
     
   case 'seed':
-    runCommand('tsx ./libs/database/seed.ts', '填充测试数据');
+    runCommand('./node_modules/.bin/tsx ./libs/database/seed.ts', '填充测试数据');
     break;
     
   case 'studio':
-    runCommand('npx drizzle-kit studio', '启动 Drizzle Studio 数据库管理界面');
+    runCommand('./node_modules/.bin/drizzle-kit studio', '启动 Drizzle Studio 数据库管理界面');
     break;
 
   // --- SQLite 命令（本地开发 + D1 兼容）---
   case 'generate:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'npx drizzle-kit generate --config=drizzle.config.sqlite.ts',
+      './node_modules/.bin/drizzle-kit generate --config=drizzle.config.sqlite.ts',
       '生成 SQLite 迁移文件'
     );
     break;
 
   case 'push:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'npx drizzle-kit push --config=drizzle.config.sqlite.ts',
+      './node_modules/.bin/drizzle-kit push --config=drizzle.config.sqlite.ts',
       '推送架构到本地 SQLite'
     );
     break;
 
   case 'migrate:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'npx drizzle-kit migrate --config=drizzle.config.sqlite.ts',
+      './node_modules/.bin/drizzle-kit migrate --config=drizzle.config.sqlite.ts',
       '应用 SQLite 迁移'
     );
     break;
 
   case 'studio:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'npx drizzle-kit studio --config=drizzle.config.sqlite.ts',
+      './node_modules/.bin/drizzle-kit studio --config=drizzle.config.sqlite.ts',
       '启动 Drizzle Studio (SQLite)'
     );
     break;
 
   case 'seed:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'DB_DIALECT=sqlite tsx ./libs/database/seed.ts',
+      'DB_DIALECT=sqlite ./node_modules/.bin/tsx ./libs/database/seed.ts',
       '填充测试数据到本地 SQLite'
     );
     break;
 
   case 'check:sqlite':
+    ensureSqliteDirectory();
     runCommand(
-      'DB_DIALECT=sqlite tsx ./libs/database/check-connection.ts',
+      'DB_DIALECT=sqlite ./node_modules/.bin/tsx ./libs/database/check-connection.ts',
       '检查 SQLite 连接'
     );
     break;

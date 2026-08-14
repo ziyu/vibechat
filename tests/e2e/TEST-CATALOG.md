@@ -1,6 +1,6 @@
 # E2E 测试流程目录
 
-本文档详细记录所有已实现的 E2E 测试用例，包含每个测试的具体步骤和验证内容。
+本文档记录当前产品 E2E 与历史验收记录。`specs/` 是默认执行的 VibeChat 活动产品回归；AI、支付、Affiliate 与 Admin 的有效场景已经重写进活动套件，旧脚手架测试不再保留为可执行源码。
 
 > 编写规范和架构约定请查看 [`AGENTS.md`](./AGENTS.md)。
 
@@ -32,6 +32,19 @@
 - [22. 管理员返利管理测试](#22-管理员返利管理测试)
 - [23. 推荐佣金支付全流程测试](#23-推荐佣金支付全流程测试)
 - [24. 管理员动态定价管理测试](#24-管理员动态定价管理测试)
+- [25. 聊天宿主基础功能](#25-聊天宿主基础功能)
+- [26. Email OTP 与产品 Session Bootstrap](#26-email-otp-与产品-session-bootstrap)
+- [27. Matrix Identity 生命周期](#27-matrix-identity-生命周期)
+- [28. Synapse Appservice Adapter](#28-synapse-appservice-adapter)
+- [29. Session 撤销与 Matrix Device 回收](#29-session-撤销与-matrix-device-回收)
+- [30. 真实 Matrix 房间与消息 Timeline](#30-真实-matrix-房间与消息-timeline)
+- [31. 好友关系与双用户 Matrix 邀请](#31-好友关系与双用户-matrix-邀请)
+- [32. 浏览器会话与本地 Matrix 数据管理](#32-浏览器会话与本地-matrix-数据管理)
+- [33. Matrix 完整消息操作](#33-matrix-完整消息操作)
+- [34. 首次资料设置与联系人备注](#34-首次资料设置与联系人备注)
+- [35. 登录后产品状态真实化](#35-登录后产品状态真实化)
+- [36. Apps 拆分与同源 Backend 网关](#36-apps-拆分与同源-backend-网关)
+- [39. Legacy 产品能力完整迁移](#39-legacy-产品能力完整迁移)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -53,7 +66,7 @@
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
 | 1 | 首页加载 | 打开 `/en` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
-| 2 | 登录页加载 | 打开 `/en/signin` → 验证邮箱输入框、密码输入框、提交按钮均可见 |
+| 2 | 登录页加载 | 打开 `/en/signin` → 验证默认 Email OTP 表单 → 切换“Use password instead” → 验证密码输入框和提交按钮可见 |
 | 3 | 注册页加载 | 打开 `/en/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
 | 4 | 忘记密码页加载 | 打开 `/en/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
 | 5 | 定价页加载 | 打开 `/en/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
@@ -81,9 +94,9 @@
 |---|---------|---------|
 | 3 | UI 表单登录 | 打开登录页 → 填写邮箱/密码 → 点击提交 → 等待 URL 离开 `/signin` |
 | 4 | API 登录 | 通过 `POST /api/auth/sign-in/email` 登录 → 验证返回 200 |
-| 5 | 登出后无法访问仪表盘 | 先 API 登录 → 访问仪表盘确认可进入 → 调用 API 登出 → 再次访问仪表盘 → 验证被重定向到 `/signin` |
-| 6 | 已登录用户访问 /signin 重定向到 /dashboard | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/dashboard` |
-| 7 | 已登录用户访问 /signup 重定向到 /dashboard | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/dashboard` |
+| 5 | 登出后无法访问产品 | 先 API 登录 → 访问 `/messages` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/messages` → 验证被重定向到 `/signin` |
+| 6 | 已登录用户访问 /signin 重定向到 /messages | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/messages` |
+| 7 | 已登录用户访问 /signup 重定向到 /messages | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/messages` |
 
 ---
 
@@ -165,8 +178,8 @@
 **文件：** `specs/stripe-payment.spec.ts` ｜ **优先级：** P0
 
 > ⚠️ **前置条件：**
-> 1. 开发服务器在 7001 端口运行
-> 2. `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe` 正在运行
+> 1. 开发服务器在 8001 端口运行
+> 2. `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe` 正在运行
 > 3. `.env` 中配置了 Stripe 测试模式的 API Key
 
 完整的 Stripe 支付端到端流程，覆盖**订阅购买**和**积分购买**两个链路。使用测试卡号 `4242 4242 4242 4242` 模拟支付，不产生真实扣款。
@@ -500,7 +513,7 @@ seedCredits 实现 (helpers/credits.ts):
 
 > ⚠️ **前置条件：**
 > 1. `.env` 中配置了 Creem 测试模式的 API Key 和 Webhook Secret
-> 2. Creem webhook 转发已配置到 `localhost:7001/api/payment/webhook/creem`
+> 2. Creem webhook 转发已配置到 `localhost:8001/api/payment/webhook/creem`
 > 3. Creem 产品已创建并配置了 `creemProductId`
 
 Creem 与 Stripe 流程类似，都是页面跳转到托管 Checkout 页面完成支付，通过 webhook 回调通知后端。
@@ -889,8 +902,8 @@ processReferralCommission → 计算佣金 → 写入 commission 表 → 增加�
 **文件：** `specs/affiliate-commission.spec.ts` ｜ **优先级：** P0
 
 > ⚠️ **前置条件：**
-> 1. 开发服务器在 7001 端口运行
-> 2. `stripe listen --forward-to localhost:7001/api/payment/webhook/stripe` 正在运行
+> 1. 开发服务器在 8001 端口运行
+> 2. `stripe listen --forward-to localhost:8001/api/payment/webhook/stripe` 正在运行
 > 3. `.env` 中配置了 Stripe 测试模式的 API Key
 > 4. 显式配置 `AFFILIATE_ENABLED=true`（默认关闭）
 
@@ -1005,12 +1018,304 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 ---
 
+## 25. 聊天宿主基础功能（历史基线，已由 #35 替代）
+
+**文件：** 已删除；真实回归见 `specs/chat-real-product-state.spec.ts` ｜ **状态：** Replaced ｜ **历史 fixture 基线**
+
+本组场景记录 2026-08-11 的前端壳验收历史，不再代表当前实现。2026-08-12 起登录后宿主不允许 fixture 或浏览器本地 mutation，自动化由 #30–#35 的真实 Matrix/产品状态用例承担。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 消息宿主加载 | 打开 `/zh-CN/messages` → 验证消息、联系人、发现、我的四项一级导航存在 → 验证统一会话列表和未读状态可见 |
+| 2 | 搜索与未读筛选 | 在会话搜索框输入房间名或成员名 → 验证列表收窄 → 清空后切换未读筛选 → 验证仅展示有未读消息的会话 |
+| 3 | 进入房间并发送消息 | 从会话列表进入房间 → 验证氛围画布、宿主控制岛和消息时间线可见 → 输入文字并发送 → 验证本地回显及发送完成状态 |
+| 4 | 回复与回应 | 在房间中选择回复一条消息 → 验证输入区显示回复上下文 → 发送后验证关联内容可见 → 点击回应按钮并验证计数变化 |
+| 5 | 新建聊天 | 打开“新聊天” → 先选择一位或多位联系人 → 继续选择一个氛围空间 → 在确认页创建 → 验证进入新房间且新会话出现在列表中 |
+| 6 | 联系人与发现 | 打开联系人页 → 接受或拒绝好友请求 → 打开发现页 → 搜索/筛选氛围空间、收藏空间并从空间发起聊天 |
+| 7 | 响应式导航 | 使用移动端视口打开消息页 → 验证底部四项导航和单列会话列表 → 进入房间后验证底部导航隐藏、宿主控制岛保留 |
+| 8 | 本地持久化 | 发送消息、置顶/静音会话或收藏空间后刷新页面 → 验证用户操作仍然保留 |
+
+---
+
+## 26. Email OTP 与产品 Session Bootstrap
+
+**文件：** `specs/chat-auth-bootstrap.spec.ts` ｜ **优先级：** P0 ｜ **本地数据库**
+
+本组用例验收 A2 的第一条真实服务切片。认证必须由 Better Auth Email OTP plugin 完成；产品接口只读取 Better Auth Cookie session，不复制 session token，也不在 Matrix 尚未接入时返回伪造凭据。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 请求登录验证码 | 打开 `/zh-CN/signin` → 保持 Email OTP 为默认登录方式 → 输入邮箱并请求验证码 → 验证进入六位验证码输入步骤 |
+| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/zh-CN/messages` |
+| 3 | 获取产品 session bootstrap | 登录后请求 `GET /v1/session/bootstrap` → 验证返回当前用户 ID、邮箱、展示名和头像字段 → 验证响应明确标记 Matrix 尚未配置且不包含 access token |
+| 4 | 未登录请求被拒绝 | 清除 Cookie 后请求 `GET /v1/session/bootstrap` → 验证返回 401 和稳定的产品错误结构 |
+| 5 | 旧密码登录仍可访问 | 在登录页切换到密码登录 → 验证旧账号兼容入口仍存在，迁移期间不破坏既有认证用户 |
+
+---
+
+## 27. Matrix Identity 生命周期
+
+**文件：** `specs/chat-auth-bootstrap.spec.ts` + `tests/unit/identity/*.test.ts` ｜ **优先级：** P0 ｜ **本地数据库 / fake adapter**
+
+本组场景验收 A2 的第二条切片。产品 profile 必须持久化，Matrix user/device 的创建必须通过 adapter 和幂等 repository；Synapse 未配置时不能创建 binding 或返回 token。由于 Synapse Admin “login as user”不会创建真实设备，本切片不把该接口当成浏览器设备凭据签发方案。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 幂等创建产品资料 | Email OTP 登录后连续请求两次 `GET /v1/session/bootstrap` → 验证 user ID、username、display name 保持一致 |
+| 2 | 产品资料成为权威 | 首次 bootstrap 从 Better Auth session 创建 profile → 后续 bootstrap 读取已持久化 profile，不重复创建或覆盖产品字段 |
+| 3 | Synapse 未配置安全降级 | 本地未配置 Synapse adapter → 验证 Matrix 状态为 unavailable → 数据库中不创建 session binding → 响应不含 access token |
+| 4 | Matrix user 幂等 provision | 使用 fake adapter 并发 bootstrap 同一用户 → 验证只形成一个 Matrix identity，重复调用返回同一 Matrix user ID |
+| 5 | Session-device 幂等绑定 | 同一 Better Auth session 顺序重复 bootstrap 不再创建 device；并发 bootstrap 由 repository 选出唯一 binding，loser device 立即注销；token 经 protector 后才写入 repository |
+| 6 | Session 撤销进入 outbox | 撤销已绑定 session → binding 标记 revoked → 写入幂等 `matrix.device.revoke` outbox 事件，供后续 worker 处理 |
+| 7 | Adapter 失败不泄漏凭据 | Matrix adapter 抛错 → route 映射稳定产品错误 → 不写入明文 token 或半成品 active binding |
+
+---
+
+## 28. Synapse Appservice Adapter
+
+**文件：** `tests/unit/identity/synapse-appservice.test.ts` + `specs/chat-auth-bootstrap.spec.ts` ｜ **优先级：** P0 ｜ **mock HTTP / 本地 Synapse**
+
+产品服务作为 Matrix Application Service 管理专属用户 namespace。用户使用 `m.login.application_service` 注册为无密码 Matrix 用户，再通过标准 `/login` 获取绑定真实 device 的单用户 scoped token；Synapse Admin “login as user”和自建 Matrix 密码均不进入该链路。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 配置全有或全无 | Matrix 环境变量全部缺失 → adapter unavailable；只配置一部分 → 启动/请求明确失败且不回退到伪 token |
+| 2 | 无密码用户幂等注册 | adapter 使用 appservice token 调用标准注册端点并设置 `inhibit_login` → 首次创建成功；`M_USER_IN_USE` 视为已存在并返回同一 Matrix user ID |
+| 3 | Scoped device login | adapter 使用 `m.login.application_service` 登录已注册用户 → 请求携带唯一 device ID 与显示名 → 校验响应 user/device/token 后才返回凭据 |
+| 4 | 并发 winner/loser 回收 | 同一 Better Auth session 并发 bootstrap → repository 只保留一个 binding → loser 立即用自己的 token 调用 `/logout`，两个响应都返回 winner 凭据 |
+| 5 | 标准注销撤销 device | outbox worker/adapter 使用待撤销 binding 的 access token 调用 Matrix `/logout` → token 失效且 device session 不再可用 |
+| 6 | 错误与 secret 隔离 | Synapse 返回非 2xx、无效 JSON 或字段不匹配 → 抛出稳定 adapter error → 日志/异常不包含 appservice token 或 Matrix access token |
+| 7 | 真实本地联调 | 启动固定版本 Synapse + appservice registration → Email OTP 登录并 bootstrap → 返回 ready、真实 Matrix user/device/token → 重复 bootstrap 保持 binding 稳定 |
+
+---
+
+## 29. Session 撤销与 Matrix Device 回收
+
+**文件：** `tests/unit/identity/device-revocation-worker.test.ts` + `specs/chat-session-revocation.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse**
+
+Better Auth session 是产品会话权威。任何单会话或批量 session 删除都先把对应 Matrix binding 标记为 revoked 并写入幂等 outbox；删除完成后 worker 立即尝试注销 scoped Matrix device。远端失败不得丢事件或泄漏 token，后续 drain 可安全重试。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 登出先持久化撤销意图 | 已 bootstrap 的 Better Auth session 调用 sign-out → session delete hook 将 binding 标记 revoked → 同一 session 只形成一个 `matrix.device.revoke` 事件 |
+| 2 | Worker 回收真实 device | worker 读取 binding 并解密 token → 调用 Matrix `/logout` → 标记 outbox processed → 原 token 请求 `/account/whoami` 返回 401 |
+| 3 | 重复处理保持幂等 | 重复触发 session delete 或重复 drain → 不新增事件、不重复保留 pending 状态，已失效 token 被视为成功 |
+| 4 | 远端失败可重试 | Synapse 暂时不可用 → attempts 增加、availableAt 延后且 processedAt 仍为空 → 下次到期 drain 成功 |
+| 5 | 无 binding 安全跳过 | 删除从未 bootstrap 的 Better Auth session → hook 和 worker 无错误完成且不创建空 outbox |
+| 6 | 凭据与日志隔离 | outbox payload、worker result 与错误日志均不包含 Matrix access token 或加密 key |
+| 7 | 真实端到端撤销 | Email OTP 登录 → bootstrap → token whoami 为 200 → sign-out → drain → 同 token whoami 为 401 → bootstrap 再请求为 401 |
+
+---
+
+## 30. 真实 Matrix 房间与消息 Timeline
+
+**文件：** `tests/unit/rooms/*.test.ts` + `specs/chat-matrix-room.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / Chromium**
+
+本组场景把聊天宿主的 room/timeline 权威从 fixture 切换到 Matrix。产品 API 校验会话、参与人和内置氛围版本后创建私有 room 与产品索引；浏览器单例 `matrix-js-sdk` 负责 `/sync`、IndexedDB timeline 缓存、local echo、transaction ID 和恢复。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 幂等创建氛围房间 | 已 bootstrap 用户以固定 `clientRequestId` 两次调用 `POST /v1/rooms` → 返回同一 Matrix room ID → `room_index` 只有一条记录 |
+| 2 | 房间状态写入 Matrix | 创建 room → 读取 `io.vibechat.space.instance.v1` → 验证 space/version/integrity/权限快照和创建人完整 |
+| 3 | 浏览器真实同步 | 启动单例 matrix-js-sdk → `/sync` PREPARED 后宿主会话列表显示新 room → 页面刷新后由 IndexedDB + 增量 sync 恢复同一 room |
+| 4 | Local echo 到远端确认 | 在房间发送文字 → timeline 立即显示 sending → Matrix 返回 event ID 后显示 sent → 刷新后消息仍来自远端 timeline |
+| 5 | Transaction ID 幂等 | 相同 transaction ID 重试同一发送 → Synapse 返回同一 event ID，timeline 不重复消息 |
+| 6 | 回复与回应使用标准关系 | 回复消息写入 `m.in_reply_to`；回应写入 `m.reaction` → 宿主投影 reply/reactions 且恢复视图可读 |
+| 7 | 鉴权与参与人约束 | 未登录建房返回 401；未 bootstrap 或 participant Matrix identity 未 ready 返回稳定 409；不存在的空间返回 404 |
+| 8 | 凭据不落 localStorage | access token 仅存在于内存 client；localStorage 不包含 token，IndexedDB 只保存 SDK sync/timeline 缓存 |
+
+---
+
+## 31. 好友关系与双用户 Matrix 邀请
+
+**文件：** `tests/unit/social/*.test.ts` + `specs/chat-social-invite.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+产品数据库是好友、备注与屏蔽的权威来源；Matrix 只保存 room membership 和邀请。联系人使用 Better Auth product user ID，建房 service 经 identity mapping 转换为 Matrix user ID，并在创建私有 room 时发送邀请。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 精确用户搜索 | 登录用户按 username 或完整 email 搜索 → 不返回自己、被屏蔽用户或公开全量目录 → 返回产品 profile 与 Matrix readiness |
+| 2 | 好友请求幂等 | A 向 B 发送请求 → B 收件箱出现一条 pending → A 重复发送不产生第二条 → A/B 各自可读取稳定 snapshot |
+| 3 | 接受形成双向联系人 | B 接受 pending 请求 → request 变 accepted → contacts 原子写入 A→B 与 B→A 两行 → 双方列表均显示对方 |
+| 4 | 拒绝不形成联系人 | B 拒绝请求 → request 变 rejected → 双方 contacts 不新增关系 → 重复拒绝保持稳定 |
+| 5 | 屏蔽优先 | B 屏蔽 A → pending 请求被终止、既有联系人移除 → A 不能再次请求或邀请 B；解除屏蔽后仍需重新建立好友关系 |
+| 6 | 非联系人禁止邀请 | A 尝试把非联系人加入 room → 产品 API 返回稳定 409；不能靠已知 Matrix user ID 绕过产品社交策略 |
+| 7 | 双用户邀请确认 | A/B 成为联系人 → A 创建氛围 room 并邀请 B → B 宿主显示邀请 → B 确认后 Matrix membership 变 join |
+| 8 | 双向实时消息 | A 发消息 → B `/sync` timeline 显示 → B 回复/回应 → A timeline 收到且刷新后双方历史一致 |
+| 9 | 多方言一致与凭据隔离 | PG/SQLite/D1 schema 同步；社交响应、日志和 Matrix invite state 不包含 Better Auth Cookie、Matrix token 或加密 key |
+
+---
+
+## 32. 浏览器会话与本地 Matrix 数据管理
+
+**文件：** `specs/chat-session-management.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+Better Auth session 是浏览器登录设备的产品权威；每个产品 session 对应独立 Matrix device。用户可以查看和撤销设备，退出当前会话时宿主必须同时清理对应 Matrix IndexedDB timeline cache 和本地 UI 偏好。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 活动会话列表 | 同一账号在两个浏览器 context 登录并 bootstrap → “我的 / 设备与会话”显示两条活动会话并标记当前设备 |
+| 2 | 撤销其他设备 | 当前设备调用 Better Auth `revoke-other-sessions` → 列表只保留当前会话 → 另一产品 session 立即失效 |
+| 3 | Matrix device 联动撤销 | 另一 session 被删除 → lifecycle hook/outbox 注销对应 Matrix device → 原 access token `/whoami` 返回 401 |
+| 4 | 当前退出 | 从聊天“我的”页退出 → 当前 Better Auth session 和 Matrix device 均失效 → 跳转本地化登录页 |
+| 5 | 本地数据清理 | 退出前停止 Matrix client → 删除 `matrix-js-sdk:vibechat-sync-{deviceId}` IndexedDB → 清除聊天 UI 偏好且不把 token 写入 localStorage |
+
+---
+
+## 33. Matrix 完整消息操作
+
+**文件：** `specs/chat-matrix-operations.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+阶段 1 的消息 adapter 必须使用 Matrix 标准事件与关系完成文字以外的日常操作，并在双方同步、刷新和恢复投影中保持一致。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 编辑自己的文字 | 发送者编辑已确认消息 → 写入 `m.replace` 与 `m.new_content` → 双方原消息位置展示新文字和“已编辑” |
+| 2 | 删除自己的消息 | 发送者确认删除 → Matrix redaction → 双方保留删除占位而不是静默丢失时间线位置 |
+| 3 | 权限约束 | 非发送者 UI 不显示编辑/删除；adapter 不把编辑和 redaction 暴露为普通新消息 |
+| 4 | 媒体附件 | 选择图片或文件 → 上传 Synapse media repository → 发送 `m.image`/`m.file` → 对端显示名称、类型和受控下载入口 |
+| 5 | 正在输入 | 输入框变化发送 `m.typing` ephemeral event → 对端显示输入提示 → 发送、清空或超时后提示消失 |
+| 6 | 历史搜索 | 会话搜索命中已加载消息正文或附件名称 → 返回对应房间；删除内容不再参与可读搜索 |
+| 7 | 恢复一致 | 页面刷新后编辑、删除和附件投影保持一致；token、媒体内容与本地文件句柄不写入 localStorage |
+
+---
+
+## 34. 首次资料设置与联系人备注
+
+**文件：** `specs/chat-profile-onboarding.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+产品资料是 Better Auth 账号、社交目录和 Matrix 身份之间的稳定映射。新账号先完成资料设置，联系人备注只影响设置者自己的联系人视图。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 首次设置守卫 | 新账号访问聊天页 → 跳转 `/onboarding`；已完成资料的账号不再被拦截 |
+| 2 | 资料校验 | 昵称必填；用户名只能使用小写字母、数字和下划线且全局唯一；非法或重复值返回稳定错误码 |
+| 3 | 完成首次设置 | 保存昵称、唯一用户名并选择跳过头像 → 标记完成 → 进入消息页 → bootstrap 返回新资料 |
+| 4 | 后续编辑 | “我的”页面修改昵称与用户名 → 页面刷新和 Matrix 当前用户投影展示最新资料 |
+| 5 | 头像入口 | 支持选择受限图片并复用认证上传接口；存储未配置时展示可恢复错误且允许跳过，不阻塞首次设置 |
+| 6 | 联系人备注 | 建立好友后设置备注 → 仅设置者联系人列表、选人和会话成员投影优先显示备注；对端仍显示原昵称 |
+| 7 | 备注清除与权限 | 清空备注恢复昵称；非联系人不能写备注；长度和输入由共享 schema 校验 |
+
+---
+
+## 35. 登录后产品状态真实化
+
+**文件：** `specs/chat-real-product-state.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
+
+登录后的聊天产品只能展示当前账号、产品数据库和 Matrix 的真实状态。服务不可用时显示明确错误，不再用 fixture 掩盖失败。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 路由认证守卫 | 未登录访问消息、联系人、发现、我的或房间 → 跳转本地化登录页，不渲染演示用户或演示房间 |
+| 2 | 空账号真实状态 | 新账号完成 onboarding 后进入消息页 → 当前用户来自 profile → 房间、联系人、请求和收藏均为空 → 不出现 River/林林等 fixture 内容 |
+| 3 | Matrix 失败关闭 | 已登录但 Matrix 配置不可用或 bootstrap 失败 → 展示可重试的服务不可用状态 → 不进入可发送的本地模拟模式 |
+| 4 | 官方空间目录 | `GET /v1/spaces` 返回服务端内置空间版本与权限 → 发现页和新建聊天使用该响应 → 不把第三方市场标记为已上线 |
+| 5 | 收藏持久化与隔离 | A 收藏官方空间并刷新/重新登录后仍存在 → B 的收藏不受影响 → 非法空间 ID 被拒绝 |
+| 6 | 用户偏好持久化 | 通知偏好和主题/语言更新写入产品 API → 刷新与新浏览器 session 读取一致值 |
+| 7 | 房间偏好持久化 | A 对真实 Matrix 房间置顶/静音 → 刷新或另一 session 仍保持 → B 的同一房间视图不继承 A 的偏好 |
+| 8 | 真实 mutation 边界 | 发送、建房、好友、备注、屏蔽、收藏和偏好操作只调用真实接口/Matrix；失败时保持错误态，不创建本地假记录 |
+| 9 | 凭据与缓存隔离 | localStorage 不包含 profile、联系人、收藏、偏好权威副本、Matrix token 或消息正文；清理缓存不删除服务端用户态 |
+
+---
+
+## 36. Apps 拆分与同源 Backend 网关
+
+**文件：** `specs/public-pages.spec.ts`、`specs/auth-flow.spec.ts`、聊天 P0 specs ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse**
+
+官网、产品 Web 和共享 backend 是独立构建单元，但浏览器继续从 `8001` 使用稳定的同源认证与产品 API 路径。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立官网 | 打开 `http://localhost:8003/en` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/en/messages` |
+| 2 | 产品根入口 | 打开 `http://localhost:8001/en` → 未登录进入 `/en/signin`；已登录进入 `/en/messages`，不渲染官网或 legacy 页面 |
+| 3 | Backend 健康 | 经 Web 同源路径请求 `GET /api/health` → 返回 `application=backend` 和健康数据库状态 |
+| 4 | 同源 Auth | 经 `8001/api/auth/*` 注册、登录、读取 session、退出 → Cookie 生命周期与拆分前一致 |
+| 5 | 同源产品 API | 经 `8001/v1/*` 完成 bootstrap、profile、social、rooms、spaces 与 product state → 真实 Matrix/数据库链路不变 |
+| 6 | 构建边界 | site、web、backend 分别 typecheck/build → Site/Web 不导入数据库、支付、AI、存储或 server Auth → app-to-app import 被边界检查拒绝 |
+| 7 | Legacy 隔离（历史阶段） | 该阶段曾隔离旧 AI、支付、affiliate 和通用 Admin；后续 #39 已评审恢复并替代此临时状态 |
+
+---
+
+## 37. 跨宿主 Workspace Package 边界
+
+**文件：** package unit tests、`scripts/check-app-boundaries.mjs`、聊天 P0 specs ｜ **优先级：** P0 ｜ **pnpm workspace / SQLite / 本地 Synapse**
+
+Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真实 workspace package 发布边界消费；重构不能改变同源 Auth、产品 API 或 Matrix 用户链路。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立 Package 元数据 | `api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client`、`platform-contracts` 各自声明 package name、exports、依赖、typecheck/build 与 README |
+| 2 | API contract 单一来源 | Backend route 与 Web client 使用 `@vibechat/api-contracts` 的相同 Zod schema → 输入、输出和错误码不在 app 内复制 |
+| 3 | 可注入产品 Client | `ProductApiClient` 用注入的 base URL 和 transport 发请求 → Web 使用同源 gateway → 测试可替换 transport → 非 2xx 返回稳定 `ProductApiClientError` |
+| 4 | Matrix 运行时隔离 | Web 不直接依赖 `matrix-js-sdk` → `@vibechat/matrix-client` 接收宿主 IndexedDB → 真实 room/timeline/媒体/编辑/撤回链路保持通过 |
+| 5 | Auth client/server 隔离 | Web 只导入 `@vibechat/auth-client` → `libs/auth` 只暴露 server auth/session lifecycle → 注册、登录、session、退出与设备撤销行为不变 |
+| 6 | Package 依赖门禁 | packages 不导入 app、`@/`、`@libs/*` 或未声明的其他 package；Site/Web 不导入 server-only 领域实现；违规 import 使 `boundaries:check` 失败 |
+| 7 | 保留合理 libs | 只有 Backend 消费的 identity/social/rooms/product-state 继续作为服务端领域实现 → 不为目录整齐创建无独立消费者的 package |
+| 8 | 真实链路无回归 | 完整活动 Playwright 回归覆盖官网、同源 Auth/API、真实空账号、好友/房间、Matrix timeline 和产品偏好，重构后通过数不下降 |
+
+---
+
+## 38. 独立 Admin App 与运营管理链路
+
+**文件：** `specs/admin-app.spec.ts`、`tests/api/admin-permission.test.ts` ｜ **优先级：** P0 ｜ **Admin 8005 / Backend 8002 / SQLite**
+
+旧脚手架中仍有价值的运营后台迁入独立 Admin App；浏览器不直接依赖数据库或服务端领域实现，所有读取和 mutation 通过统一 Backend 权限边界完成。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 独立宿主 | 打开 `http://localhost:8005/en/admin` → Admin 壳层和运营导航可见 → Admin 可独立 typecheck/build，不进入 Web 产品 route tree |
+| 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → 转到本地化登录引导 → 管理 API 返回 `401`，不泄露统计或用户数据 |
+| 3 | 非管理员拒绝 | 普通真实用户访问 Admin 页面 → 显示无权限状态 → 管理 API 返回 `403`，前端篡改角色不能绕过 Backend |
+| 4 | 管理员会话 | seeded Admin 通过 Web 密码登录并提交 `callbackURL=http://localhost:8005/en/admin` → Better Auth 接受受信 Admin 回跳 → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
+| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 每个同源 API 禁止重定向并返回 JSON → 页面等待对应请求成功后呈现空状态或数据态，不使用 fixture，也不能用页面标题掩盖加载失败 |
+| 6 | 用户管理 mutation | Admin 打开测试用户详情并修改可恢复字段或角色 → Backend 校验管理员权限与输入 → 刷新后数据库值一致，再恢复原值 |
+| 7 | 定价与内容写入边界 | 管理定价或 Blog 的创建/更新/排序/删除操作通过 Backend 完成 → 非管理员执行同请求仍被拒绝 |
+| 8 | App 与 libs 边界 | Admin 不导入 database、server Auth、payment/AI provider、storage 或 Backend 内部领域库 → 无活动消费者的旧库被删除 → 保留库均有引用证据 |
+| 9 | 产品无回归 | Backend/Web/Site/Admin 根级 typecheck/build、管理权限测试和完整活动聊天 E2E 通过 |
+
+---
+
+## 39. Legacy 产品能力完整迁移
+
+**文件：** `specs/account-services-ai.spec.ts`、`specs/admin-app.spec.ts`、API ownership suites 与领域单元测试 ｜ **优先级：** P0 ｜ **Web 8001 / Backend 8002 / Admin 8005**
+
+旧源码只有在进入当前 app/package/lib 边界并通过真实用户链路后才算迁移。外部 provider 可以因缺少沙盒凭据跳过真实供应商步骤，但本地权限、输入、幂等、账本和失败补偿不能跳过。
+
+| # | 验收场景 | 具体流程 |
+|---|---------|---------|
+| 1 | 账户中心 | 用户登录 → 查看真实资料、订单、订阅、积分与安全状态 → 修改密码/账户操作经过 Better Auth → 不显示其他用户数据 |
+| 2 | 定价与上传 | 公共定价读取活动计划 → 登录用户发起购买 → 金额由服务端计划决定；通用媒体上传校验类型/大小/数量并复用 storage |
+| 3 | 积分账本 | 查询自己的余额/流水 → 并发扣减不透支 → 增加/扣减与账本原子 → AI/provider 失败退款且只退款一次 |
+| 4 | 推荐与提现 | 推荐码归因 → 领取奖励幂等 → 支付佣金只生成一次 → 用户只能查看自己记录并申请提现 → 管理拒绝只退款一次 |
+| 5 | 六支付 Provider | Stripe、PayPal、Creem、Dodo、微信、支付宝各自创建支付 → 验证回调/Webhook → 订单/订阅/积分入账 → 重复通知不重复履约 |
+| 6 | AI 对话 | 有积分用户发起对话 → Backend 选择允许的 provider/model → 流式或完整响应 → 账单元数据可对账；无 key/失败时明确错误并退款 |
+| 7 | 图片与视频 | 服务端校验模型、尺寸、时长和输入 → 创建生成任务 → 查询真实状态/结果 → 失败退款，不以浏览器轮询作为账务权威 |
+| 8 | Admin 深度运营 | 用户/订阅/订单/积分筛选、定价 CRUD、Blog CRUD、佣金/提现处理通过真实 Backend；非管理员全部拒绝 |
+| 9 | Legacy 清理 | 活动路由、API、领域服务、测试和文档均有 owner → 默认构建/E2E 覆盖恢复能力 → 删除不再是唯一实现的 legacy 快照 |
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
 |--------|------|----------|----------|-----------|
 | P2 | 19 | 支付宝支付流程 | 支付宝沙盒 App ID/密钥 + 沙盒买家账号 | 3 |
 | ✅ | 20 | 博客功能 | blog_post 表已创建 + 管理员账号 | 11 |
+| Replaced | 25 | 聊天宿主基础功能 | 历史 fixture 基线，见 #35 | 8 |
+| ✅ | 26 | Email OTP 与产品 Session Bootstrap | 本地数据库与开发模式 | 5 |
+| ✅ | 27 | Matrix Identity 生命周期 | 本地数据库与 fake adapter | 7 |
+| ✅ | 28 | Synapse Appservice Adapter | mock HTTP 与本地 Synapse | 7 |
+| ✅ | 29 | Session 撤销与 Matrix Device 回收 | SQLite 与本地 Synapse | 7 |
+| ✅ | 30 | 真实 Matrix 房间与消息 Timeline | SQLite、本地 Synapse、Chromium | 8 |
+| ✅ | 31 | 好友关系与双用户 Matrix 邀请 | SQLite、本地 Synapse、双 Chromium Context | 9 |
+| ✅ | 32 | 浏览器会话与本地 Matrix 数据管理 | SQLite、本地 Synapse、双 Chromium Context | 5 |
+| ✅ | 33 | Matrix 完整消息操作 | SQLite、本地 Synapse、双 Chromium Context | 7 |
+| ✅ | 34 | 首次资料设置与联系人备注 | SQLite、本地 Synapse、双 Chromium Context | 7 |
+| ✅ | 35 | 登录后产品状态真实化 | SQLite、本地 Synapse、双 Chromium Context | 9 |
+| ✅ | 36 | Apps 拆分与同源 Backend 网关 | backend/Web/Site、SQLite、本地 Synapse | 7 |
+| ✅ | 37 | 跨宿主 Workspace Package 边界 | pnpm workspace、backend/Web/Site、SQLite、本地 Synapse | 8 |
+| ✅ | 38 | 独立 Admin App 与运营管理链路 | Admin/Backend、SQLite、seeded Admin/普通用户 | 9 |
+| ✅ | 39 | 产品能力完整迁移 | Web/Backend/Admin、SQLite、本地 Synapse | 9 |
 
 ---
 
@@ -1020,6 +1325,25 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-14 | Web + Backend + Admin + Site + Synapse | 53 | 0 | 0 | 产品能力迁移最终 Chromium 回归：账户/安全、上传真实失败关闭、AI 结算退款、支付失败幂等、推荐奖励、提现 KYC、Admin CRUD 与完整 Matrix 聊天链路；另通过 Application Service 集成、API ownership、领域单元测试、10 packages 与四 app 构建、Workers 预览和 docs 静态导出 |
+| 2026-08-13 | Admin + Backend + Web | 3 | 0 | 0 | 修复 `/$lang/admin/*` 与 `/api/admin/*` 同名路由碰撞；Admin E2E 禁止接口重定向、校验 JSON content-type，并等待八个运营页面的真实 API 成功响应；另完成中文用户/订阅管理页浏览器走查、10 packages + 4 apps typecheck、packages + Backend/Web/Site/Admin/Docs build |
+| 2026-08-13 | Better Auth + Web + Admin + Workers | 6 | 0 | 0 | Admin callbackURL 修复：trusted origins 安全单测 3 项、Admin Chromium E2E 3 项；另完成真实中文网页登录回跳、14 package typecheck、全量 build、Docs build，以及 Workers health 200 / 显式 Admin callback 进入凭据查询验证 |
+| 2026-08-12 | Packages + Backend + Web + Site + Admin + Synapse + D1 | 150 | 0 | 0 | Admin/libs 清理最终回归：活动领域单测 103 项（含提现拒绝只退款一次）、完整 Chromium E2E 39 项、Admin 权限 API 8 项；另完成 10 package + 4 app 根级 typecheck/build、文档站 build，以及 Workers/D1 health 200、未登录 Admin/bootstrap 401 smoke |
+| 2026-08-12 | Packages + Backend + Web + Site + Synapse + Vitest | 81 | 0 | 0 | Package 边界最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state/product-client/product-core 单测 45 项；另完成 6 package + 3 app 根级 typecheck/build、Workers build/health/未登录 bootstrap 401 与文档站 build |
+| 2026-08-12 | Backend + Web + Site + Synapse + Vitest | 75 | 0 | 0 | Apps 拆分最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state 单测 39 项；另完成三 app Node build、Backend Workers/D1 preview 与文档站 build |
+| 2026-08-12 | Backend + Web + Site + Synapse | 23 | 0 | 0 | Apps 物理拆分定向回归：官网、同源 Auth/API、真实 Matrix 房间消息与持久化产品状态 |
+| 2026-08-12 | TanStack + Synapse | 19 | 0 | 0 | 聊天真实链路全量回归（OTP、profile、social、Matrix room/message、product state 与 session） |
+| 2026-08-12 | TanStack + Synapse | 9 | 0 | 0 | 登录后产品状态真实化（UI 注册、守卫、Matrix 失败关闭、真实空账号、目录、收藏、用户/房间偏好、持久化与隔离） |
+| 2026-08-12 | TanStack + Vitest + Synapse | 49 | 0 | 0 | A2 聊天基础闭环（identity/rooms/social 单测 34 项；OTP、fixture、Matrix 房间/消息操作、资料、社交邀请、会话与撤销 E2E 15 项） |
+| 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | 首次资料设置与联系人备注真实链路（唯一用户名、头像校验、资料热更新、方向性私有备注与权限） |
+| 2026-08-12 | TanStack + Synapse | 1 | 0 | 0 | Matrix 完整消息操作真实链路（typing、编辑、撤回、媒体、搜索、刷新恢复、离线 pending event 幂等重发） |
+| 2026-08-12 | TanStack + Vitest + Synapse | 42 | 0 | 0 | A2 基础整合（identity/rooms/social 单测 32 项；fixture、真实 room、双用户好友/邀请/屏蔽、会话撤销与本地清理 E2E 10 项） |
+| 2026-08-12 | TanStack + Vitest + Synapse | 8 | 0 | 0 | 真实 Matrix 房间与 Timeline（rooms 单测 6 项 + 本地 Synapse/Chromium E2E 2 项） |
+| 2026-08-11 | TanStack + Vitest + Synapse | 4 | 0 | 0 | Session 撤销与 Matrix Device 回收（worker 单测 3 项 + 真实 sign-out/token 失效 E2E 1 项） |
+| 2026-08-11 | TanStack + Vitest + Synapse | 24 | 0 | 0 | Synapse Appservice Adapter（identity unit/mock/SQLite 17 项 + 真实 Synapse 合约 1 项 + Matrix ready/unavailable bootstrap E2E 各 3 项） |
+| 2026-08-11 | TanStack + Vitest | 17 | 0 | 0 | Matrix Identity 生命周期（identity 单测 9 项 + `chat-auth-bootstrap` / `chat-foundation` 浏览器回归 8 项） |
+| 2026-08-11 | TanStack | 3 | 0 | 0 | Email OTP 与产品 Session Bootstrap（`chat-auth-bootstrap.spec.ts`，覆盖 5 项验收场景） |
+| 2026-08-11 | TanStack | 5 | 0 | 0 | 聊天宿主基础功能（`chat-foundation.spec.ts`，覆盖 8 项验收场景） |
 | 2026-08-11 | TanStack | 1 | 0 | 0 | 精简首页回归（`public-pages.spec.ts` 单用例） |
 | 2026-02-25 | Next.js | 35 | 0 | 0 | 全部通过（含 Stripe 支付） |
 | 2026-03-04 | Next.js | 3 | 0 | 0 | AI Chat 真实交互（ai-chat.spec.ts） |

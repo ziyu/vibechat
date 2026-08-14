@@ -24,7 +24,8 @@ export const user = sqliteTable("user", {
   referralCode: text("referral_code").unique(),
   referredByCode: text("referred_by_code"),
   commissionBalance: text("commission_balance").default("0").notNull(),
-  kycVerified: integer("kyc_verified", { mode: 'boolean' }).default(true),
+  // New accounts must complete an explicit operations review before withdrawals.
+  kycVerified: integer("kyc_verified", { mode: 'boolean' }).default(false).notNull(),
 });
 
 export type User = InferSelectModel<typeof user>;

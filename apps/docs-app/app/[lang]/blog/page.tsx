@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { blog } from '@/lib/source';
 import { config } from '@config';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 import { BlogList } from '@/components/blog-list';
 
 // Extended type for blog post data including custom frontmatter fields

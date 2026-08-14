@@ -3,8 +3,8 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
-> 维护范围：`apps/web-app` 的 Cloudflare Workers 构建与部署
+> 更新日期：2026-08-12
+> 维护范围：`apps/backend` 的 Cloudflare Workers 构建与部署
 
 ## 前置条件
 
@@ -13,7 +13,7 @@
 - 已决定数据库方案：D1，或 Hyperdrive + PostgreSQL。
 - 已准备生产域名和所有启用 Provider 的密钥。
 
-仓库当前使用 `apps/web-app/wrangler.jsonc` 作为 Workers 配置源，并通过 `CF_DEPLOY=1` 启用 Cloudflare Vite plugin。Cloudflare 官方也建议把 Wrangler 配置文件作为 Worker 配置的事实来源，敏感值则使用 Secret，不写入 `vars`。
+仓库当前使用 `apps/backend/wrangler.jsonc` 作为 Workers 配置源，并通过 `CF_DEPLOY=1` 启用 Cloudflare Vite plugin。Cloudflare 官方也建议把 Wrangler 配置文件作为 Worker 配置的事实来源，敏感值则使用 Secret，不写入 `vars`。
 
 官方参考：
 
@@ -25,7 +25,7 @@
 ## 1. 登录并核对配置
 
 ```bash
-cd apps/web-app
+cd apps/backend
 pnpm exec wrangler login
 ```
 
@@ -60,7 +60,7 @@ pnpm exec wrangler d1 create vibechat-db
 ```bash
 cd ../..
 pnpm db:generate:sqlite
-cd apps/web-app
+cd apps/backend
 ```
 
 先应用到本地预览数据库，再应用到远端：
@@ -93,7 +93,7 @@ pnpm exec wrangler hyperdrive create vibechat-db \
 ]
 ```
 
-同时把 `DB_DIALECT` 设置为 `pg`。产品运行时通过 `apps/web-app/src/lib/with-request-db.ts` 将 `HYPERDRIVE` binding 注入数据库层。
+同时把 `DB_DIALECT` 设置为 `pg`。产品运行时通过 `apps/backend/src/lib/with-request-db.ts` 将 `HYPERDRIVE` binding 注入数据库层。
 
 D1 与 Hyperdrive 二选一作为当前环境的事实数据库；不要让两套数据库同时承载同一生产数据。
 
@@ -114,7 +114,7 @@ D1 与 Hyperdrive 二选一作为当前环境的事实数据库；不要让两�
 
 ## 4. 配置 Secrets
 
-从 `apps/web-app` 目录逐项设置敏感变量：
+从 `apps/backend` 目录逐项设置敏感变量：
 
 ```bash
 pnpm exec wrangler secret put BETTER_AUTH_SECRET
@@ -133,7 +133,7 @@ pnpm preview:cf
 
 验证：
 
-1. 首页和 SSR 正常。
+1. `/` 返回 backend service 信息。
 2. `/api/health` 返回成功。
 3. 登录、数据库读取和一个受保护 API 正常。
 4. 选择 D1 时实际使用 `DB` binding；选择 PostgreSQL 时实际使用 `HYPERDRIVE`。
@@ -158,6 +158,6 @@ curl -fsS https://your-domain.example/api/health
 - 缺少 binding：核对 `wrangler.jsonc` 的 binding 名与代码读取名完全一致。
 - `require is not defined`：检查 CJS 依赖和 `nodejs_compat`，不要在 Workers 服务端引入原生 Node addon。
 - 数据库失败：确认 `DB_DIALECT` 与 D1/Hyperdrive 选择一致，并确认 migration 已应用到正确环境。
-- SSR 出现重复 React：查看 `apps/web-app/CF-NOTES.md` 中的依赖预构建说明。
+- SSR 出现重复 React：查看 `apps/backend/CF-NOTES.md` 中的依赖预构建说明。
 - Secret 缺失：使用 `pnpm exec wrangler secret list` 只核对名称，不输出或记录 Secret 值。
 - 回滚代码前先判断 schema 是否向后兼容；数据库 migration 不能假设随 Worker 版本自动回滚。

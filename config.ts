@@ -19,6 +19,11 @@ import { aiConfig } from './config/ai';
 import { aiImageConfig } from './config/aiImage';
 import { aiVideoConfig } from './config/aiVideo';
 import { affiliateConfig } from './config/affiliate';
+export {
+  builtInChatSpaces,
+  getBuiltInChatSpace,
+  type BuiltInChatSpaceConfig,
+} from './config/chat';
 
 // Re-export types for backwards compatibility
 export type { RecurringPlan, OneTimePlan, CreditPlan, Plan } from './config/types';
@@ -70,7 +75,7 @@ export const config = {
      * This will be used for all callback URLs and webhooks
      */
     get baseUrl() {
-      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:7001');
+      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:8001');
     },
 
     /**

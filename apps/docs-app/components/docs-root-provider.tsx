@@ -4,13 +4,13 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import type { I18nProviderProps as FumadocsI18nProps } from 'fumadocs-ui/i18n';
+import type { I18nProviderProps as FumadocsI18nProps } from 'fumadocs-ui/contexts/i18n';
 import SearchDialog from '@/components/search';
 import { config } from '@config';
 import {
   applyThemeToDocument,
   getStoredThemeState,
-} from '@libs/ui/themes';
+} from '@vibechat/ui/themes';
 
 type Props = {
   i18n: Omit<FumadocsI18nProps, 'children'>;
@@ -84,4 +84,3 @@ export function DocsRootProvider({ i18n, children }: Props) {
     </RootProvider>
   );
 }
-

@@ -130,7 +130,7 @@ export const paymentConfig = {
        */
       get gateway() {
         const sandbox = getEnv('ALIPAY_SANDBOX') === 'true';
-        return sandbox 
+        return sandbox
           ? 'https://openapi-sandbox.dl.alipaydev.com/gateway.do'
           : 'https://openapi.alipay.com/gateway.do';
       }

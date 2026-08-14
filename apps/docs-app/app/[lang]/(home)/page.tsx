@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { config } from '@config';
-import { translations } from '@libs/i18n';
+import { translations } from '@vibechat/i18n';
 
 export async function generateStaticParams() {
   return config.app.i18n.locales.map((locale) => ({

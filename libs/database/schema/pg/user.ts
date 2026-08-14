@@ -24,7 +24,8 @@ export const user = pgTable("user", {
   referralCode: text("referral_code").unique(),
   referredByCode: text("referred_by_code"),
   commissionBalance: numeric("commission_balance").default("0").notNull(),
-  kycVerified: boolean("kyc_verified").default(true),
+  // New accounts must complete an explicit operations review before withdrawals.
+  kycVerified: boolean("kyc_verified").default(false).notNull(),
 });
 
 export type User = InferSelectModel<typeof user>;

@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authClientReact } from "@libs/auth/authClient";
-import { createValidators } from "@libs/validators";
+import { authClientReact } from "@vibechat/auth-client";
+import { createValidators } from "@vibechat/validators";
 import type { z } from "zod";
-import { cn } from "@libs/ui/utils/cn";
-import { Button } from "@libs/react-shared/ui/button";
-import { Input } from "@libs/react-shared/ui/input";
-import { Label } from "@libs/react-shared/ui/label";
-import { FormError } from "@libs/react-shared/ui/form-error";
-import { Turnstile } from "@libs/react-shared/ui/turnstile";
+import { cn } from "@vibechat/ui/utils/cn";
+import { Button } from "@vibechat/react-shared/ui/button";
+import { Input } from "@vibechat/react-shared/ui/input";
+import { Label } from "@vibechat/react-shared/ui/label";
+import { FormError } from "@vibechat/react-shared/ui/form-error";
+import { Turnstile } from "@vibechat/react-shared/ui/turnstile";
 import { ResendVerificationDialog } from "./resend-verification-dialog";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import { Link } from "@tanstack/react-router";
+import { postAuthPath } from "@/lib/auth-return";
 
 export function LoginForm({
   className,
@@ -27,16 +28,20 @@ export function LoginForm({
   const [showResendDialog, setShowResendDialog] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => setHydrated(true), []);
 
   const { loginFormSchema } = createValidators(tWithParams);
 
-  type FormData = z.infer<typeof loginFormSchema>;
+  type FormInput = z.input<typeof loginFormSchema>;
+  type FormData = z.output<typeof loginFormSchema>;
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting }
-  } = useForm<FormData>({
+  } = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: '', password: '', remember: true },
     mode: 'onBlur',
@@ -53,9 +58,7 @@ export function LoginForm({
     setErrorCode('');
     setUserEmail(data.email);
 
-    const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get('returnTo');
-    const callbackURL = returnTo || `/${locale}`;
+    const callbackURL = postAuthPath(locale, window.location.search);
 
     const { error } = await authClientReact.signIn.email({
       email: data.email,
@@ -102,7 +105,12 @@ export function LoginForm({
         email={userEmail}
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex flex-col gap-4"
+        data-testid="password-signin-form"
+        data-ready={hydrated ? "true" : "false"}
+      >
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="email">{t.auth.signin.email}</Label>
@@ -115,6 +123,7 @@ export function LoginForm({
                 className={cn(errors.email && "border-destructive")}
                 aria-invalid={errors.email ? "true" : "false"}
                 autoComplete="email"
+                disabled={!hydrated || loading}
               />
               {errors.email && (
                 <span className="text-destructive text-xs absolute -bottom-5 left-0">
@@ -142,6 +151,7 @@ export function LoginForm({
                 className={cn(errors.password && "border-destructive")}
                 aria-invalid={errors.password ? "true" : "false"}
                 autoComplete="current-password"
+                disabled={!hydrated || loading}
               />
               {errors.password && (
                 <span className="text-destructive text-xs absolute -bottom-5 left-0">
@@ -152,6 +162,8 @@ export function LoginForm({
           </div>
 
           <Turnstile
+            enabled={config.captcha.enabled}
+            siteKey={config.captcha.cloudflare.siteKey}
             key={turnstileKey}
             onSuccess={(token: string) => setTurnstileToken(token)}
             onError={() => setTurnstileToken(null)}
@@ -172,7 +184,7 @@ export function LoginForm({
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || isSubmitting || (config.captcha.enabled && !turnstileToken)}
+            disabled={!hydrated || loading || isSubmitting || (config.captcha.enabled && !turnstileToken)}
           >
             {loading ? t.auth.signin.submitting : t.auth.signin.submit}
           </Button>

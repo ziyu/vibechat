@@ -72,8 +72,6 @@ async function qwenImageGenerate(options: ImageGenerationOptions): Promise<Image
 
   const data: QwenImageResponse = await response.json();
 
-  console.log('Qwen Image API response:', JSON.stringify(data, null, 2));
-
   // Check for API-level errors
   if (data.code) {
     throw new Error(`Qwen Image API error: ${data.code} - ${data.message}`);
@@ -84,11 +82,10 @@ async function qwenImageGenerate(options: ImageGenerationOptions): Promise<Image
   const imageUrl = data.output?.choices?.[0]?.message?.content?.[0]?.image;
   
   if (!imageUrl) {
-    console.error('Failed to extract image URL. Response structure:', {
+    console.error('Failed to extract image URL. Response shape:', {
       hasOutput: !!data.output,
       hasChoices: !!data.output?.choices,
       choicesLength: data.output?.choices?.length,
-      firstChoice: data.output?.choices?.[0],
     });
     throw new Error('No image URL in Qwen Image API response');
   }

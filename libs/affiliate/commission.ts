@@ -1,4 +1,4 @@
-import { db, isD1Dialect, runD1Batch } from '@libs/database';
+import { db, isD1Dialect, isSqliteDialect, runD1Batch } from '@libs/database';
 import { order, commission, commissionStatus, user } from '@libs/database/schema';
 import { eq, sql } from 'drizzle-orm';
 import { config } from '@config';
@@ -72,7 +72,11 @@ export async function processReferralCommission(orderId: string): Promise<Commis
       ? fixedCommission
       : orderAmount * commissionRate;
 
-    const commissionId = nanoid();
+    if (!Number.isFinite(orderAmount) || orderAmount <= 0 || !Number.isFinite(commissionAmount) || commissionAmount < 0) {
+      return { created: false, error: 'Invalid commission amount' };
+    }
+
+    const commissionId = `commission_${orderId}`;
     const commissionInsert = db.insert(commission).values({
       id: commissionId,
       referrerId,
@@ -97,6 +101,26 @@ export async function processReferralCommission(orderId: string): Promise<Commis
       // D1 batches are atomic, unlike Drizzle's transaction callback which
       // emits SAVEPOINT statements unsupported by the Workers binding.
       await runD1Batch([commissionInsert, balanceUpdate]);
+    } else if (isSqliteDialect()) {
+      (db as any).transaction((tx: any) => {
+        tx.insert(commission).values({
+          id: commissionId,
+          referrerId,
+          orderId,
+          buyerId: orderData.userId,
+          orderAmount: orderData.amount,
+          currency: orderData.currency,
+          commissionRate: commissionRate.toString(),
+          commissionAmount: commissionAmount.toString(),
+          status: commissionStatus.CREDITED,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).run();
+        tx.update(user).set({
+          commissionBalance: sql`CAST(COALESCE(${user.commissionBalance}, '0') AS REAL) + ${commissionAmount}`,
+          updatedAt: new Date(),
+        }).where(eq(user.id, referrerId)).run();
+      });
     } else {
       await db.transaction(async (tx) => {
       await tx.insert(commission).values({
@@ -136,6 +160,14 @@ export async function processReferralCommission(orderId: string): Promise<Commis
       amount: commissionAmount,
     };
   } catch (error) {
+    const [existing] = await db
+      .select({ id: commission.id })
+      .from(commission)
+      .where(eq(commission.orderId, orderId))
+      .limit(1);
+    if (existing) {
+      return { created: false, commissionId: existing.id, error: 'Commission already exists for this order' };
+    }
     console.error(`${logPrefix} Commission processing failed`, {
       ...logContext,
       durationMs: Date.now() - startedAt,

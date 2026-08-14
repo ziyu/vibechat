@@ -8,8 +8,16 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { auth } from "@libs/auth";
 import { db } from "./client";
-import { user, account, blogPost, commission, withdrawal, order } from "./schema";
-import { eq } from "drizzle-orm/expressions";
+import {
+  user,
+  account,
+  blogPost,
+  commission,
+  withdrawal,
+  order,
+  userProfile,
+} from "./schema";
+import { and, eq } from "drizzle-orm/expressions";
 import { getDialect } from "./shared/dialect";
 
 /**
@@ -44,6 +52,28 @@ async function seedDatabase() {
       const existingAdmin = await db.select().from(user).where(eq(user.email, "admin@example.com")).limit(1);
       
       if (existingAdmin.length > 0) {
+        const now = new Date();
+        const adminPasswordHash = await ctx.password.hash("admin123");
+        await db.update(user).set({ role: "admin", emailVerified: true, kycVerified: true, updatedAt: now })
+          .where(eq(user.id, existingAdmin[0].id));
+        const existingCredential = await db.select().from(account).where(and(
+          eq(account.userId, existingAdmin[0].id),
+          eq(account.providerId, "credential"),
+        )).limit(1);
+        if (existingCredential.length > 0) {
+          await db.update(account).set({ password: adminPasswordHash, updatedAt: now })
+            .where(eq(account.id, existingCredential[0].id));
+        } else {
+          await db.insert(account).values({
+            id: generateAccountId(),
+            accountId: existingAdmin[0].id,
+            providerId: "credential",
+            userId: existingAdmin[0].id,
+            password: adminPasswordHash,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
         console.log("✓ 管理员用户已存在: admin@example.com");
       } else {
         // 生成密码哈希
@@ -57,6 +87,7 @@ async function seedDatabase() {
           name: "管理员",
           emailVerified: true,
           role: "admin",
+          kycVerified: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -127,6 +158,192 @@ async function seedDatabase() {
         console.error("❌ 创建普通用户失败:", error.message || error);
         return false;
       }
+    }
+
+    // 创建可直接进入 VibeChat 的聊天测试用户
+    console.log("创建聊天测试用户...");
+    const chatTestUsers = [
+      {
+        email: "alice@vibechat.test",
+        password: "VibeChatTest2026!",
+        name: "Alice Chen",
+        username: "alice",
+      },
+      {
+        email: "bob@vibechat.test",
+        password: "VibeChatTest2026!",
+        name: "Bob Li",
+        username: "bob",
+      },
+      {
+        email: "carol@vibechat.test",
+        password: "VibeChatTest2026!",
+        name: "Carol Wang",
+        username: "carol",
+      },
+    ] as const;
+
+    for (const testUser of chatTestUsers) {
+      try {
+        const existingUsers = await db
+          .select()
+          .from(user)
+          .where(eq(user.email, testUser.email))
+          .limit(1);
+        const now = new Date();
+        const userId = existingUsers[0]?.id || generateUserId();
+        const passwordHash = await ctx.password.hash(testUser.password);
+
+        if (existingUsers.length === 0) {
+          await db.insert(user).values({
+            id: userId,
+            email: testUser.email,
+            name: testUser.name,
+            emailVerified: true,
+            role: "user",
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          await db.insert(account).values({
+            id: generateAccountId(),
+            accountId: userId,
+            providerId: "credential",
+            userId,
+            password: passwordHash,
+            createdAt: now,
+            updatedAt: now,
+          });
+        } else {
+          await db
+            .update(user)
+            .set({
+              name: testUser.name,
+              emailVerified: true,
+              updatedAt: now,
+            })
+            .where(eq(user.id, userId));
+
+          const existingAccounts = await db
+            .select()
+            .from(account)
+            .where(and(
+              eq(account.userId, userId),
+              eq(account.providerId, "credential"),
+            ))
+            .limit(1);
+
+          if (existingAccounts.length === 0) {
+            await db.insert(account).values({
+              id: generateAccountId(),
+              accountId: userId,
+              providerId: "credential",
+              userId,
+              password: passwordHash,
+              createdAt: now,
+              updatedAt: now,
+            });
+          } else {
+            await db
+              .update(account)
+              .set({ password: passwordHash, updatedAt: now })
+              .where(eq(account.id, existingAccounts[0].id));
+          }
+        }
+
+        const existingProfiles = await db
+          .select()
+          .from(userProfile)
+          .where(eq(userProfile.userId, userId))
+          .limit(1);
+
+        if (existingProfiles.length === 0) {
+          await db.insert(userProfile).values({
+            userId,
+            username: testUser.username,
+            displayName: testUser.name,
+            avatarUrl: null,
+            onboardingCompletedAt: now,
+            status: "active",
+            createdAt: now,
+            updatedAt: now,
+          });
+        } else {
+          await db
+            .update(userProfile)
+            .set({
+              username: testUser.username,
+              displayName: testUser.name,
+              onboardingCompletedAt:
+                existingProfiles[0].onboardingCompletedAt || now,
+              status: "active",
+              updatedAt: now,
+            })
+            .where(eq(userProfile.userId, userId));
+        }
+
+        console.log(`✓ 聊天测试用户可用: ${testUser.email} (@${testUser.username})`);
+      } catch (error: any) {
+        console.error(
+          `❌ 创建聊天测试用户失败 (${testUser.email}):`,
+          error.message || error,
+        );
+        return false;
+      }
+    }
+
+    // Recreate a genuinely blank account on every seed. Recreating the user gives
+    // Matrix provisioning a fresh localpart as well, so rooms from a previous test
+    // run cannot reappear after the account is reset.
+    console.log("重置全白测试用户...");
+    try {
+      const blankEmail = "blank@vibechat.test";
+      const blankPassword = "VibeChatTest2026!";
+      const existingBlankUsers = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.email, blankEmail));
+
+      for (const existingBlankUser of existingBlankUsers) {
+        await db.delete(user).where(eq(user.id, existingBlankUser.id));
+      }
+
+      const now = new Date();
+      const blankUserId = generateUserId();
+      const blankPasswordHash = await ctx.password.hash(blankPassword);
+      await db.insert(user).values({
+        id: blankUserId,
+        email: blankEmail,
+        name: "Blank User",
+        emailVerified: true,
+        role: "user",
+        kycVerified: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(account).values({
+        id: generateAccountId(),
+        accountId: blankUserId,
+        providerId: "credential",
+        userId: blankUserId,
+        password: blankPasswordHash,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(userProfile).values({
+        userId: blankUserId,
+        username: `blank_${blankUserId.slice(-8)}`,
+        displayName: "Blank User",
+        avatarUrl: null,
+        onboardingCompletedAt: now,
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      });
+      console.log(`✓ 全白测试用户已重置: ${blankEmail} (全新 Matrix localpart)`);
+    } catch (error: any) {
+      console.error("❌ 重置全白测试用户失败:", error.message || error);
+      return false;
     }
     
     // 创建博客文章
@@ -491,6 +708,8 @@ async function seedDatabase() {
     console.log("管理员 - 邮箱: admin@example.com, 密码: admin123");
     console.log("普通用户 - 邮箱: user@example.com, 密码: user123456");
     console.log("邀请用户 - 邮箱: referred1-3@example.com, 密码: test123456");
+    console.log("聊天用户 - 邮箱: alice/bob/carol@vibechat.test, 密码: VibeChatTest2026!");
+    console.log("全白用户 - 邮箱: blank@vibechat.test, 密码: VibeChatTest2026!");
     
     return true;
   } catch (error) {

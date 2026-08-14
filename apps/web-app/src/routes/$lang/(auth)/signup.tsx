@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
+} from '@vibechat/react-shared/ui/card'
 import { useTranslation } from '@/hooks/use-translation'
 
 export const Route = createFileRoute('/$lang/(auth)/signup')({

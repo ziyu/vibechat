@@ -17,7 +17,7 @@ out
 .env.test.local
 .env.production.local
 .env*.local
-apps/web-app/.dev.vars
+apps/*/.dev.vars
 
 # 日志
 logs
@@ -69,10 +69,10 @@ docker-volumes/
 .temp 
 
 # TanStack temporary runtime cache
-apps/web-app/.tanstack/
+apps/*/.tanstack/
 
 # Wrangler local state (D1 local data, logs, etc.)
-apps/web-app/.wrangler/
+apps/*/.wrangler/
 
 # Local SQLite data
 data/

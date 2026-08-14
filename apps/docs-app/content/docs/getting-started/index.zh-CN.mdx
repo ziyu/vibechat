@@ -29,7 +29,9 @@ pnpm install
 pnpm dev
 ```
 
-产品应用将在 `http://localhost:7001` 可用。
+产品应用位于 `http://localhost:8001`，共享 Backend 位于 `8002`，官网位于 `8003`，Admin 位于 `8005`。
+
+使用本地 SQLite 时先运行 `pnpm db:migrate:sqlite && pnpm db:seed:sqlite`；seed 命令会打印可用测试账号。
 
 ### 3. 运行文档站
 
@@ -155,7 +157,7 @@ mkdir content/docs/guides
 
 - Tailwind CSS v4
 - Fumadocs UI 组件
-- 来自 `@libs/ui` 的共享主题系统
+- 来自 `@vibechat/ui` 的共享主题系统
 
 ### 导航
 

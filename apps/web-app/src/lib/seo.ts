@@ -1,4 +1,4 @@
-import { translations, type SupportedLocale, type Translations } from '@libs/i18n'
+import { translations, type SupportedLocale, type Translations } from '@vibechat/i18n'
 import { config } from '@config'
 
 interface HeadConfig {

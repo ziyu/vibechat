@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-13
 > 维护范围：稳定操作文档导航
 
 Vibe Chat 的操作型文档统一称为 Runbook。每份 Runbook 应提供前置条件、可执行步骤、验证方式和必要的故障处理。
@@ -24,16 +24,16 @@ Vibe Chat 的操作型文档统一称为 Runbook。每份 Runbook 应提供前�
 - [认证](./auth/overview.md)
 - [验证码](./captcha.md)
 - [存储](./storage.md)
-- [积分](./credits.md)
-- [返利](./affiliate.md)
+- [积分账本](./credits.md)
+- [推荐、佣金与提现](./affiliate.md)
+- [AI 对话、图片与视频](./ai.md)
+- [六类支付 Provider](./payment/providers.md)
 
-## AI 与支付
+## 运营能力
 
-- [AI 对话](./ai/chat.md)
-- [AI 图片](./ai/image.md)
-- [AI 视频](./ai/video.md)
-- [支付配置](./payment/overview.md)
-- [支付测试](./payment-testing.md)
+- [Admin 动态定价](./payment/dynamic-pricing.md)
+- [用户与 Admin 积分账本](./credits.md)
+- [推荐、佣金与提现运营](./affiliate.md)
 
 ## 部署与文档
 

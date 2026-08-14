@@ -3,7 +3,6 @@ import type { Webhooks } from 'dodopayments/resources/webhooks';
 import type { Payment } from 'dodopayments/resources/payments';
 import type { Subscription as DodoSubscription } from 'dodopayments/resources/subscriptions';
 import { config } from '@config';
-import type { CreditPlan } from '@config';
 import {
   PaymentProvider,
   PaymentParams,
@@ -16,16 +15,12 @@ import { db } from '@libs/database';
 import {
   subscription as userSubscription,
   subscriptionStatus,
-  paymentTypes
 } from '@libs/database/schema/subscription';
 import { order, orderStatus } from '@libs/database/schema/order';
 import { user } from '@libs/database/schema/user';
 import { eq, and } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { utcNow } from '@libs/database/utils/utc';
-import { creditService, TransactionTypeCode } from '@libs/credits';
-import { processReferralCommission } from '@libs/affiliate';
-import { getPlanById } from '@libs/pricing';
+import { fulfillPaidOrder } from '../fulfillment';
+import { summarizePaymentError } from '../error';
 
 export interface DodoWebhookHeaders {
   'webhook-id': string | null;
@@ -94,7 +89,7 @@ export class DodoProvider implements PaymentProvider {
         }
       };
     } catch (error) {
-      console.error('Dodo Payments payment creation failed:', error);
+      console.error('Dodo Payments payment creation failed:', summarizePaymentError(error));
       throw new Error(`Failed to create Dodo payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -121,7 +116,7 @@ export class DodoProvider implements PaymentProvider {
           },
         });
       } catch (error) {
-        console.error('Dodo webhook signature verification failed:', error);
+        console.error('Dodo webhook signature verification failed:', summarizePaymentError(error));
         return { success: false };
       }
 
@@ -148,7 +143,7 @@ export class DodoProvider implements PaymentProvider {
           return { success: true };
       }
     } catch (error) {
-      console.error('Error handling Dodo webhook:', error);
+      console.error('Error handling Dodo webhook:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -156,103 +151,25 @@ export class DodoProvider implements PaymentProvider {
   private async handlePaymentSucceeded(paymentData: Payment): Promise<WebhookVerification> {
     const metadata = paymentData.metadata;
     if (!metadata?.orderId || !metadata?.userId || !metadata?.planId) {
-      console.error('Missing required metadata in Dodo payment webhook:', metadata);
+      console.error('Missing required metadata in Dodo payment webhook');
       return { success: false };
     }
+    const providerProductId = paymentData.product_cart?.[0]?.product_id;
+    if (!providerProductId) return { success: false };
 
-    const { orderId, userId, planId } = metadata;
-
-    const existingOrder = await db.query.order.findFirst({
-      where: eq(order.id, orderId)
+    const { orderId } = metadata;
+    await fulfillPaidOrder({
+      orderId,
+      providerOrderId: paymentData.payment_id,
+      providerEventId: paymentData.payment_id,
+      customerId: paymentData.customer?.customer_id,
+      paidAmount: paymentData.total_amount / 100,
+      paidCurrency: paymentData.currency,
+      reportedUserId: metadata.userId,
+      reportedPlanId: metadata.planId,
+      providerProductId,
+      metadata: { paymentId: paymentData.payment_id },
     });
-
-    if (existingOrder?.status === orderStatus.PAID) {
-      console.log(`Dodo webhook: Order ${orderId} already paid, skipping duplicate processing`);
-      return { success: true, orderId };
-    }
-
-    const plan = (await getPlanById(planId) || config.payment.plans[planId as keyof typeof config.payment.plans]) as PaymentPlan;
-
-    const existingMetadata = (typeof existingOrder?.metadata === 'object' && existingOrder.metadata)
-      ? existingOrder.metadata as Record<string, unknown>
-      : {};
-
-    const updatedOrders = await db.update(order)
-      .set({
-        status: orderStatus.PAID,
-        metadata: {
-          ...existingMetadata,
-          paymentId: paymentData.payment_id,
-        }
-      })
-      .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)))
-      .returning({ id: order.id });
-
-    if (updatedOrders.length === 0) {
-      return { success: true, orderId };
-    }
-
-    await processReferralCommission(orderId);
-
-    // Store Dodo customer ID on user if available
-    if (paymentData.customer?.customer_id) {
-      await db.update(user)
-        .set({
-          dodoCustomerId: paymentData.customer.customer_id,
-          updatedAt: new Date()
-        })
-        .where(eq(user.id, userId));
-    }
-
-    // Handle credit pack purchase
-    if (plan.duration.type === 'credits' && (plan as CreditPlan).credits) {
-      const credits = (plan as CreditPlan).credits;
-      console.log(`Dodo credit pack purchase - Adding ${credits} credits to user ${userId}`);
-
-      await creditService.addCredits({
-        userId,
-        amount: credits,
-        type: 'purchase',
-        orderId,
-        description: TransactionTypeCode.PURCHASE,
-        metadata: {
-          paymentId: paymentData.payment_id,
-          planId,
-          provider: 'dodo'
-        }
-      });
-
-      return { success: true, orderId };
-    }
-
-    // For one-time payments, create a subscription record
-    if (plan.duration.type === 'one_time') {
-      const now = utcNow();
-      const months = plan.duration.months ?? 1;
-      const periodEnd = new Date(now);
-      if (months >= 9999) {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 100);
-      } else {
-        periodEnd.setMonth(periodEnd.getMonth() + months);
-      }
-
-      const subscriptionData = {
-        id: randomUUID(),
-        userId,
-        planId,
-        status: subscriptionStatus.ACTIVE,
-        paymentType: paymentTypes.ONE_TIME,
-        dodoCustomerId: paymentData.customer?.customer_id || null,
-        periodStart: now,
-        periodEnd,
-        cancelAtPeriodEnd: true,
-        metadata: JSON.stringify({
-          paymentId: paymentData.payment_id,
-          isLifetime: months >= 9999
-        })
-      };
-      await db.insert(userSubscription).values(subscriptionData);
-    }
 
     return { success: true, orderId };
   }
@@ -272,7 +189,7 @@ export class DodoProvider implements PaymentProvider {
           failureReason: paymentData.status
         }
       })
-      .where(eq(order.id, metadata.orderId));
+      .where(and(eq(order.id, metadata.orderId), eq(order.status, orderStatus.PENDING)));
 
     return { success: true, orderId: metadata.orderId };
   }
@@ -285,38 +202,19 @@ export class DodoProvider implements PaymentProvider {
       return { success: true };
     }
 
-    const { userId, planId } = metadata;
-
-    // Check if subscription already exists for this Dodo subscription
-    const existing = await db.query.subscription.findFirst({
-      where: eq(userSubscription.dodoSubscriptionId, subData.subscription_id)
+    await fulfillPaidOrder({
+      orderId: metadata.orderId,
+      providerOrderId: subData.subscription_id,
+      providerEventId: `dodo-subscription-active:${subData.subscription_id}`,
+      customerId: subData.customer?.customer_id,
+      subscriptionId: subData.subscription_id,
+      periodStart: new Date(subData.previous_billing_date),
+      periodEnd: new Date(subData.next_billing_date),
+      reportedUserId: metadata.userId,
+      reportedPlanId: metadata.planId,
+      providerProductId: subData.product_id,
+      metadata: { productId: subData.product_id },
     });
-    if (existing) {
-      console.log(`Subscription already exists for Dodo subscription ${subData.subscription_id}, skipping`);
-      return { success: true };
-    }
-
-    const periodStart = new Date(subData.previous_billing_date);
-    const periodEnd = new Date(subData.next_billing_date);
-
-    const subscriptionData = {
-      id: randomUUID(),
-      userId,
-      planId,
-      status: subscriptionStatus.ACTIVE,
-      paymentType: paymentTypes.RECURRING,
-      dodoCustomerId: subData.customer?.customer_id || null,
-      dodoSubscriptionId: subData.subscription_id,
-      periodStart,
-      periodEnd,
-      cancelAtPeriodEnd: subData.cancel_at_next_billing_date ?? false,
-      metadata: JSON.stringify({
-        productId: subData.product_id
-      })
-    };
-    await db.insert(userSubscription).values(subscriptionData);
-
-    await processReferralCommission(metadata.orderId);
 
     return { success: true, orderId: metadata.orderId };
   }
@@ -480,9 +378,7 @@ export class DodoProvider implements PaymentProvider {
 
   async queryOrder(orderId: string): Promise<OrderQueryResult> {
     try {
-      const orders = await db.select()
-        .from(order)
-        .where(eq(order.id, orderId));
+      const orders = await db.select().from(order).where(eq(order.id, orderId));
 
       if (orders.length === 0) {
         return { status: 'failed' };
@@ -496,7 +392,7 @@ export class DodoProvider implements PaymentProvider {
       }
       return { status: 'pending' };
     } catch (error) {
-      console.error('Error querying Dodo order:', error);
+      console.error('Error querying Dodo order:', summarizePaymentError(error));
       return { status: 'failed' };
     }
   }
@@ -505,10 +401,10 @@ export class DodoProvider implements PaymentProvider {
     try {
       await db.update(order)
         .set({ status: orderStatus.FAILED })
-        .where(eq(order.id, orderId));
+        .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
       return true;
     } catch (error) {
-      console.error('Error closing Dodo order:', error);
+      console.error('Error closing Dodo order:', summarizePaymentError(error));
       return false;
     }
   }
@@ -527,7 +423,7 @@ export class DodoProvider implements PaymentProvider {
         url: portalSession?.link || returnUrl
       };
     } catch (error) {
-      console.error('Error creating Dodo customer portal:', error);
+      console.error('Error creating Dodo customer portal:', summarizePaymentError(error));
       throw error;
     }
   }

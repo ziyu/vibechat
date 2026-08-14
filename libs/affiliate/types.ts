@@ -1,3 +1,10 @@
+export interface ProcessWithdrawalParams {
+  withdrawalId: string;
+  status: 'processing' | 'completed' | 'rejected';
+  adminNote?: string;
+  processedBy: string;
+}
+
 export interface ApplyReferralParams {
   userId: string;
   referralCode: string | null | undefined;
@@ -22,20 +29,15 @@ export interface RequestWithdrawalParams {
   amount: number;
   paymentMethod: string;
   paymentAccount: string;
-  currency?: string;
+  /** Stable server-scoped identifier used to make form retries idempotent. */
+  requestId?: string;
 }
 
 export interface RequestWithdrawalResult {
   success: boolean;
   withdrawalId?: string;
+  idempotent?: boolean;
   error?: string;
-}
-
-export interface ProcessWithdrawalParams {
-  withdrawalId: string;
-  status: 'processing' | 'completed' | 'rejected';
-  adminNote?: string;
-  processedBy: string;
 }
 
 export interface ProcessWithdrawalResult {

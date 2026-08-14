@@ -1,0 +1,45 @@
+import { z } from 'zod'
+
+export const sessionBootstrapSchema = z.object({
+  contractVersion: z.literal(1),
+  user: z.object({
+    id: z.string().min(1),
+    email: z.string().email(),
+    username: z.string().min(1),
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+    onboardingCompleted: z.boolean(),
+  }),
+  matrix: z.discriminatedUnion('status', [
+    z.object({
+      status: z.literal('unavailable'),
+      reason: z.literal('SYNAPSE_NOT_CONFIGURED'),
+    }),
+    z.object({
+      status: z.literal('ready'),
+      homeserverUrl: z.string().url(),
+      userId: z.string().min(1),
+      deviceId: z.string().min(1),
+      accessToken: z.string().min(1),
+    }),
+  ]),
+})
+
+export const productApiErrorSchema = z.object({
+  error: z.object({
+    code: z.string().min(1),
+    message: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).default({}),
+    requestId: z.string().min(1).nullable().default(null),
+  }),
+})
+
+/** Flat error shape used by existing Backend endpoints during contract normalization. */
+export const flatProductApiErrorSchema = z.object({
+  error: z.string().min(1),
+  message: z.string().min(1).optional(),
+  requestId: z.string().min(1).nullable().optional(),
+}).passthrough()
+
+export type SessionBootstrap = z.infer<typeof sessionBootstrapSchema>
+export type ProductApiError = z.infer<typeof productApiErrorSchema>

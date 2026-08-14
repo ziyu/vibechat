@@ -1,16 +1,12 @@
 import { AlipaySdk } from 'alipay-sdk';
 import { PaymentProvider, PaymentParams, PaymentResult, WebhookVerification, PaymentPlan } from '../types';
 import { config } from '@config';
-import type { CreditPlan, Plan } from '@config';
+import type { Plan } from '@config';
 import { db } from '@libs/database';
 import { order, orderStatus } from '@libs/database/schema/order';
-import { subscription, subscriptionStatus, paymentTypes } from '@libs/database/schema/subscription';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { utcNow } from '@libs/database/utils/utc';
-import { creditService, TransactionTypeCode } from '@libs/credits';
-import { processReferralCommission } from '@libs/affiliate';
-import { getPlanById } from '@libs/pricing';
+import { eq, and } from 'drizzle-orm';
+import { fulfillPaidOrder } from '../fulfillment';
+import { summarizePaymentError } from '../error';
 
 // Alipay notification parameters
 interface AlipayNotification {
@@ -87,8 +83,6 @@ export class AlipayProvider implements PaymentProvider {
     const alipayPublicKey = config.payment.providers.alipay.alipayPublicKey;
     
     console.log(`Initializing Alipay SDK (${this.isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode)`);
-    console.log(`Gateway: ${gateway}`);
-    console.log(`App ID: ${config.payment.providers.alipay.appId}`);
     
     this.sdk = new AlipaySdk({
       appId: config.payment.providers.alipay.appId,
@@ -130,7 +124,7 @@ export class AlipayProvider implements PaymentProvider {
         returnUrl: `${config.app.payment.successUrl}?provider=alipay`,
       });
 
-      console.log('Alipay page pay URL generated:', paymentUrl.substring(0, 200) + '...');
+      console.log('Alipay page pay URL generated:', { orderId: params.orderId });
 
       if (paymentUrl) {
         return {
@@ -145,7 +139,7 @@ export class AlipayProvider implements PaymentProvider {
         throw new Error('Alipay order creation failed: No payment URL generated');
       }
     } catch (error: any) {
-      console.error('Alipay payment creation failed:', error);
+      console.error('Alipay payment creation failed:', summarizePaymentError(error));
       throw error;
     }
   }
@@ -159,16 +153,7 @@ export class AlipayProvider implements PaymentProvider {
         ? this.parseNotifyData(payload)  // Decode values for checkNotifySignV2
         : payload as AlipayNotification;
       
-      console.log('Parsed notification data (decoded):', {
-        out_trade_no: notifyData.out_trade_no,
-        trade_no: notifyData.trade_no,
-        trade_status: notifyData.trade_status,
-        total_amount: notifyData.total_amount,
-        sign_type: notifyData.sign_type,
-        sign: notifyData.sign ? notifyData.sign.substring(0, 50) + '...' : 'MISSING',
-        app_id: notifyData.app_id,
-        notify_time: notifyData.notify_time,
-      });
+      console.log('Alipay notification received:', { tradeStatus: notifyData.trade_status });
       
       // Check if required fields for signature verification exist
       if (!notifyData.sign) {
@@ -215,117 +200,17 @@ export class AlipayProvider implements PaymentProvider {
           return { success: false };
         }
 
-        // Idempotency: skip if already processed
-        if (orderRecord.status === orderStatus.PAID) {
-          console.log('Alipay webhook already processed, skipping:', orderId);
-          return { success: true, orderId };
-        }
-
-        // Update order status
-        await db.update(order)
-          .set({ 
-            status: orderStatus.PAID,
-            providerOrderId: notifyData.trade_no,
-            updatedAt: new Date()
-          })
-          .where(eq(order.id, orderId));
-
-        await processReferralCommission(orderId);
-        
-        const plan = (await getPlanById(orderRecord.planId) || config.payment.plans[orderRecord.planId as keyof typeof config.payment.plans]) as PaymentPlan;
-        const now = utcNow();
-          
-        // Handle credit pack purchase
-        if (plan.duration.type === 'credits' && plan.credits) {
-          console.log(`Alipay credit pack purchase - Adding ${plan.credits} credits to user ${orderRecord.userId}`);
-          
-          await creditService.addCredits({
-            userId: orderRecord.userId,
-            amount: plan.credits,
-            type: 'purchase',
-            orderId: orderId,
-            description: TransactionTypeCode.PURCHASE,
-            metadata: {
-              tradeNo: notifyData.trade_no,
-              planId: orderRecord.planId,
-              provider: 'alipay'
-            }
-          });
-          
-          return { success: true, orderId };
-        }
-          
-        // Handle regular subscription payment
-        const months = plan.duration.months ?? 1;
-          
-        // Check if user already has active subscription
-        const existingSubscription = await db.query.subscription.findFirst({
-          where: and(
-            eq(subscription.userId, orderRecord.userId),
-            eq(subscription.planId, orderRecord.planId),
-            eq(subscription.status, subscriptionStatus.ACTIVE)
-          ),
-          orderBy: [desc(subscription.periodEnd)]
+        await fulfillPaidOrder({
+          orderId,
+          providerOrderId: notifyData.trade_no,
+          providerEventId: notifyData.notify_id,
+          paidAmount: Number(notifyData.total_amount),
+          paidCurrency: orderRecord.currency,
+          metadata: {
+            tradeStatus: notifyData.trade_status,
+            paymentTime: notifyData.gmt_payment || null,
+          },
         });
-          
-        // Calculate new period end time
-        const newPeriodEnd = new Date(now);
-        if (months >= 9999) {
-          // Lifetime subscription: set to 100 years
-          newPeriodEnd.setFullYear(newPeriodEnd.getFullYear() + 100);
-        } else {
-          // Regular subscription: add months
-          newPeriodEnd.setMonth(newPeriodEnd.getMonth() + months);
-        }
-          
-        if (existingSubscription) {
-          // If subscription exists, extend the end date
-          const existingPeriodEnd = existingSubscription.periodEnd;
-          const extensionStart = existingPeriodEnd > now 
-            ? existingPeriodEnd 
-            : now;
-          
-          // Calculate new end time based on extension start
-          const extensionEnd = new Date(extensionStart);
-          if (months >= 9999) {
-            extensionEnd.setFullYear(extensionEnd.getFullYear() + 100);
-          } else {
-            extensionEnd.setMonth(extensionEnd.getMonth() + months);
-          }
-          
-          await db.update(subscription)
-            .set({
-              periodEnd: extensionEnd,
-              updatedAt: now,
-              metadata: JSON.stringify({
-                ...JSON.parse(existingSubscription.metadata || '{}'),
-                renewed: true,
-                lastTradeNo: notifyData.trade_no,
-                lastTradeStatus: notifyData.trade_status,
-                lastPaymentTime: notifyData.gmt_payment,
-                isLifetime: months >= 9999
-              })
-            })
-            .where(eq(subscription.id, existingSubscription.id));
-        } else {
-          // Create new subscription if none exists
-          await db.insert(subscription).values({
-            id: randomUUID(),
-            userId: orderRecord.userId,
-            planId: orderRecord.planId,
-            status: subscriptionStatus.ACTIVE,
-            paymentType: paymentTypes.ONE_TIME,
-            periodStart: now,
-            periodEnd: newPeriodEnd,
-            cancelAtPeriodEnd: false,
-            metadata: JSON.stringify({
-              tradeNo: notifyData.trade_no,
-              tradeStatus: notifyData.trade_status,
-              paymentTime: notifyData.gmt_payment,
-              isLifetime: months >= 9999
-            })
-          });
-        }
         
         return { success: true, orderId };
       }
@@ -333,7 +218,7 @@ export class AlipayProvider implements PaymentProvider {
       // For other statuses (WAIT_BUYER_PAY, TRADE_CLOSED), just acknowledge
       return { success: true };
     } catch (err) {
-      console.error('Alipay webhook processing failed:', err);
+      console.error('Alipay webhook processing failed:', summarizePaymentError(err));
       return { success: false };
     }
   }
@@ -356,7 +241,7 @@ export class AlipayProvider implements PaymentProvider {
         }
       );
       
-      console.log('Alipay close order response:', result);
+      console.log('Alipay close order request completed:', { success: result.data?.code === '10000' });
       
       // code "10000" means success
       if (result.data?.code === '10000') {
@@ -367,9 +252,9 @@ export class AlipayProvider implements PaymentProvider {
               status: orderStatus.CANCELED,
               updatedAt: new Date()
             })
-            .where(eq(order.id, orderId));
+            .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
         } catch (dbError) {
-          console.error('Failed to update order status:', dbError);
+          console.error('Failed to update order status:', summarizePaymentError(dbError));
           // Even if DB update fails, Alipay side is closed, return true
         }
         
@@ -384,14 +269,14 @@ export class AlipayProvider implements PaymentProvider {
             status: orderStatus.CANCELED,
             updatedAt: new Date()
           })
-          .where(eq(order.id, orderId));
+          .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
         return true;
       }
       
       console.error('Failed to close Alipay order:', result.data?.sub_msg || result.data?.msg);
       return false;
     } catch (error) {
-      console.error('Alipay close order failed:', error);
+      console.error('Alipay close order failed:', summarizePaymentError(error));
       return false;
     }
   }
@@ -401,10 +286,7 @@ export class AlipayProvider implements PaymentProvider {
    * @param orderId Merchant order number
    * @returns Order status
    */
-  async queryOrder(orderId: string): Promise<{
-    status: 'pending' | 'paid' | 'failed';
-    transaction?: AlipayQueryResponse;
-  }> {
+  async queryOrder(orderId: string): Promise<import('../types').OrderQueryResult> {
     try {
       const result = await this.sdk.curl<AlipayQueryResponse>('POST', '/v3/alipay/trade/query', {
         body: {
@@ -412,24 +294,24 @@ export class AlipayProvider implements PaymentProvider {
         }
       });
 
-      console.log('Alipay query order response:', result);
+      console.log('Alipay query order request completed:', { success: result.data?.code === '10000' });
 
       if (result.data?.code === '10000' && result.data?.trade_status) {
         switch (result.data.trade_status) {
           case 'TRADE_SUCCESS':
           case 'TRADE_FINISHED':
-            return { status: 'paid', transaction: result.data };
+            return { status: 'paid' };
           case 'WAIT_BUYER_PAY':
-            return { status: 'pending', transaction: result.data };
+            return { status: 'pending' };
           case 'TRADE_CLOSED':
           default:
-            return { status: 'failed', transaction: result.data };
+            return { status: 'failed' };
         }
       }
 
       return { status: 'pending' };
     } catch (err) {
-      console.error('Alipay query order failed:', err);
+      console.error('Alipay query order failed:', summarizePaymentError(err));
       return { status: 'failed' };
     }
   }

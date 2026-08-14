@@ -29,6 +29,62 @@
       "when": 1786006291824,
       "tag": "0003_hesitant_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786459896729,
+      "tag": "0004_glossy_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786463826208,
+      "tag": "0005_burly_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786465776146,
+      "tag": "0006_absurd_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786467676887,
+      "tag": "0007_complex_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786472343589,
+      "tag": "0008_true_phil_sheldon",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786498531684,
+      "tag": "0009_nice_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786625938661,
+      "tag": "0010_numerous_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786632257905,
+      "tag": "0011_jittery_sphinx",
+      "breakpoints": true
     }
   ]
 }
