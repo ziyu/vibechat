@@ -6,4 +6,3 @@
 - [认证与路由保护设计](./auth-middleware.md)
 - [配置系统设计](./configuration-system.md)
 - [动态定价设计](./dynamic-pricing.md)
-- [返利系统设计](./affiliate-system.md)

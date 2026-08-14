@@ -29,7 +29,9 @@ pnpm install
 pnpm dev
 ```
 
-The product app will be available at `http://localhost:7001`.
+The product app will be available at `http://localhost:8001`, the shared backend at `8002`, the public site at `8003`, and the Admin app at `8005`.
+
+Run `pnpm db:migrate:sqlite && pnpm db:seed:sqlite` first when using the local SQLite profile. Seeded credentials are printed by the seed command.
 
 ### 3. Run the Documentation Site
 
@@ -155,7 +157,7 @@ Global styles are in `app/global.css`. The docs use:
 
 - Tailwind CSS v4
 - Fumadocs UI components
-- Shared theme system from `@libs/ui`
+- Shared theme system from `@vibechat/ui`
 
 ### Navigation
 

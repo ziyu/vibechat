@@ -8,7 +8,6 @@ export type AllProviderName = 'qwen' | 'openai' | 'deepseek' | 'fal' | 'volcengi
 // Chat-capable providers (excludes fal which is image-only)
 export type ChatProviderName = 'qwen' | 'openai' | 'deepseek';
 
-// Legacy alias for backwards compatibility
 export type ProviderName = ChatProviderName;
 
 // Provider configurations

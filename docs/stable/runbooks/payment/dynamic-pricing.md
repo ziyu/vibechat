@@ -3,10 +3,10 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-11
 > 维护范围：动态计划管理与定价页面
 
-动态定价允许你在管理后台实时创建、编辑和管理定价方案，无需修改代码或重新部署。它与现有的静态定价（`config/payment.ts`）并行运行，可随时切换。
+动态定价允许管理员创建、编辑和管理可购买方案。它与静态定价（`config/payment.ts`）并行运行；用户结账由共享 Backend 的六类支付 provider 与统一履约服务处理。
 
 > 💡 **默认行为**：项目默认使用静态定价。开启动态定价后，定价页面将从数据库读取方案，而非 `config/payment.ts`。
 
@@ -89,7 +89,7 @@ pnpm db:push:sqlite
 
 ## 🖥️ 管理后台操作
 
-动态定价管理页面位于 `/admin/pricing`，由 `apps/web-app` 的 TanStack Start 路由实现；界面语言来自当前请求的语言偏好，不进入 URL。
+动态定价管理页面位于 `/admin/pricing`，由独立 `apps/admin-app` 的 TanStack Start 路由实现，默认 origin 为 `http://localhost:8005`。
 
 ### 方案列表
 
@@ -167,12 +167,12 @@ pnpm db:push:sqlite
 
 ### 扩展新语言
 
-1. 在 `libs/i18n/index.ts` 的 `locales` 数组中添加新的语言代码
+1. 在 `packages/i18n/src/index.ts` 的 `locales` 数组中添加新的语言代码
 2. 在 `localeLabels` 中添加对应的显示名称
 3. 管理后台会自动出现新语言的标签页
 
 ```typescript
-// libs/i18n/index.ts
+// packages/i18n/src/index.ts
 export const locales = ['en', 'zh-CN', 'ja'] as const;
 
 export const localeLabels: Record<string, string> = {
@@ -333,7 +333,4 @@ POST /api/admin/pricing-plans/import
 ---
 
 📚 **相关文档**：
-- [支付配置概览](./overview.md) — 支付方式和基础配置
 - [积分系统指南](../credits.md) — 积分充值和消耗配置
-- [支付测试 Runbook](../payment-testing.md) — 本地开发测试和 Webhook 调试
-- [返利系统设计](../../designs/affiliate-system.md) — 返利佣金架构设计

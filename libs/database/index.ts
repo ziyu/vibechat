@@ -25,7 +25,35 @@ export type { BlogPost, NewBlogPost } from './schema/pg/blog-post'
 export type { Commission, NewCommission } from './schema/pg/commission'
 export type { Withdrawal, NewWithdrawal } from './schema/pg/withdrawal'
 export type { PricingPlan, NewPricingPlan } from './schema/pg/pricing-plan'
+export type {
+  IntegrationOutboxEvent,
+  MatrixIdentity,
+  MatrixSessionBinding,
+  NewIntegrationOutboxEvent,
+  NewMatrixIdentity,
+  NewMatrixSessionBinding,
+  NewUserProfile,
+  UserProfile,
+} from './schema/pg/identity'
 export type { BlogPostStatus } from './constants'
+export type { NewRoomIndex, RoomIndex } from './schema/pg/room'
+export type {
+  NewRoomUserPreference,
+  NewSpaceFavorite,
+  NewUserPreference,
+  RoomUserPreference,
+  SpaceFavorite,
+  UserPreference,
+} from './schema/pg/product-state'
+export type {
+  Block,
+  Contact,
+  FriendRequest,
+  NewBlock,
+  NewContact,
+  NewFriendRequest,
+} from './schema/pg/social'
+export type { AiGenerationTask, NewAiGenerationTask } from './schema/pg/ai-generation-task'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -37,6 +65,11 @@ export { commission } from './schema/commission'
 export { withdrawal } from './schema/withdrawal'
 export { blogPost } from './schema/blog-post'
 export { pricingPlan } from './schema/pricing-plan'
+export { roomIndex } from './schema/room'
+export { roomUserPreference, spaceFavorite, userPreference } from './schema/product-state'
+export { block, contact, friendRequest } from './schema/social'
+export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
+export { aiGenerationTask } from './schema/ai-generation-task'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -49,12 +82,33 @@ import { commission as _commission } from './schema/commission'
 import { withdrawal as _withdrawal } from './schema/withdrawal'
 import { blogPost as _blogPost } from './schema/blog-post'
 import { pricingPlan as _pricingPlan } from './schema/pricing-plan'
+import { roomIndex as _roomIndex } from './schema/room'
+import {
+  roomUserPreference as _roomUserPreference,
+  spaceFavorite as _spaceFavorite,
+  userPreference as _userPreference,
+} from './schema/product-state'
+import { block as _block, contact as _contact, friendRequest as _friendRequest } from './schema/social'
+import {
+  integrationOutbox as _integrationOutbox,
+  matrixIdentity as _matrixIdentity,
+  matrixSessionBinding as _matrixSessionBinding,
+  userProfile as _userProfile,
+} from './schema/identity'
+import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-task'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
   order: _order, subscription: _subscription, creditTransaction: _creditTransaction,
   commission: _commission, withdrawal: _withdrawal,
   blogPost: _blogPost, pricingPlan: _pricingPlan,
+  roomIndex: _roomIndex,
+  userPreference: _userPreference, roomUserPreference: _roomUserPreference,
+  spaceFavorite: _spaceFavorite,
+  block: _block, contact: _contact, friendRequest: _friendRequest,
+  userProfile: _userProfile, matrixIdentity: _matrixIdentity,
+  matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
+  aiGenerationTask: _aiGenerationTask,
 }
 
 // ---------------------------------------------------------------------------

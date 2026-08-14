@@ -1,6 +1,6 @@
 import { sendEmailByResend } from './providers/resend';
 import { sendEmailByCloudflare } from './providers/cloudflare';
-import { templates, VerificationEmailParams, ResetPasswordEmailParams, EmailTemplate } from './templates/index';
+import { templates, VerificationEmailParams, ResetPasswordEmailParams, AuthenticationOtpEmailParams, EmailTemplate } from './templates/index';
 import { EmailProvider, EmailResponse, EmailOptions } from './types';
 import { config } from '@config';
 
@@ -130,6 +130,22 @@ export async function sendResetPasswordEmail(
     subject,
     html,
     ...options
+  });
+}
+
+export async function sendAuthenticationOtpEmail(
+  to: string,
+  params: AuthenticationOtpEmailParams,
+  options: Omit<SendEmailOptions, 'to' | 'subject' | 'html'> = {}
+): Promise<EmailResponse> {
+  const { subject, html } = templates.authenticationOtp(params);
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `${params.otp} — ${subject}`,
+    ...options,
   });
 }
 

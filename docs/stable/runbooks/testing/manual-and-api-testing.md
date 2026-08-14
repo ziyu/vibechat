@@ -3,12 +3,12 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-12
 > 维护范围：`apps/web-app` 手动验收和 API 冒烟测试
 
 ## 前置条件
 
-- 产品应用运行在 `http://localhost:7001`。
+- 产品应用运行在 `http://localhost:8001`。
 - 使用隔离的本地或测试数据库，不连接生产数据。
 - 普通用户和管理员测试账户通过 seed 或受控注册创建，不把密码写进仓库。
 - 外部支付、AI、邮件和短信使用沙盒或测试凭据。
@@ -26,14 +26,14 @@
 | Dashboard | `/dashboard` | 未登录跳转，登录后加载本人数据 |
 | 管理后台 | `/admin` | 普通用户被拒绝，管理员可访问 |
 
-分别使用 `en`、`zh-CN` 的 `VIBECHAT_LOCALE` Cookie 访问同一规范路径，确认核心文案与 `<html lang>` 一致；再访问旧 `/en/**`、`/zh-CN/**` 深链，确认写入偏好并 307 到规范路径。
+在页面中切换到 English，确认 URL 不变且核心文案更新；也可访问 `/en` 验证旧链接会写入英文偏好并跳转到规范 URL `/`。
 
 ## API 冒烟
 
 ```bash
-curl -i http://localhost:7001/api/health
-curl -i http://localhost:7001/api/pricing/plans
-curl -i http://localhost:7001/api/credits/balance
+curl -i http://localhost:8001/api/health
+curl -i http://localhost:8001/api/pricing/plans
+curl -i http://localhost:8001/api/credits/balance
 ```
 
 期望：

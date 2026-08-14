@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-11
 > 维护范围：`config/payment.ts`、`libs/pricing`、定价 API 与管理页面
 
 ## 目标
@@ -35,13 +35,13 @@ flowchart LR
 | 管理操作 | `libs/pricing/admin.ts` |
 | 数据类型转换 | `libs/pricing/types.ts` |
 | 数据模型 | `libs/database/schema/*/pricing-plan.ts` |
-| 公开 API | `apps/web-app/src/routes/api/pricing/plans.ts` |
-| 管理 API | `apps/web-app/src/routes/api/admin/pricing-plans/*` |
-| 管理页面 | `apps/web-app/src/routes/admin/pricing/*` |
+| 公开 API | 当前未启用；恢复结账前必须由 Backend 提供 |
+| 管理 API | `apps/backend/src/routes/api/admin/pricing-plans/*` |
+| 管理页面 | `apps/admin-app/src/routes/admin/pricing/*` |
 
 ## 安全与一致性
 
-- 购买时只接受当前来源中存在且可购买的计划；动态模式下停用计划不能结账。
+- 当前只启用 Admin 方案维护；恢复购买时只能接受当前来源中存在且可购买的计划，动态模式下停用计划不能结账。
 - 管理 API 必须要求管理员权限，不能只依赖管理页面守卫。
 - 软删除通过 `isActive` 隐藏计划；硬删除只用于明确的管理操作。
 - 排序以 `sortOrder` 为主，创建时间为稳定的次级顺序。

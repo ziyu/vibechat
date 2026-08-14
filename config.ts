@@ -19,6 +19,11 @@ import { aiConfig } from './config/ai';
 import { aiImageConfig } from './config/aiImage';
 import { aiVideoConfig } from './config/aiVideo';
 import { affiliateConfig } from './config/affiliate';
+export {
+  builtInChatSpaces,
+  getBuiltInChatSpace,
+  type BuiltInChatSpaceConfig,
+} from './config/chat';
 
 // Re-export types for backwards compatibility
 export type { RecurringPlan, OneTimePlan, CreditPlan, Plan } from './config/types';
@@ -70,7 +75,7 @@ export const config = {
      * This will be used for all callback URLs and webhooks
      */
     get baseUrl() {
-      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:7001');
+      return requireEnvForService('APP_BASE_URL', 'Application', 'http://localhost:8001');
     },
 
     /**
@@ -112,7 +117,7 @@ export const config = {
       locales: ['en', 'zh-CN'] as const,
       /**
        * Cookie key for locale persistence
-       * Used by the product web app
+       * Used by the product web app and documentation site
        */
       cookieKey: 'VIBECHAT_LOCALE',
 
@@ -132,7 +137,7 @@ export const config = {
       /**
        * Payment Success/Cancel URLs
        * These URLs will be used by payment providers for redirects
-       * Product routes are canonical and do not include a locale prefix
+       * The locale middleware will automatically add locale prefix
        */
       get successUrl() {
         return `${config.app.baseUrl}/payment-success`;

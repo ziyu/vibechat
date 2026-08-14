@@ -1,389 +1,49 @@
-# 积分系统 Runbook
+# 积分账本 Runbook
 
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
-> 维护范围：积分充值、消耗、退款和记录
+> 更新日期：2026-08-13
+> 维护范围：`libs/credits`、用户积分 API、AI 计费、支付履约与 Admin 账本
 
-积分系统是为 AI 功能设计的按需付费模式，与传统订阅模式并行运行。用户可以选择订阅获得会员权益，或者购买积分按使用量付费。
+积分是用户购买、AI 消耗、失败退款和推荐奖励的统一账本。余额是当前快照，`credit_transaction` 是不可重复写入的审计记录；服务端始终以交易 ID 保证幂等。
 
-> 💡 **前置条件**：在配置积分系统之前，请先完成 [支付配置](./payment/overview.md) 中的支付方式设置。
+## 前置条件
 
-## 🔗 相关页面
+- 数据库迁移已应用，包含 `user.creditBalance`、`credit_transaction` 和 AI task 表。
+- Backend 运行在 `8002`，Web 运行在 `8001`，Admin 运行在 `8005`。
+- 修改余额的调用方已经生成可重试的稳定 `transactionId`。
 
-| 页面 | 路径 | 说明 |
-|------|------|------|
-| 定价页 | `/pricing` | 购买积分入口 |
-| 用户仪表盘 | `/dashboard` | 查看积分余额和消耗记录 |
-| AI 对话页 | `/ai` | 消耗积分的 AI 对话 |
-| 图片生成页 | `/image-generate` | 消耗积分的图片生成 |
-| 管理后台-积分 | `/admin/credits` | 管理员查看积分交易记录 |
+## 用户与 Admin 查询
 
-## 📑 目录
+- 当前用户：`GET /api/credits/status`、`GET /api/credits/transactions?page=1&limit=10`。
+- Admin：`GET /api/admin/credits/transactions`，支持有界分页、搜索、类型和排序。
+- 未登录用户接口返回 `401`；非 Admin 请求全局账本返回 `403`。
 
-- [💡 积分系统概述](#-积分系统概述)
-- [📦 积分计划配置](#-积分计划配置)
-  - [计划类型说明](#计划类型说明)
-  - [配置示例](#配置示例)
-- [⚡ 积分消耗配置](#-积分消耗配置)
-  - [消耗模式](#消耗模式)
-  - [模型乘数](#模型乘数)
-  - [环境变量](#环境变量)
-- [🔌 API 端点](#-api-端点)
-- [🎯 适用场景](#-适用场景)
-- [🛠️ 技术实现](#️-技术实现)
+Web 的 `/account` 展示当前用户余额与流水，Admin 的 `/admin/credits` 展示全局账本。两者都读取真实数据库，不使用 fixture。
 
-## 💡 积分系统概述
+## 写入不变量
 
-| 特性 | 说明 |
-|------|------|
-| **付费模式** | 一次性购买，按需消耗 |
-| **支持的支付方式** | WeChat Pay、Stripe、Creem |
-| **消耗模式** | 固定消耗 / 动态消耗（按 token） |
-| **与订阅关系** | 并行运行，用户可同时拥有 |
+1. `addCredits` 与 `consumeCredits` 都要求交易 ID；重复调用只返回第一次结果。
+2. PostgreSQL、SQLite 与 D1 的余额变更和账本插入保持原子；条件扣减不能把余额降到零以下。
+3. 支付购买使用订单派生交易 ID；AI 预留、结算与退款使用请求派生交易 ID；推荐奖励使用被推荐用户派生交易 ID。
+4. 退款记录携带原交易 ID、provider、模型或订单等对账 metadata，不覆盖原交易。
+5. 金额必须是有限正数；服务端拒绝 `NaN`、`Infinity`、零和负数。
 
-## 📦 积分计划配置
+## 验证
 
-### 计划类型说明
-
-积分计划使用 `duration.type: 'credits'` 来区分于订阅和单次付费计划：
-
-```typescript
-type CreditPlan = {
-  duration: {
-    type: 'credits';    // 标记为积分计划
-    credits: number     // 充值获得的积分数量
-  };
-  stripePriceId?: string;    // Stripe 价格 ID
-  creemProductId?: string;   // Creem 产品 ID
-}
+```bash
+pnpm vitest run tests/unit/ai tests/unit/payment tests/unit/affiliate tests/unit/auth/account-deletion.test.ts
+API_TEST_BASE_URL=http://localhost:8001 pnpm vitest run --config vitest.api.config.ts tests/api/ownership-boundary.test.ts tests/api/admin-permission.test.ts
+npx playwright test --config=tests/e2e/playwright.config.ts tests/e2e/specs/account-services-ai.spec.ts tests/e2e/specs/admin-app.spec.ts
 ```
 
-### 配置示例
+无 AI/provider key 时，聊天、图片和视频失败路径必须验证余额恢复且退款只发生一次；这不替代配置凭据后的真实 provider 成功链路。
 
-在 `config/payment.ts` 中的 `plans` 添加积分充值计划：
+## 故障处理
 
-```typescript
-// 基础积分包
-credits100: {
-  provider: 'stripe',
-  id: 'credits100',
-  amount: 10,
-  currency: 'USD',
-  duration: {
-    type: 'credits',
-    credits: 100
-  },
-  stripePriceId: 'price_xxx',
-  i18n: {
-    'en': {
-      name: '100 Credits',
-      description: 'Perfect for trying out AI features',
-      duration: '100 credits',
-      features: ['No expiration', 'Use anytime']
-    },
-    'zh-CN': {
-      name: '100 积分',
-      description: '适合体验 AI 功能',
-      duration: '100 积分',
-      features: ['永不过期', '随时使用']
-    }
-  }
-},
+- 余额与流水不一致：按用户 ID 和交易 ID查账，先停止重复补偿，不要直接改余额。
+- 退款失败：保留原 consume 记录与任务/订单状态，用相同退款交易 ID重试。
+- 重复交易返回不同内容：视为幂等冲突，检查调用方是否复用了错误的 request/order ID。
 
-// 包含赠送的积分包（推荐）
-credits500: {
-  provider: 'stripe',
-  id: 'credits500',
-  amount: 45,
-  currency: 'USD',
-  recommended: true,
-  duration: {
-    type: 'credits',
-    credits: 550              // 500 + 50 赠送
-  },
-  stripePriceId: 'price_xxx',
-  i18n: {
-    'en': {
-      name: '500 Credits + 50 Bonus',
-      description: 'Best value for regular users',
-      duration: '550 credits',
-      features: ['10% bonus credits', 'No expiration']
-    },
-    'zh-CN': {
-      name: '500 积分 + 50 赠送',
-      description: '常规用户的最佳选择',
-      duration: '550 积分',
-      features: ['赠送10%积分', '永不过期']
-    }
-  }
-},
-
-// 大额积分包
-credits1000: {
-  provider: 'stripe',
-  id: 'credits1000',
-  amount: 80,
-  currency: 'USD',
-  duration: {
-    type: 'credits',
-    credits: 1200             // 1000 + 200 赠送
-  },
-  stripePriceId: 'price_xxx',
-  i18n: {
-    'en': {
-      name: '1000 Credits + 200 Bonus',
-      description: 'Best for power users',
-      duration: '1200 credits',
-      features: ['20% bonus credits', 'No expiration']
-    },
-    'zh-CN': {
-      name: '1000 积分 + 200 赠送',
-      description: '重度用户的超值选择',
-      duration: '1200 积分',
-      features: ['赠送20%积分', '永不过期']
-    }
-  }
-}
-```
-
-## ⚡ 积分消耗配置
-
-### 消耗模式
-
-系统支持两种积分消耗模式：
-
-| 模式 | 说明 | 适用场景 |
-|------|------|---------|
-| **fixed** | 每次操作消耗固定积分 | 简单计费、图片生成 |
-| **dynamic** | 按实际 token 消耗计费 | AI 聊天、文本处理 |
-
-在 `config/credits.ts` 中配置：
-
-```typescript
-// config/credits.ts
-export const creditsConfig = {
-  // 消耗模式：'fixed' 或 'dynamic'
-  consumptionMode: 'dynamic',
-
-  /**
-   * 固定消耗配置
-   * 每个条目可以是:
-   * - 数字: 所有操作统一消耗
-   * - 对象: { default: number, models?: { modelName: number } }
-   */
-  fixedConsumption: {
-    // AI 聊天 - 简单数字格式（所有模型统一消耗）
-    aiChat: 1,
-
-    // AI 图片生成 - 对象格式（按模型定价）
-    // 模型名称全局唯一，无需按 provider 嵌套
-    aiImage: {
-      default: 10,
-      models: {
-        'qwen-image-max': 8,
-        'qwen-image-plus': 5,
-        'fal-ai/flux/schnell': 6,
-        'dall-e-3': 15,
-        'dall-e-2': 8,
-      }
-    },
-  },
-
-  // 动态消耗配置
-  dynamicConsumption: {
-    tokensPerCredit: 1000,  // 每 1000 token 消耗 1 积分
-
-    // 不同 AI 模型的积分消耗乘数
-    modelMultipliers: {
-      'qwen-turbo': 0.5,      // 经济模型
-      'qwen-plus': 1.0,       // 标准模型
-      'qwen-max': 1.2,        // 高级模型
-      'deepseek-chat': 0.8,
-      'gpt-4': 2.0,           // GPT-4 双倍消耗
-      'default': 1.0
-    }
-  }
-}
-```
-
-### 模型乘数
-
-不同 AI 模型的成本不同，可以通过乘数来调整积分消耗：
-
-| 模型 | 乘数 | 说明 |
-|------|------|------|
-| qwen-turbo | 1.0 | 基础模型，标准消耗 |
-| qwen-plus | 1.2 | 高级模型，+20% 消耗 |
-| qwen-max | 1.5 | 最强模型，+50% 消耗 |
-| gpt-4 | 2.0 | GPT-4，双倍消耗 |
-| default | 1.0 | 未配置模型的默认值 |
-
-### 环境变量
-
-```env
-# 积分消耗模式
-CREDITS_CONSUMPTION_MODE=dynamic
-
-# 固定消耗模式配置
-CREDITS_FIXED_CHAT_COST=10
-
-# 动态消耗模式配置
-CREDITS_DYNAMIC_CHAT_COST_PER_KILO_TOKEN=1
-
-# 模型乘数配置（可选）
-CREDITS_QWEN_TURBO_MULTIPLIER=1.0
-CREDITS_QWEN_PLUS_MULTIPLIER=1.2
-CREDITS_QWEN_MAX_MULTIPLIER=1.5
-CREDITS_GPT4_MULTIPLIER=2.0
-```
-
-## 🔌 API 端点
-
-### 获取积分余额
-
-```typescript
-GET /api/credits/balance
-
-// 响应
-{
-  "balance": 450
-}
-```
-
-### 获取交易记录
-
-```typescript
-GET /api/credits/transactions?page=1&limit=10
-
-// 响应
-{
-  "transactions": [
-    {
-      "id": "txn_xxx",
-      "type": "consumption",
-      "amount": "-5",
-      "balanceAfter": "445",
-      "description": "ai_chat",
-      "metadata": {
-        "model": "qwen-turbo",
-        "tokens": 1500
-      },
-      "createdAt": "2024-01-15T10:30:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 25
-  }
-}
-```
-
-### 获取完整状态
-
-```typescript
-GET /api/credits/status
-
-// 响应
-{
-  "credits": {
-    "balance": 450,
-    "totalPurchased": 550,
-    "totalConsumed": 100
-  },
-  "subscription": {
-    "hasSubscription": false,
-    "plan": null,
-    "expiresAt": null
-  }
-}
-```
-
-## 🎯 适用场景
-
-### 🤖 AI 聊天/对话
-- 用户购买积分后使用 AI 聊天功能
-- 按 token 消耗或固定消耗积分
-- 适合：ChatGPT 类应用、AI 助手等
-
-### 🎨 AI 图片生成
-- 每次生成图片消耗固定积分
-- 不同模型/分辨率消耗不同积分
-- 适合：AI 绘画、图片编辑等
-
-### 📄 文档处理
-- 文档翻译、摘要、分析等
-- 按文档大小或处理复杂度消耗
-- 适合：AI 翻译、文档助手等
-
-### 🎵 音视频处理
-- 语音转文字、视频分析等
-- 按时长或文件大小消耗积分
-- 适合：转录服务、内容分析等
-
-## 🛠️ 技术实现
-
-### 核心模块
-
-积分系统的核心实现位于 `@libs/credits`：
-
-```typescript
-import {
-  creditService,
-  calculateCreditConsumption,
-  safeNumber,
-  TransactionTypeCode
-} from '@libs/credits';
-
-// 获取余额
-const balance = await creditService.getBalance(userId);
-
-// 添加积分（支付成功后自动调用）
-await creditService.addCredits({
-  userId,
-  amount: 100,
-  description: TransactionTypeCode.PURCHASE,
-  relatedOrderId: orderId
-});
-
-// 消耗积分
-await creditService.consumeCredits({
-  userId,
-  amount: creditsToConsume,
-  description: TransactionTypeCode.AI_CHAT,
-  metadata: { model, tokens }
-});
-```
-
-### 安全处理
-
-使用 `safeNumber` 函数防止 NaN/Infinity 导致的数据问题：
-
-```typescript
-import { safeNumber } from '@libs/credits';
-
-const totalTokens = safeNumber(usageData.totalTokens); // 安全转换
-const credits = calculateCreditConsumption({ totalTokens, model });
-```
-
-### 交易类型
-
-```typescript
-const TransactionTypeCode = {
-  AI_CHAT: 'ai_chat',
-  IMAGE_GENERATION: 'image_generation',
-  DOCUMENT_PROCESSING: 'document_processing',
-  PURCHASE: 'purchase',
-  BONUS: 'bonus',
-  REFUND: 'refund',
-  ADJUSTMENT: 'adjustment',
-};
-```
-
----
-
-📚 **相关文档**：
-- [支付 Runbook](./payment/overview.md) - 配置支付方式和订阅计划
-- [支付测试 Runbook](./payment-testing.md) - 本地开发测试和 Webhook 调试
+活动实现：`libs/credits`；用户 API：`apps/backend/src/routes/api/credits/*`；Admin API：`apps/backend/src/routes/api/admin/credits/transactions/index.ts`。

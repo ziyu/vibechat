@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authClientReact } from "@libs/auth/authClient";
+import { authClientReact } from "@vibechat/auth-client";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import {
@@ -8,11 +8,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@libs/react-shared/ui/dialog";
-import { Button } from "@libs/react-shared/ui/button";
-import { Input } from "@libs/react-shared/ui/input";
-import { Label } from "@libs/react-shared/ui/label";
-import { Turnstile } from "@libs/react-shared/ui/turnstile";
+} from "@vibechat/react-shared/ui/dialog";
+import { Button } from "@vibechat/react-shared/ui/button";
+import { Input } from "@vibechat/react-shared/ui/input";
+import { Label } from "@vibechat/react-shared/ui/label";
+import { Turnstile } from "@vibechat/react-shared/ui/turnstile";
 import { toast } from "sonner";
 
 interface ResendVerificationDialogProps {
@@ -26,7 +26,7 @@ export function ResendVerificationDialog({
   onClose,
   email,
 }: ResendVerificationDialogProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
@@ -49,7 +49,7 @@ export function ResendVerificationDialog({
 
     const { data, error } = await authClientReact.sendVerificationEmail({
       email,
-      callbackURL: '/',
+      callbackURL: `/${locale}`,
       fetchOptions: {
         headers: {
           "x-resend-source": "user-initiated",
@@ -102,6 +102,8 @@ export function ResendVerificationDialog({
           </div>
 
           <Turnstile
+            enabled={config.captcha.enabled}
+            siteKey={config.captcha.cloudflare.siteKey}
             key={turnstileKey}
             onSuccess={(token: string) => setTurnstileToken(token)}
             onError={() => setTurnstileToken(null)}

@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：TanStack Start Node.js 构建目标的容器化
 
 ## 当前边界
@@ -23,8 +23,8 @@
 
 ```bash
 docker build -t vibechat-web .
-docker run --rm -p 7001:7001 --env-file .env vibechat-web
-curl -fsS http://localhost:7001/api/health
+docker run --rm -p 8001:8001 --env-file .env vibechat-web
+curl -fsS http://localhost:8001/api/health
 ```
 
 只有仓库加入实际 Dockerfile 后，上述命令才可执行。提交 Dockerfile 的同一变更必须补充镜像构建测试、健康检查、持久化数据库方案和回滚步骤。

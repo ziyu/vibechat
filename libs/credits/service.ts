@@ -1,507 +1,367 @@
-import { db, isD1Dialect, runD1Batch, runNativeD1Batch } from '@libs/database';
-import { user, creditTransaction, creditTransactionTypes } from '@libs/database/schema';
-import { eq, desc, asc, and, or, like, sql, count } from 'drizzle-orm';
-import type { 
-  AddCreditsParams, 
-  ConsumeCreditsParams, 
-  ConsumeCreditsResult,
-  GetTransactionsOptions,
-  GetAllTransactionsOptions,
-  GetTransactionsPaginatedResult,
-  CreditTransactionType
-} from './types';
+import { db, isD1Dialect, isSqliteDialect, runNativeD1Batch } from '@libs/database';
+import { creditTransaction, creditTransactionTypes, user } from '@libs/database/schema';
+import { and, asc, count, desc, eq, like, sql } from 'drizzle-orm';
 import type { CreditTransaction } from '@libs/database/schema/credit-transaction';
+import type {
+  AddCreditsParams,
+  ConsumeCreditsParams,
+  ConsumeCreditsResult,
+  GetAllTransactionsOptions,
+  GetTransactionsOptions,
+  GetTransactionsPaginatedResult,
+} from './types';
 
-/**
- * Credit Service - Manages user credit balances and transactions
- */
+function parseBalance(value: unknown): number {
+  const balance = Number(value);
+  return Number.isFinite(balance) ? balance : 0;
+}
+
+/** Atomic credit balance mutations plus the user-facing ledger queries. */
 export class CreditService {
-  /**
-   * Get the current credit balance for a user
-   */
   async getBalance(userId: string): Promise<number> {
-    const result = await db
+    const [record] = await db
       .select({ creditBalance: user.creditBalance })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1);
-
-    if (!result.length) {
-      return 0;
-    }
-
-    return parseFloat(result[0].creditBalance) || 0;
+    return parseBalance(record?.creditBalance);
   }
 
-  /**
-   * Add credits to a user's account
-   * Used for purchases, bonuses, refunds, and adjustments
-   */
+  private async getTransaction(transactionId: string): Promise<CreditTransaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(creditTransaction)
+      .where(eq(creditTransaction.id, transactionId))
+      .limit(1);
+    return transaction;
+  }
+
   async addCredits(params: AddCreditsParams): Promise<CreditTransaction> {
     const { userId, amount, type, orderId, description, metadata } = params;
-
-    if (amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Amount must be positive when adding credits');
     }
 
-    const transactionId = `txn_${crypto.randomUUID()}`;
+    const transactionId = params.transactionId || `txn_${crypto.randomUUID()}`;
+    const existing = await this.getTransaction(transactionId);
+    if (existing) {
+      if (existing.userId !== userId || parseBalance(existing.amount) !== amount) {
+        throw new Error(`Credit transaction id collision: ${transactionId}`);
+      }
+      return existing;
+    }
 
-    // D1's Workers binding does not accept the BEGIN/SAVEPOINT statements
-    // emitted by Drizzle's transaction callback. A D1 batch is atomic and
-    // executes statements in order, so it preserves the update + ledger write.
-    if (isD1Dialect()) {
-      const [updatedUsers, transactions] = await runD1Batch([
-        db
-          .update(user)
-          .set({
-            creditBalance: sql`${user.creditBalance} + ${amount}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(user.id, userId))
-          .returning({ creditBalance: user.creditBalance }),
-        db
-          .insert(creditTransaction)
-          .values({
+    const now = new Date();
+    try {
+      if (isD1Dialect()) {
+        const epoch = Math.floor(now.getTime() / 1000);
+        const [, inserted] = await runNativeD1Batch([
+          {
+            sql: `UPDATE user
+                  SET credit_balance = CAST(credit_balance AS REAL) + ?, updated_at = ?
+                  WHERE id = ?
+                  RETURNING id`,
+            params: [amount, epoch, userId],
+          },
+          {
+            sql: `INSERT INTO credit_transaction
+                    (id, user_id, type, amount, balance, order_id, description, metadata, created_at)
+                  SELECT ?, id, ?, ?, credit_balance, ?, ?, ?, ?
+                  FROM user WHERE id = ? AND changes() > 0
+                  RETURNING *`,
+            params: [transactionId, type, String(amount), orderId || null,
+              description || `${type} credits`, metadata ? JSON.stringify(metadata) : null,
+              epoch, userId],
+          },
+        ]);
+        const transaction = (inserted?.results ?? [])[0] as CreditTransaction | undefined;
+        if (!transaction) throw new Error(`User not found: ${userId}`);
+        return transaction;
+      }
+
+      if (isSqliteDialect()) {
+        let transaction: CreditTransaction | undefined;
+        (db as any).transaction((tx: any) => {
+          const [updated] = tx.update(user)
+            .set({
+              creditBalance: sql`CAST(${user.creditBalance} AS REAL) + ${amount}`,
+              updatedAt: now,
+            })
+            .where(eq(user.id, userId))
+            .returning({ creditBalance: user.creditBalance })
+            .all();
+          if (!updated) throw new Error(`User not found: ${userId}`);
+          [transaction] = tx.insert(creditTransaction).values({
             id: transactionId,
             userId,
             type,
-            amount: amount.toString(),
-            balance: sql`(SELECT ${user.creditBalance} FROM ${user} WHERE ${user.id} = ${userId})`,
+            amount: String(amount),
+            balance: String(updated.creditBalance),
             orderId: orderId || null,
             description: description || `${type} credits`,
             metadata: metadata || null,
+            createdAt: now,
+          }).returning().all();
+        });
+        if (!transaction) throw new Error('Credit transaction was not created');
+        return transaction;
+      }
+
+      return await db.transaction(async (tx) => {
+        const [updated] = await tx.update(user)
+          .set({
+            creditBalance: sql`${user.creditBalance} + ${amount}`,
+            updatedAt: now,
           })
-          .returning(),
-      ]);
-
-      if (!(updatedUsers as Array<{ creditBalance: string }>)[0]) {
-        throw new Error(`User not found: ${userId}`);
-      }
-
-      return (transactions as CreditTransaction[])[0];
-    }
-
-    // Node PostgreSQL and local better-sqlite3 support Drizzle transactions.
-    const result = await db.transaction(async (tx) => {
-      // Update user balance
-      const [updatedUser] = await tx
-        .update(user)
-        .set({
-          creditBalance: sql`${user.creditBalance} + ${amount}`,
-          updatedAt: new Date()
-        })
-        .where(eq(user.id, userId))
-        .returning({ creditBalance: user.creditBalance });
-
-      if (!updatedUser) {
-        throw new Error(`User not found: ${userId}`);
-      }
-
-      const newBalance = parseFloat(updatedUser.creditBalance);
-
-      // Create transaction record
-      const [transaction] = await tx
-        .insert(creditTransaction)
-        .values({
+          .where(eq(user.id, userId))
+          .returning({ creditBalance: user.creditBalance });
+        if (!updated) throw new Error(`User not found: ${userId}`);
+        const [transaction] = await tx.insert(creditTransaction).values({
           id: transactionId,
           userId,
           type,
-          amount: amount.toString(),
-          balance: newBalance.toString(),
+          amount: String(amount),
+          balance: String(updated.creditBalance),
           orderId: orderId || null,
           description: description || `${type} credits`,
-          metadata: metadata || null
-        })
-        .returning();
-
-      return transaction;
-    });
-
-    return result;
+          metadata: metadata || null,
+          createdAt: now,
+        }).returning();
+        return transaction;
+      });
+    } catch (error) {
+      // A concurrent retry may have won the unique-key race. The losing
+      // transaction is rolled back, so returning the existing row is safe.
+      const idempotent = await this.getTransaction(transactionId);
+      if (idempotent && idempotent.userId === userId && parseBalance(idempotent.amount) === amount) {
+        return idempotent;
+      }
+      throw error;
+    }
   }
 
-  /**
-   * Consume credits from a user's account
-   * Returns success status and new balance
-   * 
-   * Uses atomic conditional update to prevent race conditions:
-   * UPDATE ... SET credit_balance = credit_balance - amount 
-   * WHERE id = userId AND credit_balance >= amount
-   * 
-   * This ensures that concurrent requests cannot both deduct credits
-   * if the combined total would exceed the available balance.
-   */
   async consumeCredits(params: ConsumeCreditsParams): Promise<ConsumeCreditsResult> {
     const { userId, amount, description, metadata } = params;
-
-    if (amount <= 0) {
-      return {
-        success: false,
-        newBalance: await this.getBalance(userId),
-        error: 'Amount must be positive when consuming credits'
-      };
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { success: false, newBalance: await this.getBalance(userId), error: 'Amount must be positive when consuming credits' };
     }
 
+    const transactionId = params.transactionId || `txn_${crypto.randomUUID()}`;
+    const existing = await this.getTransaction(transactionId);
+    if (existing) {
+      if (existing.userId !== userId || parseBalance(existing.amount) !== -amount) {
+        return { success: false, newBalance: await this.getBalance(userId), error: `Credit transaction id collision: ${transactionId}` };
+      }
+      return { success: true, newBalance: parseBalance(existing.balance), transactionId, idempotent: true };
+    }
+
+    const now = new Date();
     try {
       if (isD1Dialect()) {
-        const transactionId = `txn_${crypto.randomUUID()}`;
-        const descriptionValue = description || 'Credits consumed';
-        const metadataValue = metadata ? JSON.stringify(metadata) : null;
-
-        const [updateResult] = await runNativeD1Batch([
+        const epoch = Math.floor(now.getTime() / 1000);
+        const [updated] = await runNativeD1Batch([
           {
             sql: `UPDATE user
-                  SET credit_balance = credit_balance - ?, updated_at = ?
-                  WHERE id = ? AND credit_balance >= ?
+                  SET credit_balance = CAST(credit_balance AS REAL) - ?, updated_at = ?
+                  WHERE id = ? AND CAST(credit_balance AS REAL) >= ?
                   RETURNING credit_balance`,
-            params: [amount, Math.floor(Date.now() / 1000), userId, amount],
+            params: [amount, epoch, userId, amount],
           },
           {
-            sql: `INSERT INTO credit_transaction (id, user_id, type, amount, balance, description, metadata, created_at)
-                  SELECT ?, ?, ?, ?, credit_balance, ?, ?, ?
+            sql: `INSERT INTO credit_transaction
+                    (id, user_id, type, amount, balance, description, metadata, created_at)
+                  SELECT ?, id, ?, ?, credit_balance, ?, ?, ?
                   FROM user WHERE id = ? AND changes() > 0`,
-            params: [transactionId, userId, creditTransactionTypes.CONSUMPTION, (-amount).toString(), descriptionValue, metadataValue, Math.floor(Date.now() / 1000), userId],
+            params: [transactionId, creditTransactionTypes.CONSUMPTION, String(-amount),
+              description || 'Credits consumed', metadata ? JSON.stringify(metadata) : null,
+              epoch, userId],
           },
         ]);
-
-        const updatedUsers = (updateResult?.results ?? []) as Array<{ credit_balance: string }>;
-
-        if (updatedUsers.length === 0) {
-          const [existingUser] = await db
-            .select({ creditBalance: user.creditBalance })
-            .from(user)
-            .where(eq(user.id, userId))
-            .limit(1);
-
-          if (!existingUser) {
-            throw new Error(`User not found: ${userId}`);
-          }
-
-          return {
-            success: false,
-            newBalance: parseFloat(existingUser.creditBalance) || 0,
-            error: 'Insufficient credits',
-          };
+        const row = (updated?.results ?? [])[0] as { credit_balance: string } | undefined;
+        if (!row) {
+          return { success: false, newBalance: await this.getBalance(userId), error: 'Insufficient credits' };
         }
+        return { success: true, newBalance: parseBalance(row.credit_balance), transactionId };
+      }
 
-        const newBalance = parseFloat(updatedUsers[0].credit_balance);
+      if (isSqliteDialect()) {
+        let newBalance: number | undefined;
+        (db as any).transaction((tx: any) => {
+          const [updated] = tx.update(user)
+            .set({
+              creditBalance: sql`CAST(${user.creditBalance} AS REAL) - ${amount}`,
+              updatedAt: now,
+            })
+            .where(and(
+              eq(user.id, userId),
+              sql`CAST(${user.creditBalance} AS REAL) >= ${amount}`,
+            ))
+            .returning({ creditBalance: user.creditBalance })
+            .all();
+          if (!updated) return;
+          newBalance = parseBalance(updated.creditBalance);
+          tx.insert(creditTransaction).values({
+            id: transactionId,
+            userId,
+            type: creditTransactionTypes.CONSUMPTION,
+            amount: String(-amount),
+            balance: String(newBalance),
+            description: description || 'Credits consumed',
+            metadata: metadata || null,
+            createdAt: now,
+          }).run();
+        });
+        if (newBalance === undefined) {
+          return { success: false, newBalance: await this.getBalance(userId), error: 'Insufficient credits' };
+        }
         return { success: true, newBalance, transactionId };
       }
 
-      const result = await db.transaction(async (tx) => {
-        // Atomic conditional update: only deduct if balance is sufficient
-        // This prevents race conditions by combining check and update in one SQL statement
-        const updateResult = await tx
-          .update(user)
-          .set({
-            creditBalance: sql`${user.creditBalance} - ${amount}`,
-            updatedAt: new Date()
-          })
-          .where(
-            and(
-              eq(user.id, userId),
-              sql`${user.creditBalance} >= ${amount}`
-            )
-          )
+      return await db.transaction(async (tx) => {
+        const [updated] = await tx.update(user)
+          .set({ creditBalance: sql`${user.creditBalance} - ${amount}`, updatedAt: now })
+          .where(and(eq(user.id, userId), sql`${user.creditBalance} >= ${amount}`))
           .returning({ creditBalance: user.creditBalance });
-
-        // If no row was updated, either user doesn't exist or insufficient credits
-        if (updateResult.length === 0) {
-          // Check if user exists to provide accurate error message
-          const [existingUser] = await tx
-            .select({ creditBalance: user.creditBalance })
-            .from(user)
-            .where(eq(user.id, userId))
-            .limit(1);
-
-          if (!existingUser) {
-            throw new Error(`User not found: ${userId}`);
-          }
-
-          // User exists but has insufficient credits
-          return {
-            success: false,
-            newBalance: parseFloat(existingUser.creditBalance) || 0,
-            error: 'Insufficient credits'
-          };
+        if (!updated) {
+          const [record] = await tx.select({ balance: user.creditBalance }).from(user).where(eq(user.id, userId)).limit(1);
+          return { success: false, newBalance: parseBalance(record?.balance), error: 'Insufficient credits' };
         }
-
-        const newBalance = parseFloat(updateResult[0].creditBalance);
-
-        // Create transaction record (negative amount for consumption)
-        const transactionId = `txn_${crypto.randomUUID()}`;
+        const newBalance = parseBalance(updated.creditBalance);
         await tx.insert(creditTransaction).values({
           id: transactionId,
           userId,
           type: creditTransactionTypes.CONSUMPTION,
-          amount: (-amount).toString(),  // Negative for consumption
-          balance: newBalance.toString(),
+          amount: String(-amount),
+          balance: String(newBalance),
           description: description || 'Credits consumed',
-          metadata: metadata || null
+          metadata: metadata || null,
+          createdAt: now,
         });
-
-        return {
-          success: true,
-          newBalance,
-          transactionId
-        };
+        return { success: true, newBalance, transactionId };
       });
-
-      return result;
     } catch (error) {
-      console.error('Error consuming credits:', error);
+      const idempotent = await this.getTransaction(transactionId);
+      if (idempotent && idempotent.userId === userId && parseBalance(idempotent.amount) === -amount) {
+        return { success: true, newBalance: parseBalance(idempotent.balance), transactionId, idempotent: true };
+      }
       return {
         success: false,
         newBalance: await this.getBalance(userId),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Failed to consume credits',
       };
     }
   }
 
-  /**
-   * Check if user has enough credits for an operation
-   */
   async hasEnoughCredits(userId: string, amount: number): Promise<boolean> {
-    const balance = await this.getBalance(userId);
-    return balance >= amount;
+    return (await this.getBalance(userId)) >= amount;
   }
 
-  /**
-   * Get credit transaction history for a user (simple version)
-   */
-  async getTransactions(
-    userId: string, 
-    options: GetTransactionsOptions = {}
-  ): Promise<CreditTransaction[]> {
+  async getTransactions(userId: string, options: GetTransactionsOptions = {}): Promise<CreditTransaction[]> {
     const { limit = 50, offset = 0, type } = options;
-
-    let query = db
-      .select()
-      .from(creditTransaction)
-      .where(
-        type 
-          ? and(
-              eq(creditTransaction.userId, userId),
-              eq(creditTransaction.type, type)
-            )
-          : eq(creditTransaction.userId, userId)
-      )
-      .orderBy(desc(creditTransaction.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    return query;
+    const where = type
+      ? and(eq(creditTransaction.userId, userId), eq(creditTransaction.type, type))
+      : eq(creditTransaction.userId, userId);
+    return db.select().from(creditTransaction).where(where)
+      .orderBy(desc(creditTransaction.createdAt)).limit(limit).offset(offset);
   }
 
-  /**
-   * Get credit transaction history with pagination info
-   */
   async getTransactionsPaginated(
-    userId: string, 
-    options: GetTransactionsOptions = {}
+    userId: string,
+    options: GetTransactionsOptions = {},
   ): Promise<GetTransactionsPaginatedResult> {
     const { page = 1, limit = 10, type } = options;
     const offset = (page - 1) * limit;
-
-    const whereCondition = type 
-      ? and(
-          eq(creditTransaction.userId, userId),
-          eq(creditTransaction.type, type)
-        )
+    const where = type
+      ? and(eq(creditTransaction.userId, userId), eq(creditTransaction.type, type))
       : eq(creditTransaction.userId, userId);
-
-    // Get total count
-    const countResult = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(creditTransaction)
-      .where(whereCondition);
-    
-    const total = countResult[0]?.count || 0;
-
-    // Get paginated transactions
-    const transactions = await db
-      .select()
-      .from(creditTransaction)
-      .where(whereCondition)
-      .orderBy(desc(creditTransaction.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    return {
-      transactions,
-      total,
-      page,
-      pageSize: limit,
-      totalPages: Math.ceil(total / limit)
-    };
+    const [countRow] = await db.select({ count: count() }).from(creditTransaction).where(where);
+    const transactions = await db.select().from(creditTransaction).where(where)
+      .orderBy(desc(creditTransaction.createdAt)).limit(limit).offset(offset);
+    const total = countRow?.count || 0;
+    return { transactions, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
   }
 
-  /**
-   * Get all credit transactions across all users (admin only)
-   * Supports pagination, search, filtering, and sorting
-   */
-  async getAllTransactionsPaginated(
-    options: GetAllTransactionsOptions = {}
-  ): Promise<GetTransactionsPaginatedResult & { transactions: Array<CreditTransaction & { userEmail?: string | null; userName?: string | null }> }> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      searchField, 
-      searchValue, 
-      type, 
-      userId,
-      sortBy = 'createdAt',
-      sortDirection = 'desc'
-    } = options;
-    
-    const offset = (page - 1) * limit;
-    
-    // Build where conditions
-    const whereConditions: any[] = [];
-    
-    // Search conditions
-    if (searchValue && searchField) {
-      switch (searchField) {
-        case 'id':
-          whereConditions.push(eq(creditTransaction.id, searchValue));
-          break;
-        case 'userId':
-          whereConditions.push(eq(creditTransaction.userId, searchValue));
-          break;
-        case 'userEmail':
-          whereConditions.push(like(user.email, `%${searchValue}%`));
-          break;
-        case 'userName':
-          whereConditions.push(like(user.name, `%${searchValue}%`));
-          break;
-        case 'description':
-          whereConditions.push(like(creditTransaction.description, `%${searchValue}%`));
-          break;
-      }
-    }
-    
-    // Filter by transaction type
-    if (type) {
-      whereConditions.push(eq(creditTransaction.type, type));
-    }
-    
-    // Filter by user ID
-    if (userId) {
-      whereConditions.push(eq(creditTransaction.userId, userId));
-    }
-    
-    // Build where clause - only use and() if we have conditions
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-    
-    // Get total count
-    const countQuery = db
-      .select({ count: count() })
-      .from(creditTransaction)
-      .leftJoin(user, eq(creditTransaction.userId, user.id));
-    
-    const countResult = whereClause 
-      ? await countQuery.where(whereClause)
-      : await countQuery;
-    
-    const total = countResult[0]?.count || 0;
-    
-    // Build sorting
-    let orderBy;
-    switch (sortBy) {
-      case 'id':
-        orderBy = sortDirection === 'desc' ? desc(creditTransaction.id) : asc(creditTransaction.id);
-        break;
-      case 'userId':
-        orderBy = sortDirection === 'desc' ? desc(creditTransaction.userId) : asc(creditTransaction.userId);
-        break;
-      case 'userEmail':
-        orderBy = sortDirection === 'desc' ? desc(user.email) : asc(user.email);
-        break;
-      case 'type':
-        orderBy = sortDirection === 'desc' ? desc(creditTransaction.type) : asc(creditTransaction.type);
-        break;
-      case 'amount':
-        orderBy = sortDirection === 'desc' ? desc(creditTransaction.amount) : asc(creditTransaction.amount);
-        break;
-      case 'createdAt':
-      default:
-        orderBy = sortDirection === 'desc' ? desc(creditTransaction.createdAt) : asc(creditTransaction.createdAt);
-        break;
-    }
-    
-    // Build data query
-    const dataQuery = db
-      .select({
-        id: creditTransaction.id,
-        userId: creditTransaction.userId,
-        type: creditTransaction.type,
-        amount: creditTransaction.amount,
-        balance: creditTransaction.balance,
-        orderId: creditTransaction.orderId,
-        description: creditTransaction.description,
-        metadata: creditTransaction.metadata,
-        createdAt: creditTransaction.createdAt,
-        // User info
-        userEmail: user.email,
-        userName: user.name,
-      })
-      .from(creditTransaction)
-      .leftJoin(user, eq(creditTransaction.userId, user.id));
-    
-    // Get paginated transactions with user info
-    const transactions = whereClause
-      ? await dataQuery.where(whereClause).orderBy(orderBy).limit(limit).offset(offset)
-      : await dataQuery.orderBy(orderBy).limit(limit).offset(offset);
-    
-    return {
-      transactions: transactions as any,
-      total,
-      page,
-      pageSize: limit,
-      totalPages: Math.ceil(total / limit)
-    };
-  }
-
-  /**
-   * Get credit status summary for a user
-   * Includes balance and recent transaction count
-   */
-  async getStatus(userId: string): Promise<{
-    balance: number;
-    totalPurchased: number;
-    totalConsumed: number;
-  }> {
+  async getStatus(userId: string): Promise<{ balance: number; totalPurchased: number; totalConsumed: number }> {
     const balance = await this.getBalance(userId);
-
-    // Get aggregated stats
-    const stats = await db
-      .select({
-        type: creditTransaction.type,
-        total: sql<string>`SUM(ABS(${creditTransaction.amount}))`
-      })
-      .from(creditTransaction)
-      .where(eq(creditTransaction.userId, userId))
-      .groupBy(creditTransaction.type);
-
+    const stats = await db.select({
+      type: creditTransaction.type,
+      total: sql<string>`SUM(ABS(${creditTransaction.amount}))`,
+    }).from(creditTransaction).where(eq(creditTransaction.userId, userId)).groupBy(creditTransaction.type);
     let totalPurchased = 0;
     let totalConsumed = 0;
-
     for (const stat of stats) {
-      const amount = parseFloat(stat.total) || 0;
-      if (stat.type === 'purchase' || stat.type === 'bonus') {
-        totalPurchased += amount;
-      } else if (stat.type === 'consumption') {
-        totalConsumed += amount;
-      }
+      const amount = parseBalance(stat.total);
+      if (stat.type === creditTransactionTypes.PURCHASE || stat.type === creditTransactionTypes.BONUS) totalPurchased += amount;
+      if (stat.type === creditTransactionTypes.CONSUMPTION) totalConsumed += amount;
     }
-
-    return {
-      balance,
-      totalPurchased,
-      totalConsumed
-    };
+    return { balance, totalPurchased, totalConsumed };
   }
 }
 
-// Export singleton instance
 export const creditService = new CreditService();
+
+/** Read-only ledger queries consumed by the Admin API. */
+export class CreditLedgerQueryService {
+  async getAllTransactionsPaginated(
+    options: GetAllTransactionsOptions = {}
+  ): Promise<GetTransactionsPaginatedResult> {
+    const {
+      page = 1,
+      limit = 10,
+      searchField,
+      searchValue,
+      type,
+      userId,
+      sortBy = 'createdAt',
+      sortDirection = 'desc',
+    } = options;
+    const offset = (page - 1) * limit;
+    const conditions = [];
+
+    if (searchValue && searchField) {
+      if (searchField === 'id') conditions.push(eq(creditTransaction.id, searchValue));
+      if (searchField === 'userId') conditions.push(eq(creditTransaction.userId, searchValue));
+      if (searchField === 'userEmail') conditions.push(like(user.email, `%${searchValue}%`));
+      if (searchField === 'userName') conditions.push(like(user.name, `%${searchValue}%`));
+      if (searchField === 'description') conditions.push(like(creditTransaction.description, `%${searchValue}%`));
+    }
+    if (type) conditions.push(eq(creditTransaction.type, type));
+    if (userId) conditions.push(eq(creditTransaction.userId, userId));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const countQuery = db.select({ count: count() })
+      .from(creditTransaction)
+      .leftJoin(user, eq(creditTransaction.userId, user.id));
+    const [countRow] = where ? await countQuery.where(where) : await countQuery;
+    const total = countRow?.count || 0;
+
+    const column = sortBy === 'id' ? creditTransaction.id
+      : sortBy === 'userId' ? creditTransaction.userId
+      : sortBy === 'userEmail' ? user.email
+      : sortBy === 'type' ? creditTransaction.type
+      : sortBy === 'amount' ? creditTransaction.amount
+      : creditTransaction.createdAt;
+    const orderBy = sortDirection === 'asc' ? asc(column) : desc(column);
+
+    const dataQuery = db.select({
+      id: creditTransaction.id,
+      userId: creditTransaction.userId,
+      type: creditTransaction.type,
+      amount: creditTransaction.amount,
+      balance: creditTransaction.balance,
+      orderId: creditTransaction.orderId,
+      description: creditTransaction.description,
+      metadata: creditTransaction.metadata,
+      createdAt: creditTransaction.createdAt,
+      userEmail: user.email,
+      userName: user.name,
+    }).from(creditTransaction).leftJoin(user, eq(creditTransaction.userId, user.id));
+    const transactions = where
+      ? await dataQuery.where(where).orderBy(orderBy).limit(limit).offset(offset)
+      : await dataQuery.orderBy(orderBy).limit(limit).offset(offset);
+
+    return { transactions, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
+  }
+}
+
+export const creditLedgerQueryService = new CreditLedgerQueryService();

@@ -7,7 +7,7 @@ import {
   userIdSchema,
   loginFormSchema,
   signupFormSchema,
-} from '@libs/validators/user';
+} from '@vibechat/validators/user';
 import { userRoles } from '@libs/database/constants';
 
 describe('User Validators', () => {
@@ -20,6 +20,7 @@ describe('User Validators', () => {
         role: userRoles.USER,
         phoneNumber: '13800138000',
         phoneNumberVerified: false,
+        banned: false,
       };
 
       const result = userSchema.safeParse(validUser);
@@ -87,6 +88,7 @@ describe('User Validators', () => {
   describe('phoneSignUpSchema', () => {
     it('should validate valid phone signup', () => {
       const validSignup = {
+        countryCode: '+86',
         phoneNumber: '13800138000',
         code: '123456',
       };
@@ -97,6 +99,7 @@ describe('User Validators', () => {
 
     it('should fail with invalid phone number length', () => {
       const invalidSignup = {
+        countryCode: '+86',
         phoneNumber: '138001380',  // 少一位
         code: '123456',
       };
@@ -107,6 +110,7 @@ describe('User Validators', () => {
 
     it('should fail with invalid code length', () => {
       const invalidSignup = {
+        countryCode: '+86',
         phoneNumber: '13800138000',
         code: '12345',  // 少一位
       };
@@ -250,4 +254,4 @@ describe('User Validators', () => {
       expect(result.success).toBe(false);
     });
   });
-}); 
+});

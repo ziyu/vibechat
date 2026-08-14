@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-12
 > 维护范围：本地安装、数据库初始化与产品应用启动
 
 ## 前置条件
@@ -33,7 +33,7 @@ cp env.example .env
 
 本地最小配置至少需要确认：
 
-- `APP_BASE_URL=http://localhost:7001`
+- `APP_BASE_URL=http://localhost:8001`
 - `BETTER_AUTH_SECRET` 使用足够长的随机值
 - `DB_DIALECT` 与所选数据库一致
 - PostgreSQL 使用 `DATABASE_URL`；SQLite/D1 按[数据库 Runbook](./database.md)配置
@@ -66,8 +66,8 @@ pnpm dev
 
 访问：
 
-- 产品应用：`http://localhost:7001/`
-- 健康检查：`http://localhost:7001/api/health`
+- 产品应用：`http://localhost:8001/`
+- 健康检查：`http://localhost:8001/api/health`
 
 文档站单独启动：
 
@@ -89,7 +89,7 @@ pnpm docs:check
 
 - 依赖安装失败：确认 Node 与 pnpm 版本符合根目录约束。
 - 数据库错误：确认方言、连接串和 schema 初始化命令属于同一种数据库。
-- 端口占用：结束占用 `7001` 的进程后重启。
-- SSR 或 Workers 构建失败：查看 `apps/web-app/CF-NOTES.md`。
+- 端口占用：检查 Web `8001`、backend `8002`、官网 `8003` 和 Synapse `8008`。
+- SSR 或 Workers 构建失败：查看 `apps/backend/CF-NOTES.md`。
 
 下一步可阅读[配置系统设计](../designs/configuration-system.md)、[认证 Runbook](./auth/overview.md)和[部署 Runbook](./deployment/overview.md)。

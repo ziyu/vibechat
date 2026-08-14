@@ -73,7 +73,7 @@ export function getBaseUrl(provider: AllProviderName): string | undefined {
 }
 
 /**
- * Get provider config for chat providers (legacy support)
+ * Get provider config for chat providers.
  */
 export function getProviderConfig(provider: ProviderName): ProviderConfig[ProviderName] {
   const config: Record<string, string | undefined> = {
@@ -109,4 +109,3 @@ export function hasCapability(
   const envKey = PROVIDER_ENV_KEYS[provider];
   return envKey.capabilities.includes(capability);
 }
-

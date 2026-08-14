@@ -1,10 +1,10 @@
 'use client'
 
 import { useRouteContext } from '@tanstack/react-router'
-import { translations, type SupportedLocale, locales, type Translations } from '@libs/i18n'
-import { createNextTranslationFunction } from '@libs/validators'
+import { translations, type SupportedLocale, locales, type Translations } from '@vibechat/i18n'
+import { createNextTranslationFunction } from '@vibechat/validators'
 import { config } from '@config'
-import { setLocalePreference } from '@/lib/locale.functions'
+import { setClientLocalePreference } from '@/lib/locale.functions'
 
 export function useTranslation() {
   const { locale } = useRouteContext({ from: '__root__' })
@@ -12,9 +12,9 @@ export function useTranslation() {
 
   const tWithParams = createNextTranslationFunction(t)
 
-  const changeLocale = async (newLocale: SupportedLocale) => {
+  const changeLocale = (newLocale: SupportedLocale) => {
     if (newLocale === locale) return
-    await setLocalePreference({ data: newLocale })
+    setClientLocalePreference(newLocale)
     window.location.reload()
   }
 

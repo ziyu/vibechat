@@ -1,6 +1,6 @@
-import { translations, defaultLocale, type SupportedLocale } from '@libs/i18n';
+import { translations, defaultLocale, type SupportedLocale } from '@vibechat/i18n';
 import { config } from '@config';
-import { VERIFICATION_HTML, RESET_PASSWORD_HTML } from './compiled';
+import { AUTHENTICATION_OTP_HTML, RESET_PASSWORD_HTML, VERIFICATION_HTML } from './compiled';
 import { renderTemplate } from './render';
 
 export interface EmailTemplate {
@@ -20,6 +20,16 @@ export interface ResetPasswordEmailParams {
   name: string;
   reset_url: string;
   expiry_hours: number;
+  locale?: string;
+  base_url?: string;
+}
+
+export type AuthenticationOtpType = 'sign-in' | 'email-verification' | 'forget-password';
+
+export interface AuthenticationOtpEmailParams {
+  otp: string;
+  type: AuthenticationOtpType;
+  expiry_minutes: number;
   locale?: string;
   base_url?: string;
 }
@@ -88,7 +98,40 @@ export function generateResetPasswordEmail(params: ResetPasswordEmailParams): Em
   return { subject, html };
 }
 
+export function generateAuthenticationOtpEmail(params: AuthenticationOtpEmailParams): EmailTemplate {
+  const locale = params.locale && params.locale in translations ? params.locale as SupportedLocale : defaultLocale;
+  const localeTranslations = translations[locale];
+  const otpTranslations = localeTranslations.email.authenticationOtp;
+  const message = params.type === 'sign-in'
+    ? otpTranslations.signInMessage
+    : params.type === 'email-verification'
+      ? otpTranslations.emailVerificationMessage
+      : otpTranslations.passwordResetMessage;
+  const year = getCurrentYear();
+
+  const html = renderTemplate(AUTHENTICATION_OTP_HTML, {
+    ...params,
+    base_url: params.base_url || config.app.baseUrl,
+    app_name: config.app.name,
+    translations: {
+      ...localeTranslations,
+      email: {
+        ...localeTranslations.email,
+        authenticationOtp: {
+          ...otpTranslations,
+          message,
+          expiry: otpTranslations.expiry.replace('{{expiry_minutes}}', params.expiry_minutes.toString()),
+          copyright: otpTranslations.copyright.replace('{{year}}', year),
+        },
+      },
+    },
+  });
+
+  return { subject: otpTranslations.subject, html };
+}
+
 export const templates = {
   verification: generateVerificationEmail,
-  resetPassword: generateResetPasswordEmail
+  resetPassword: generateResetPasswordEmail,
+  authenticationOtp: generateAuthenticationOtpEmail,
 };

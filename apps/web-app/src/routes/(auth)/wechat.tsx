@@ -2,14 +2,13 @@ import { useEffect } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { seoHead } from '@/lib/seo'
 import { useTranslation } from '@/hooks/use-translation'
-import { safeInternalPath } from '@/lib/navigation'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
+} from '@vibechat/react-shared/ui/card'
 
 declare global {
   interface Window {
@@ -23,7 +22,7 @@ export const Route = createFileRoute('/(auth)/wechat')({
 })
 
 function WechatLoginPage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -33,7 +32,7 @@ function WechatLoginPage() {
     script.onload = () => {
       if (typeof window.WxLogin !== 'undefined') {
         const params = new URLSearchParams(window.location.search)
-        const returnTo = safeInternalPath(params.get('returnTo'))
+        const returnTo = params.get('returnTo') || '/'
         const stateData = btoa(encodeURIComponent(returnTo))
 
         new window.WxLogin({

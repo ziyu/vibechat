@@ -1,0 +1,28 @@
+import { translations, type SupportedLocale, type Translations } from '@vibechat/i18n'
+import { config } from '@config'
+
+interface HeadConfig {
+  meta: Array<{ title: string } | { name: string; content: string }>
+}
+
+export function getTranslations(locale: SupportedLocale): Translations {
+  return (
+    translations[locale]
+    || translations[config.app.i18n.defaultLocale as SupportedLocale]
+  ) as Translations
+}
+
+export function seoHead(
+  locale: SupportedLocale,
+  extract: (t: Translations) => {
+    title: string
+    description?: string
+    keywords?: string
+  },
+): HeadConfig {
+  const seo = extract(getTranslations(locale))
+  const meta: HeadConfig['meta'] = [{ title: seo.title }]
+  if (seo.description) meta.push({ name: 'description', content: seo.description })
+  if (seo.keywords) meta.push({ name: 'keywords', content: seo.keywords })
+  return { meta }
+}

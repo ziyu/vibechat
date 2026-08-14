@@ -9,14 +9,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
-import { Button } from '@libs/react-shared/ui/button'
-import { Input } from '@libs/react-shared/ui/input'
-import { Label } from '@libs/react-shared/ui/label'
-import { FormError } from '@libs/react-shared/ui/form-error'
+} from '@vibechat/react-shared/ui/card'
+import { Button } from '@vibechat/react-shared/ui/button'
+import { Input } from '@vibechat/react-shared/ui/input'
+import { Label } from '@vibechat/react-shared/ui/label'
+import { FormError } from '@vibechat/react-shared/ui/form-error'
 import { Loader2 } from 'lucide-react'
-import { createValidators } from '@libs/validators'
-import { authClientReact } from '@libs/auth/authClient'
+import { createValidators } from '@vibechat/validators'
+import { authClientReact } from '@vibechat/auth-client'
 import type { z } from 'zod'
 import { useTranslation } from '@/hooks/use-translation'
 

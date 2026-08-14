@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-11
 > 维护范围：应用名称、Logo、主题与国际化
 
 本文档介绍 Vibe Chat 应用的基础配置选项，包括应用名称、Logo、主题系统和国际化配置。
@@ -145,7 +145,7 @@ export const config = {
 1. 访问 [tweakcn.com](https://tweakcn.com/editor/theme) 主题编辑器
 2. 使用可视化编辑器自定义颜色
 3. 导出主题 CSS
-4. 在 `libs/ui/styles/themes/` 创建新主题文件
+4. 在 `packages/ui/src/styles/themes/` 创建新主题文件
 5. 添加生成的 CSS 并使用类选择器
 6. 更新主题配置
 
@@ -182,21 +182,17 @@ export const config = {
 - `defaultLocale`: 应用启动时的默认语言
 - `locales`: 应用支持的所有语言列表
 - `cookieKey`: 用于保存用户语言偏好的 Cookie 名称
-- `autoDetect`: 没有有效 Cookie 时是否读取 `Accept-Language`；关闭时直接使用默认语言
-
-产品应用的规范 URL 不包含语言前缀。根路由在 SSR 时按“Cookie → 可选浏览器探测 → 默认语言”解析 locale，语言切换只更新偏好并重载当前业务 URL。文档站可以按内容索引需求维护独立的语言 URL。
-
-`locale` 只控制界面语言和本地化文案选择，不应作为市场、币种、支付可用性或时区的依据。
+- `autoDetect`: 是否自动检测用户浏览器语言设置
 
 ### 添加新翻译
 
 如需添加新的翻译内容：
 
-1. 在 `libs/i18n/locales/en.ts` 中添加英文翻译
-2. 在 `libs/i18n/locales/zh-CN.ts` 中添加对应的中文翻译
+1. 在 `packages/i18n/src/locales/en.ts` 中添加英文翻译
+2. 在 `packages/i18n/src/locales/zh-CN.ts` 中添加对应的中文翻译
 3. 重启开发服务器使更改生效
 
-详细的国际化使用方法请参考：[国际化库文档](../../../libs/i18n/README.md)
+详细的国际化边界请参考：[国际化 package 文档](../../../packages/i18n/README.md)
 
 ---
 

@@ -1,57 +1,39 @@
-import { match } from '@formatjs/intl-localematcher'
-import Negotiator from 'negotiator'
 import { createServerFn } from '@tanstack/react-start'
 import { getCookie, getRequestHeader, setCookie } from '@tanstack/react-start/server'
 import { config } from '@config'
-import {
-  defaultLocale,
-  isValidLocale,
-  locales,
-  normalizeLocale,
-  type SupportedLocale,
-} from '@libs/i18n'
+import { normalizeLocale, type SupportedLocale } from '@vibechat/i18n'
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
-function matchAcceptLanguage(header: string | undefined): SupportedLocale | null {
+export function setClientLocalePreference(locale: SupportedLocale) {
+  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `${config.app.i18n.cookieKey}=${encodeURIComponent(locale)}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax${secure}`
+}
+
+function detectRequestLocale(): SupportedLocale | null {
+  if (!config.app.i18n.autoDetect) return null
+  const header = getRequestHeader('accept-language')
   if (!header) return null
 
-  const requested = new Negotiator({
-    headers: { 'accept-language': header },
-  })
-    .languages()
-    .filter((locale) => locale !== '*')
-
-  if (requested.length === 0) return null
-
-  try {
-    const matched = match(requested, [...locales], defaultLocale)
-    return normalizeLocale(matched)
-  } catch {
-    return null
+  for (const entry of header.split(',')) {
+    const matched = normalizeLocale(entry.split(';', 1)[0])
+    if (matched) return matched
   }
+  return null
 }
 
 export const getRequestLocale = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<SupportedLocale> => {
-    const cookieLocale = normalizeLocale(getCookie(config.app.i18n.cookieKey))
-    if (cookieLocale) return cookieLocale
-
-    if (config.app.i18n.autoDetect) {
-      const detectedLocale = matchAcceptLanguage(getRequestHeader('accept-language'))
-      if (detectedLocale) return detectedLocale
-    }
-
-    return defaultLocale
-  },
+  async (): Promise<SupportedLocale> =>
+    normalizeLocale(getCookie(config.app.i18n.cookieKey))
+    ?? detectRequestLocale()
+    ?? config.app.i18n.defaultLocale,
 )
 
 export const setLocalePreference = createServerFn({ method: 'POST' })
   .inputValidator((locale: unknown): SupportedLocale => {
-    if (typeof locale !== 'string' || !isValidLocale(locale)) {
-      throw new Error('Unsupported locale')
-    }
-    return locale
+    const normalized = typeof locale === 'string' ? normalizeLocale(locale) : null
+    if (!normalized) throw new Error('Unsupported locale')
+    return normalized
   })
   .handler(async ({ data }) => {
     setCookie(config.app.i18n.cookieKey, data, {

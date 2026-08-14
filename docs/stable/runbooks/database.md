@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：PostgreSQL、SQLite 与 D1
 
 Vibe Chat 支持多种数据库方言，通过 `DB_DIALECT` 环境变量在部署时切换，无需修改业务代码。
@@ -115,6 +115,16 @@ pnpm db:seed:sqlite    # 填充测试数据
 pnpm db:studio:sqlite  # 打开 Drizzle Studio 可视化管理
 ```
 
+`pnpm db:seed:sqlite` 是幂等操作，会创建通用管理/普通用户，并保证以下聊天测试用户具有密码账户和已完成 onboarding 的产品 profile：
+
+| 用户名 | 邮箱 | 用途 |
+| --- | --- | --- |
+| `alice` | `alice@vibechat.test` | 发起好友请求、创建房间和发送邀请 |
+| `bob` | `bob@vibechat.test` | 双人聊天和邀请接受 |
+| `carol` | `carol@vibechat.test` | 三人群聊和邀请接受 |
+
+固定本地测试密码会在 seed 命令完成时打印。重复执行会恢复这三名用户的显示名、邮箱验证状态、密码和 onboarding 状态，不会重复创建用户；Matrix identity/device 在真实 session bootstrap 时创建。
+
 ### 启动应用
 
 ```bash
@@ -124,6 +134,8 @@ pnpm dev
 # 方式 2：临时使用 SQLite（不修改 .env）
 DB_DIALECT=sqlite pnpm dev
 ```
+
+产品 Web 应用默认监听 `http://localhost:8001`。
 
 ### 本地 SQLite 管理工具
 
@@ -147,7 +159,7 @@ D1 是 Cloudflare 原生的 SQLite 数据库，运行在 Workers 边缘网络上
 
 ```bash
 # 1. 创建 D1 数据库
-cd apps/web-app
+cd apps/backend
 npx wrangler d1 create vibechat-db
 
 # 2. 在 wrangler.jsonc 中配置 d1_databases 和 DB_DIALECT=d1
@@ -157,10 +169,10 @@ pnpm db:generate:sqlite
 npx wrangler d1 migrations apply vibechat-db
 
 # 4. 本地预览
-DB_DIALECT=d1 pnpm dev:cf
+DB_DIALECT=d1 pnpm --dir apps/backend dev:cf
 
 # 5. 部署
-pnpm run deploy:cf
+pnpm --dir apps/backend deploy:cf
 ```
 
 ### D1 与 SQLite 的关系

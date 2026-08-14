@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：Google OAuth
 
 本文档介绍如何配置 Google OAuth 社交登录。
@@ -34,7 +34,7 @@ GOOGLE_CLIENT_SECRET="your_google_client_secret"
 
 **本地开发环境**：
 ```
-http://localhost:7001/api/auth/callback/google
+http://localhost:8001/api/auth/callback/google
 ```
 
 **生产环境**：

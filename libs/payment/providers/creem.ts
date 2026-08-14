@@ -1,6 +1,5 @@
 import { Creem } from 'creem';
 import { config } from '@config';
-import type { CreditPlan } from '@config';
 import {
   PaymentProvider,
   PaymentParams,
@@ -13,17 +12,14 @@ import { db } from '@libs/database';
 import { 
   subscription as userSubscription, 
   subscriptionStatus, 
-  paymentTypes 
 } from '@libs/database/schema/subscription';
 import { order, orderStatus } from '@libs/database/schema/order';
 import { user } from '@libs/database/schema/user';
-import { eq } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { and, eq } from 'drizzle-orm';
 import { utcNow } from '@libs/database/utils/utc';
 import { sha256Hex, hmacSha256Hex } from '../utils/web-crypto';
-import { creditService, TransactionTypeCode } from '@libs/credits';
-import { processReferralCommission } from '@libs/affiliate';
-import { getPlanById } from '@libs/pricing';
+import { fulfillPaidOrder } from '../fulfillment';
+import { summarizePaymentError } from '../error';
 
 // Creem Return URL 参数接口
 export interface CreemRedirectParams {
@@ -210,7 +206,7 @@ export class CreemProvider implements PaymentProvider {
         }
       };
     } catch (error) {
-      console.error('Creem payment creation failed:', error);
+      console.error('Creem payment creation failed:', summarizePaymentError(error));
       throw new Error(`Failed to create Creem payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -260,7 +256,7 @@ export class CreemProvider implements PaymentProvider {
           return { success: true };
       }
     } catch (error) {
-      console.error('Error handling Creem webhook:', error);
+      console.error('Error handling Creem webhook:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -268,128 +264,42 @@ export class CreemProvider implements PaymentProvider {
   private async handleCheckoutCompleted(webhookData: CreemWebhookEvent): Promise<WebhookVerification> {
     
     // 修正数据结构：实际结构是 webhookData.object.metadata，不是 webhookData.data.metadata
-    if (!webhookData.object?.metadata?.orderId) {
-      console.error('Missing orderId in webhook metadata');
+    if (!webhookData.object?.metadata?.orderId
+      || !webhookData.object.metadata.userId
+      || !webhookData.object.metadata.planId) {
+      console.error('Missing required checkout metadata');
       return { success: false };
     }
 
-    const { orderId, userId, planId } = webhookData.object.metadata;
+    const { orderId } = webhookData.object.metadata;
     
-    if (!orderId || !userId || !planId) {
-      console.error('Missing required metadata in webhook:', { orderId, userId, planId });
+    if (!orderId) {
+      console.error('Missing required order metadata in webhook');
       return { success: false };
     }
-    
-    const plan = (await getPlanById(planId) || config.payment.plans[planId as keyof typeof config.payment.plans]) as PaymentPlan;
-    
-    // Webhook 是权威的订单状态更新源，直接更新
-    await db.update(order)
-      .set({ 
-        status: orderStatus.PAID,
-        metadata: JSON.stringify({
-          checkoutId: webhookData.object.id
-        })
-      })
-      .where(eq(order.id, orderId));
 
-    await processReferralCommission(orderId);
-
-    // Handle credit pack purchase
-    if (plan.duration.type === 'credits' && plan.credits) {
-      console.log(`Creem credit pack purchase - Adding ${plan.credits} credits to user ${userId}`);
-      
-      await creditService.addCredits({
-        userId: userId,
-        amount: plan.credits,
-        type: 'purchase',
-        orderId: orderId,
-        description: TransactionTypeCode.PURCHASE,
-        metadata: {
-          checkoutId: webhookData.object.id,
-          planId: planId,
-          provider: 'creem'
-        }
-      });
-
-      return { success: true, orderId };
-    }
-
-    if (plan.duration.type === 'recurring') {
-      // Handle recurring subscription
-      let periodStart: Date;
-      let periodEnd: Date;
-      
-      if (webhookData.object.subscription?.current_period_start_date && webhookData.object.subscription?.current_period_end_date) {
-        // Use Creem provided period dates (ISO string to UTC)
-        periodStart = new Date(webhookData.object.subscription.current_period_start_date);
-        periodEnd = new Date(webhookData.object.subscription.current_period_end_date);
-        console.log(`Using Creem provided period dates - Period: ${periodStart.toISOString()} to ${periodEnd.toISOString()}`);
-      } else {
-        // Fallback: calculate period based on current time and plan config
-        const now = utcNow();
-        const months = plan.duration.months ?? 1;
-        periodStart = now;
-        periodEnd = new Date(now);
-        if (months >= 9999) {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 100);
-        } else {
-          periodEnd.setMonth(periodEnd.getMonth() + months);
-        }
-        console.log(`Using calculated period dates - Period: ${periodStart.toISOString()} to ${periodEnd.toISOString()}`);
-      }
-
-      const subscriptionData = {
-        id: randomUUID(),
-        userId: userId,
-        planId: planId,
-        status: subscriptionStatus.ACTIVE,
-        paymentType: paymentTypes.RECURRING,
-        creemCustomerId: typeof webhookData.object.customer === 'string' 
-          ? webhookData.object.customer 
-          : webhookData.object.customer?.id || null,
-        creemSubscriptionId: webhookData.object.subscription?.id || null,
-        periodStart: periodStart,
-        periodEnd: periodEnd,
-        cancelAtPeriodEnd: false,
-        metadata: JSON.stringify({
-          checkoutId: webhookData.object.id
-        })
-      };
-      await db.insert(userSubscription).values(subscriptionData);
-    } else {
-      // Handle one-time payment
-      const now = utcNow();
-      const months = plan.duration.months ?? 1;
-      const periodEnd = new Date(now);
-      if (months >= 9999) {
-        // Lifetime subscription: set to 100 years
-        periodEnd.setFullYear(periodEnd.getFullYear() + 100);
-      } else {
-        // Regular subscription: add months
-        periodEnd.setMonth(periodEnd.getMonth() + months);
-      }
-      
-      console.log(`Creem one-time payment - Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-
-      const oneTimeSubscriptionData = {
-        id: randomUUID(),
-        userId: userId,
-        planId: planId,
-        status: subscriptionStatus.ACTIVE,
-        paymentType: paymentTypes.ONE_TIME,
-        creemCustomerId: typeof webhookData.object.customer === 'string' 
-          ? webhookData.object.customer 
-          : webhookData.object.customer?.id || null,
-        periodStart: now,
-        periodEnd: periodEnd,
-        cancelAtPeriodEnd: true,
-        metadata: JSON.stringify({
-          checkoutId: webhookData.object.id,
-          isLifetime: months >= 9999
-        })
-      };
-      await db.insert(userSubscription).values(oneTimeSubscriptionData);
-    }
+    const subscriptionData = webhookData.object.subscription;
+    const providerProductId = typeof webhookData.object.product === 'string'
+      ? webhookData.object.product
+      : webhookData.object.product?.id;
+    if (!providerProductId) return { success: false };
+    await fulfillPaidOrder({
+      orderId,
+      providerOrderId: webhookData.object.id,
+      providerEventId: webhookData.id,
+      customerId: typeof webhookData.object.customer === 'string'
+        ? webhookData.object.customer
+        : webhookData.object.customer?.id,
+      subscriptionId: subscriptionData?.id,
+      periodStart: subscriptionData?.current_period_start_date ? new Date(subscriptionData.current_period_start_date) : null,
+      periodEnd: subscriptionData?.current_period_end_date ? new Date(subscriptionData.current_period_end_date) : null,
+      paidAmount: webhookData.object.order?.amount == null ? null : webhookData.object.order.amount / 100,
+      paidCurrency: webhookData.object.order?.currency || null,
+      reportedUserId: webhookData.object.metadata.userId,
+      reportedPlanId: webhookData.object.metadata.planId,
+      providerProductId,
+      metadata: { checkoutId: webhookData.object.id },
+    });
 
     return { success: true, orderId };
   }
@@ -450,7 +360,7 @@ export class CreemProvider implements PaymentProvider {
       console.log(`Subscription renewal successful for ${subscriptionId}, new period: ${newPeriodStart.toISOString()} - ${newPeriodEnd.toISOString()}`);
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription renewal:', error);
+      console.error('Error handling subscription renewal:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -486,7 +396,7 @@ export class CreemProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription update:', error);
+      console.error('Error handling subscription update:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -520,7 +430,7 @@ export class CreemProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription cancellation:', error);
+      console.error('Error handling subscription cancellation:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -554,7 +464,7 @@ export class CreemProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription expiration:', error);
+      console.error('Error handling subscription expiration:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -637,9 +547,7 @@ export class CreemProvider implements PaymentProvider {
   async queryOrder(orderId: string): Promise<OrderQueryResult> {
     try {
       // 从数据库获取订单的Creem checkout ID
-      const orders = await db.select()
-        .from(order)
-        .where(eq(order.id, orderId));
+      const orders = await db.select().from(order).where(eq(order.id, orderId));
 
       if (orders.length === 0) {
         return { status: 'failed' };
@@ -655,7 +563,7 @@ export class CreemProvider implements PaymentProvider {
         return { status: 'pending' };
       }
     } catch (error) {
-      console.error('Error querying Creem order:', error);
+      console.error('Error querying Creem order:', summarizePaymentError(error));
       return { status: 'failed' };
     }
   }
@@ -665,11 +573,11 @@ export class CreemProvider implements PaymentProvider {
       // 更新订单状态为已关闭
       await db.update(order)
         .set({ status: orderStatus.FAILED })
-        .where(eq(order.id, orderId));
+        .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
 
       return true;
     } catch (error) {
-      console.error('Error closing Creem order:', error);
+      console.error('Error closing Creem order:', summarizePaymentError(error));
       return false;
     }
   }
@@ -688,7 +596,7 @@ export class CreemProvider implements PaymentProvider {
         url: result?.customerPortalLink || returnUrl
       };
     } catch (error) {
-      console.error('Error creating Creem customer portal:', error);
+      console.error('Error creating Creem customer portal:', summarizePaymentError(error));
       throw error;
     }
   }
@@ -741,7 +649,7 @@ export class CreemProvider implements PaymentProvider {
         error: isValid ? undefined : 'Invalid signature'
       };
     } catch (error) {
-      console.error('Error parsing Creem return URL:', error);
+      console.error('Error parsing Creem return URL:', summarizePaymentError(error));
       return {
         isValid: false,
         error: `Failed to parse URL: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -774,7 +682,7 @@ export class CreemProvider implements PaymentProvider {
       const computedSignature = await hmacSha256Hex(this.webhookSecret, payload);
       return signature === computedSignature;
     } catch (error) {
-      console.error('Error verifying webhook signature:', error);
+      console.error('Error verifying webhook signature:', summarizePaymentError(error));
       return false;
     }
   }
@@ -827,7 +735,7 @@ export class CreemProvider implements PaymentProvider {
         params
       };
     } catch (error) {
-      console.error('Error handling success redirect:', error);
+      console.error('Error handling success redirect:', summarizePaymentError(error));
       return {
         success: false,
         error: `Failed to process redirect: ${error instanceof Error ? error.message : 'Unknown error'}`

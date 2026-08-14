@@ -1,48 +1,35 @@
-/**
- * Credit transaction types
- */
-export type CreditTransactionType = 
-  | 'purchase'      // Credits purchased via payment
-  | 'consumption'   // Credits consumed by usage
-  | 'refund'        // Credits refunded
-  | 'bonus'         // Bonus credits awarded
-  | 'adjustment';   // Manual adjustment by admin
+import type { CreditTransaction } from '@libs/database/schema/credit-transaction';
 
-/**
- * Parameters for adding credits to a user account
- */
+export type CreditTransactionType = 'purchase' | 'consumption' | 'refund' | 'bonus' | 'adjustment';
+
 export interface AddCreditsParams {
   userId: string;
   amount: number;
-  type: 'purchase' | 'bonus' | 'refund' | 'adjustment';
+  type: Exclude<CreditTransactionType, 'consumption'>;
   orderId?: string;
   description?: string;
   metadata?: Record<string, unknown>;
+  /** Stable internal ID used to make webhook, bonus, and refund retries idempotent. */
+  transactionId?: string;
 }
 
-/**
- * Parameters for consuming credits from a user account
- */
 export interface ConsumeCreditsParams {
   userId: string;
   amount: number;
   description?: string;
   metadata?: Record<string, unknown>;
+  /** Stable internal ID used to make usage retries idempotent. */
+  transactionId?: string;
 }
 
-/**
- * Result of a credit consumption operation
- */
 export interface ConsumeCreditsResult {
   success: boolean;
   newBalance: number;
   transactionId?: string;
+  idempotent?: boolean;
   error?: string;
 }
 
-/**
- * Options for querying credit transactions
- */
 export interface GetTransactionsOptions {
   limit?: number;
   offset?: number;
@@ -50,9 +37,6 @@ export interface GetTransactionsOptions {
   type?: CreditTransactionType;
 }
 
-/**
- * Options for querying all users' credit transactions (admin)
- */
 export interface GetAllTransactionsOptions {
   page?: number;
   limit?: number;
@@ -64,20 +48,14 @@ export interface GetAllTransactionsOptions {
   sortDirection?: 'asc' | 'desc';
 }
 
-/**
- * Paginated result for credit transactions
- */
 export interface GetTransactionsPaginatedResult {
-  transactions: import('@libs/database/schema/credit-transaction').CreditTransaction[];
+  transactions: Array<CreditTransaction & { userEmail?: string | null; userName?: string | null }>;
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
 }
 
-/**
- * AI usage metadata stored with consumption transactions
- */
 export interface AIUsageMetadata {
   provider: string;
   model: string;
@@ -87,14 +65,9 @@ export interface AIUsageMetadata {
   messageCount?: number;
 }
 
-/**
- * Parameters for calculating credit consumption
- */
 export interface CalculateConsumptionParams {
   totalTokens: number;
   model: string;
   provider: string;
-  /** Operation type for fixed consumption mode: 'aiChat' | 'aiImage' */
-  type?: 'aiChat' | 'aiImage';
+  type?: 'aiChat' | 'aiImage' | 'aiVideo';
 }
-

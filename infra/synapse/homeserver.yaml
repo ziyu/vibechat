@@ -1,0 +1,35 @@
+# Local development only. Production secrets and topology must not reuse this file.
+server_name: "localhost"
+public_baseurl: "http://localhost:8008/"
+pid_file: "/data/homeserver.pid"
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+
+database:
+  name: sqlite3
+  args:
+    database: "/data/homeserver.db"
+
+log_config: "/config/log.config"
+media_store_path: "/data/media_store"
+signing_key_path: "/data/localhost.signing.key"
+trusted_key_servers: []
+report_stats: false
+
+enable_registration: false
+password_config:
+  enabled: false
+
+app_service_config_files:
+  - "/config/vibechat-appservice.yaml"
+
+# Deterministic local-only secrets. Production must inject independently rotated secrets.
+macaroon_secret_key: "vibechat-local-macaroon-secret-not-for-production"
+form_secret: "vibechat-local-form-secret-not-for-production"

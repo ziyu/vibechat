@@ -1,0 +1,4 @@
+# Local Cloudflare Worker variables for the shared backend.
+# Copy to .dev.vars and keep real secrets out of git.
+BETTER_AUTH_SECRET=
+R2_PUBLIC_URL=https://assets.example.invalid

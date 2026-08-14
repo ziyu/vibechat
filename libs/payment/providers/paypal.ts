@@ -11,15 +11,12 @@ import { db } from '@libs/database';
 import {
   subscription as userSubscription,
   subscriptionStatus,
-  paymentTypes
 } from '@libs/database/schema/subscription';
 import { order, orderStatus } from '@libs/database/schema/order';
 import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import { utcNow } from '@libs/database/utils/utc';
-import { creditService, TransactionTypeCode } from '@libs/credits';
-import { processReferralCommission } from '@libs/affiliate';
-import { getPlanById } from '@libs/pricing';
+import { fulfillPaidOrder } from '../fulfillment';
+import { summarizePaymentError } from '../error';
 
 // PayPal API Response Types
 interface PayPalOrder {
@@ -225,7 +222,7 @@ export class PayPalProvider implements PaymentProvider {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('PayPal order creation failed:', error);
+      console.error('PayPal order creation failed:', summarizePaymentError(error));
       throw new Error(`Failed to create PayPal order: ${error}`);
     }
 
@@ -284,7 +281,7 @@ export class PayPalProvider implements PaymentProvider {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('PayPal subscription creation failed:', error);
+      console.error('PayPal subscription creation failed:', summarizePaymentError(error));
       throw new Error(`Failed to create PayPal subscription: ${error}`);
     }
 
@@ -325,7 +322,7 @@ export class PayPalProvider implements PaymentProvider {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('PayPal capture failed:', error);
+      console.error('PayPal capture failed:', summarizePaymentError(error));
       throw new Error(`Failed to capture PayPal order: ${error}`);
     }
 
@@ -394,7 +391,7 @@ export class PayPalProvider implements PaymentProvider {
           return { success: true };
       }
     } catch (error) {
-      console.error('Error handling PayPal webhook:', error);
+      console.error('Error handling PayPal webhook:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -427,14 +424,14 @@ export class PayPalProvider implements PaymentProvider {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('PayPal webhook verification API failed:', error);
+        console.error('PayPal webhook verification API failed:', summarizePaymentError(error));
         return false;
       }
 
       const result = await response.json();
       return result.verification_status === 'SUCCESS';
     } catch (error) {
-      console.error('Error verifying PayPal webhook signature:', error);
+      console.error('Error verifying PayPal webhook signature:', summarizePaymentError(error));
       return false;
     }
   }
@@ -453,7 +450,7 @@ export class PayPalProvider implements PaymentProvider {
         try {
           metadata = JSON.parse(event.resource.custom_id);
         } catch {
-          console.error('Failed to parse custom_id:', event.resource.custom_id);
+          console.error('Failed to parse PayPal custom_id');
         }
       }
 
@@ -462,151 +459,21 @@ export class PayPalProvider implements PaymentProvider {
         return { success: false };
       }
 
-      const { orderId, userId, planId } = metadata;
-
-      // Check if order was already processed (by return handler)
-      const existingOrder = await db.query.order.findFirst({
-        where: eq(order.id, orderId)
+      const { orderId } = metadata;
+      const amount = event.resource.amount as { value?: string; currency_code?: string } | undefined;
+      await fulfillPaidOrder({
+        orderId,
+        providerEventId: event.id,
+        paidAmount: amount?.value ? Number(amount.value) : null,
+        paidCurrency: amount?.currency_code || null,
+        reportedUserId: metadata.userId,
+        reportedPlanId: metadata.planId,
+        metadata: { paypalCaptureId: event.resource.id, processedBy: 'webhook' },
       });
-
-      if (existingOrder?.status === orderStatus.PAID) {
-        console.log(`PayPal webhook: Order ${orderId} already paid, skipping duplicate processing`);
-        return { success: true, orderId };
-      }
-
-      const plan = (await getPlanById(planId) || config.payment.plans[planId as keyof typeof config.payment.plans]) as PaymentPlan;
-
-      const existingMetadata = (() => {
-        if (!existingOrder?.metadata) {
-          return {};
-        }
-        if (typeof existingOrder.metadata === 'object') {
-          return existingOrder.metadata as Record<string, unknown>;
-        }
-        if (typeof existingOrder.metadata === 'string') {
-          try {
-            return JSON.parse(existingOrder.metadata) as Record<string, unknown>;
-          } catch {
-            return {};
-          }
-        }
-        return {};
-      })();
-
-      // Update order status only if still pending to prevent double fulfillment
-      const updatedOrders = await db.update(order)
-        .set({ 
-          status: orderStatus.PAID,
-          metadata: {
-            ...existingMetadata,
-            paypalCaptureId: event.resource.id,
-            processedBy: 'webhook'
-          }
-        })
-        .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)))
-        .returning({ id: order.id });
-
-      if (updatedOrders.length === 0) {
-        return { success: true, orderId };
-      }
-
-      await processReferralCommission(orderId);
-
-      // Handle credit pack purchase
-      if (plan.duration.type === 'credits' && plan.credits) {
-        console.log(`PayPal credit pack purchase - Adding ${plan.credits} credits to user ${userId}`);
-        
-        await creditService.addCredits({
-          userId: userId,
-          amount: plan.credits,
-          type: 'purchase',
-          orderId: orderId,
-          description: TransactionTypeCode.PURCHASE,
-          metadata: {
-            paypalCaptureId: event.resource.id,
-            planId: planId,
-            provider: 'paypal'
-          }
-        });
-
-        return { success: true, orderId };
-      }
-
-      // Handle one-time subscription payment
-      const now = utcNow();
-      const months = plan.duration.months ?? 1;
-
-      // Check if user already has active subscription for this plan
-      const existingSubscription = await db.query.subscription.findFirst({
-        where: and(
-          eq(userSubscription.userId, userId),
-          eq(userSubscription.planId, planId),
-          eq(userSubscription.status, subscriptionStatus.ACTIVE)
-        ),
-        orderBy: [desc(userSubscription.periodEnd)]
-      });
-
-      if (existingSubscription) {
-        // Extend existing subscription
-        const existingPeriodEnd = existingSubscription.periodEnd;
-        const extensionStart = existingPeriodEnd > now ? existingPeriodEnd : now;
-        
-        const extensionEnd = new Date(extensionStart);
-        if (months >= 9999) {
-          extensionEnd.setFullYear(extensionEnd.getFullYear() + 100);
-        } else {
-          extensionEnd.setMonth(extensionEnd.getMonth() + months);
-        }
-        
-        console.log(`PayPal webhook: Extending subscription for user ${userId}, new end: ${extensionEnd.toISOString()}`);
-
-        await db.update(userSubscription)
-          .set({
-            periodEnd: extensionEnd,
-            updatedAt: now,
-            metadata: JSON.stringify({
-              ...JSON.parse(existingSubscription.metadata || '{}'),
-              renewed: true,
-              lastPaypalCaptureId: event.resource.id,
-              lastOrderId: orderId,
-              lastPaymentTime: now.toISOString(),
-              isLifetime: months >= 9999,
-              processedBy: 'webhook'
-            })
-          })
-          .where(eq(userSubscription.id, existingSubscription.id));
-      } else {
-        // Create new subscription
-        const periodEnd = new Date(now);
-        if (months >= 9999) {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 100);
-        } else {
-          periodEnd.setMonth(periodEnd.getMonth() + months);
-        }
-        
-        console.log(`PayPal webhook: Creating subscription for user ${userId}, period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-
-        await db.insert(userSubscription).values({
-          id: randomUUID(),
-          userId: userId,
-          planId: planId,
-          status: subscriptionStatus.ACTIVE,
-          paymentType: paymentTypes.ONE_TIME,
-          periodStart: now,
-          periodEnd: periodEnd,
-          cancelAtPeriodEnd: true,
-          metadata: JSON.stringify({
-            paypalCaptureId: event.resource.id,
-            orderId: orderId,
-            isLifetime: months >= 9999,
-            processedBy: 'webhook'
-          })
-        });
-      }
 
       return { success: true, orderId };
     } catch (error) {
-      console.error('Error handling payment capture completed:', error);
+      console.error('Error handling payment capture completed:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -629,12 +496,12 @@ export class PayPalProvider implements PaymentProvider {
       if (metadata.orderId) {
         await db.update(order)
           .set({ status: orderStatus.FAILED })
-          .where(eq(order.id, metadata.orderId));
+          .where(and(eq(order.id, metadata.orderId), eq(order.status, orderStatus.PENDING)));
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling payment capture failed:', error);
+      console.error('Error handling payment capture failed:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -659,83 +526,25 @@ export class PayPalProvider implements PaymentProvider {
         return { success: false };
       }
 
-      const { orderId, userId, planId } = metadata;
-
-      const now = utcNow();
-
-      // Update order status only if still pending to prevent double fulfillment
-      const updatedOrders = await db.update(order)
-        .set({ status: orderStatus.PAID, updatedAt: now })
-        .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)))
-        .returning({ id: order.id });
-
-      if (updatedOrders.length === 0) {
-        return { success: true, orderId };
-      }
-
-      await processReferralCommission(orderId);
-
-      // Calculate subscription period
-      let periodEnd = new Date(now);
-      
-      // Try to get billing info from the subscription
-      if (event.resource.billing_info?.next_billing_time) {
-        periodEnd = new Date(event.resource.billing_info.next_billing_time);
-      } else {
-        // Fallback: calculate based on plan config
-        const plan = (await getPlanById(planId) || config.payment.plans[planId as keyof typeof config.payment.plans]) as PaymentPlan;
-        const months = plan.duration.months ?? 1;
-        periodEnd.setMonth(periodEnd.getMonth() + months);
-      }
-
-      console.log(`PayPal subscription activated - Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-
-      const paypalSubscriptionId = event.resource.id;
-      if (!paypalSubscriptionId) {
-        console.error('Missing PayPal subscription id in activated webhook');
-        return { success: false };
-      }
-
-      const existingSubscription = await db.query.subscription.findFirst({
-        where: eq(userSubscription.paypalSubscriptionId, paypalSubscriptionId)
+      const { orderId } = metadata;
+      await fulfillPaidOrder({
+        orderId,
+        providerOrderId: event.resource.id,
+        providerEventId: event.id,
+        subscriptionId: event.resource.id,
+        periodStart: event.resource.start_time ? new Date(event.resource.start_time) : new Date(),
+        periodEnd: event.resource.billing_info?.next_billing_time
+          ? new Date(event.resource.billing_info.next_billing_time)
+          : null,
+        reportedUserId: metadata.userId,
+        reportedPlanId: metadata.planId,
+        providerProductId: event.resource.plan_id,
+        metadata: { paypalPlanId: event.resource.plan_id, processedBy: 'webhook' },
       });
-
-      if (existingSubscription) {
-        await db.update(userSubscription)
-          .set({
-            status: subscriptionStatus.ACTIVE,
-            periodStart: now,
-            periodEnd: periodEnd,
-            cancelAtPeriodEnd: false,
-            updatedAt: now,
-            metadata: JSON.stringify({
-              ...JSON.parse(existingSubscription.metadata || '{}'),
-              paypalPlanId: event.resource.plan_id,
-              processedBy: 'webhook'
-            })
-          })
-          .where(eq(userSubscription.id, existingSubscription.id));
-      } else {
-        await db.insert(userSubscription).values({
-          id: randomUUID(),
-          userId: userId,
-          planId: planId,
-          status: subscriptionStatus.ACTIVE,
-          paymentType: paymentTypes.RECURRING,
-          paypalSubscriptionId: paypalSubscriptionId,
-          periodStart: now,
-          periodEnd: periodEnd,
-          cancelAtPeriodEnd: false,
-          metadata: JSON.stringify({
-            paypalPlanId: event.resource.plan_id,
-            processedBy: 'webhook'
-          })
-        });
-      }
 
       return { success: true, orderId };
     } catch (error) {
-      console.error('Error handling subscription activated:', error);
+      console.error('Error handling subscription activated:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -778,7 +587,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription updated:', error);
+      console.error('Error handling subscription updated:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -810,7 +619,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription cancelled:', error);
+      console.error('Error handling subscription cancelled:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -841,7 +650,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription expired:', error);
+      console.error('Error handling subscription expired:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -898,7 +707,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling subscription payment completed:', error);
+      console.error('Error handling subscription payment completed:', summarizePaymentError(error));
       return { success: false };
     }
   }
@@ -923,7 +732,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return await response.json();
     } catch (error) {
-      console.error('Error getting PayPal subscription:', error);
+      console.error('Error getting PayPal subscription:', summarizePaymentError(error));
       return null;
     }
   }
@@ -946,7 +755,7 @@ export class PayPalProvider implements PaymentProvider {
 
       return response.ok || response.status === 204;
     } catch (error) {
-      console.error('Error cancelling PayPal subscription:', error);
+      console.error('Error cancelling PayPal subscription:', summarizePaymentError(error));
       return false;
     }
   }
@@ -960,10 +769,10 @@ export class PayPalProvider implements PaymentProvider {
     try {
       await db.update(order)
         .set({ status: orderStatus.FAILED })
-        .where(eq(order.id, orderId));
+        .where(and(eq(order.id, orderId), eq(order.status, orderStatus.PENDING)));
       return true;
     } catch (error) {
-      console.error('Error closing PayPal order:', error);
+      console.error('Error closing PayPal order:', summarizePaymentError(error));
       return false;
     }
   }
@@ -989,7 +798,7 @@ export class PayPalProvider implements PaymentProvider {
         return { status: 'pending' };
       }
     } catch (error) {
-      console.error('Error querying PayPal order:', error);
+      console.error('Error querying PayPal order:', summarizePaymentError(error));
       return { status: 'failed' };
     }
   }

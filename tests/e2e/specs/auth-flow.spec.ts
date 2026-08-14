@@ -108,7 +108,9 @@ test.describe('Authentication Flow', () => {
       await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
 
       // Wait for client-side hydration so form handlers are attached
-      await page.waitForTimeout(2000);
+      await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true');
+      await page.getByRole('button', { name: 'Use password instead' }).click();
+      await expect(page.getByTestId('password-signin-form')).toHaveAttribute('data-ready', 'true');
 
       // Fill in the login form
       await page.locator('input#email').fill(sharedEmail);
@@ -118,7 +120,7 @@ test.describe('Authentication Flow', () => {
       await page.locator('button[type="submit"]').click();
 
       // After successful sign-in, user is redirected away from /signin.
-      // The callback URL is a canonical product path such as `/` or `/dashboard`.
+      // The callback URL may be `/`, `/onboarding`, or another canonical product route.
       const redirected = await page
         .waitForURL((url) => !url.pathname.includes('/signin'), { timeout: 15_000 })
         .then(() => true)
@@ -127,7 +129,9 @@ test.describe('Authentication Flow', () => {
       if (!redirected) {
         // Possibly hydration wasn't complete — retry with fresh load
         await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
-        await page.waitForTimeout(3000);
+        await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true');
+        await page.getByRole('button', { name: 'Use password instead' }).click();
+        await expect(page.getByTestId('password-signin-form')).toHaveAttribute('data-ready', 'true');
         await page.locator('input#email').fill(sharedEmail);
         await page.locator('input#password').fill(password);
         await page.locator('button[type="submit"]').click();
@@ -148,7 +152,7 @@ test.describe('Authentication Flow', () => {
       expect(response.ok()).toBeTruthy();
     });
 
-    test('can sign out and then cannot access dashboard', async ({ page }) => {
+    test('can sign out and then cannot access the product', async ({ page }) => {
       // Sign in first
       const signInRes = await signInViaAPI(page, {
         email: sharedEmail,
@@ -156,19 +160,25 @@ test.describe('Authentication Flow', () => {
       });
       expect(signInRes.ok()).toBeTruthy();
 
-      // Verify we CAN access dashboard first
-      await page.goto(PAGES.dashboard, { timeout: TIMEOUTS.navigation });
-      await expect(page).toHaveURL(/\/dashboard/);
+      // Verify we CAN access the product first
+      await page.goto(`${PAGES.home}/messages`, {
+        timeout: TIMEOUTS.navigation,
+        waitUntil: 'commit',
+      });
+      await expect(page).toHaveURL(/\/(messages|onboarding)$/);
 
       // Sign out (clears cookies)
       await signOutViaAPI(page);
 
-      // After signing out, visiting dashboard should redirect to signin
-      await page.goto(PAGES.dashboard, { timeout: TIMEOUTS.navigation });
+      // After signing out, visiting the product should redirect to signin
+      await page.goto(`${PAGES.home}/messages`, {
+        timeout: TIMEOUTS.navigation,
+        waitUntil: 'commit',
+      }).catch(() => null);
       await expect(page).toHaveURL(/\/signin/);
     });
 
-    test('logged-in user visiting /signin is redirected to /dashboard', async ({ page }) => {
+    test('logged-in user visiting /signin is redirected to /messages', async ({ page }) => {
       // Sign in
       const signInRes = await signInViaAPI(page, {
         email: sharedEmail,
@@ -179,11 +189,11 @@ test.describe('Authentication Flow', () => {
       // Try visiting the sign-in page
       await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
 
-      // Should be redirected to dashboard
-      await expect(page).toHaveURL(/\/dashboard/);
+      // Should be redirected to the chat product
+      await expect(page).toHaveURL(/\/messages/);
     });
 
-    test('logged-in user visiting /signup is redirected to /dashboard', async ({ page }) => {
+    test('logged-in user visiting /signup is redirected to /messages', async ({ page }) => {
       // Sign in
       const signInRes = await signInViaAPI(page, {
         email: sharedEmail,
@@ -194,8 +204,8 @@ test.describe('Authentication Flow', () => {
       // Try visiting the sign-up page
       await page.goto(PAGES.signup, { timeout: TIMEOUTS.navigation });
 
-      // Should be redirected to dashboard
-      await expect(page).toHaveURL(/\/dashboard/);
+      // Should be redirected to the chat product
+      await expect(page).toHaveURL(/\/messages/);
     });
   });
 });

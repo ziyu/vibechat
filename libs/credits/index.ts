@@ -1,11 +1,9 @@
-// Main exports for credits library
-export { CreditService, creditService } from './service';
-export { 
-  calculateCreditConsumption, 
+export { CreditService, CreditLedgerQueryService, creditService, creditLedgerQueryService } from './service';
+export {
+  calculateCreditConsumption,
   getFixedConsumptionAmount,
   isDynamicMode,
-  getModelMultiplier 
+  getModelMultiplier,
 } from './calculator';
 export { safeNumber, TransactionTypeCode } from './utils';
-export * from './types';
-
+export type * from './types';

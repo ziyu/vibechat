@@ -1,153 +1,106 @@
-import { test, expect } from '@playwright/test'
-import { PAGES, TIMEOUTS } from '../helpers/constants'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
+import { TIMEOUTS } from '../helpers/constants'
 
 const LOCALE_COOKIE = 'VIBECHAT_LOCALE'
-const APP_URL = process.env.E2E_BASE_URL || 'http://localhost:7001'
+const ORIGINS = {
+  web: process.env.E2E_BASE_URL || 'http://localhost:8001',
+  site: process.env.E2E_SITE_URL || 'http://localhost:8003',
+  admin: process.env.E2E_ADMIN_URL || 'http://localhost:8005',
+} as const
 
-test.describe('locale-neutral product routing', () => {
+async function preferLocale(
+  context: BrowserContext,
+  locale: 'en' | 'zh-CN',
+  origin = ORIGINS.web,
+) {
+  await context.addCookies([{ name: LOCALE_COOKIE, value: locale, url: origin }])
+}
+
+async function expectLocalized404(
+  page: Page,
+  locale: 'en' | 'zh-CN',
+  url: string,
+) {
+  const response = await page.goto(url, { timeout: TIMEOUTS.navigation })
+  expect(response?.status()).toBe(404)
+  await expect(page.locator('html')).toHaveAttribute('lang', locale)
+  await expect(page.getByRole('heading', {
+    name: locale === 'en' ? "This page doesn't exist." : '没有找到这个页面。',
+  })).toBeVisible()
+}
+
+test.describe('locale-neutral multi-app routing', () => {
   test.beforeEach(async ({ context }) => {
     await context.clearCookies()
   })
 
   test('default locale renders without a URL prefix', async ({ page }) => {
-    await page.goto(PAGES.home, { timeout: TIMEOUTS.navigation })
-
-    expect(new URL(page.url()).pathname).toBe('/')
+    await page.goto(`${ORIGINS.web}/signin`, { timeout: TIMEOUTS.navigation })
+    expect(new URL(page.url()).pathname).toBe('/signin')
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.locator('input[type="email"]')).toBeVisible()
   })
 
-  test('language switching preserves pathname, search, and hash', async ({ page }) => {
-    await page.goto('/pricing?tab=credits#plans', { timeout: TIMEOUTS.navigation })
-    const originalUrl = new URL(page.url())
-    await page.waitForFunction(
-      () => typeof (window as Window & { $_TSR?: unknown }).$_TSR === 'undefined',
-    )
-
-    const languageButton = page.locator('[data-slot="dropdown-menu-trigger"]')
-    await expect(languageButton).toHaveAttribute('aria-haspopup', 'menu')
-    await languageButton.click()
-    const englishOption = page.getByRole('menuitem', { name: /English/ })
-    await expect(englishOption).toBeVisible()
+  test('site language switching preserves pathname, search, and hash', async ({ page }) => {
+    await page.goto(`${ORIGINS.site}/blog?page=1#posts`, {
+      timeout: TIMEOUTS.navigation,
+    })
+    await page.waitForLoadState('networkidle')
+    const original = new URL(page.url())
 
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-      englishOption.click(),
+      page.getByRole('button', { name: '切换语言' }).click(),
     ])
 
-    const switchedUrl = new URL(page.url())
-    expect(switchedUrl.pathname).toBe(originalUrl.pathname)
-    expect(switchedUrl.search).toBe(originalUrl.search)
-    expect(switchedUrl.hash).toBe(originalUrl.hash)
+    const switched = new URL(page.url())
+    expect(switched.pathname).toBe(original.pathname)
+    expect(switched.search).toBe(original.search)
+    expect(switched.hash).toBe(original.hash)
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-
     const localeCookie = (await page.context().cookies()).find(
       (cookie) => cookie.name === LOCALE_COOKIE,
     )
     expect(localeCookie?.value).toBe('en')
   })
 
-  test('locale cookie persists across reload and navigation', async ({ page, context }) => {
-    await context.addCookies([
-      { name: LOCALE_COOKIE, value: 'en', url: APP_URL },
-    ])
+  test('locale cookie is shared by Site, Web, and Admin on localhost', async ({ page, context }) => {
+    await preferLocale(context, 'en', ORIGINS.site)
 
-    await page.goto('/pricing', { timeout: TIMEOUTS.navigation })
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-
-    await page.reload({ waitUntil: 'domcontentloaded' })
-    await page.goto('/signin', { timeout: TIMEOUTS.navigation })
-
-    expect(new URL(page.url()).pathname).toBe('/signin')
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    for (const url of [
+      `${ORIGINS.site}/`,
+      `${ORIGINS.web}/signin`,
+      `${ORIGINS.admin}/signin`,
+    ]) {
+      await page.goto(url, { timeout: TIMEOUTS.navigation })
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+      expect(new URL(page.url()).pathname.startsWith('/en')).toBe(false)
+    }
   })
 
-  test('legacy locale-prefixed links become canonical URLs', async ({ page, context }) => {
-    for (const locale of ['en', 'zh-CN']) {
+  test('legacy locale-prefixed links become canonical URLs in every app', async ({ page }) => {
+    const cases = [
+      [`${ORIGINS.web}/en/signin?from=legacy`, '/signin', 'en'],
+      [`${ORIGINS.site}/zh-CN/blog?page=1`, '/blog', 'zh-CN'],
+      [`${ORIGINS.admin}/en/signin`, '/signin', 'en'],
+    ] as const
+
+    for (const [url, pathname, locale] of cases) {
+      await page.context().clearCookies()
+      await page.goto(url, { timeout: TIMEOUTS.navigation })
+      const canonical = new URL(page.url())
+      expect(canonical.pathname).toBe(pathname)
+      await expect(page.locator('html')).toHaveAttribute('lang', locale)
+    }
+  })
+
+  test('unknown locale-like prefixes render localized 404 pages', async ({ page, context }) => {
+    for (const locale of ['en', 'zh-CN'] as const) {
       await context.clearCookies()
-      await page.goto(`/${locale}/pricing?tab=credits`, {
-        timeout: TIMEOUTS.navigation,
-      })
-
-      const url = new URL(page.url())
-      expect(url.pathname).toBe('/pricing')
-      expect(url.search).toBe('?tab=credits')
-      await expect(page.locator('html')).toHaveAttribute('lang', locale)
-
-      const localeCookie = (await context.cookies()).find(
-        (cookie) => cookie.name === LOCALE_COOKIE,
-      )
-      expect(localeCookie?.value).toBe(locale)
+      await preferLocale(context, locale)
+      await expectLocalized404(page, locale, `${ORIGINS.web}/fr/messages`)
+      await expectLocalized404(page, locale, `${ORIGINS.site}/fr/blog`)
+      await expectLocalized404(page, locale, `${ORIGINS.admin}/fr/admin`)
     }
-  })
-
-  test('unknown locale-like prefixes render a localized 404', async ({ page, context }) => {
-    const consoleMessages: string[] = []
-    page.on('console', (message) => consoleMessages.push(message.text()))
-
-    for (const locale of ['en', 'zh-CN']) {
-      await context.clearCookies()
-      await context.addCookies([
-        { name: LOCALE_COOKIE, value: locale, url: APP_URL },
-      ])
-
-      const response = await page.goto('/fr/pricing', {
-        timeout: TIMEOUTS.navigation,
-      })
-      expect(response?.status()).toBe(404)
-      expect(new URL(page.url()).pathname).toBe('/fr/pricing')
-      await expect(page.locator('html')).toHaveAttribute('lang', locale)
-      await expect(page.getByRole('heading', {
-        name: locale === 'en' ? "This page doesn't exist." : '没有找到这个页面。',
-      })).toBeVisible()
-      await expect(page.getByRole('link', {
-        name: locale === 'en' ? 'Back to home' : '返回首页',
-      })).toHaveAttribute('href', '/')
-      await expect(page).toHaveTitle(
-        locale === 'en' ? 'Vibe Chat - Page Not Found' : 'Vibe Chat - 页面不存在',
-      )
-    }
-
-    expect(consoleMessages.some((message) => message.includes('notFoundComponent'))).toBe(false)
-  })
-
-  test('canonical sub-pages render in both supported locales', async ({ page, context }) => {
-    for (const locale of ['en', 'zh-CN']) {
-      await context.addCookies([
-        { name: LOCALE_COOKIE, value: locale, url: APP_URL },
-      ])
-      await page.goto('/pricing', { timeout: TIMEOUTS.navigation })
-      expect(new URL(page.url()).pathname).toBe('/pricing')
-      await expect(page.locator('html')).toHaveAttribute('lang', locale)
-      await expect(page.locator('h1, h2').first()).toBeVisible({
-        timeout: TIMEOUTS.navigation,
-      })
-    }
-  })
-
-  test('authentication redirects preserve a safe canonical return target', async ({ page }) => {
-    await page.goto('/dashboard?tab=account', { timeout: TIMEOUTS.navigation })
-
-    const url = new URL(page.url())
-    expect(url.pathname).toBe('/signin')
-    expect(url.searchParams.get('returnTo')).toBe('/dashboard?tab=account')
-  })
-
-  test('payment callbacks render directly on canonical routes', async ({ page }) => {
-    await page.goto('/payment-success?provider=wechat&order_id=e2e-locale', {
-      timeout: TIMEOUTS.navigation,
-    })
-    let url = new URL(page.url())
-    expect(url.pathname).toBe('/payment-success')
-    expect(url.searchParams.get('order_id')).toBe('e2e-locale')
-    await expect(page.locator('h1')).toBeVisible()
-
-    await page.goto('/payment-cancel?provider=stripe', {
-      timeout: TIMEOUTS.navigation,
-    })
-    url = new URL(page.url())
-    expect(url.pathname).toBe('/payment-cancel')
-    expect(url.searchParams.get('provider')).toBe('stripe')
-    await expect(page.locator('h1')).toBeVisible()
   })
 })

@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 
 export interface PaymentParams {
   planId: string;
@@ -75,10 +75,10 @@ export interface ExtendedStripeSubscription extends Omit<Stripe.Subscription, 'i
 
 // Stripe specific types
 export type StripeSubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid';
-export type StripeWebhookEvent = 
+export type StripeWebhookEvent =
   | 'checkout.session.completed'
   | 'customer.subscription.created'
   | 'customer.subscription.updated'
   | 'customer.subscription.deleted'
   | 'invoice.paid'
-  | 'invoice.payment_failed'; 
+  | 'invoice.payment_failed';

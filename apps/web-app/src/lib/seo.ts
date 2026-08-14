@@ -1,15 +1,16 @@
-import { translations, type SupportedLocale, type Translations } from '@libs/i18n'
+import { translations, type SupportedLocale, type Translations } from '@vibechat/i18n'
+import { config } from '@config'
 
 interface HeadConfig {
   meta: Array<{ title: string } | { name: string; content: string }>
 }
 
 /**
- * Resolve translations for route `head()` functions, which run outside React
- * component context but receive the request locale through root route context.
+ * Resolve translations for a given lang param (used in route `head()` functions
+ * which run outside of React component context).
  */
 export function getTranslations(locale: SupportedLocale): Translations {
-  return translations[locale] as Translations
+  return (translations[locale] || translations[config.app.i18n.defaultLocale as SupportedLocale]) as Translations
 }
 
 /**

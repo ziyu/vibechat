@@ -22,7 +22,7 @@ export const creditsConfig = {
 
   /**
    * Fixed consumption amounts (used when consumptionMode is 'fixed')
-   * 
+   *
    * Each entry can be:
    * - A number: Simple fixed cost for all operations
    * - An object: { default: number, models?: { modelName: number } }
@@ -124,12 +124,12 @@ export function resolveFixedConsumption(
   if (typeof config === 'number') {
     return config;
   }
-  
+
   // Object case: check model-specific pricing first
   if (model && config.models?.[model] !== undefined) {
     return config.models[model];
   }
-  
+
   // Fall back to default
   return config.default;
 }

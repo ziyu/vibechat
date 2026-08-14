@@ -3,30 +3,33 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-14
+> 更新日期：2026-08-13
 > 维护范围：日常功能开发与交付
 
 ## 应用边界
 
-仓库只有一个产品 Web 应用：`apps/web-app`（TanStack Start）。`apps/docs-app` 是独立文档站，不是第二套产品实现。
+仓库有四个活动运行应用：`apps/site-app`（官网）、`apps/web-app`（产品 Web/PWA）、`apps/backend`（共享后端）和 `apps/admin-app`（运营后台）。`apps/docs-app` 是独立文档站，不是产品实现。
 
 | 内容 | 放置位置 |
 | --- | --- |
 | 共享业务与 Provider 逻辑 | `libs/*` |
 | 静态选项和默认配置 | `config/*`、`config.ts` |
-| React 共享组件与 hooks | `libs/react-shared` |
-| 产品页面 | `apps/web-app/src/routes/(root)/**`、`(auth)/**`、`admin/**` |
-| 产品 API | `apps/web-app/src/routes/api/**` |
-| 翻译 | `libs/i18n/locales/en.ts`、`zh-CN.ts` |
+| React 共享组件与 hooks | `packages/react-shared/src` |
+| 官网页面 | `apps/site-app/src/routes/**` |
+| 产品页面 | `apps/web-app/src/routes/**` |
+| 产品 API、Auth、上传、支付与 AI | `apps/backend/src/routes/**` |
+| 运营页面 | `apps/admin-app/src/routes/admin/**` |
+| Web 同源网关 | `apps/web-app/src/routes/api/$.ts`、`v1/$.ts` |
+| 翻译 | `packages/i18n/src/locales/en.ts`、`zh-CN.ts` |
 
 ## 标准开发流程
 
 1. 在 `tests/e2e/TEST-CATALOG.md` 写清验收场景。
 2. 先实现共享库与配置，再接 TanStack 页面/API。
-3. 为页面增加 `beforeLoad` 守卫，为 API 独立增加认证与权限检查。
+3. 为页面增加 `beforeLoad` 守卫，为 backend API 独立增加认证与权限检查。
 4. 用户可见文本先加英文 key，再同步中文。
 5. 用浏览器走通实际流程后再写 Playwright selector。
-6. 运行相关 E2E、`pnpm typecheck`、`pnpm build` 和 `pnpm docs:check`。
+6. 运行 `pnpm boundaries:check`、相关 E2E、`pnpm typecheck`、`pnpm build` 和 `pnpm docs:check`。
 
 ## API 规则
 

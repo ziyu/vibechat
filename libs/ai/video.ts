@@ -398,7 +398,7 @@ async function volcengineCreateTask(options: VideoGenerationOptions): Promise<st
 
   const url = `${baseUrl}${VOLCENGINE_CREATE_TASK_PATH}`;
 
-  console.log('Volcengine create video task request:', { url, model, prompt: options.prompt.substring(0, 50) });
+  console.log('Volcengine create video task request:', { provider: 'volcengine', model });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -576,7 +576,7 @@ async function aliyunCreateTask(options: VideoGenerationOptions): Promise<string
 
   const url = `${baseUrl}${ALIYUN_VIDEO_CREATE_PATH}`;
 
-  console.log('Aliyun create video task request:', { url, model, prompt: options.prompt.substring(0, 50) });
+  console.log('Aliyun create video task request:', { provider: 'aliyun', model });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -655,7 +655,7 @@ async function aliyunPollTask(
     // Task failed
     if (status === 'FAILED') {
       const detailedError = formatAliyunTaskFailure(taskId, data);
-      console.error('Aliyun task failed response:', JSON.stringify(data, null, 2));
+      console.error('Aliyun task failed:', { taskId, code: data.code, status });
       throw new Error(detailedError);
     }
 

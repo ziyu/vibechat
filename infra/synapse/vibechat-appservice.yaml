@@ -1,0 +1,14 @@
+# Local development only. Production must use independently generated tokens.
+id: "vibechat-local"
+url: null
+as_token: "vibechat-local-appservice-token"
+hs_token: "vibechat-local-homeserver-token"
+sender_localpart: "vibechat_service"
+rate_limited: false
+
+namespaces:
+  users:
+    - exclusive: true
+      regex: "@vibe_.*:localhost"
+  aliases: []
+  rooms: []

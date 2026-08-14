@@ -30,6 +30,10 @@ const RETRY_CONFIG = {
   initialDelay: 2000,
 };
 
+const E2E_ORIGIN = new URL(
+  process.env.E2E_BASE_URL || 'http://localhost:8001',
+).origin;
+
 /**
  * Sleep for a given number of milliseconds.
  */
@@ -50,7 +54,7 @@ export async function signUpViaAPI(page: Page, options: SignUpOptions) {
         email: options.email,
         password: options.password,
       },
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: E2E_ORIGIN },
       timeout: TIMEOUTS.auth,
     });
 
@@ -82,7 +86,7 @@ export async function signInViaAPI(page: Page, options: SignInOptions) {
         password: options.password,
         rememberMe: true,
       },
-      headers: { Origin: 'http://localhost:7001' },
+      headers: { Origin: E2E_ORIGIN },
       timeout: TIMEOUTS.auth,
     });
 
@@ -101,13 +105,36 @@ export async function signInViaAPI(page: Page, options: SignInOptions) {
   return lastResponse!;
 }
 
+/** Complete the product profile so authenticated chat routes can bootstrap Matrix. */
+export async function completeChatOnboarding(
+  page: Page,
+  overrides: { displayName?: string; username?: string } = {},
+) {
+  const profileResponse = await page.request.get('/v1/profile');
+  expect(profileResponse.ok(), await profileResponse.text()).toBeTruthy();
+  const profile = await profileResponse.json() as {
+    displayName: string;
+    username: string;
+  };
+  const response = await page.request.patch('/v1/profile', {
+    data: {
+      displayName: overrides.displayName || profile.displayName,
+      username: overrides.username || profile.username,
+      completeOnboarding: true,
+    },
+  });
+  expect(response.ok(), await response.text()).toBeTruthy();
+  return response;
+}
+
 /**
  * Sign out the current user.
  * Calls the API and clears browser cookies to ensure a clean state.
  */
 export async function signOutViaAPI(page: Page) {
   const response = await page.request.post(API.signOut, {
-    headers: { Origin: 'http://localhost:7001' },
+    data: {},
+    headers: { Origin: E2E_ORIGIN },
     timeout: TIMEOUTS.auth,
   });
 

@@ -2,98 +2,65 @@
 
 ## Overview
 
-`apps/web-app` is the single VibeChat product application. It uses TanStack Start, TanStack Router, React, Vite, and a Cloudflare Workers production target. Shared domain behavior belongs in `libs/*`; static options and defaults belong in `config/*` or `config.ts`.
+`apps/web-app` is the VibeChat product Web/PWA host. It owns authentication UI, onboarding, chat routes, Matrix browser runtime composition, and a thin same-origin gateway to `apps/backend`.
 
-## Setup commands
+It does not own the public site, product API business handlers, database access, payment/AI provider implementations, or the future Desktop host. It does own the authenticated product UI for account, billing, upload, and AI capabilities exposed by the shared Backend.
+
+## Commands
 
 ```bash
-pnpm install
+# From repository root: backend + Web + site
 pnpm dev
-pnpm typecheck
-pnpm build
+
+# Backend + Web only
+pnpm dev:web
+
+# Product host checks
+pnpm --dir apps/web-app typecheck
+pnpm --dir apps/web-app build
 ```
 
-Cloudflare-specific commands:
+The product Web runs on `8001`. The shared backend runs on `8002`; local Vite and the production catch-all gateway keep browser requests on the public Web origin.
 
-```bash
-pnpm --dir apps/web-app dev:cf
-pnpm --dir apps/web-app preview:cf
-```
-
-## Route and localization contract
-
-- Product routes use locale-neutral canonical URLs. Examples: `/`, `/signin`, `/dashboard`, `/admin`.
-- Route groups are `src/routes/(root)`, `src/routes/(auth)`, and `src/routes/admin`.
-- `src/routes/api` contains raw HTTP endpoints, auth handlers, uploads, webhooks, and other APIs.
-- Never add a locale parameter to a product route or pass locale through `Link`/`navigate` params.
-- `src/routes/__root.tsx` resolves the request locale and exposes it through root route context.
-- Components use `src/hooks/use-translation.ts`; route metadata uses `match.context.locale`.
-- `src/routes/$locale` and its splat child are a legacy-link compatibility boundary only. They must not render product pages.
-- Locale controls interface language. Do not use it as purchase authorization, market, currency, country, or timezone.
-
-## Directory structure
+## Active Routes
 
 ```text
-apps/web-app/src/
-├── routes/
-│   ├── __root.tsx          # request locale, providers, document shell
-│   ├── (root)/             # public and signed-in product pages
-│   ├── (auth)/             # signin, signup, recovery
-│   ├── admin.tsx           # admin layout route
-│   ├── admin/              # admin pages
-│   ├── $locale.tsx         # exact legacy locale validation + redirect
-│   ├── $locale/$.tsx       # legacy deep-link catch-all
-│   └── api/                # server API routes
-├── components/             # product-specific React components
-├── hooks/                  # product hooks, including useTranslation
-├── lib/                    # route guards and server adapters
-├── router.tsx
-└── routeTree.gen.ts        # generated; do not edit by hand
+src/routes/
+├── __root.tsx
+├── (auth)/*                     # signin/signup/OTP/reset
+├── (chat)/*                     # messages/rooms/contacts/discover/me
+├── (product)/*                  # account/services/payment returns/AI
+├── (root)/index.tsx             # / -> messages
+├── onboarding.tsx
+├── $locale.tsx                  # legacy locale-prefix redirect only
+├── $locale/$.tsx                # legacy nested-path compatibility
+├── api/$.ts                     # same-origin backend gateway only
+└── v1/$.ts                      # same-origin backend gateway only
 ```
 
-## Adding a page
+Product URLs are locale-neutral. The root route resolves the active language from the shared `VIBECHAT_LOCALE` Cookie during SSR; switching language updates that preference without changing pathname, search, or hash. `/en/**` and `/zh-CN/**` exist only as legacy redirect boundaries and must not be used for new navigation.
 
-```tsx
-// src/routes/(root)/my-page.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { useTranslation } from '@/hooks/use-translation'
+Account, billing, upload, and AI product surfaces belong inside the authenticated product shell. Keep one product shell and route compatibility aliases; do not create a second SaaS layout.
 
-export const Route = createFileRoute('/(root)/my-page')({
-  head: ({ match }) => seoHead(match.context.locale, (t) => t.myPage.metadata),
-  component: MyPage,
-})
+## Boundaries
 
-function MyPage() {
-  const { t } = useTranslation()
-  return <h1>{t.myPage.title}</h1>
-}
-```
+- Page and chat composition imports product contracts/client/core/Matrix/platform/auth client through `@vibechat/*`; browser-safe shared UI, i18n and validators may remain under `libs/*` until separately packaged.
+- Chat screens do not issue relative product `fetch` calls. Use `@vibechat/product-client` and the Web adapter in `src/lib/product-platform.ts`.
+- Do not import `@libs/database`, `@libs/payment`, `@libs/credits`, `@libs/ai`, `@libs/storage`, any `@libs/auth/*` entry, or another app. Browser authentication uses `@vibechat/auth-client`.
+- `src/lib/backend-proxy.ts` may only forward requests. Business parsing, authorization, persistence, and provider calls belong in `apps/backend` or shared domain libraries.
+- Browser-safe configuration resolves through `config/public.ts`.
+- Run `pnpm boundaries:check` after changing imports or app composition.
 
-Protected pages call the appropriate guard from `src/lib/auth-guard.ts` in `beforeLoad`. API routes must independently authenticate and authorize requests; page guards are not an API security boundary.
+## Product Rules
 
-## Server boundaries
-
-- Use `createServerFn` for typed page RPC and request adapters.
-- Use `src/routes/api/**` for raw HTTP contracts, uploads, authentication handlers, and provider callbacks.
-- Keep reusable business and provider logic in `libs/*`.
-- Validate inputs and preserve stable response shapes.
-- Cloudflare database access uses the repository's request-scoped DB helpers.
-
-## Verification
-
-For code or configuration changes run, from the repository root:
-
-```bash
-pnpm docs:check
-pnpm typecheck
-pnpm build
-```
-
-Run relevant Playwright scenarios after checking the actual DOM in the running app. Server or shared-library changes must also be exercised against the Cloudflare preview as described in `CF-NOTES.md`.
+- User-visible text uses i18n keys, updating English and Chinese together.
+- All product routes need authentication and resource ownership checks at both page and backend layers.
+- Real Matrix and server state remain authoritative; never add fixture fallbacks to authenticated flows.
+- Validate affected UI in the running app and run the matching specs from `tests/e2e/specs`.
 
 ## Troubleshooting
 
-- Route 404: check the route group and generated `routeTree.gen.ts`; do not add a language segment to make a page match.
-- Incorrect language: inspect `VIBECHAT_LOCALE`, `config.app.i18n`, root route context, and SSR `<html lang>`.
-- Shared component import errors: shared React code must not depend on framework-specific modules.
-- Cloudflare failures: follow `CF-NOTES.md` and the deployment Runbook.
+- A `401` from `/v1/*` usually means the backend is reachable but no Better Auth Cookie exists.
+- A gateway `fetch failed` usually means `apps/backend` is not running on `BACKEND_ORIGIN`.
+- Route type errors after moving files require regenerating `src/routeTree.gen.ts` by running Vite build/dev.
+- Backend Cloudflare issues belong to [`../backend/CF-NOTES.md`](../backend/CF-NOTES.md).

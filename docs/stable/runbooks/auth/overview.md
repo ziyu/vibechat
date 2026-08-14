@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-12
 > 维护范围：认证方式、会话与登录界面
 
 Vibe Chat 基于 Better Auth 构建了完整的身份认证系统，支持多种认证方式，包括邮箱密码、OAuth 社交登录和手机短信验证。
@@ -54,7 +54,7 @@ Vibe Chat 基于 Better Auth 构建了完整的身份认证系统，支持多种
 ```env
 # 认证配置
 BETTER_AUTH_SECRET="your-secret-key-here-32-characters-min" # 32位随机数
-BETTER_AUTH_URL="http://localhost:7001"  # 生产环境改为实际域名
+BETTER_AUTH_URL="http://localhost:8001"  # 生产环境改为实际域名
 
 # 数据库配置（认证需要）
 DATABASE_URL="postgresql://username:password@localhost:5432/vibechat"

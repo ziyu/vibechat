@@ -24,7 +24,7 @@ pnpm typecheck
 pnpm build
 ```
 
-用户可访问功能还需要运行对应的 TanStack E2E 用例。涉及服务端或共享库时，按 `apps/web-app/CF-NOTES.md` 验证 Cloudflare 预览。
+用户可访问功能还需要运行对应的 TanStack E2E 用例。涉及 backend 服务端或共享库时，按 `apps/backend/CF-NOTES.md` 验证 Cloudflare 预览。
 
 ## 结果记录
 

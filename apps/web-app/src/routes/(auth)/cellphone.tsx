@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@libs/react-shared/ui/card'
+} from '@vibechat/react-shared/ui/card'
 import { useTranslation } from '@/hooks/use-translation'
 
 export const Route = createFileRoute('/(auth)/cellphone')({
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/(auth)/cellphone')({
 })
 
 function CellphonePage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   return (
     <Card className="w-[380px]">

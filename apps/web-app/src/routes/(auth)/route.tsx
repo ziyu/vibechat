@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
-import { Logo } from '@libs/react-shared/ui/logo'
+import { Logo } from '@vibechat/react-shared/ui/logo'
 import { redirectIfAuthenticated } from '@/lib/auth-guard'
 
 export const Route = createFileRoute('/(auth)')({

@@ -33,4 +33,3 @@ export const TransactionTypeCode = {
 } as const;
 
 export type TransactionTypeCode = typeof TransactionTypeCode[keyof typeof TransactionTypeCode];
-

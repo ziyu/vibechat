@@ -13,13 +13,14 @@ import mjml2html from 'mjml';
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { VERIFICATION_TEMPLATE, RESET_PASSWORD_TEMPLATE } from './templates';
+import { AUTHENTICATION_OTP_TEMPLATE, RESET_PASSWORD_TEMPLATE, VERIFICATION_TEMPLATE } from './templates';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const entries: { exportName: string; mjml: string }[] = [
   { exportName: 'VERIFICATION_HTML', mjml: VERIFICATION_TEMPLATE },
   { exportName: 'RESET_PASSWORD_HTML', mjml: RESET_PASSWORD_TEMPLATE },
+  { exportName: 'AUTHENTICATION_OTP_HTML', mjml: AUTHENTICATION_OTP_TEMPLATE },
 ];
 
 const lines: string[] = [
@@ -34,7 +35,11 @@ for (const { exportName, mjml } of entries) {
     console.error(`MJML errors in ${exportName}:`, errors);
     process.exit(1);
   }
-  const escaped = html.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+  const normalizedHtml = html
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n');
+  const escaped = normalizedHtml.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
   lines.push(`export const ${exportName} = \`${escaped}\`;`);
   lines.push('');
   console.log(`✅ compiled ${exportName}`);

@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：MVP 基线设计
-> 日期：2026-08-10
+> 日期：2026-08-12
 > 首发平台：Web / PWA
 > 目标规模：10,000 DAU 以内，约 1,000 峰值并发连接
 > Active 实施：[VibeChat MVP 产品与技术设计实施跟踪](../../development/active/product-and-technical-implementation.md)
@@ -265,10 +265,12 @@ flowchart LR
 
 ```text
 apps/
-  web-host/              用户端宿主 PWA
-  api/                   待定产品 API
-  admin-review/          内部审核后台
-  docs-site/             SDK 与 CLI 文档
+  site-app/              官网与公开内容
+  web-app/               用户端宿主 PWA
+  backend/               共享后端、产品 API 与 Better Auth
+  docs-app/              SDK、用户与部署文档
+  desktop-app/           后续 Desktop spike 通过后创建
+  admin-app/             独立运营后台；A4 在此加入空间审核模块
 packages/
   auth/                  Better Auth 服务端配置、客户端和邮件适配器
   sdk/                   @vibechat/sdk
@@ -1957,6 +1959,9 @@ Playwright 使用至少三个账号测试：
 - MVP 无 E2EE、音视频和联邦。
 - Matrix + `matrix-js-sdk` + Synapse。
 - Better Auth 管理用户身份、OTP、Cookie session 和会话撤销。
+- 账户中心、订单、订阅、积分账本、推荐与 KYC 提现作为产品服务能力进入 Web/PWA。
+- Stripe、PayPal、Creem、Dodo、微信支付和支付宝通过共享 Backend 统一结账与幂等履约。
+- AI 对话、图片和视频生成通过积分预留/结算、持久化任务与失败退款提供。
 - 产品后端选型待定；API schema 统一使用 Zod 4。
 - 闭源宿主和产品服务；公开 SDK、protocol、CLI 和文档。
 
@@ -1975,4 +1980,4 @@ Playwright 使用至少三个账号测试：
 
 本文件最初在工程基线建立前创建，作为第一份产品与技术基线。当时环境曾引用 `RTK.md`，但仓库中不存在该文件；如果后续补充，开始实施前必须重新检查其中约束并更新本文档。
 
-当前工程启动决策：以前端骨架为先，产品 Web 应用位于 `apps/web-app`，采用 TanStack Start、TanStack Router 和 Vite；现有脚手架中的后端、数据库与认证能力不自动进入产品范围，待骨架建立并验收后再单独评审后端技术栈。
+当前工程实现：官网位于 `apps/site-app`，产品 Web/PWA 位于 `apps/web-app`，共享 backend 位于 `apps/backend`，内部运营位于 `apps/admin-app`；四者均使用 TanStack Start、TanStack Router 和 Vite 并可独立构建。Web 与 Admin 通过各自同源网关访问 backend，保持 Better Auth Cookie 与公开 `/api`、`/v1` 路径稳定。Web 当前覆盖聊天、账户、服务定价、上传、支付结果与 AI；Backend 持有数据库、认证、支付/AI provider、积分、推荐和提现领域；Admin 覆盖用户/KYC、订阅、订单、积分、定价、Blog、佣金与提现。A4 空间审核作为 Admin 的新模块加入。Desktop 尚未创建，必须等待 Desktop spike。

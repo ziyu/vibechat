@@ -26,7 +26,7 @@ docker build -t vibechat-web -f apps/web-app/Dockerfile .
 # 2. 运行容器
 docker run -d \
   --name vibechat-web \
-  -p 7001:7001 \
+  -p 8001:8001 \
   --env-file .env \
   --restart unless-stopped \
   vibechat-web
