@@ -6,20 +6,20 @@ const password = 'VibeChat-e2e-password-2026!'
 test.describe('Vibe Chat protected product routes', () => {
   test('routes password sign-up into required product onboarding', async ({ page }) => {
     const suffix = `${Date.now().toString(36)}${crypto.randomUUID().slice(0, 4)}`
-    await page.goto('/zh-CN/signup')
+    await page.goto('/signup')
     await expect(page.getByTestId('password-signup-form')).toHaveAttribute('data-ready', 'true')
     await page.getByLabel('姓名', { exact: true }).fill('真实注册用户')
     await page.getByLabel('邮箱', { exact: true }).fill(`e2e-ui-signup-${suffix}@example.com`)
     await page.getByLabel('密码', { exact: true }).fill(password)
     await page.getByRole('button', { name: '创建账户', exact: true }).click()
-    await expect(page).toHaveURL(/\/zh-CN\/onboarding$/)
+    await expect(page).toHaveURL(/\/onboarding$/)
     await expect(page.getByTestId('onboarding-page')).toBeVisible()
   })
 
   for (const path of ['messages', 'contacts', 'discover', 'me', 'rooms/not-a-room']) {
     test(`redirects unauthenticated /${path} without rendering product data`, async ({ page }) => {
-      await page.goto(`/zh-CN/${path}`)
-      await expect(page).toHaveURL(/\/zh-CN\/signin$/)
+      await page.goto(`/${path}`)
+      await expect(page).toHaveURL(/\/signin$/)
       await expect(page.getByTestId('chat-app-shell')).toHaveCount(0)
       await expect(page.getByText(/River|林林/)).toHaveCount(0)
     })
@@ -69,7 +69,7 @@ test.describe('Vibe Chat real persisted product state', () => {
         }),
       })
     })
-    await page.goto('/zh-CN/messages')
+    await page.goto('/messages')
 
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'false')
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-sync-state', 'UNAVAILABLE')
@@ -98,7 +98,7 @@ test.describe('Vibe Chat real persisted product state', () => {
         username: `state_a_${suffix}`.slice(0, 30),
       })
 
-      await firstPage.goto('/zh-CN/messages')
+      await firstPage.goto('/messages')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       await expect(firstPage.getByTestId('conversation-row')).toHaveCount(0)
       await expect(firstPage.getByText(/River|林林/)).toHaveCount(0)
@@ -114,7 +114,7 @@ test.describe('Vibe Chat real persisted product state', () => {
         official: true,
       })
 
-      await firstPage.goto('/zh-CN/discover/spaces/space-campfire')
+      await firstPage.goto('/discover/spaces/space-campfire')
       await expect(firstPage.getByTestId('space-detail')).toBeVisible()
       await firstPage.getByRole('button', { name: '收藏' }).click()
       await expect(firstPage.getByRole('button', { name: '已收藏' })).toBeVisible()
@@ -154,7 +154,7 @@ test.describe('Vibe Chat real persisted product state', () => {
           muted: true,
         }],
       })
-      await secondSessionPage.goto('/zh-CN/messages')
+      await secondSessionPage.goto('/messages')
       await expect(secondSessionPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       await expect(secondSessionPage.getByTestId('conversation-row')).toContainText('持久化状态房间')
       await expect(secondSessionPage.getByTestId('conversation-row').locator('[aria-label="已静音"]')).toBeVisible()

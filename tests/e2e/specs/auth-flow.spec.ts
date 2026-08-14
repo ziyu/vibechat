@@ -120,7 +120,7 @@ test.describe('Authentication Flow', () => {
       await page.locator('button[type="submit"]').click();
 
       // After successful sign-in, user is redirected away from /signin.
-      // The callback URL may be `/en`, `/zh-CN`, or `/en/dashboard` etc.
+      // The callback URL may be `/`, `/onboarding`, or another canonical product route.
       const redirected = await page
         .waitForURL((url) => !url.pathname.includes('/signin'), { timeout: 15_000 })
         .then(() => true)

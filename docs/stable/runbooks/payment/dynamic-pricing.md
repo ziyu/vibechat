@@ -89,7 +89,7 @@ pnpm db:push:sqlite
 
 ## 🖥️ 管理后台操作
 
-动态定价管理页面位于 `/$lang/admin/pricing`，由独立 `apps/admin-app` 的 TanStack Start 路由实现，默认 origin 为 `http://localhost:8005`。
+动态定价管理页面位于 `/admin/pricing`，由独立 `apps/admin-app` 的 TanStack Start 路由实现，默认 origin 为 `http://localhost:8005`。
 
 ### 方案列表
 

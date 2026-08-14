@@ -16,7 +16,7 @@ Vibe Chat 的产品 Web 位于 `apps/web-app`，共享 backend 位于 `apps/back
 | --- | --- | --- |
 | 会话解析 | `libs/auth` + `apps/backend/src/routes/api/auth/$.ts` | Better Auth 配置、会话与认证 handler |
 | 页面守卫 | `apps/web-app/src/lib/auth-guard.ts` | 通过 backend session 接口完成登录检查与重定向 |
-| 路由接入 | `apps/web-app/src/routes/$lang/**` | 在 `beforeLoad` 调用对应守卫 |
+| 路由接入 | `apps/web-app/src/routes/**` | 在 `beforeLoad` 调用对应守卫 |
 | 权限模型 | `libs/permissions` | `Action`、`Subject`、角色与 `can()` 判断 |
 | API 保护 | `apps/backend/src/routes/**` | 从请求 headers 解析会话并执行资源级权限检查 |
 
@@ -34,7 +34,7 @@ flowchart TD
 现有守卫：
 
 - `redirectIfAuthenticated`：已登录用户离开登录、注册等认证页面。
-- `requireAuth`：没有会话时跳转到 `/$lang/signin`。
+- `requireAuth`：没有会话时跳转到 `/signin`。
 
 ## API 安全边界
 
@@ -49,7 +49,7 @@ flowchart TD
 新建受保护页面时，在路由定义中直接调用守卫：
 
 ```ts
-export const Route = createFileRoute('/$lang/(chat)/example')({
+export const Route = createFileRoute('/(chat)/example')({
   beforeLoad: requireAuth,
   component: ExamplePage,
 })

@@ -103,7 +103,7 @@ export function EmailOtpLoginForm({
       return
     }
 
-    window.location.assign(postAuthPath(locale, window.location.search))
+    window.location.assign(postAuthPath(window.location.search))
   }
 
   return (

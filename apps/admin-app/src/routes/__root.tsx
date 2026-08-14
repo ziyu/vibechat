@@ -5,16 +5,20 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
-  useRouterState,
 } from '@tanstack/react-router'
 import { config } from '@config'
-import { locales } from '@vibechat/i18n'
+import { translations } from '@vibechat/i18n'
 import { ThemeProvider } from '@vibechat/react-shared/hooks/use-theme'
 import { ThemeScript } from '@vibechat/react-shared/components/theme-script'
+import { SharedAppProvider } from '@vibechat/react-shared/providers/app-context'
 import { Toaster } from '@vibechat/react-shared/ui/sonner'
+import { getRequestLocale } from '@/lib/locale.functions'
+import { NotFoundPage } from '@/components/not-found-page'
 import '../styles.css'
 
 export const Route = createRootRoute({
+  beforeLoad: async () => ({ locale: await getRequestLocale() }),
+  notFoundComponent: NotFoundPage,
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -28,22 +32,23 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const { locale } = Route.useRouteContext()
+  const t = translations[locale]
   return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
+    <SharedAppProvider value={{ t, locale }}>
+      <RootDocument locale={locale}>
+        <Outlet />
+      </RootDocument>
+    </SharedAppProvider>
   )
 }
 
-function useHtmlLang() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const segment = pathname.split('/')[1] ?? ''
-  return (locales as readonly string[]).includes(segment) ? segment : 'en'
-}
-
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
+function RootDocument({
+  children,
+  locale,
+}: Readonly<{ children: ReactNode; locale: string }>) {
   return (
-    <html lang={useHtmlLang()} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <HeadContent />
         <ThemeScript

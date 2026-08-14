@@ -27,19 +27,13 @@ const getAdminSession = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
-export async function requireAdmin({ params }: { params: { lang: string } }) {
+export async function requireAdmin() {
   const result = await getAdminSession()
   if (!result.user) {
-    throw redirect({
-      to: '/$lang/signin',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/signin' })
   }
   if (result.user.role !== 'admin') {
-    throw redirect({
-      to: '/$lang/forbidden',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/forbidden' })
   }
   return { user: result.user }
 }

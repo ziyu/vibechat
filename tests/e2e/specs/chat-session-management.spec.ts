@@ -36,7 +36,7 @@ test.describe('Vibe Chat browser session management', () => {
       const secondBootstrap = await secondBootstrapResponse.json()
       expect(secondBootstrap.matrix.deviceId).not.toBe(firstBootstrap.matrix.deviceId)
 
-      await firstPage.goto('/zh-CN/me')
+      await firstPage.goto('/me')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       await firstPage.getByTestId('manage-sessions').click()
@@ -65,7 +65,7 @@ test.describe('Vibe Chat browser session management', () => {
       ).some((database) => database.name === name), syncDatabaseName)).toBe(true)
 
       await firstPage.getByTestId('chat-sign-out').click()
-      await expect(firstPage).toHaveURL('/zh-CN/signin')
+      await expect(firstPage).toHaveURL('/signin')
       const firstBootstrapAfterSignOut = await firstPage.request.get('/v1/session/bootstrap')
       expect(firstBootstrapAfterSignOut.status()).toBe(401)
       const firstWhoami = await firstPage.request.get(

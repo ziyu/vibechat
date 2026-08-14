@@ -8,7 +8,7 @@ import { useTranslation } from '@/hooks/use-translation'
 
 interface NavItem {
   id: 'messages' | 'contacts' | 'discover' | 'services' | 'me'
-  to: '/$lang/messages' | '/$lang/contacts' | '/$lang/discover' | '/$lang/services' | '/$lang/me'
+  to: '/messages' | '/contacts' | '/discover' | '/services' | '/me'
   icon: LucideIcon
   label: string
 }
@@ -22,11 +22,11 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
     || session?.user?.email?.slice(0, 1).toUpperCase()
     || 'V'
   const items: NavItem[] = [
-    { id: 'messages', to: '/$lang/messages', icon: MessageCircleMore, label: t.chatApp.nav.messages },
-    { id: 'contacts', to: '/$lang/contacts', icon: ContactRound, label: t.chatApp.nav.contacts },
-    { id: 'discover', to: '/$lang/discover', icon: Compass, label: t.chatApp.nav.discover },
-    { id: 'services', to: '/$lang/services', icon: Shapes, label: t.chatApp.nav.services },
-    { id: 'me', to: '/$lang/me', icon: UserRound, label: t.chatApp.nav.me },
+    { id: 'messages', to: '/messages', icon: MessageCircleMore, label: t.chatApp.nav.messages },
+    { id: 'contacts', to: '/contacts', icon: ContactRound, label: t.chatApp.nav.contacts },
+    { id: 'discover', to: '/discover', icon: Compass, label: t.chatApp.nav.discover },
+    { id: 'services', to: '/services', icon: Shapes, label: t.chatApp.nav.services },
+    { id: 'me', to: '/me', icon: UserRound, label: t.chatApp.nav.me },
   ]
   const isActive = (item: NavItem) => item.id === 'services'
     ? ['services', 'pricing', 'upload', 'ai', 'image-generate', 'video-generate', 'premium-features', 'payment-success', 'payment-cancel'].includes(section || '')
@@ -37,21 +37,21 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="vc-app" data-mode="product" data-testid="product-app-shell">
       <aside className="vc-primary-rail" data-testid="product-primary-nav">
-        <Link to="/$lang/messages" params={{ lang: locale }} className="vc-brand-mark" aria-label={t.common.siteName}>
+        <Link to="/messages" className="vc-brand-mark" aria-label={t.common.siteName}>
           <span>V</span>
         </Link>
         <nav aria-label={t.chatApp.nav.primaryLabel}>
           {items.map((item) => {
             const Icon = item.icon
             return (
-              <Link key={item.id} to={item.to} params={{ lang: locale }} className="vc-primary-link" data-active={isActive(item) || undefined}>
+              <Link key={item.id} to={item.to} className="vc-primary-link" data-active={isActive(item) || undefined}>
                 <Icon size={20} strokeWidth={1.8} />
                 <span>{item.label}</span>
               </Link>
             )
           })}
         </nav>
-        <Link to="/$lang/account" params={{ lang: locale }} className="vc-product-avatar" aria-label={t.chatApp.account.title}>
+        <Link to="/account" className="vc-product-avatar" aria-label={t.chatApp.account.title}>
           {initials}
         </Link>
       </aside>
@@ -60,7 +60,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         {items.map((item) => {
           const Icon = item.icon
           return (
-            <Link key={item.id} to={item.to} params={{ lang: locale }} className="vc-mobile-link" data-active={isActive(item) || undefined}>
+            <Link key={item.id} to={item.to} className="vc-mobile-link" data-active={isActive(item) || undefined}>
               <Icon size={21} strokeWidth={1.8} />
               <span>{item.label}</span>
             </Link>

@@ -58,7 +58,7 @@ npm run matrix:dev:up
 npm run test:matrix:integration
 ```
 
-`pnpm dev` 同时启动四项活动服务：访问 `http://localhost:8003/zh-CN` 查看官网，访问 `http://localhost:8001/zh-CN/messages` 进入聊天产品，访问 `http://localhost:8005/zh-CN/admin` 进入运营后台；`http://localhost:8002` 是独立 Backend，浏览器业务经各自应用的同源网关访问。
+`pnpm dev` 同时启动四项活动服务：访问 `http://localhost:8003/` 查看官网，访问 `http://localhost:8001/messages` 进入聊天产品，访问 `http://localhost:8005/admin` 进入运营后台；`http://localhost:8002` 是独立 Backend，浏览器业务经各自应用的同源网关访问。
 
 文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。
 当前聊天宿主的实现范围与后续接入点见[聊天宿主基础实现](docs/stable/references/chat-host-foundation.md)。

@@ -153,7 +153,7 @@ export function PhoneLoginForm({
     }
 
     if (data) {
-      window.location.assign(postAuthPath(locale, window.location.search));
+      window.location.assign(postAuthPath(window.location.search));
     }
 
     setLoading(false);

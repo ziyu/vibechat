@@ -275,8 +275,8 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 
 | 当前范围 | 目标去向 | 处理原则 |
 | --- | --- | --- |
-| `/$lang/` | `site-app` | 官网首页；CTA 指向 Web 产品 origin |
-| `/$lang/blog/*` | `site-app` 或 docs 内容 | 先评审是否仍属产品内容，再迁移 |
+| `/` | `site-app` | 官网首页；CTA 指向 Web 产品 origin |
+| `/blog/*` | `site-app` 或 docs 内容 | 先评审是否仍属产品内容，再迁移 |
 | auth + onboarding | `web-app`，UI 可进入 `product-react`/`auth-client` | Web 路由保留，Desktop 使用独立认证入口 |
 | messages/contacts/discover/me/rooms | `web-app` + `product-react` | 路由薄适配，共享 screen |
 | `/v1/*` | `backend` | Web 只保留同源透传，业务 handler 只有一份 |

@@ -58,7 +58,7 @@ export function LoginForm({
     setErrorCode('');
     setUserEmail(data.email);
 
-    const callbackURL = postAuthPath(locale, window.location.search);
+    const callbackURL = postAuthPath(window.location.search);
 
     const { error } = await authClientReact.signIn.email({
       email: data.email,
@@ -136,8 +136,7 @@ export function LoginForm({
             <div className="flex items-center">
               <Label htmlFor="password">{t.auth.signin.password}</Label>
               <Link
-                to="/$lang/forgot-password"
-                params={{ lang: locale }}
+                to="/forgot-password"
                 className="ml-auto text-sm underline-offset-4 hover:underline"
               >
                 {t.auth.signin.forgotPassword}
@@ -191,7 +190,7 @@ export function LoginForm({
         </div>
         <div className="text-center text-sm">
           {t.auth.signin.noAccount}{" "}
-          <Link to="/$lang/signup" params={{ lang: locale }} className="underline underline-offset-4">
+          <Link to="/signup" className="underline underline-offset-4">
             {t.auth.signin.signupLink}
           </Link>
         </div>

@@ -102,8 +102,8 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
               data-membership={room.membership || 'join'}
             >
               <Link
-                to="/$lang/rooms/$roomId"
-                params={{ lang: locale, roomId: room.id }}
+                to="/rooms/$roomId"
+                params={{ roomId: room.id }}
                 onClick={() => markRoomRead(room.id)}
                 className="vc-room-link"
               >

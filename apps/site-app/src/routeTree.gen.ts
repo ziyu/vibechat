@@ -9,142 +9,151 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LangRouteImport } from './routes/$lang'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
+import { Route as LocaleRouteImport } from './routes/$locale'
+import { Route as rootRouteRouteImport } from './routes/(root)/route'
+import { Route as rootIndexRouteImport } from './routes/(root)/index'
+import { Route as LocaleSplatRouteImport } from './routes/$locale/$'
 import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
-import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
+import { Route as rootBlogIndexRouteImport } from './routes/(root)/blog/index'
 import { Route as ApiBlogSlugRouteImport } from './routes/api/blog/$slug'
-import { Route as LangrootBlogIndexRouteImport } from './routes/$lang/(root)/blog/index'
-import { Route as LangrootBlogSlugRouteImport } from './routes/$lang/(root)/blog/$slug'
+import { Route as rootBlogSlugRouteImport } from './routes/(root)/blog/$slug'
 
-const LangRoute = LangRouteImport.update({
-  id: '/$lang',
-  path: '/$lang',
+const LocaleRoute = LocaleRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const rootRouteRoute = rootRouteRouteImport.update({
+  id: '/(root)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const rootIndexRoute = rootIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteRoute,
 } as any)
-const LangrootRouteRoute = LangrootRouteRouteImport.update({
-  id: '/(root)',
-  getParentRoute: () => LangRoute,
+const LocaleSplatRoute = LocaleSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => LocaleRoute,
 } as any)
 const ApiBlogIndexRoute = ApiBlogIndexRouteImport.update({
   id: '/api/blog/',
   path: '/api/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangrootIndexRoute = LangrootIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LangrootRouteRoute,
+const rootBlogIndexRoute = rootBlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteRoute,
 } as any)
 const ApiBlogSlugRoute = ApiBlogSlugRouteImport.update({
   id: '/api/blog/$slug',
   path: '/api/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangrootBlogIndexRoute = LangrootBlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => LangrootRouteRoute,
-} as any)
-const LangrootBlogSlugRoute = LangrootBlogSlugRouteImport.update({
+const rootBlogSlugRoute = rootBlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => rootRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$lang': typeof LangrootRouteRouteWithChildren
+  '/$locale': typeof LocaleRouteWithChildren
+  '/$locale/$': typeof LocaleSplatRoute
+  '/': typeof rootIndexRoute
+  '/blog/$slug': typeof rootBlogSlugRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
-  '/$lang/': typeof LangrootIndexRoute
+  '/blog/': typeof rootBlogIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
-  '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
-  '/$lang/blog/': typeof LangrootBlogIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$lang': typeof LangrootIndexRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/$locale/$': typeof LocaleSplatRoute
+  '/': typeof rootIndexRoute
+  '/blog/$slug': typeof rootBlogSlugRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
+  '/blog': typeof rootBlogIndexRoute
   '/api/blog': typeof ApiBlogIndexRoute
-  '/$lang/blog/$slug': typeof LangrootBlogSlugRoute
-  '/$lang/blog': typeof LangrootBlogIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$lang': typeof LangRouteWithChildren
-  '/$lang/(root)': typeof LangrootRouteRouteWithChildren
+  '/(root)': typeof rootRouteRouteWithChildren
+  '/$locale': typeof LocaleRouteWithChildren
+  '/$locale/$': typeof LocaleSplatRoute
+  '/(root)/': typeof rootIndexRoute
+  '/(root)/blog/$slug': typeof rootBlogSlugRoute
   '/api/blog/$slug': typeof ApiBlogSlugRoute
-  '/$lang/(root)/': typeof LangrootIndexRoute
+  '/(root)/blog/': typeof rootBlogIndexRoute
   '/api/blog/': typeof ApiBlogIndexRoute
-  '/$lang/(root)/blog/$slug': typeof LangrootBlogSlugRoute
-  '/$lang/(root)/blog/': typeof LangrootBlogIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$locale'
+    | '/$locale/$'
     | '/'
-    | '/$lang'
+    | '/blog/$slug'
     | '/api/blog/$slug'
-    | '/$lang/'
+    | '/blog/'
     | '/api/blog/'
-    | '/$lang/blog/$slug'
-    | '/$lang/blog/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$locale'
+    | '/$locale/$'
     | '/'
-    | '/$lang'
+    | '/blog/$slug'
     | '/api/blog/$slug'
+    | '/blog'
     | '/api/blog'
-    | '/$lang/blog/$slug'
-    | '/$lang/blog'
   id:
     | '__root__'
-    | '/'
-    | '/$lang'
-    | '/$lang/(root)'
+    | '/(root)'
+    | '/$locale'
+    | '/$locale/$'
+    | '/(root)/'
+    | '/(root)/blog/$slug'
     | '/api/blog/$slug'
-    | '/$lang/(root)/'
+    | '/(root)/blog/'
     | '/api/blog/'
-    | '/$lang/(root)/blog/$slug'
-    | '/$lang/(root)/blog/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LangRoute: typeof LangRouteWithChildren
+  rootRouteRoute: typeof rootRouteRouteWithChildren
+  LocaleRoute: typeof LocaleRouteWithChildren
   ApiBlogSlugRoute: typeof ApiBlogSlugRoute
   ApiBlogIndexRoute: typeof ApiBlogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/$lang': {
-      id: '/$lang'
-      path: '/$lang'
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangRouteImport
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/(root)': {
+      id: '/(root)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof rootRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(root)/': {
+      id: '/(root)/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof rootIndexRouteImport
+      parentRoute: typeof rootRouteRoute
     }
-    '/$lang/(root)': {
-      id: '/$lang/(root)'
-      path: ''
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangrootRouteRouteImport
-      parentRoute: typeof LangRoute
+    '/$locale/$': {
+      id: '/$locale/$'
+      path: '/$'
+      fullPath: '/$locale/$'
+      preLoaderRoute: typeof LocaleSplatRouteImport
+      parentRoute: typeof LocaleRoute
     }
     '/api/blog/': {
       id: '/api/blog/'
@@ -153,12 +162,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/(root)/': {
-      id: '/$lang/(root)/'
-      path: '/'
-      fullPath: '/$lang/'
-      preLoaderRoute: typeof LangrootIndexRouteImport
-      parentRoute: typeof LangrootRouteRoute
+    '/(root)/blog/': {
+      id: '/(root)/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof rootBlogIndexRouteImport
+      parentRoute: typeof rootRouteRoute
     }
     '/api/blog/$slug': {
       id: '/api/blog/$slug'
@@ -167,52 +176,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/(root)/blog/': {
-      id: '/$lang/(root)/blog/'
-      path: '/blog'
-      fullPath: '/$lang/blog/'
-      preLoaderRoute: typeof LangrootBlogIndexRouteImport
-      parentRoute: typeof LangrootRouteRoute
-    }
-    '/$lang/(root)/blog/$slug': {
-      id: '/$lang/(root)/blog/$slug'
+    '/(root)/blog/$slug': {
+      id: '/(root)/blog/$slug'
       path: '/blog/$slug'
-      fullPath: '/$lang/blog/$slug'
-      preLoaderRoute: typeof LangrootBlogSlugRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof rootBlogSlugRouteImport
+      parentRoute: typeof rootRouteRoute
     }
   }
 }
 
-interface LangrootRouteRouteChildren {
-  LangrootIndexRoute: typeof LangrootIndexRoute
-  LangrootBlogSlugRoute: typeof LangrootBlogSlugRoute
-  LangrootBlogIndexRoute: typeof LangrootBlogIndexRoute
+interface rootRouteRouteChildren {
+  rootIndexRoute: typeof rootIndexRoute
+  rootBlogSlugRoute: typeof rootBlogSlugRoute
+  rootBlogIndexRoute: typeof rootBlogIndexRoute
 }
 
-const LangrootRouteRouteChildren: LangrootRouteRouteChildren = {
-  LangrootIndexRoute: LangrootIndexRoute,
-  LangrootBlogSlugRoute: LangrootBlogSlugRoute,
-  LangrootBlogIndexRoute: LangrootBlogIndexRoute,
+const rootRouteRouteChildren: rootRouteRouteChildren = {
+  rootIndexRoute: rootIndexRoute,
+  rootBlogSlugRoute: rootBlogSlugRoute,
+  rootBlogIndexRoute: rootBlogIndexRoute,
 }
 
-const LangrootRouteRouteWithChildren = LangrootRouteRoute._addFileChildren(
-  LangrootRouteRouteChildren,
+const rootRouteRouteWithChildren = rootRouteRoute._addFileChildren(
+  rootRouteRouteChildren,
 )
 
-interface LangRouteChildren {
-  LangrootRouteRoute: typeof LangrootRouteRouteWithChildren
+interface LocaleRouteChildren {
+  LocaleSplatRoute: typeof LocaleSplatRoute
 }
 
-const LangRouteChildren: LangRouteChildren = {
-  LangrootRouteRoute: LangrootRouteRouteWithChildren,
+const LocaleRouteChildren: LocaleRouteChildren = {
+  LocaleSplatRoute: LocaleSplatRoute,
 }
 
-const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
+const LocaleRouteWithChildren =
+  LocaleRoute._addFileChildren(LocaleRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LangRoute: LangRouteWithChildren,
+  rootRouteRoute: rootRouteRouteWithChildren,
+  LocaleRoute: LocaleRouteWithChildren,
   ApiBlogSlugRoute: ApiBlogSlugRoute,
   ApiBlogIndexRoute: ApiBlogIndexRoute,
 }

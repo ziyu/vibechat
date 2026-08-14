@@ -161,7 +161,7 @@ export function AccountPage() {
           <h1>{t.chatApp.account.title}</h1>
           <p>{t.chatApp.account.description}</p>
         </div>
-        <Link to="/$lang/services" params={{ lang: locale }} className="vc-product-cta">
+        <Link to="/services" className="vc-product-cta">
           {t.chatApp.services.pricing}<ExternalLink size={14} />
         </Link>
       </header>

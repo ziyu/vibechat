@@ -78,8 +78,8 @@ export function NewChatDialog({
       const roomId = await createRoom({ participantIds, spaceId })
       onOpenChange(false)
       navigate({
-        to: '/$lang/rooms/$roomId',
-        params: { lang: locale, roomId },
+        to: '/rooms/$roomId',
+        params: { roomId },
       })
     } catch {
       setCreateError(true)

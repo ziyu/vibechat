@@ -63,8 +63,8 @@ export function PaymentResultPage({ mode }: { mode: 'success' | 'cancel' }) {
         <p>{paid ? t.payment.result.success.description : mode === 'cancel' ? t.payment.result.cancel.description : state === 'failed' ? t.payment.result.failed : t.payment.steps.payDesc}</p>
         {checking ? <div className="vc-payment-checking"><RefreshCcw className="vc-spin" />{attempt < 15 ? t.payment.steps.payDesc : t.payment.result.failed}</div> : null}
         <div className="vc-payment-result-actions">
-          {mode === 'success' ? <Link to="/$lang/account" params={{ lang: locale }}>{t.payment.result.success.actions.viewSubscription}</Link> : <Link to="/$lang/services" params={{ lang: locale }}>{t.payment.result.cancel.actions.tryAgain}</Link>}
-          <Link to="/$lang/messages" params={{ lang: locale }} data-quiet>{mode === 'success' ? t.payment.result.success.actions.backToHome : t.payment.result.cancel.actions.backToHome}</Link>
+          {mode === 'success' ? <Link to="/account">{t.payment.result.success.actions.viewSubscription}</Link> : <Link to="/services">{t.payment.result.cancel.actions.tryAgain}</Link>}
+          <Link to="/messages" data-quiet>{mode === 'success' ? t.payment.result.success.actions.backToHome : t.payment.result.cancel.actions.backToHome}</Link>
           {checking && attempt >= 15 ? <button type="button" onClick={() => { setAttempt(0); void verify() }}>{t.chatApp.account.retry}</button> : null}
         </div>
       </div>

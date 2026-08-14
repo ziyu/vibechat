@@ -5,8 +5,7 @@ interface HeadConfig {
   meta: Array<{ title: string } | { name: string; content: string }>
 }
 
-export function getTranslations(lang: string): Translations {
-  const locale = lang as SupportedLocale
+export function getTranslations(locale: SupportedLocale): Translations {
   return (
     translations[locale]
     || translations[config.app.i18n.defaultLocale as SupportedLocale]
@@ -14,14 +13,14 @@ export function getTranslations(lang: string): Translations {
 }
 
 export function seoHead(
-  lang: string,
+  locale: SupportedLocale,
   extract: (t: Translations) => {
     title: string
     description?: string
     keywords?: string
   },
 ): HeadConfig {
-  const seo = extract(getTranslations(lang))
+  const seo = extract(getTranslations(locale))
   const meta: HeadConfig['meta'] = [{ title: seo.title }]
   if (seo.description) meta.push({ name: 'description', content: seo.description })
   if (seo.keywords) meta.push({ name: 'keywords', content: seo.keywords })

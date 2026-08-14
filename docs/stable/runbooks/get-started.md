@@ -66,7 +66,7 @@ pnpm dev
 
 访问：
 
-- 产品应用：`http://localhost:8001/zh-CN`
+- 产品应用：`http://localhost:8001/`
 - 健康检查：`http://localhost:8001/api/health`
 
 文档站单独启动：

@@ -5,7 +5,7 @@ import { setCommissionBalance } from '../helpers/affiliate'
 
 const ADMIN_ORIGIN = process.env.ADMIN_E2E_ORIGIN || 'http://localhost:8005'
 const WEB_ORIGIN = process.env.E2E_BASE_URL || 'http://localhost:8001'
-const adminUrl = (path = '') => `${ADMIN_ORIGIN}/en/admin${path}`
+const adminUrl = (path = '') => `${ADMIN_ORIGIN}/admin${path}`
 
 test.describe('Independent Admin App', () => {
   test.describe.configure({ mode: 'serial' })
@@ -14,7 +14,7 @@ test.describe('Independent Admin App', () => {
     const signedOutContext = await browser.newContext()
     const signedOutPage = await signedOutContext.newPage()
     await signedOutPage.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
-    await expect(signedOutPage).toHaveURL(/\/en\/signin$/)
+    await expect(signedOutPage).toHaveURL(/\/signin$/)
     await expect(signedOutPage.getByRole('heading', {
       name: 'Administrator sign-in required',
     })).toBeVisible()
@@ -30,7 +30,7 @@ test.describe('Independent Admin App', () => {
     })
     expect(signup.ok(), await signup.text()).toBeTruthy()
     await normalPage.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
-    await expect(normalPage).toHaveURL(/\/en\/forbidden$/)
+    await expect(normalPage).toHaveURL(/\/forbidden$/)
     await expect(normalPage.getByTestId('admin-forbidden')).toBeVisible()
     expect((await normalPage.request.get(`${ADMIN_ORIGIN}/api/admin/stats`)).status()).toBe(403)
     await normalContext.close()
@@ -135,7 +135,7 @@ test.describe('Independent Admin App', () => {
     expect(read.ok(), await read.text()).toBeTruthy()
     expect(await read.json()).toMatchObject({ name: updatedName, kycVerified: true })
 
-    await adminPage.goto(`${ADMIN_ORIGIN}/en/admin/users/${createPayload.user.id}`, { timeout: TIMEOUTS.navigation })
+    await adminPage.goto(`${ADMIN_ORIGIN}/admin/users/${createPayload.user.id}`, { timeout: TIMEOUTS.navigation })
     await expect(adminPage.locator('#name')).toHaveValue(updatedName)
     const uiUpdate = adminPage.waitForResponse((response) => (
       response.url() === `${ADMIN_ORIGIN}/api/users/${createPayload.user.id}`

@@ -140,7 +140,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       await new Promise((resolve) => setTimeout(resolve, 1_500))
       await route.continue()
     })
-    await page.goto(`/zh-CN/rooms/${encodeURIComponent(created.matrixRoomId)}`)
+    await page.goto(`/rooms/${encodeURIComponent(created.matrixRoomId)}`)
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
     await expect(page.getByTestId('atmosphere-canvas')).toBeVisible()

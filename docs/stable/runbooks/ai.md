@@ -15,7 +15,7 @@
 ## 操作
 
 1. 启动 `pnpm dev`，登录 `http://localhost:8001`。
-2. 在 `/zh-CN/ai`、`/zh-CN/image-generate` 或 `/zh-CN/video-generate` 选择允许的 provider/model。
+2. 在 `/ai`、`/image-generate` 或 `/video-generate` 选择允许的 provider/model。
 3. 发起请求时 Web 生成稳定 `requestId`；重试同一次交互必须复用它。
 4. Backend 校验输入与用户积分，写入预留/消费和任务状态，再调用 provider。
 5. 对话按 provider usage 结算；图片/视频保存结果或失败状态；失败通过确定性交易 ID 退款。

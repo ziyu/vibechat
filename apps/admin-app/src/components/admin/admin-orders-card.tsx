@@ -236,7 +236,7 @@ export function AdminOrdersCard({ limit = 10 }: AdminOrdersCardProps) {
 
           <div className="p-6 border-t border-border">
             <Button variant="outline" asChild className="w-full">
-              <a href={`/${currentLocale}/admin/orders`}>
+              <a href="/admin/orders">
                 {t.dashboard.orders.viewAllOrders}
                 <ExternalLink className="ml-2 h-4 w-4" />
               </a>

@@ -15,6 +15,8 @@ Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md
 
 跨宿主 workspace packages 已建立并接入：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client`、`platform-contracts`、`i18n`、`validators`、`ui` 与 `react-shared`。这些边界有独立 manifests、exports、依赖和构建门槛；`libs/*` 只保存 Backend 单宿主领域实现，不再承担跨应用共享源码。
 
+当前正在按[多应用无前缀本地化集成记录](./active/locale-neutral-routing.md)收口 Site、产品 Web 与 Admin 的本地化契约：业务资源 URL 不携带语言段，SSR 从共享 Cookie 解析语言，旧语言前缀只承担兼容跳转。Docs App 的内容型语言 URL 不在这次迁移范围内。
+
 ## 当前约束
 
 - 产品 Web/PWA 只以 `apps/web-app` 的 TanStack Start 实现为准；活动路由包含认证、onboarding、聊天、账户、服务/上传、支付结果与 AI 产品面。
@@ -22,7 +24,7 @@ Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md
 - 共享 backend 位于 `apps/backend`，本地端口 `8002`；承载 Better Auth、产品 `/v1`、上传、账户/计费、推荐提现、支付、AI、健康检查和官网 Blog 读取。
 - 文档站位于 `apps/docs-app`。
 - 独立 Admin App 位于 `apps/admin-app`，本地端口 `8005`；只消费 Backend API，不直接导入数据库或 Backend 内部领域实现。
-- Admin 的 `/$lang/*` 页面路由必须排除保留段 `api`，确保 `/api/*` 总是进入同源 Backend 网关；运营 E2E 必须禁用接口重定向并校验 JSON 响应及页面实际数据请求，不能只用最终 `200` 或标题可见作为通过证据。
+- Admin 页面固定在 `/admin/*`，`/api/*` 总是进入同源 Backend 网关；运营 E2E 必须禁用接口重定向并校验 JSON 响应及页面实际数据请求，不能只用最终 `200` 或标题可见作为通过证据。
 - 经评审保留的旧能力已经迁入活动 app/package/lib 边界；不再保留第二份 `legacy` 源码或历史 E2E 快照，历史决策只由 `docs/archive` 保存。
 - `scripts/check-app-boundaries.mjs` 阻止 app-to-app 导入，以及 Site/Web 对数据库、支付、AI、存储和服务端 Auth 的直接导入。
 - 跨宿主且需要稳定导出的能力进入 `packages/*`；单一 Backend 内部领域实现继续放在 `libs/*`，是否升级为 package 依据第二个真实消费者、独立发布或隔离依赖的证据评审。

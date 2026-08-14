@@ -12,11 +12,11 @@
 
 在服务端设置 `AFFILIATE_ENABLED=true`，并确认佣金比例、统一币种、最低提现额、Cookie 天数和双方奖励值。所有产生佣金的方案必须与 `AFFILIATE_CURRENCY` 使用同一币种。
 
-新用户 `kycVerified` 默认是 `false`。运营人员在 `http://localhost:8005/zh-CN/admin/users/:id` 完成身份资料线下审核后，才能打开“提现身份已审核”；前端注册请求不能自行写入该字段。
+新用户 `kycVerified` 默认是 `false`。运营人员在 `http://localhost:8005/admin/users/:id` 完成身份资料线下审核后，才能打开“提现身份已审核”；前端注册请求不能自行写入该字段。
 
 ## 推荐归因
 
-1. 推荐人在 `/$lang/account` 获取 `/referral/:code` 链接。
+1. 推荐人在 `/account` 获取 `/referral/:code` 链接。
 2. 访问链接后，Web 重定向到本地化注册页并写入 `SameSite=Lax` 推荐 Cookie。
 3. 新用户注册/登录后调用 `POST /api/affiliate/claim`。
 4. Backend 拒绝无效码、自荐和改绑；成功后按被推荐用户 ID 生成双方奖励幂等键。
@@ -31,7 +31,7 @@
 
 1. 用户必须通过 KYC，余额不低于最低提现额。
 2. `POST /api/withdrawal/request` 以 request ID 幂等地原子冻结佣金余额并创建 `pending` 记录。
-3. Admin 在 `/$lang/admin/withdrawals` 将记录置为 `processing`、`completed` 或 `rejected`。
+3. Admin 在 `/admin/withdrawals` 将记录置为 `processing`、`completed` 或 `rejected`。
 4. `completed` 和 `rejected` 是终态；拒绝会原子退还冻结余额，重复或并发拒绝不能退款两次。
 
 ## 验证

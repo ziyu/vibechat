@@ -94,7 +94,7 @@ export function SignupForm({
       setVerificationEmail(formData.email);
       setIsVerificationEmailSent(true);
     } else {
-      window.location.assign(postAuthPath(locale, window.location.search));
+      window.location.assign(postAuthPath(window.location.search));
     }
 
     setLoading(false);
@@ -250,8 +250,7 @@ export function SignupForm({
         <div className="text-center text-sm">
           {t.auth.signup.haveAccount}{" "}
           <Link
-            to="/$lang/signin"
-            params={{ lang: locale }}
+            to="/signin"
             className="text-primary underline underline-offset-4 hover:underline"
           >
             {t.auth.signup.signinLink}

@@ -109,7 +109,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
         <section className="vc-room-missing">
           <h1>{t.chatApp.room.notFound}</h1>
           <p>{t.chatApp.room.notFoundDescription}</p>
-          <Link to="/$lang/messages" params={{ lang: locale }} className="vc-button vc-button-primary">
+          <Link to="/messages" className="vc-button vc-button-primary">
             {t.actions.back}
           </Link>
         </section>
@@ -198,8 +198,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
           onFocus={() => setControlsVisible(true)}
         >
           <Link
-            to="/$lang/messages"
-            params={{ lang: locale }}
+            to="/messages"
             className="vc-control-icon"
             aria-label={t.chatApp.room.backToMessages}
           >

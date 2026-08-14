@@ -57,17 +57,10 @@ const getSubscriptionAccess = createServerFn({ method: 'GET' }).handler(async ()
  * Redirect authenticated users away from auth pages (signin, signup, etc.)
  * to the chat product. Use in `beforeLoad` of auth routes.
  */
-export async function redirectIfAuthenticated({
-  params,
-}: {
-  params: { lang: string }
-}) {
+export async function redirectIfAuthenticated() {
   const result = await getAuthSession()
   if (result?.user) {
-    throw redirect({
-      to: '/$lang/messages',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/messages' })
   }
 }
 
@@ -75,29 +68,22 @@ export async function redirectIfAuthenticated({
  * Require authentication. Redirects to signin if no session.
  * Use in `beforeLoad` of protected routes.
  */
-export async function requireAuth({
-  params,
-}: {
-  params: { lang: string }
-}) {
+export async function requireAuth() {
   const result = await getAuthSession()
   const user = result?.user
   if (!user) {
-    throw redirect({
-      to: '/$lang/signin',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/signin' })
   }
   return { user }
 }
 
 /** Require an active subscription or lifetime entitlement for premium pages. */
-export async function requireSubscription({ params }: { params: { lang: string } }) {
+export async function requireSubscription() {
   const authResult = await getAuthSession()
   if (!authResult?.user) {
-    throw redirect({ to: '/$lang/signin', params: { lang: params.lang } })
+    throw redirect({ to: '/signin' })
   }
   const status = await getSubscriptionAccess()
   if (status.hasSubscription || status.isLifetime) return { user: authResult.user }
-  throw redirect({ to: '/$lang/services', params: { lang: params.lang } })
+  throw redirect({ to: '/services' })
 }

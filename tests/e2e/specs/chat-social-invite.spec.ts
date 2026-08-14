@@ -63,7 +63,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
         error: { code: 'SOCIAL_NOT_CONTACT' },
       })
 
-      await alice.page.goto('/zh-CN/contacts')
+      await alice.page.goto('/contacts')
       await expectMatrixReady(alice.page)
       await alice.page.getByPlaceholder('搜索名字或用户名').fill(bob.bootstrap.user.email)
       const searchResult = alice.page.getByTestId('user-search-result')
@@ -88,7 +88,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
         person: { id: bob.bootstrap.user.id },
       })
 
-      await bob.page.goto('/zh-CN/contacts')
+      await bob.page.goto('/contacts')
       await expectMatrixReady(bob.page)
       const incomingRequest = bob.page.getByTestId('friend-request')
       await expect(incomingRequest).toHaveCount(1)
@@ -123,11 +123,11 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       await dialog.getByRole('button', { name: /夜航电台/ }).click()
       await dialog.getByRole('button', { name: '下一页' }).click()
       await dialog.getByRole('button', { name: '创建房间' }).click()
-      await expect(alice.page).toHaveURL(/\/zh-CN\/rooms\/!/)
+      await expect(alice.page).toHaveURL(/\/rooms\/!/)
       await expectMatrixReady(alice.page)
       const roomId = decodeURIComponent(new URL(alice.page.url()).pathname.split('/').at(-1)!)
 
-      await bob.page.goto('/zh-CN/messages')
+      await bob.page.goto('/messages')
       await expectMatrixReady(bob.page)
       const invitedRoom = bob.page.locator(
         '[data-testid="conversation-row"][data-membership="invite"]',
@@ -142,7 +142,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       )
       await expect(joinedRoom).toHaveCount(1)
       await joinedRoom.getByRole('link').click()
-      await expect(bob.page).toHaveURL(new RegExp(`/zh-CN/rooms/${encodeURIComponent(roomId)}`))
+      await expect(bob.page).toHaveURL(new RegExp(`/rooms/${encodeURIComponent(roomId)}`))
 
       const aliceText = `Alice 到达房间 ${suffix}`
       await alice.page.getByTestId('message-input').fill(aliceText)
@@ -167,7 +167,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
           .locator('xpath=ancestor::article'),
       ).toContainText(aliceText)
 
-      await bob.page.goto('/zh-CN/contacts')
+      await bob.page.goto('/contacts')
       await expectMatrixReady(bob.page)
       const aliceContact = bob.page.getByTestId('contact-row').filter({ hasText: 'Alice Social E2E' })
       await expect(aliceContact).toBeVisible()
@@ -197,7 +197,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
         error: { code: 'SOCIAL_BLOCKED' },
       })
 
-      await bob.page.goto('/zh-CN/me')
+      await bob.page.goto('/me')
       await expectMatrixReady(bob.page)
       await bob.page.getByTestId('manage-privacy').click()
       const blockedUser = bob.page.getByTestId('blocked-user')

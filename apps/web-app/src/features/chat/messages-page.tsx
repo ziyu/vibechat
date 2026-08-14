@@ -85,7 +85,7 @@ export function MessagesPage() {
                   <UsersRound size={15} />
                   {t.chatApp.messages.recentPeople}
                 </span>
-                <Link to="/$lang/contacts" params={{ lang: locale }}>
+                <Link to="/contacts">
                   {t.chatApp.common.viewAll}
                 </Link>
               </header>
@@ -116,8 +116,8 @@ export function MessagesPage() {
                 return (
                   <Link
                     key={room.id}
-                    to="/$lang/rooms/$roomId"
-                    params={{ lang: locale, roomId: room.id }}
+                    to="/rooms/$roomId"
+                    params={{ roomId: room.id }}
                   >
                     <span className="vc-room-index">0{index + 1}</span>
                     <span className="vc-recent-room-copy">

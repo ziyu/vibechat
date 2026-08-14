@@ -1,16 +1,15 @@
 import { config } from '@config'
 import { translations, type SupportedLocale, type Translations } from '@vibechat/i18n'
 
-export function getTranslations(lang: string): Translations {
-  const locale = lang as SupportedLocale
+export function getTranslations(locale: SupportedLocale): Translations {
   return (translations[locale] || translations[config.app.i18n.defaultLocale]) as Translations
 }
 
 export function seoHead(
-  lang: string,
+  locale: SupportedLocale,
   extract: (translations: Translations) => { title: string; description?: string },
 ) {
-  const seo = extract(getTranslations(lang))
+  const seo = extract(getTranslations(locale))
   return {
     meta: [
       { title: seo.title },

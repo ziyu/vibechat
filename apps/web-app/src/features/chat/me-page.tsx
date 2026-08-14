@@ -414,7 +414,7 @@ export function MePage() {
 
           <SettingsGroup title={t.chatApp.me.about}>
             <SettingsRow icon={<CreditCard />} title={t.chatApp.me.accountCenter} description={t.chatApp.me.accountCenterDescription}>
-              <Link to="/$lang/account" params={{ lang: locale }} className="vc-settings-action">
+              <Link to="/account" className="vc-settings-action">
                 {t.chatApp.me.manage}<ChevronRight />
               </Link>
             </SettingsRow>

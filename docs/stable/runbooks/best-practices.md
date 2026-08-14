@@ -15,10 +15,10 @@
 | 共享业务与 Provider 逻辑 | `libs/*` |
 | 静态选项和默认配置 | `config/*`、`config.ts` |
 | React 共享组件与 hooks | `packages/react-shared/src` |
-| 官网页面 | `apps/site-app/src/routes/$lang/**` |
-| 产品页面 | `apps/web-app/src/routes/$lang/**` |
+| 官网页面 | `apps/site-app/src/routes/**` |
+| 产品页面 | `apps/web-app/src/routes/**` |
 | 产品 API、Auth、上传、支付与 AI | `apps/backend/src/routes/**` |
-| 运营页面 | `apps/admin-app/src/routes/$lang/admin/**` |
+| 运营页面 | `apps/admin-app/src/routes/admin/**` |
 | Web 同源网关 | `apps/web-app/src/routes/api/$.ts`、`v1/$.ts` |
 | 翻译 | `packages/i18n/src/locales/en.ts`、`zh-CN.ts` |
 

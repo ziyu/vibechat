@@ -1,6 +1,6 @@
 'use client'
 
-import { useNavigate, useParams, useRouterState } from '@tanstack/react-router'
+import { useRouteContext } from '@tanstack/react-router'
 import {
   locales,
   translations,
@@ -9,18 +9,16 @@ import {
 } from '@vibechat/i18n'
 import { createNextTranslationFunction } from '@vibechat/validators'
 import { config } from '@config'
+import { setClientLocalePreference } from '@/lib/locale.functions'
 
 export function useTranslation() {
-  const params = useParams({ strict: false }) as { lang?: string }
-  const navigate = useNavigate()
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const locale = (params.lang as SupportedLocale) || config.app.i18n.defaultLocale
+  const { locale } = useRouteContext({ from: '__root__' })
   const t = translations[locale] as Translations
 
   const changeLocale = (newLocale: SupportedLocale) => {
-    const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
-    void navigate({ to: `/${newLocale}${pathWithoutLocale}` })
-    document.cookie = `${config.app.i18n.cookieKey}=${newLocale}; path=/; max-age=31536000`
+    if (newLocale === locale) return
+    setClientLocalePreference(newLocale)
+    window.location.reload()
   }
 
   return {

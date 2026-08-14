@@ -10,8 +10,16 @@ import { PAGES, TIMEOUTS } from '../helpers/constants';
  */
 
 test.describe('Split application boundaries', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addCookies([{
+      name: 'VIBECHAT_LOCALE',
+      value: 'en',
+      url: 'http://localhost:8001',
+    }])
+  })
+
   test('site app renders the public brand shell', async ({ page }) => {
-    await page.goto('http://localhost:8003/en', { timeout: TIMEOUTS.navigation });
+    await page.goto('http://localhost:8003/', { timeout: TIMEOUTS.navigation });
 
     // Page should load without errors
     await expect(page).not.toHaveTitle(/error|500|404/i);
@@ -66,7 +74,7 @@ test.describe('Split application boundaries', () => {
 
   test('web root is a product entry and backend health is same-origin', async ({ page }) => {
     await page.goto(PAGES.home, { timeout: TIMEOUTS.navigation });
-    await expect(page).toHaveURL(/\/en\/(messages|signin)$/);
+    await expect(page).toHaveURL(/\/(messages|signin)$/);
 
     const health = await page.request.get('/api/health');
     expect(health.ok(), await health.text()).toBeTruthy();

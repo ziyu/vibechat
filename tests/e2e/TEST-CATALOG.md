@@ -65,11 +65,11 @@
 
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
-| 1 | 首页加载 | 打开 `/en` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
-| 2 | 登录页加载 | 打开 `/en/signin` → 验证默认 Email OTP 表单 → 切换“Use password instead” → 验证密码输入框和提交按钮可见 |
-| 3 | 注册页加载 | 打开 `/en/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
-| 4 | 忘记密码页加载 | 打开 `/en/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
-| 5 | 定价页加载 | 打开 `/en/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
+| 1 | 首页加载 | 打开 `/` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
+| 2 | 登录页加载 | 打开 `/signin` → 验证默认 Email OTP 表单 → 切换“Use password instead” → 验证密码输入框和提交按钮可见 |
+| 3 | 注册页加载 | 打开 `/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
+| 4 | 忘记密码页加载 | 打开 `/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
+| 5 | 定价页加载 | 打开 `/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
 
 ---
 
@@ -295,15 +295,15 @@ webhook 触发后端 → 查询 plan 的 credits 字段 (100) → 调用 creditS
 
 **文件：** `specs/i18n-switching.spec.ts` ｜ **优先级：** P2 ｜ **无需登录**
 
-验证页面头部的语言切换功能，确保切换后 URL 更新、内容切换且选择持久化。
+验证 Site、产品 Web 与 Admin 的无前缀本地化契约、共享偏好、旧链接兼容和本地化错误页。
 
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
-| 1 | 首页使用默认英文语言 | 打开 `/en` → 验证 URL 包含 `/en` |
-| 2 | 从英文切换到中文 | 打开 `/en` → 点击语言下拉菜单 → 选择"中文" → 等待页面跳转到 `/zh-CN/` → 验证 URL 包含 `/zh-CN` |
-| 3 | 从中文切换回英文 | 打开 `/zh-CN` → 点击语言下拉菜单 → 选择 "English" → 等待页面跳转到 `/en/` → 验证 URL 包含 `/en` |
-| 4 | 语言选择跨页面持久化 | 打开 `/zh-CN` → 导航到 `/zh-CN/pricing` → 验证 URL 仍是中文 → 导航到 `/zh-CN/signin` → 验证 URL 仍是中文 |
-| 5 | 子页面双语言均可访问 | 访问英文定价页 `/en/pricing` → 验证标题可见 → 访问中文定价页 `/zh-CN/pricing` → 验证标题可见 |
+| 1 | 默认语言使用规范 URL | 清空 Cookie → 打开 Web `/signin` → 验证 HTML 语言为配置默认值且 URL 不含语言段 |
+| 2 | 官网切换语言不改资源 URL | 打开 Site `/blog?source=i18n#posts` → 切换语言 → 验证 pathname、query、hash 不变且页面文案切换 |
+| 3 | 三应用共享语言偏好 | 在 Site 切换语言 → 依次打开 Web `/signin` 与 Admin `/signin` → 验证三者从共享 Cookie 使用相同语言 |
+| 4 | 旧语言前缀跳转规范 URL | 分别访问 Site、Web、Admin 的 `/en/**` 与 `/zh-CN/**` → 验证 307 后保留业务路径、query、hash，且语言偏好生效 |
+| 5 | 未支持语言返回本地化 404 | 在两种语言偏好下分别访问三个应用的 `/fr/**` → 验证不重定向且 404 文案使用当前偏好语言 |
 
 ---
 
@@ -1026,7 +1026,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 消息宿主加载 | 打开 `/zh-CN/messages` → 验证消息、联系人、发现、我的四项一级导航存在 → 验证统一会话列表和未读状态可见 |
+| 1 | 消息宿主加载 | 打开 `/messages` → 验证消息、联系人、发现、我的四项一级导航存在 → 验证统一会话列表和未读状态可见 |
 | 2 | 搜索与未读筛选 | 在会话搜索框输入房间名或成员名 → 验证列表收窄 → 清空后切换未读筛选 → 验证仅展示有未读消息的会话 |
 | 3 | 进入房间并发送消息 | 从会话列表进入房间 → 验证氛围画布、宿主控制岛和消息时间线可见 → 输入文字并发送 → 验证本地回显及发送完成状态 |
 | 4 | 回复与回应 | 在房间中选择回复一条消息 → 验证输入区显示回复上下文 → 发送后验证关联内容可见 → 点击回应按钮并验证计数变化 |
@@ -1045,8 +1045,8 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 请求登录验证码 | 打开 `/zh-CN/signin` → 保持 Email OTP 为默认登录方式 → 输入邮箱并请求验证码 → 验证进入六位验证码输入步骤 |
-| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/zh-CN/messages` |
+| 1 | 请求登录验证码 | 打开 `/signin` → 保持 Email OTP 为默认登录方式 → 输入邮箱并请求验证码 → 验证进入六位验证码输入步骤 |
+| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/messages` |
 | 3 | 获取产品 session bootstrap | 登录后请求 `GET /v1/session/bootstrap` → 验证返回当前用户 ID、邮箱、展示名和头像字段 → 验证响应明确标记 Matrix 尚未配置且不包含 access token |
 | 4 | 未登录请求被拒绝 | 清除 Cookie 后请求 `GET /v1/session/bootstrap` → 验证返回 401 和稳定的产品错误结构 |
 | 5 | 旧密码登录仍可访问 | 在登录页切换到密码登录 → 验证旧账号兼容入口仍存在，迁移期间不破坏既有认证用户 |
@@ -1226,8 +1226,8 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 独立官网 | 打开 `http://localhost:8003/en` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/en/messages` |
-| 2 | 产品根入口 | 打开 `http://localhost:8001/en` → 未登录进入 `/en/signin`；已登录进入 `/en/messages`，不渲染官网或 legacy 页面 |
+| 1 | 独立官网 | 打开 `http://localhost:8003/` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/messages` |
+| 2 | 产品根入口 | 打开 `http://localhost:8001/` → 未登录进入 `/signin`；已登录进入 `/messages`，不渲染官网或 legacy 页面 |
 | 3 | Backend 健康 | 经 Web 同源路径请求 `GET /api/health` → 返回 `application=backend` 和健康数据库状态 |
 | 4 | 同源 Auth | 经 `8001/api/auth/*` 注册、登录、读取 session、退出 → Cookie 生命周期与拆分前一致 |
 | 5 | 同源产品 API | 经 `8001/v1/*` 完成 bootstrap、profile、social、rooms、spaces 与 product state → 真实 Matrix/数据库链路不变 |
@@ -1263,10 +1263,10 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 独立宿主 | 打开 `http://localhost:8005/en/admin` → Admin 壳层和运营导航可见 → Admin 可独立 typecheck/build，不进入 Web 产品 route tree |
+| 1 | 独立宿主 | 打开 `http://localhost:8005/admin` → Admin 壳层和运营导航可见 → Admin 可独立 typecheck/build，不进入 Web 产品 route tree |
 | 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → 转到本地化登录引导 → 管理 API 返回 `401`，不泄露统计或用户数据 |
 | 3 | 非管理员拒绝 | 普通真实用户访问 Admin 页面 → 显示无权限状态 → 管理 API 返回 `403`，前端篡改角色不能绕过 Backend |
-| 4 | 管理员会话 | seeded Admin 通过 Web 密码登录并提交 `callbackURL=http://localhost:8005/en/admin` → Better Auth 接受受信 Admin 回跳 → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
+| 4 | 管理员会话 | seeded Admin 通过 Web 密码登录并提交 `callbackURL=http://localhost:8005/admin` → Better Auth 接受受信 Admin 回跳 → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
 | 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 每个同源 API 禁止重定向并返回 JSON → 页面等待对应请求成功后呈现空状态或数据态，不使用 fixture，也不能用页面标题掩盖加载失败 |
 | 6 | 用户管理 mutation | Admin 打开测试用户详情并修改可恢复字段或角色 → Backend 校验管理员权限与输入 → 刷新后数据库值一致，再恢复原值 |
 | 7 | 定价与内容写入边界 | 管理定价或 Blog 的创建/更新/排序/删除操作通过 Backend 完成 → 非管理员执行同请求仍被拒绝 |
@@ -1325,8 +1325,9 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-14 | Site + Web + Admin | 10 | 0 | 0 | 多应用无前缀本地化与公开页面 Chromium 回归：默认语言、URL 不变的语言切换、跨端 Cookie、三端旧前缀兼容、双语 404、公开表单与根入口；另完成真实浏览器三端走查且控制台无 error |
 | 2026-08-14 | Web + Backend + Admin + Site + Synapse | 53 | 0 | 0 | 产品能力迁移最终 Chromium 回归：账户/安全、上传真实失败关闭、AI 结算退款、支付失败幂等、推荐奖励、提现 KYC、Admin CRUD 与完整 Matrix 聊天链路；另通过 Application Service 集成、API ownership、领域单元测试、10 packages 与四 app 构建、Workers 预览和 docs 静态导出 |
-| 2026-08-13 | Admin + Backend + Web | 3 | 0 | 0 | 修复 `/$lang/admin/*` 与 `/api/admin/*` 同名路由碰撞；Admin E2E 禁止接口重定向、校验 JSON content-type，并等待八个运营页面的真实 API 成功响应；另完成中文用户/订阅管理页浏览器走查、10 packages + 4 apps typecheck、packages + Backend/Web/Site/Admin/Docs build |
+| 2026-08-13 | Admin + Backend + Web | 3 | 0 | 0 | 修复当时 `/$lang/admin/*` 与 `/api/admin/*` 的同名路由碰撞；Admin E2E 禁止接口重定向、校验 JSON content-type，并等待八个运营页面的真实 API 成功响应；另完成中文用户/订阅管理页浏览器走查、10 packages + 4 apps typecheck、packages + Backend/Web/Site/Admin/Docs build |
 | 2026-08-13 | Better Auth + Web + Admin + Workers | 6 | 0 | 0 | Admin callbackURL 修复：trusted origins 安全单测 3 项、Admin Chromium E2E 3 项；另完成真实中文网页登录回跳、14 package typecheck、全量 build、Docs build，以及 Workers health 200 / 显式 Admin callback 进入凭据查询验证 |
 | 2026-08-12 | Packages + Backend + Web + Site + Admin + Synapse + D1 | 150 | 0 | 0 | Admin/libs 清理最终回归：活动领域单测 103 项（含提现拒绝只退款一次）、完整 Chromium E2E 39 项、Admin 权限 API 8 项；另完成 10 package + 4 app 根级 typecheck/build、文档站 build，以及 Workers/D1 health 200、未登录 Admin/bootstrap 401 smoke |
 | 2026-08-12 | Packages + Backend + Web + Site + Synapse + Vitest | 81 | 0 | 0 | Package 边界最终回归：活动产品 E2E 36 项、identity/rooms/social/product-state/product-client/product-core 单测 45 项；另完成 6 package + 3 app 根级 typecheck/build、Workers build/health/未登录 bootstrap 401 与文档站 build |

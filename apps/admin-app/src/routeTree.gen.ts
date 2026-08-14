@@ -9,279 +9,282 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LangRouteImport } from './routes/$lang'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as LangIndexRouteImport } from './routes/$lang/index'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as ForbiddenRouteImport } from './routes/forbidden'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LocaleRouteImport } from './routes/$locale'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
-import { Route as LangSigninRouteImport } from './routes/$lang/signin'
-import { Route as LangForbiddenRouteImport } from './routes/$lang/forbidden'
-import { Route as LangAdminRouteImport } from './routes/$lang/admin'
-import { Route as LangAdminIndexRouteImport } from './routes/$lang/admin/index'
-import { Route as LangAdminWithdrawalsIndexRouteImport } from './routes/$lang/admin/withdrawals/index'
-import { Route as LangAdminUsersIndexRouteImport } from './routes/$lang/admin/users/index'
-import { Route as LangAdminSubscriptionsIndexRouteImport } from './routes/$lang/admin/subscriptions/index'
-import { Route as LangAdminPricingIndexRouteImport } from './routes/$lang/admin/pricing/index'
-import { Route as LangAdminOrdersIndexRouteImport } from './routes/$lang/admin/orders/index'
-import { Route as LangAdminCreditsIndexRouteImport } from './routes/$lang/admin/credits/index'
-import { Route as LangAdminCommissionsIndexRouteImport } from './routes/$lang/admin/commissions/index'
-import { Route as LangAdminBlogIndexRouteImport } from './routes/$lang/admin/blog/index'
-import { Route as LangAdminUsersIdIndexRouteImport } from './routes/$lang/admin/users/$id/index'
-import { Route as LangAdminPricingIdIndexRouteImport } from './routes/$lang/admin/pricing/$id/index'
-import { Route as LangAdminBlogIdIndexRouteImport } from './routes/$lang/admin/blog/$id/index'
+import { Route as LocaleSplatRouteImport } from './routes/$locale/$'
+import { Route as AdminWithdrawalsIndexRouteImport } from './routes/admin/withdrawals/index'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
+import { Route as AdminSubscriptionsIndexRouteImport } from './routes/admin/subscriptions/index'
+import { Route as AdminPricingIndexRouteImport } from './routes/admin/pricing/index'
+import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
+import { Route as AdminCreditsIndexRouteImport } from './routes/admin/credits/index'
+import { Route as AdminCommissionsIndexRouteImport } from './routes/admin/commissions/index'
+import { Route as AdminBlogIndexRouteImport } from './routes/admin/blog/index'
+import { Route as AdminUsersIdIndexRouteImport } from './routes/admin/users/$id/index'
+import { Route as AdminPricingIdIndexRouteImport } from './routes/admin/pricing/$id/index'
+import { Route as AdminBlogIdIndexRouteImport } from './routes/admin/blog/$id/index'
 
-const LangRoute = LangRouteImport.update({
-  id: '/$lang',
-  path: '/$lang',
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ForbiddenRoute = ForbiddenRouteImport.update({
+  id: '/forbidden',
+  path: '/forbidden',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangIndexRoute = LangIndexRouteImport.update({
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleRoute = LocaleRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => LangRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangSigninRoute = LangSigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => LangRoute,
+const LocaleSplatRoute = LocaleSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => LocaleRoute,
 } as any)
-const LangForbiddenRoute = LangForbiddenRouteImport.update({
-  id: '/forbidden',
-  path: '/forbidden',
-  getParentRoute: () => LangRoute,
+const AdminWithdrawalsIndexRoute = AdminWithdrawalsIndexRouteImport.update({
+  id: '/withdrawals/',
+  path: '/withdrawals/',
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminRoute = LangAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => LangRoute,
-} as any)
-const LangAdminIndexRoute = LangAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LangAdminRoute,
-} as any)
-const LangAdminWithdrawalsIndexRoute =
-  LangAdminWithdrawalsIndexRouteImport.update({
-    id: '/withdrawals/',
-    path: '/withdrawals/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminUsersIndexRoute = LangAdminUsersIndexRouteImport.update({
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminSubscriptionsIndexRoute =
-  LangAdminSubscriptionsIndexRouteImport.update({
-    id: '/subscriptions/',
-    path: '/subscriptions/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminPricingIndexRoute = LangAdminPricingIndexRouteImport.update({
+const AdminSubscriptionsIndexRoute = AdminSubscriptionsIndexRouteImport.update({
+  id: '/subscriptions/',
+  path: '/subscriptions/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPricingIndexRoute = AdminPricingIndexRouteImport.update({
   id: '/pricing/',
   path: '/pricing/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminOrdersIndexRoute = LangAdminOrdersIndexRouteImport.update({
+const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminCreditsIndexRoute = LangAdminCreditsIndexRouteImport.update({
+const AdminCreditsIndexRoute = AdminCreditsIndexRouteImport.update({
   id: '/credits/',
   path: '/credits/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminCommissionsIndexRoute =
-  LangAdminCommissionsIndexRouteImport.update({
-    id: '/commissions/',
-    path: '/commissions/',
-    getParentRoute: () => LangAdminRoute,
-  } as any)
-const LangAdminBlogIndexRoute = LangAdminBlogIndexRouteImport.update({
+const AdminCommissionsIndexRoute = AdminCommissionsIndexRouteImport.update({
+  id: '/commissions/',
+  path: '/commissions/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBlogIndexRoute = AdminBlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminUsersIdIndexRoute = LangAdminUsersIdIndexRouteImport.update({
+const AdminUsersIdIndexRoute = AdminUsersIdIndexRouteImport.update({
   id: '/users/$id/',
   path: '/users/$id/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminPricingIdIndexRoute = LangAdminPricingIdIndexRouteImport.update({
+const AdminPricingIdIndexRoute = AdminPricingIdIndexRouteImport.update({
   id: '/pricing/$id/',
   path: '/pricing/$id/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
-const LangAdminBlogIdIndexRoute = LangAdminBlogIdIndexRouteImport.update({
+const AdminBlogIdIndexRoute = AdminBlogIdIndexRouteImport.update({
   id: '/blog/$id/',
   path: '/blog/$id/',
-  getParentRoute: () => LangAdminRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$lang': typeof LangRouteWithChildren
-  '/$lang/admin': typeof LangAdminRouteWithChildren
-  '/$lang/forbidden': typeof LangForbiddenRoute
-  '/$lang/signin': typeof LangSigninRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
+  '/signin': typeof SigninRoute
+  '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
-  '/$lang/': typeof LangIndexRoute
-  '/$lang/admin/': typeof LangAdminIndexRoute
-  '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits/': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders/': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing/': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions/': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users/': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals/': typeof LangAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/blog/': typeof AdminBlogIndexRoute
+  '/admin/commissions/': typeof AdminCommissionsIndexRoute
+  '/admin/credits/': typeof AdminCreditsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/pricing/': typeof AdminPricingIndexRoute
+  '/admin/subscriptions/': typeof AdminSubscriptionsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/withdrawals/': typeof AdminWithdrawalsIndexRoute
+  '/admin/blog/$id/': typeof AdminBlogIdIndexRoute
+  '/admin/pricing/$id/': typeof AdminPricingIdIndexRoute
+  '/admin/users/$id/': typeof AdminUsersIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$lang/forbidden': typeof LangForbiddenRoute
-  '/$lang/signin': typeof LangSigninRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
+  '/signin': typeof SigninRoute
+  '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
-  '/$lang': typeof LangIndexRoute
-  '/$lang/admin': typeof LangAdminIndexRoute
-  '/$lang/admin/blog': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals': typeof LangAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id': typeof LangAdminUsersIdIndexRoute
+  '/admin': typeof AdminIndexRoute
+  '/admin/blog': typeof AdminBlogIndexRoute
+  '/admin/commissions': typeof AdminCommissionsIndexRoute
+  '/admin/credits': typeof AdminCreditsIndexRoute
+  '/admin/orders': typeof AdminOrdersIndexRoute
+  '/admin/pricing': typeof AdminPricingIndexRoute
+  '/admin/subscriptions': typeof AdminSubscriptionsIndexRoute
+  '/admin/users': typeof AdminUsersIndexRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsIndexRoute
+  '/admin/blog/$id': typeof AdminBlogIdIndexRoute
+  '/admin/pricing/$id': typeof AdminPricingIdIndexRoute
+  '/admin/users/$id': typeof AdminUsersIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$lang': typeof LangRouteWithChildren
-  '/$lang/admin': typeof LangAdminRouteWithChildren
-  '/$lang/forbidden': typeof LangForbiddenRoute
-  '/$lang/signin': typeof LangSigninRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
+  '/signin': typeof SigninRoute
+  '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
-  '/$lang/': typeof LangIndexRoute
-  '/$lang/admin/': typeof LangAdminIndexRoute
-  '/$lang/admin/blog/': typeof LangAdminBlogIndexRoute
-  '/$lang/admin/commissions/': typeof LangAdminCommissionsIndexRoute
-  '/$lang/admin/credits/': typeof LangAdminCreditsIndexRoute
-  '/$lang/admin/orders/': typeof LangAdminOrdersIndexRoute
-  '/$lang/admin/pricing/': typeof LangAdminPricingIndexRoute
-  '/$lang/admin/subscriptions/': typeof LangAdminSubscriptionsIndexRoute
-  '/$lang/admin/users/': typeof LangAdminUsersIndexRoute
-  '/$lang/admin/withdrawals/': typeof LangAdminWithdrawalsIndexRoute
-  '/$lang/admin/blog/$id/': typeof LangAdminBlogIdIndexRoute
-  '/$lang/admin/pricing/$id/': typeof LangAdminPricingIdIndexRoute
-  '/$lang/admin/users/$id/': typeof LangAdminUsersIdIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/blog/': typeof AdminBlogIndexRoute
+  '/admin/commissions/': typeof AdminCommissionsIndexRoute
+  '/admin/credits/': typeof AdminCreditsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/pricing/': typeof AdminPricingIndexRoute
+  '/admin/subscriptions/': typeof AdminSubscriptionsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/withdrawals/': typeof AdminWithdrawalsIndexRoute
+  '/admin/blog/$id/': typeof AdminBlogIdIndexRoute
+  '/admin/pricing/$id/': typeof AdminPricingIdIndexRoute
+  '/admin/users/$id/': typeof AdminUsersIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/$lang'
-    | '/$lang/admin'
-    | '/$lang/forbidden'
-    | '/$lang/signin'
+    | '/$locale'
+    | '/admin'
+    | '/forbidden'
+    | '/signin'
+    | '/$locale/$'
     | '/api/$'
-    | '/$lang/'
-    | '/$lang/admin/'
-    | '/$lang/admin/blog/'
-    | '/$lang/admin/commissions/'
-    | '/$lang/admin/credits/'
-    | '/$lang/admin/orders/'
-    | '/$lang/admin/pricing/'
-    | '/$lang/admin/subscriptions/'
-    | '/$lang/admin/users/'
-    | '/$lang/admin/withdrawals/'
-    | '/$lang/admin/blog/$id/'
-    | '/$lang/admin/pricing/$id/'
-    | '/$lang/admin/users/$id/'
+    | '/admin/'
+    | '/admin/blog/'
+    | '/admin/commissions/'
+    | '/admin/credits/'
+    | '/admin/orders/'
+    | '/admin/pricing/'
+    | '/admin/subscriptions/'
+    | '/admin/users/'
+    | '/admin/withdrawals/'
+    | '/admin/blog/$id/'
+    | '/admin/pricing/$id/'
+    | '/admin/users/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/$lang/forbidden'
-    | '/$lang/signin'
+    | '/$locale'
+    | '/forbidden'
+    | '/signin'
+    | '/$locale/$'
     | '/api/$'
-    | '/$lang'
-    | '/$lang/admin'
-    | '/$lang/admin/blog'
-    | '/$lang/admin/commissions'
-    | '/$lang/admin/credits'
-    | '/$lang/admin/orders'
-    | '/$lang/admin/pricing'
-    | '/$lang/admin/subscriptions'
-    | '/$lang/admin/users'
-    | '/$lang/admin/withdrawals'
-    | '/$lang/admin/blog/$id'
-    | '/$lang/admin/pricing/$id'
-    | '/$lang/admin/users/$id'
+    | '/admin'
+    | '/admin/blog'
+    | '/admin/commissions'
+    | '/admin/credits'
+    | '/admin/orders'
+    | '/admin/pricing'
+    | '/admin/subscriptions'
+    | '/admin/users'
+    | '/admin/withdrawals'
+    | '/admin/blog/$id'
+    | '/admin/pricing/$id'
+    | '/admin/users/$id'
   id:
     | '__root__'
-    | '/'
-    | '/$lang'
-    | '/$lang/admin'
-    | '/$lang/forbidden'
-    | '/$lang/signin'
+    | '/$locale'
+    | '/admin'
+    | '/forbidden'
+    | '/signin'
+    | '/$locale/$'
     | '/api/$'
-    | '/$lang/'
-    | '/$lang/admin/'
-    | '/$lang/admin/blog/'
-    | '/$lang/admin/commissions/'
-    | '/$lang/admin/credits/'
-    | '/$lang/admin/orders/'
-    | '/$lang/admin/pricing/'
-    | '/$lang/admin/subscriptions/'
-    | '/$lang/admin/users/'
-    | '/$lang/admin/withdrawals/'
-    | '/$lang/admin/blog/$id/'
-    | '/$lang/admin/pricing/$id/'
-    | '/$lang/admin/users/$id/'
+    | '/admin/'
+    | '/admin/blog/'
+    | '/admin/commissions/'
+    | '/admin/credits/'
+    | '/admin/orders/'
+    | '/admin/pricing/'
+    | '/admin/subscriptions/'
+    | '/admin/users/'
+    | '/admin/withdrawals/'
+    | '/admin/blog/$id/'
+    | '/admin/pricing/$id/'
+    | '/admin/users/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LangRoute: typeof LangRouteWithChildren
+  LocaleRoute: typeof LocaleRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
+  ForbiddenRoute: typeof ForbiddenRoute
+  SigninRoute: typeof SigninRoute
   ApiSplatRoute: typeof ApiSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/$lang': {
-      id: '/$lang'
-      path: '/$lang'
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangRouteImport
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forbidden': {
+      id: '/forbidden'
+      path: '/forbidden'
+      fullPath: '/forbidden'
+      preLoaderRoute: typeof ForbiddenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/': {
-      id: '/$lang/'
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
       path: '/'
-      fullPath: '/$lang/'
-      preLoaderRoute: typeof LangIndexRouteImport
-      parentRoute: typeof LangRoute
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/api/$': {
       id: '/api/$'
@@ -290,167 +293,141 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/signin': {
-      id: '/$lang/signin'
-      path: '/signin'
-      fullPath: '/$lang/signin'
-      preLoaderRoute: typeof LangSigninRouteImport
-      parentRoute: typeof LangRoute
+    '/$locale/$': {
+      id: '/$locale/$'
+      path: '/$'
+      fullPath: '/$locale/$'
+      preLoaderRoute: typeof LocaleSplatRouteImport
+      parentRoute: typeof LocaleRoute
     }
-    '/$lang/forbidden': {
-      id: '/$lang/forbidden'
-      path: '/forbidden'
-      fullPath: '/$lang/forbidden'
-      preLoaderRoute: typeof LangForbiddenRouteImport
-      parentRoute: typeof LangRoute
-    }
-    '/$lang/admin': {
-      id: '/$lang/admin'
-      path: '/admin'
-      fullPath: '/$lang/admin'
-      preLoaderRoute: typeof LangAdminRouteImport
-      parentRoute: typeof LangRoute
-    }
-    '/$lang/admin/': {
-      id: '/$lang/admin/'
-      path: '/'
-      fullPath: '/$lang/admin/'
-      preLoaderRoute: typeof LangAdminIndexRouteImport
-      parentRoute: typeof LangAdminRoute
-    }
-    '/$lang/admin/withdrawals/': {
-      id: '/$lang/admin/withdrawals/'
+    '/admin/withdrawals/': {
+      id: '/admin/withdrawals/'
       path: '/withdrawals'
-      fullPath: '/$lang/admin/withdrawals/'
-      preLoaderRoute: typeof LangAdminWithdrawalsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/withdrawals/'
+      preLoaderRoute: typeof AdminWithdrawalsIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/users/': {
-      id: '/$lang/admin/users/'
+    '/admin/users/': {
+      id: '/admin/users/'
       path: '/users'
-      fullPath: '/$lang/admin/users/'
-      preLoaderRoute: typeof LangAdminUsersIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/subscriptions/': {
-      id: '/$lang/admin/subscriptions/'
+    '/admin/subscriptions/': {
+      id: '/admin/subscriptions/'
       path: '/subscriptions'
-      fullPath: '/$lang/admin/subscriptions/'
-      preLoaderRoute: typeof LangAdminSubscriptionsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/subscriptions/'
+      preLoaderRoute: typeof AdminSubscriptionsIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/pricing/': {
-      id: '/$lang/admin/pricing/'
+    '/admin/pricing/': {
+      id: '/admin/pricing/'
       path: '/pricing'
-      fullPath: '/$lang/admin/pricing/'
-      preLoaderRoute: typeof LangAdminPricingIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/pricing/'
+      preLoaderRoute: typeof AdminPricingIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/orders/': {
-      id: '/$lang/admin/orders/'
+    '/admin/orders/': {
+      id: '/admin/orders/'
       path: '/orders'
-      fullPath: '/$lang/admin/orders/'
-      preLoaderRoute: typeof LangAdminOrdersIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminOrdersIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/credits/': {
-      id: '/$lang/admin/credits/'
+    '/admin/credits/': {
+      id: '/admin/credits/'
       path: '/credits'
-      fullPath: '/$lang/admin/credits/'
-      preLoaderRoute: typeof LangAdminCreditsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/credits/'
+      preLoaderRoute: typeof AdminCreditsIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/commissions/': {
-      id: '/$lang/admin/commissions/'
+    '/admin/commissions/': {
+      id: '/admin/commissions/'
       path: '/commissions'
-      fullPath: '/$lang/admin/commissions/'
-      preLoaderRoute: typeof LangAdminCommissionsIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/commissions/'
+      preLoaderRoute: typeof AdminCommissionsIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/blog/': {
-      id: '/$lang/admin/blog/'
+    '/admin/blog/': {
+      id: '/admin/blog/'
       path: '/blog'
-      fullPath: '/$lang/admin/blog/'
-      preLoaderRoute: typeof LangAdminBlogIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/blog/'
+      preLoaderRoute: typeof AdminBlogIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/users/$id/': {
-      id: '/$lang/admin/users/$id/'
+    '/admin/users/$id/': {
+      id: '/admin/users/$id/'
       path: '/users/$id'
-      fullPath: '/$lang/admin/users/$id/'
-      preLoaderRoute: typeof LangAdminUsersIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/users/$id/'
+      preLoaderRoute: typeof AdminUsersIdIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/pricing/$id/': {
-      id: '/$lang/admin/pricing/$id/'
+    '/admin/pricing/$id/': {
+      id: '/admin/pricing/$id/'
       path: '/pricing/$id'
-      fullPath: '/$lang/admin/pricing/$id/'
-      preLoaderRoute: typeof LangAdminPricingIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/pricing/$id/'
+      preLoaderRoute: typeof AdminPricingIdIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$lang/admin/blog/$id/': {
-      id: '/$lang/admin/blog/$id/'
+    '/admin/blog/$id/': {
+      id: '/admin/blog/$id/'
       path: '/blog/$id'
-      fullPath: '/$lang/admin/blog/$id/'
-      preLoaderRoute: typeof LangAdminBlogIdIndexRouteImport
-      parentRoute: typeof LangAdminRoute
+      fullPath: '/admin/blog/$id/'
+      preLoaderRoute: typeof AdminBlogIdIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
 
-interface LangAdminRouteChildren {
-  LangAdminIndexRoute: typeof LangAdminIndexRoute
-  LangAdminBlogIndexRoute: typeof LangAdminBlogIndexRoute
-  LangAdminCommissionsIndexRoute: typeof LangAdminCommissionsIndexRoute
-  LangAdminCreditsIndexRoute: typeof LangAdminCreditsIndexRoute
-  LangAdminOrdersIndexRoute: typeof LangAdminOrdersIndexRoute
-  LangAdminPricingIndexRoute: typeof LangAdminPricingIndexRoute
-  LangAdminSubscriptionsIndexRoute: typeof LangAdminSubscriptionsIndexRoute
-  LangAdminUsersIndexRoute: typeof LangAdminUsersIndexRoute
-  LangAdminWithdrawalsIndexRoute: typeof LangAdminWithdrawalsIndexRoute
-  LangAdminBlogIdIndexRoute: typeof LangAdminBlogIdIndexRoute
-  LangAdminPricingIdIndexRoute: typeof LangAdminPricingIdIndexRoute
-  LangAdminUsersIdIndexRoute: typeof LangAdminUsersIdIndexRoute
+interface LocaleRouteChildren {
+  LocaleSplatRoute: typeof LocaleSplatRoute
 }
 
-const LangAdminRouteChildren: LangAdminRouteChildren = {
-  LangAdminIndexRoute: LangAdminIndexRoute,
-  LangAdminBlogIndexRoute: LangAdminBlogIndexRoute,
-  LangAdminCommissionsIndexRoute: LangAdminCommissionsIndexRoute,
-  LangAdminCreditsIndexRoute: LangAdminCreditsIndexRoute,
-  LangAdminOrdersIndexRoute: LangAdminOrdersIndexRoute,
-  LangAdminPricingIndexRoute: LangAdminPricingIndexRoute,
-  LangAdminSubscriptionsIndexRoute: LangAdminSubscriptionsIndexRoute,
-  LangAdminUsersIndexRoute: LangAdminUsersIndexRoute,
-  LangAdminWithdrawalsIndexRoute: LangAdminWithdrawalsIndexRoute,
-  LangAdminBlogIdIndexRoute: LangAdminBlogIdIndexRoute,
-  LangAdminPricingIdIndexRoute: LangAdminPricingIdIndexRoute,
-  LangAdminUsersIdIndexRoute: LangAdminUsersIdIndexRoute,
+const LocaleRouteChildren: LocaleRouteChildren = {
+  LocaleSplatRoute: LocaleSplatRoute,
 }
 
-const LangAdminRouteWithChildren = LangAdminRoute._addFileChildren(
-  LangAdminRouteChildren,
-)
+const LocaleRouteWithChildren =
+  LocaleRoute._addFileChildren(LocaleRouteChildren)
 
-interface LangRouteChildren {
-  LangAdminRoute: typeof LangAdminRouteWithChildren
-  LangForbiddenRoute: typeof LangForbiddenRoute
-  LangSigninRoute: typeof LangSigninRoute
-  LangIndexRoute: typeof LangIndexRoute
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminBlogIndexRoute: typeof AdminBlogIndexRoute
+  AdminCommissionsIndexRoute: typeof AdminCommissionsIndexRoute
+  AdminCreditsIndexRoute: typeof AdminCreditsIndexRoute
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
+  AdminPricingIndexRoute: typeof AdminPricingIndexRoute
+  AdminSubscriptionsIndexRoute: typeof AdminSubscriptionsIndexRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+  AdminWithdrawalsIndexRoute: typeof AdminWithdrawalsIndexRoute
+  AdminBlogIdIndexRoute: typeof AdminBlogIdIndexRoute
+  AdminPricingIdIndexRoute: typeof AdminPricingIdIndexRoute
+  AdminUsersIdIndexRoute: typeof AdminUsersIdIndexRoute
 }
 
-const LangRouteChildren: LangRouteChildren = {
-  LangAdminRoute: LangAdminRouteWithChildren,
-  LangForbiddenRoute: LangForbiddenRoute,
-  LangSigninRoute: LangSigninRoute,
-  LangIndexRoute: LangIndexRoute,
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminBlogIndexRoute: AdminBlogIndexRoute,
+  AdminCommissionsIndexRoute: AdminCommissionsIndexRoute,
+  AdminCreditsIndexRoute: AdminCreditsIndexRoute,
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
+  AdminPricingIndexRoute: AdminPricingIndexRoute,
+  AdminSubscriptionsIndexRoute: AdminSubscriptionsIndexRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
+  AdminWithdrawalsIndexRoute: AdminWithdrawalsIndexRoute,
+  AdminBlogIdIndexRoute: AdminBlogIdIndexRoute,
+  AdminPricingIdIndexRoute: AdminPricingIdIndexRoute,
+  AdminUsersIdIndexRoute: AdminUsersIdIndexRoute,
 }
 
-const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LangRoute: LangRouteWithChildren,
+  LocaleRoute: LocaleRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
+  ForbiddenRoute: ForbiddenRoute,
+  SigninRoute: SigninRoute,
   ApiSplatRoute: ApiSplatRoute,
 }
 export const routeTree = rootRouteImport

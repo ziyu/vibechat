@@ -24,7 +24,7 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
     page,
   }) => {
     const email = `e2e-chat-otp-${Date.now()}@example.com`
-    await page.goto('/zh-CN/signin')
+    await page.goto('/signin')
 
     await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByTestId('email-otp-request-form')).toBeVisible()
@@ -46,7 +46,7 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
     await expect(page.getByTestId('email-otp-verify-form')).toBeVisible()
     await page.locator('#otp-code').fill(sendBody.dev.otpCode)
     await page.getByRole('button', { name: '继续' }).click()
-    await expect(page).toHaveURL(/\/zh-CN\/onboarding$/)
+    await expect(page).toHaveURL(/\/onboarding$/)
     await expect(page.getByTestId('onboarding-page')).toBeVisible()
 
     const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
@@ -89,7 +89,7 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
   })
 
   test('keeps password sign-in available during the migration', async ({ page }) => {
-    await page.goto('/en/signin')
+    await page.goto('/signin')
     await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('button', { name: 'Use password instead' }).click()
 

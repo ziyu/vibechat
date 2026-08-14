@@ -20,7 +20,7 @@
 - Admin：`GET /api/admin/credits/transactions`，支持有界分页、搜索、类型和排序。
 - 未登录用户接口返回 `401`；非 Admin 请求全局账本返回 `403`。
 
-Web 的 `/$lang/account` 展示当前用户余额与流水，Admin 的 `/$lang/admin/credits` 展示全局账本。两者都读取真实数据库，不使用 fixture。
+Web 的 `/account` 展示当前用户余额与流水，Admin 的 `/admin/credits` 展示全局账本。两者都读取真实数据库，不使用 fixture。
 
 ## 写入不变量
 

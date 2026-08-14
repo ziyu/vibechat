@@ -9,69 +9,78 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
-import { Route as PaymentCancelRouteImport } from './routes/payment-cancel'
-import { Route as LangRouteImport } from './routes/$lang'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LocaleRouteImport } from './routes/$locale'
+import { Route as rootRouteRouteImport } from './routes/(root)/route'
+import { Route as productRouteRouteImport } from './routes/(product)/route'
+import { Route as chatRouteRouteImport } from './routes/(chat)/route'
+import { Route as authRouteRouteImport } from './routes/(auth)/route'
+import { Route as rootIndexRouteImport } from './routes/(root)/index'
 import { Route as V1SplatRouteImport } from './routes/v1/$'
 import { Route as ReferralCodeRouteImport } from './routes/referral/$code'
 import { Route as ApiVideoGenerateRouteImport } from './routes/api/video-generate'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiImageGenerateRouteImport } from './routes/api/image-generate'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
-import { Route as LangOnboardingRouteImport } from './routes/$lang/onboarding'
-import { Route as LangrootRouteRouteImport } from './routes/$lang/(root)/route'
-import { Route as LangproductRouteRouteImport } from './routes/$lang/(product)/route'
-import { Route as LangchatRouteRouteImport } from './routes/$lang/(chat)/route'
-import { Route as LangauthRouteRouteImport } from './routes/$lang/(auth)/route'
+import { Route as productVideoGenerateRouteImport } from './routes/(product)/video-generate'
+import { Route as productUploadRouteImport } from './routes/(product)/upload'
+import { Route as productServicesRouteImport } from './routes/(product)/services'
+import { Route as productPricingRouteImport } from './routes/(product)/pricing'
+import { Route as productPremiumFeaturesRouteImport } from './routes/(product)/premium-features'
+import { Route as productPaymentSuccessRouteImport } from './routes/(product)/payment-success'
+import { Route as productPaymentCancelRouteImport } from './routes/(product)/payment-cancel'
+import { Route as productImageGenerateRouteImport } from './routes/(product)/image-generate'
+import { Route as productDashboardRouteImport } from './routes/(product)/dashboard'
+import { Route as productAiRouteImport } from './routes/(product)/ai'
+import { Route as productAccountRouteImport } from './routes/(product)/account'
+import { Route as chatMessagesRouteImport } from './routes/(chat)/messages'
+import { Route as chatMeRouteImport } from './routes/(chat)/me'
+import { Route as chatContactsRouteImport } from './routes/(chat)/contacts'
+import { Route as authWechatRouteImport } from './routes/(auth)/wechat'
+import { Route as authSignupRouteImport } from './routes/(auth)/signup'
+import { Route as authSigninRouteImport } from './routes/(auth)/signin'
+import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
+import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
+import { Route as authCellphoneRouteImport } from './routes/(auth)/cellphone'
+import { Route as LocaleSplatRouteImport } from './routes/$locale/$'
+import { Route as chatDiscoverRouteRouteImport } from './routes/(chat)/discover/route'
 import { Route as V1ContactsIndexRouteImport } from './routes/v1/contacts/index'
-import { Route as LangrootIndexRouteImport } from './routes/$lang/(root)/index'
+import { Route as chatDiscoverIndexRouteImport } from './routes/(chat)/discover/index'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
 import { Route as ApiVideoGenerateStatusRouteImport } from './routes/api/video-generate/status'
-import { Route as LangproductVideoGenerateRouteImport } from './routes/$lang/(product)/video-generate'
-import { Route as LangproductUploadRouteImport } from './routes/$lang/(product)/upload'
-import { Route as LangproductServicesRouteImport } from './routes/$lang/(product)/services'
-import { Route as LangproductPricingRouteImport } from './routes/$lang/(product)/pricing'
-import { Route as LangproductPremiumFeaturesRouteImport } from './routes/$lang/(product)/premium-features'
-import { Route as LangproductPaymentSuccessRouteImport } from './routes/$lang/(product)/payment-success'
-import { Route as LangproductPaymentCancelRouteImport } from './routes/$lang/(product)/payment-cancel'
-import { Route as LangproductImageGenerateRouteImport } from './routes/$lang/(product)/image-generate'
-import { Route as LangproductDashboardRouteImport } from './routes/$lang/(product)/dashboard'
-import { Route as LangproductAiRouteImport } from './routes/$lang/(product)/ai'
-import { Route as LangproductAccountRouteImport } from './routes/$lang/(product)/account'
-import { Route as LangchatMessagesRouteImport } from './routes/$lang/(chat)/messages'
-import { Route as LangchatMeRouteImport } from './routes/$lang/(chat)/me'
-import { Route as LangchatContactsRouteImport } from './routes/$lang/(chat)/contacts'
-import { Route as LangauthWechatRouteImport } from './routes/$lang/(auth)/wechat'
-import { Route as LangauthSignupRouteImport } from './routes/$lang/(auth)/signup'
-import { Route as LangauthSigninRouteImport } from './routes/$lang/(auth)/signin'
-import { Route as LangauthResetPasswordRouteImport } from './routes/$lang/(auth)/reset-password'
-import { Route as LangauthForgotPasswordRouteImport } from './routes/$lang/(auth)/forgot-password'
-import { Route as LangauthCellphoneRouteImport } from './routes/$lang/(auth)/cellphone'
-import { Route as LangchatDiscoverRouteRouteImport } from './routes/$lang/(chat)/discover/route'
-import { Route as LangchatDiscoverIndexRouteImport } from './routes/$lang/(chat)/discover/index'
-import { Route as LangchatRoomsRoomIdRouteImport } from './routes/$lang/(chat)/rooms/$roomId'
-import { Route as LangchatDiscoverSpacesSpaceIdRouteImport } from './routes/$lang/(chat)/discover/spaces/$spaceId'
+import { Route as chatRoomsRoomIdRouteImport } from './routes/(chat)/rooms/$roomId'
+import { Route as chatDiscoverSpacesSpaceIdRouteImport } from './routes/(chat)/discover/spaces/$spaceId'
 
-const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
-  id: '/payment-success',
-  path: '/payment-success',
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PaymentCancelRoute = PaymentCancelRouteImport.update({
-  id: '/payment-cancel',
-  path: '/payment-cancel',
+const LocaleRoute = LocaleRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangRoute = LangRouteImport.update({
-  id: '/$lang',
-  path: '/$lang',
+const rootRouteRoute = rootRouteRouteImport.update({
+  id: '/(root)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const productRouteRoute = productRouteRouteImport.update({
+  id: '/(product)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const chatRouteRoute = chatRouteRouteImport.update({
+  id: '/(chat)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authRouteRoute = authRouteRouteImport.update({
+  id: '/(auth)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const rootIndexRoute = rootIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteRoute,
 } as any)
 const V1SplatRoute = V1SplatRouteImport.update({
   id: '/v1/$',
@@ -103,36 +112,125 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangOnboardingRoute = LangOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => LangRoute,
+const productVideoGenerateRoute = productVideoGenerateRouteImport.update({
+  id: '/video-generate',
+  path: '/video-generate',
+  getParentRoute: () => productRouteRoute,
 } as any)
-const LangrootRouteRoute = LangrootRouteRouteImport.update({
-  id: '/(root)',
-  getParentRoute: () => LangRoute,
+const productUploadRoute = productUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => productRouteRoute,
 } as any)
-const LangproductRouteRoute = LangproductRouteRouteImport.update({
-  id: '/(product)',
-  getParentRoute: () => LangRoute,
+const productServicesRoute = productServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => productRouteRoute,
 } as any)
-const LangchatRouteRoute = LangchatRouteRouteImport.update({
-  id: '/(chat)',
-  getParentRoute: () => LangRoute,
+const productPricingRoute = productPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => productRouteRoute,
 } as any)
-const LangauthRouteRoute = LangauthRouteRouteImport.update({
-  id: '/(auth)',
-  getParentRoute: () => LangRoute,
+const productPremiumFeaturesRoute = productPremiumFeaturesRouteImport.update({
+  id: '/premium-features',
+  path: '/premium-features',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productPaymentSuccessRoute = productPaymentSuccessRouteImport.update({
+  id: '/payment-success',
+  path: '/payment-success',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productPaymentCancelRoute = productPaymentCancelRouteImport.update({
+  id: '/payment-cancel',
+  path: '/payment-cancel',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productImageGenerateRoute = productImageGenerateRouteImport.update({
+  id: '/image-generate',
+  path: '/image-generate',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productDashboardRoute = productDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productAiRoute = productAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const productAccountRoute = productAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => productRouteRoute,
+} as any)
+const chatMessagesRoute = chatMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => chatRouteRoute,
+} as any)
+const chatMeRoute = chatMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => chatRouteRoute,
+} as any)
+const chatContactsRoute = chatContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => chatRouteRoute,
+} as any)
+const authWechatRoute = authWechatRouteImport.update({
+  id: '/wechat',
+  path: '/wechat',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authSignupRoute = authSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authSigninRoute = authSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authResetPasswordRoute = authResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authCellphoneRoute = authCellphoneRouteImport.update({
+  id: '/cellphone',
+  path: '/cellphone',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const LocaleSplatRoute = LocaleSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const chatDiscoverRouteRoute = chatDiscoverRouteRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => chatRouteRoute,
 } as any)
 const V1ContactsIndexRoute = V1ContactsIndexRouteImport.update({
   id: '/v1/contacts/',
   path: '/v1/contacts/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LangrootIndexRoute = LangrootIndexRouteImport.update({
+const chatDiscoverIndexRoute = chatDiscoverIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => LangrootRouteRoute,
+  getParentRoute: () => chatDiscoverRouteRoute,
 } as any)
 const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
   id: '/v1/rooms/metadata',
@@ -144,392 +242,269 @@ const ApiVideoGenerateStatusRoute = ApiVideoGenerateStatusRouteImport.update({
   path: '/status',
   getParentRoute: () => ApiVideoGenerateRoute,
 } as any)
-const LangproductVideoGenerateRoute =
-  LangproductVideoGenerateRouteImport.update({
-    id: '/video-generate',
-    path: '/video-generate',
-    getParentRoute: () => LangproductRouteRoute,
-  } as any)
-const LangproductUploadRoute = LangproductUploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangproductServicesRoute = LangproductServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangproductPricingRoute = LangproductPricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangproductPremiumFeaturesRoute =
-  LangproductPremiumFeaturesRouteImport.update({
-    id: '/premium-features',
-    path: '/premium-features',
-    getParentRoute: () => LangproductRouteRoute,
-  } as any)
-const LangproductPaymentSuccessRoute =
-  LangproductPaymentSuccessRouteImport.update({
-    id: '/payment-success',
-    path: '/payment-success',
-    getParentRoute: () => LangproductRouteRoute,
-  } as any)
-const LangproductPaymentCancelRoute =
-  LangproductPaymentCancelRouteImport.update({
-    id: '/payment-cancel',
-    path: '/payment-cancel',
-    getParentRoute: () => LangproductRouteRoute,
-  } as any)
-const LangproductImageGenerateRoute =
-  LangproductImageGenerateRouteImport.update({
-    id: '/image-generate',
-    path: '/image-generate',
-    getParentRoute: () => LangproductRouteRoute,
-  } as any)
-const LangproductDashboardRoute = LangproductDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangproductAiRoute = LangproductAiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangproductAccountRoute = LangproductAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => LangproductRouteRoute,
-} as any)
-const LangchatMessagesRoute = LangchatMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => LangchatRouteRoute,
-} as any)
-const LangchatMeRoute = LangchatMeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => LangchatRouteRoute,
-} as any)
-const LangchatContactsRoute = LangchatContactsRouteImport.update({
-  id: '/contacts',
-  path: '/contacts',
-  getParentRoute: () => LangchatRouteRoute,
-} as any)
-const LangauthWechatRoute = LangauthWechatRouteImport.update({
-  id: '/wechat',
-  path: '/wechat',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangauthSignupRoute = LangauthSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangauthSigninRoute = LangauthSigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangauthResetPasswordRoute = LangauthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangauthForgotPasswordRoute = LangauthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangauthCellphoneRoute = LangauthCellphoneRouteImport.update({
-  id: '/cellphone',
-  path: '/cellphone',
-  getParentRoute: () => LangauthRouteRoute,
-} as any)
-const LangchatDiscoverRouteRoute = LangchatDiscoverRouteRouteImport.update({
-  id: '/discover',
-  path: '/discover',
-  getParentRoute: () => LangchatRouteRoute,
-} as any)
-const LangchatDiscoverIndexRoute = LangchatDiscoverIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LangchatDiscoverRouteRoute,
-} as any)
-const LangchatRoomsRoomIdRoute = LangchatRoomsRoomIdRouteImport.update({
+const chatRoomsRoomIdRoute = chatRoomsRoomIdRouteImport.update({
   id: '/rooms/$roomId',
   path: '/rooms/$roomId',
-  getParentRoute: () => LangchatRouteRoute,
+  getParentRoute: () => chatRouteRoute,
 } as any)
-const LangchatDiscoverSpacesSpaceIdRoute =
-  LangchatDiscoverSpacesSpaceIdRouteImport.update({
+const chatDiscoverSpacesSpaceIdRoute =
+  chatDiscoverSpacesSpaceIdRouteImport.update({
     id: '/spaces/$spaceId',
     path: '/spaces/$spaceId',
-    getParentRoute: () => LangchatDiscoverRouteRoute,
+    getParentRoute: () => chatDiscoverRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$lang': typeof LangrootRouteRouteWithChildren
-  '/payment-cancel': typeof PaymentCancelRoute
-  '/payment-success': typeof PaymentSuccessRoute
-  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/discover': typeof chatDiscoverRouteRouteWithChildren
+  '/$locale/$': typeof LocaleSplatRoute
+  '/cellphone': typeof authCellphoneRoute
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
+  '/signin': typeof authSigninRoute
+  '/signup': typeof authSignupRoute
+  '/wechat': typeof authWechatRoute
+  '/contacts': typeof chatContactsRoute
+  '/me': typeof chatMeRoute
+  '/messages': typeof chatMessagesRoute
+  '/account': typeof productAccountRoute
+  '/ai': typeof productAiRoute
+  '/dashboard': typeof productDashboardRoute
+  '/image-generate': typeof productImageGenerateRoute
+  '/payment-cancel': typeof productPaymentCancelRoute
+  '/payment-success': typeof productPaymentSuccessRoute
+  '/premium-features': typeof productPremiumFeaturesRoute
+  '/pricing': typeof productPricingRoute
+  '/services': typeof productServicesRoute
+  '/upload': typeof productUploadRoute
+  '/video-generate': typeof productVideoGenerateRoute
   '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
   '/referral/$code': typeof ReferralCodeRoute
   '/v1/$': typeof V1SplatRoute
-  '/$lang/discover': typeof LangchatDiscoverRouteRouteWithChildren
-  '/$lang/cellphone': typeof LangauthCellphoneRoute
-  '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
-  '/$lang/reset-password': typeof LangauthResetPasswordRoute
-  '/$lang/signin': typeof LangauthSigninRoute
-  '/$lang/signup': typeof LangauthSignupRoute
-  '/$lang/wechat': typeof LangauthWechatRoute
-  '/$lang/contacts': typeof LangchatContactsRoute
-  '/$lang/me': typeof LangchatMeRoute
-  '/$lang/messages': typeof LangchatMessagesRoute
-  '/$lang/account': typeof LangproductAccountRoute
-  '/$lang/ai': typeof LangproductAiRoute
-  '/$lang/dashboard': typeof LangproductDashboardRoute
-  '/$lang/image-generate': typeof LangproductImageGenerateRoute
-  '/$lang/payment-cancel': typeof LangproductPaymentCancelRoute
-  '/$lang/payment-success': typeof LangproductPaymentSuccessRoute
-  '/$lang/premium-features': typeof LangproductPremiumFeaturesRoute
-  '/$lang/pricing': typeof LangproductPricingRoute
-  '/$lang/services': typeof LangproductServicesRoute
-  '/$lang/upload': typeof LangproductUploadRoute
-  '/$lang/video-generate': typeof LangproductVideoGenerateRoute
+  '/': typeof rootIndexRoute
+  '/rooms/$roomId': typeof chatRoomsRoomIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
-  '/$lang/': typeof LangrootIndexRoute
+  '/discover/': typeof chatDiscoverIndexRoute
   '/v1/contacts/': typeof V1ContactsIndexRoute
-  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
-  '/$lang/discover/': typeof LangchatDiscoverIndexRoute
-  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
+  '/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$lang': typeof LangrootIndexRoute
-  '/payment-cancel': typeof PaymentCancelRoute
-  '/payment-success': typeof PaymentSuccessRoute
-  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/$locale/$': typeof LocaleSplatRoute
+  '/cellphone': typeof authCellphoneRoute
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
+  '/signin': typeof authSigninRoute
+  '/signup': typeof authSignupRoute
+  '/wechat': typeof authWechatRoute
+  '/contacts': typeof chatContactsRoute
+  '/me': typeof chatMeRoute
+  '/messages': typeof chatMessagesRoute
+  '/account': typeof productAccountRoute
+  '/ai': typeof productAiRoute
+  '/dashboard': typeof productDashboardRoute
+  '/image-generate': typeof productImageGenerateRoute
+  '/payment-cancel': typeof productPaymentCancelRoute
+  '/payment-success': typeof productPaymentSuccessRoute
+  '/premium-features': typeof productPremiumFeaturesRoute
+  '/pricing': typeof productPricingRoute
+  '/services': typeof productServicesRoute
+  '/upload': typeof productUploadRoute
+  '/video-generate': typeof productVideoGenerateRoute
   '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
   '/referral/$code': typeof ReferralCodeRoute
   '/v1/$': typeof V1SplatRoute
-  '/$lang/cellphone': typeof LangauthCellphoneRoute
-  '/$lang/forgot-password': typeof LangauthForgotPasswordRoute
-  '/$lang/reset-password': typeof LangauthResetPasswordRoute
-  '/$lang/signin': typeof LangauthSigninRoute
-  '/$lang/signup': typeof LangauthSignupRoute
-  '/$lang/wechat': typeof LangauthWechatRoute
-  '/$lang/contacts': typeof LangchatContactsRoute
-  '/$lang/me': typeof LangchatMeRoute
-  '/$lang/messages': typeof LangchatMessagesRoute
-  '/$lang/account': typeof LangproductAccountRoute
-  '/$lang/ai': typeof LangproductAiRoute
-  '/$lang/dashboard': typeof LangproductDashboardRoute
-  '/$lang/image-generate': typeof LangproductImageGenerateRoute
-  '/$lang/payment-cancel': typeof LangproductPaymentCancelRoute
-  '/$lang/payment-success': typeof LangproductPaymentSuccessRoute
-  '/$lang/premium-features': typeof LangproductPremiumFeaturesRoute
-  '/$lang/pricing': typeof LangproductPricingRoute
-  '/$lang/services': typeof LangproductServicesRoute
-  '/$lang/upload': typeof LangproductUploadRoute
-  '/$lang/video-generate': typeof LangproductVideoGenerateRoute
+  '/': typeof rootIndexRoute
+  '/rooms/$roomId': typeof chatRoomsRoomIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
+  '/discover': typeof chatDiscoverIndexRoute
   '/v1/contacts': typeof V1ContactsIndexRoute
-  '/$lang/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
-  '/$lang/discover': typeof LangchatDiscoverIndexRoute
-  '/$lang/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
+  '/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$lang': typeof LangRouteWithChildren
-  '/payment-cancel': typeof PaymentCancelRoute
-  '/payment-success': typeof PaymentSuccessRoute
-  '/$lang/(auth)': typeof LangauthRouteRouteWithChildren
-  '/$lang/(chat)': typeof LangchatRouteRouteWithChildren
-  '/$lang/(product)': typeof LangproductRouteRouteWithChildren
-  '/$lang/(root)': typeof LangrootRouteRouteWithChildren
-  '/$lang/onboarding': typeof LangOnboardingRoute
+  '/(auth)': typeof authRouteRouteWithChildren
+  '/(chat)': typeof chatRouteRouteWithChildren
+  '/(product)': typeof productRouteRouteWithChildren
+  '/(root)': typeof rootRouteRouteWithChildren
+  '/$locale': typeof LocaleRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/(chat)/discover': typeof chatDiscoverRouteRouteWithChildren
+  '/$locale/$': typeof LocaleSplatRoute
+  '/(auth)/cellphone': typeof authCellphoneRoute
+  '/(auth)/forgot-password': typeof authForgotPasswordRoute
+  '/(auth)/reset-password': typeof authResetPasswordRoute
+  '/(auth)/signin': typeof authSigninRoute
+  '/(auth)/signup': typeof authSignupRoute
+  '/(auth)/wechat': typeof authWechatRoute
+  '/(chat)/contacts': typeof chatContactsRoute
+  '/(chat)/me': typeof chatMeRoute
+  '/(chat)/messages': typeof chatMessagesRoute
+  '/(product)/account': typeof productAccountRoute
+  '/(product)/ai': typeof productAiRoute
+  '/(product)/dashboard': typeof productDashboardRoute
+  '/(product)/image-generate': typeof productImageGenerateRoute
+  '/(product)/payment-cancel': typeof productPaymentCancelRoute
+  '/(product)/payment-success': typeof productPaymentSuccessRoute
+  '/(product)/premium-features': typeof productPremiumFeaturesRoute
+  '/(product)/pricing': typeof productPricingRoute
+  '/(product)/services': typeof productServicesRoute
+  '/(product)/upload': typeof productUploadRoute
+  '/(product)/video-generate': typeof productVideoGenerateRoute
   '/api/$': typeof ApiSplatRoute
   '/api/image-generate': typeof ApiImageGenerateRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/video-generate': typeof ApiVideoGenerateRouteWithChildren
   '/referral/$code': typeof ReferralCodeRoute
   '/v1/$': typeof V1SplatRoute
-  '/$lang/(chat)/discover': typeof LangchatDiscoverRouteRouteWithChildren
-  '/$lang/(auth)/cellphone': typeof LangauthCellphoneRoute
-  '/$lang/(auth)/forgot-password': typeof LangauthForgotPasswordRoute
-  '/$lang/(auth)/reset-password': typeof LangauthResetPasswordRoute
-  '/$lang/(auth)/signin': typeof LangauthSigninRoute
-  '/$lang/(auth)/signup': typeof LangauthSignupRoute
-  '/$lang/(auth)/wechat': typeof LangauthWechatRoute
-  '/$lang/(chat)/contacts': typeof LangchatContactsRoute
-  '/$lang/(chat)/me': typeof LangchatMeRoute
-  '/$lang/(chat)/messages': typeof LangchatMessagesRoute
-  '/$lang/(product)/account': typeof LangproductAccountRoute
-  '/$lang/(product)/ai': typeof LangproductAiRoute
-  '/$lang/(product)/dashboard': typeof LangproductDashboardRoute
-  '/$lang/(product)/image-generate': typeof LangproductImageGenerateRoute
-  '/$lang/(product)/payment-cancel': typeof LangproductPaymentCancelRoute
-  '/$lang/(product)/payment-success': typeof LangproductPaymentSuccessRoute
-  '/$lang/(product)/premium-features': typeof LangproductPremiumFeaturesRoute
-  '/$lang/(product)/pricing': typeof LangproductPricingRoute
-  '/$lang/(product)/services': typeof LangproductServicesRoute
-  '/$lang/(product)/upload': typeof LangproductUploadRoute
-  '/$lang/(product)/video-generate': typeof LangproductVideoGenerateRoute
+  '/(root)/': typeof rootIndexRoute
+  '/(chat)/rooms/$roomId': typeof chatRoomsRoomIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
-  '/$lang/(root)/': typeof LangrootIndexRoute
+  '/(chat)/discover/': typeof chatDiscoverIndexRoute
   '/v1/contacts/': typeof V1ContactsIndexRoute
-  '/$lang/(chat)/rooms/$roomId': typeof LangchatRoomsRoomIdRoute
-  '/$lang/(chat)/discover/': typeof LangchatDiscoverIndexRoute
-  '/$lang/(chat)/discover/spaces/$spaceId': typeof LangchatDiscoverSpacesSpaceIdRoute
+  '/(chat)/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/$lang'
+    | '/$locale'
+    | '/onboarding'
+    | '/discover'
+    | '/$locale/$'
+    | '/cellphone'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/signin'
+    | '/signup'
+    | '/wechat'
+    | '/contacts'
+    | '/me'
+    | '/messages'
+    | '/account'
+    | '/ai'
+    | '/dashboard'
+    | '/image-generate'
     | '/payment-cancel'
     | '/payment-success'
-    | '/$lang/onboarding'
+    | '/premium-features'
+    | '/pricing'
+    | '/services'
+    | '/upload'
+    | '/video-generate'
     | '/api/$'
     | '/api/image-generate'
     | '/api/upload'
     | '/api/video-generate'
     | '/referral/$code'
     | '/v1/$'
-    | '/$lang/discover'
-    | '/$lang/cellphone'
-    | '/$lang/forgot-password'
-    | '/$lang/reset-password'
-    | '/$lang/signin'
-    | '/$lang/signup'
-    | '/$lang/wechat'
-    | '/$lang/contacts'
-    | '/$lang/me'
-    | '/$lang/messages'
-    | '/$lang/account'
-    | '/$lang/ai'
-    | '/$lang/dashboard'
-    | '/$lang/image-generate'
-    | '/$lang/payment-cancel'
-    | '/$lang/payment-success'
-    | '/$lang/premium-features'
-    | '/$lang/pricing'
-    | '/$lang/services'
-    | '/$lang/upload'
-    | '/$lang/video-generate'
+    | '/'
+    | '/rooms/$roomId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
-    | '/$lang/'
+    | '/discover/'
     | '/v1/contacts/'
-    | '/$lang/rooms/$roomId'
-    | '/$lang/discover/'
-    | '/$lang/discover/spaces/$spaceId'
+    | '/discover/spaces/$spaceId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/$lang'
+    | '/$locale'
+    | '/onboarding'
+    | '/$locale/$'
+    | '/cellphone'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/signin'
+    | '/signup'
+    | '/wechat'
+    | '/contacts'
+    | '/me'
+    | '/messages'
+    | '/account'
+    | '/ai'
+    | '/dashboard'
+    | '/image-generate'
     | '/payment-cancel'
     | '/payment-success'
-    | '/$lang/onboarding'
+    | '/premium-features'
+    | '/pricing'
+    | '/services'
+    | '/upload'
+    | '/video-generate'
     | '/api/$'
     | '/api/image-generate'
     | '/api/upload'
     | '/api/video-generate'
     | '/referral/$code'
     | '/v1/$'
-    | '/$lang/cellphone'
-    | '/$lang/forgot-password'
-    | '/$lang/reset-password'
-    | '/$lang/signin'
-    | '/$lang/signup'
-    | '/$lang/wechat'
-    | '/$lang/contacts'
-    | '/$lang/me'
-    | '/$lang/messages'
-    | '/$lang/account'
-    | '/$lang/ai'
-    | '/$lang/dashboard'
-    | '/$lang/image-generate'
-    | '/$lang/payment-cancel'
-    | '/$lang/payment-success'
-    | '/$lang/premium-features'
-    | '/$lang/pricing'
-    | '/$lang/services'
-    | '/$lang/upload'
-    | '/$lang/video-generate'
+    | '/'
+    | '/rooms/$roomId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
+    | '/discover'
     | '/v1/contacts'
-    | '/$lang/rooms/$roomId'
-    | '/$lang/discover'
-    | '/$lang/discover/spaces/$spaceId'
+    | '/discover/spaces/$spaceId'
   id:
     | '__root__'
-    | '/'
-    | '/$lang'
-    | '/payment-cancel'
-    | '/payment-success'
-    | '/$lang/(auth)'
-    | '/$lang/(chat)'
-    | '/$lang/(product)'
-    | '/$lang/(root)'
-    | '/$lang/onboarding'
+    | '/(auth)'
+    | '/(chat)'
+    | '/(product)'
+    | '/(root)'
+    | '/$locale'
+    | '/onboarding'
+    | '/(chat)/discover'
+    | '/$locale/$'
+    | '/(auth)/cellphone'
+    | '/(auth)/forgot-password'
+    | '/(auth)/reset-password'
+    | '/(auth)/signin'
+    | '/(auth)/signup'
+    | '/(auth)/wechat'
+    | '/(chat)/contacts'
+    | '/(chat)/me'
+    | '/(chat)/messages'
+    | '/(product)/account'
+    | '/(product)/ai'
+    | '/(product)/dashboard'
+    | '/(product)/image-generate'
+    | '/(product)/payment-cancel'
+    | '/(product)/payment-success'
+    | '/(product)/premium-features'
+    | '/(product)/pricing'
+    | '/(product)/services'
+    | '/(product)/upload'
+    | '/(product)/video-generate'
     | '/api/$'
     | '/api/image-generate'
     | '/api/upload'
     | '/api/video-generate'
     | '/referral/$code'
     | '/v1/$'
-    | '/$lang/(chat)/discover'
-    | '/$lang/(auth)/cellphone'
-    | '/$lang/(auth)/forgot-password'
-    | '/$lang/(auth)/reset-password'
-    | '/$lang/(auth)/signin'
-    | '/$lang/(auth)/signup'
-    | '/$lang/(auth)/wechat'
-    | '/$lang/(chat)/contacts'
-    | '/$lang/(chat)/me'
-    | '/$lang/(chat)/messages'
-    | '/$lang/(product)/account'
-    | '/$lang/(product)/ai'
-    | '/$lang/(product)/dashboard'
-    | '/$lang/(product)/image-generate'
-    | '/$lang/(product)/payment-cancel'
-    | '/$lang/(product)/payment-success'
-    | '/$lang/(product)/premium-features'
-    | '/$lang/(product)/pricing'
-    | '/$lang/(product)/services'
-    | '/$lang/(product)/upload'
-    | '/$lang/(product)/video-generate'
+    | '/(root)/'
+    | '/(chat)/rooms/$roomId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
-    | '/$lang/(root)/'
+    | '/(chat)/discover/'
     | '/v1/contacts/'
-    | '/$lang/(chat)/rooms/$roomId'
-    | '/$lang/(chat)/discover/'
-    | '/$lang/(chat)/discover/spaces/$spaceId'
+    | '/(chat)/discover/spaces/$spaceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LangRoute: typeof LangRouteWithChildren
-  PaymentCancelRoute: typeof PaymentCancelRoute
-  PaymentSuccessRoute: typeof PaymentSuccessRoute
+  authRouteRoute: typeof authRouteRouteWithChildren
+  chatRouteRoute: typeof chatRouteRouteWithChildren
+  productRouteRoute: typeof productRouteRouteWithChildren
+  rootRouteRoute: typeof rootRouteRouteWithChildren
+  LocaleRoute: typeof LocaleRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiImageGenerateRoute: typeof ApiImageGenerateRoute
   ApiUploadRoute: typeof ApiUploadRoute
@@ -542,33 +517,54 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/payment-success': {
-      id: '/payment-success'
-      path: '/payment-success'
-      fullPath: '/payment-success'
-      preLoaderRoute: typeof PaymentSuccessRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/payment-cancel': {
-      id: '/payment-cancel'
-      path: '/payment-cancel'
-      fullPath: '/payment-cancel'
-      preLoaderRoute: typeof PaymentCancelRouteImport
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang': {
-      id: '/$lang'
-      path: '/$lang'
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangRouteImport
+    '/(root)': {
+      id: '/(root)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof rootRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/(product)': {
+      id: '/(product)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof productRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(chat)': {
+      id: '/(chat)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof chatRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)': {
+      id: '/(auth)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof authRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(root)/': {
+      id: '/(root)/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof rootIndexRouteImport
+      parentRoute: typeof rootRouteRoute
     }
     '/v1/$': {
       id: '/v1/$'
@@ -612,40 +608,159 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/onboarding': {
-      id: '/$lang/onboarding'
-      path: '/onboarding'
-      fullPath: '/$lang/onboarding'
-      preLoaderRoute: typeof LangOnboardingRouteImport
-      parentRoute: typeof LangRoute
+    '/(product)/video-generate': {
+      id: '/(product)/video-generate'
+      path: '/video-generate'
+      fullPath: '/video-generate'
+      preLoaderRoute: typeof productVideoGenerateRouteImport
+      parentRoute: typeof productRouteRoute
     }
-    '/$lang/(root)': {
-      id: '/$lang/(root)'
-      path: ''
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangrootRouteRouteImport
-      parentRoute: typeof LangRoute
+    '/(product)/upload': {
+      id: '/(product)/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof productUploadRouteImport
+      parentRoute: typeof productRouteRoute
     }
-    '/$lang/(product)': {
-      id: '/$lang/(product)'
-      path: ''
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangproductRouteRouteImport
-      parentRoute: typeof LangRoute
+    '/(product)/services': {
+      id: '/(product)/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof productServicesRouteImport
+      parentRoute: typeof productRouteRoute
     }
-    '/$lang/(chat)': {
-      id: '/$lang/(chat)'
-      path: ''
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangchatRouteRouteImport
-      parentRoute: typeof LangRoute
+    '/(product)/pricing': {
+      id: '/(product)/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof productPricingRouteImport
+      parentRoute: typeof productRouteRoute
     }
-    '/$lang/(auth)': {
-      id: '/$lang/(auth)'
-      path: ''
-      fullPath: '/$lang'
-      preLoaderRoute: typeof LangauthRouteRouteImport
-      parentRoute: typeof LangRoute
+    '/(product)/premium-features': {
+      id: '/(product)/premium-features'
+      path: '/premium-features'
+      fullPath: '/premium-features'
+      preLoaderRoute: typeof productPremiumFeaturesRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/payment-success': {
+      id: '/(product)/payment-success'
+      path: '/payment-success'
+      fullPath: '/payment-success'
+      preLoaderRoute: typeof productPaymentSuccessRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/payment-cancel': {
+      id: '/(product)/payment-cancel'
+      path: '/payment-cancel'
+      fullPath: '/payment-cancel'
+      preLoaderRoute: typeof productPaymentCancelRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/image-generate': {
+      id: '/(product)/image-generate'
+      path: '/image-generate'
+      fullPath: '/image-generate'
+      preLoaderRoute: typeof productImageGenerateRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/dashboard': {
+      id: '/(product)/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof productDashboardRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/ai': {
+      id: '/(product)/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof productAiRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(product)/account': {
+      id: '/(product)/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof productAccountRouteImport
+      parentRoute: typeof productRouteRoute
+    }
+    '/(chat)/messages': {
+      id: '/(chat)/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof chatMessagesRouteImport
+      parentRoute: typeof chatRouteRoute
+    }
+    '/(chat)/me': {
+      id: '/(chat)/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof chatMeRouteImport
+      parentRoute: typeof chatRouteRoute
+    }
+    '/(chat)/contacts': {
+      id: '/(chat)/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof chatContactsRouteImport
+      parentRoute: typeof chatRouteRoute
+    }
+    '/(auth)/wechat': {
+      id: '/(auth)/wechat'
+      path: '/wechat'
+      fullPath: '/wechat'
+      preLoaderRoute: typeof authWechatRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/signup': {
+      id: '/(auth)/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof authSignupRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/signin': {
+      id: '/(auth)/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof authSigninRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/reset-password': {
+      id: '/(auth)/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof authResetPasswordRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/forgot-password': {
+      id: '/(auth)/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof authForgotPasswordRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/cellphone': {
+      id: '/(auth)/cellphone'
+      path: '/cellphone'
+      fullPath: '/cellphone'
+      preLoaderRoute: typeof authCellphoneRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/$locale/$': {
+      id: '/$locale/$'
+      path: '/$'
+      fullPath: '/$locale/$'
+      preLoaderRoute: typeof LocaleSplatRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/(chat)/discover': {
+      id: '/(chat)/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof chatDiscoverRouteRouteImport
+      parentRoute: typeof chatRouteRoute
     }
     '/v1/contacts/': {
       id: '/v1/contacts/'
@@ -654,12 +769,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1ContactsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$lang/(root)/': {
-      id: '/$lang/(root)/'
+    '/(chat)/discover/': {
+      id: '/(chat)/discover/'
       path: '/'
-      fullPath: '/$lang/'
-      preLoaderRoute: typeof LangrootIndexRouteImport
-      parentRoute: typeof LangrootRouteRoute
+      fullPath: '/discover/'
+      preLoaderRoute: typeof chatDiscoverIndexRouteImport
+      parentRoute: typeof chatDiscoverRouteRoute
     }
     '/v1/rooms/metadata': {
       id: '/v1/rooms/metadata'
@@ -675,294 +790,132 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVideoGenerateStatusRouteImport
       parentRoute: typeof ApiVideoGenerateRoute
     }
-    '/$lang/(product)/video-generate': {
-      id: '/$lang/(product)/video-generate'
-      path: '/video-generate'
-      fullPath: '/$lang/video-generate'
-      preLoaderRoute: typeof LangproductVideoGenerateRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/upload': {
-      id: '/$lang/(product)/upload'
-      path: '/upload'
-      fullPath: '/$lang/upload'
-      preLoaderRoute: typeof LangproductUploadRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/services': {
-      id: '/$lang/(product)/services'
-      path: '/services'
-      fullPath: '/$lang/services'
-      preLoaderRoute: typeof LangproductServicesRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/pricing': {
-      id: '/$lang/(product)/pricing'
-      path: '/pricing'
-      fullPath: '/$lang/pricing'
-      preLoaderRoute: typeof LangproductPricingRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/premium-features': {
-      id: '/$lang/(product)/premium-features'
-      path: '/premium-features'
-      fullPath: '/$lang/premium-features'
-      preLoaderRoute: typeof LangproductPremiumFeaturesRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/payment-success': {
-      id: '/$lang/(product)/payment-success'
-      path: '/payment-success'
-      fullPath: '/$lang/payment-success'
-      preLoaderRoute: typeof LangproductPaymentSuccessRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/payment-cancel': {
-      id: '/$lang/(product)/payment-cancel'
-      path: '/payment-cancel'
-      fullPath: '/$lang/payment-cancel'
-      preLoaderRoute: typeof LangproductPaymentCancelRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/image-generate': {
-      id: '/$lang/(product)/image-generate'
-      path: '/image-generate'
-      fullPath: '/$lang/image-generate'
-      preLoaderRoute: typeof LangproductImageGenerateRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/dashboard': {
-      id: '/$lang/(product)/dashboard'
-      path: '/dashboard'
-      fullPath: '/$lang/dashboard'
-      preLoaderRoute: typeof LangproductDashboardRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/ai': {
-      id: '/$lang/(product)/ai'
-      path: '/ai'
-      fullPath: '/$lang/ai'
-      preLoaderRoute: typeof LangproductAiRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(product)/account': {
-      id: '/$lang/(product)/account'
-      path: '/account'
-      fullPath: '/$lang/account'
-      preLoaderRoute: typeof LangproductAccountRouteImport
-      parentRoute: typeof LangproductRouteRoute
-    }
-    '/$lang/(chat)/messages': {
-      id: '/$lang/(chat)/messages'
-      path: '/messages'
-      fullPath: '/$lang/messages'
-      preLoaderRoute: typeof LangchatMessagesRouteImport
-      parentRoute: typeof LangchatRouteRoute
-    }
-    '/$lang/(chat)/me': {
-      id: '/$lang/(chat)/me'
-      path: '/me'
-      fullPath: '/$lang/me'
-      preLoaderRoute: typeof LangchatMeRouteImport
-      parentRoute: typeof LangchatRouteRoute
-    }
-    '/$lang/(chat)/contacts': {
-      id: '/$lang/(chat)/contacts'
-      path: '/contacts'
-      fullPath: '/$lang/contacts'
-      preLoaderRoute: typeof LangchatContactsRouteImport
-      parentRoute: typeof LangchatRouteRoute
-    }
-    '/$lang/(auth)/wechat': {
-      id: '/$lang/(auth)/wechat'
-      path: '/wechat'
-      fullPath: '/$lang/wechat'
-      preLoaderRoute: typeof LangauthWechatRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(auth)/signup': {
-      id: '/$lang/(auth)/signup'
-      path: '/signup'
-      fullPath: '/$lang/signup'
-      preLoaderRoute: typeof LangauthSignupRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(auth)/signin': {
-      id: '/$lang/(auth)/signin'
-      path: '/signin'
-      fullPath: '/$lang/signin'
-      preLoaderRoute: typeof LangauthSigninRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(auth)/reset-password': {
-      id: '/$lang/(auth)/reset-password'
-      path: '/reset-password'
-      fullPath: '/$lang/reset-password'
-      preLoaderRoute: typeof LangauthResetPasswordRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(auth)/forgot-password': {
-      id: '/$lang/(auth)/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/$lang/forgot-password'
-      preLoaderRoute: typeof LangauthForgotPasswordRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(auth)/cellphone': {
-      id: '/$lang/(auth)/cellphone'
-      path: '/cellphone'
-      fullPath: '/$lang/cellphone'
-      preLoaderRoute: typeof LangauthCellphoneRouteImport
-      parentRoute: typeof LangauthRouteRoute
-    }
-    '/$lang/(chat)/discover': {
-      id: '/$lang/(chat)/discover'
-      path: '/discover'
-      fullPath: '/$lang/discover'
-      preLoaderRoute: typeof LangchatDiscoverRouteRouteImport
-      parentRoute: typeof LangchatRouteRoute
-    }
-    '/$lang/(chat)/discover/': {
-      id: '/$lang/(chat)/discover/'
-      path: '/'
-      fullPath: '/$lang/discover/'
-      preLoaderRoute: typeof LangchatDiscoverIndexRouteImport
-      parentRoute: typeof LangchatDiscoverRouteRoute
-    }
-    '/$lang/(chat)/rooms/$roomId': {
-      id: '/$lang/(chat)/rooms/$roomId'
+    '/(chat)/rooms/$roomId': {
+      id: '/(chat)/rooms/$roomId'
       path: '/rooms/$roomId'
-      fullPath: '/$lang/rooms/$roomId'
-      preLoaderRoute: typeof LangchatRoomsRoomIdRouteImport
-      parentRoute: typeof LangchatRouteRoute
+      fullPath: '/rooms/$roomId'
+      preLoaderRoute: typeof chatRoomsRoomIdRouteImport
+      parentRoute: typeof chatRouteRoute
     }
-    '/$lang/(chat)/discover/spaces/$spaceId': {
-      id: '/$lang/(chat)/discover/spaces/$spaceId'
+    '/(chat)/discover/spaces/$spaceId': {
+      id: '/(chat)/discover/spaces/$spaceId'
       path: '/spaces/$spaceId'
-      fullPath: '/$lang/discover/spaces/$spaceId'
-      preLoaderRoute: typeof LangchatDiscoverSpacesSpaceIdRouteImport
-      parentRoute: typeof LangchatDiscoverRouteRoute
+      fullPath: '/discover/spaces/$spaceId'
+      preLoaderRoute: typeof chatDiscoverSpacesSpaceIdRouteImport
+      parentRoute: typeof chatDiscoverRouteRoute
     }
   }
 }
 
-interface LangauthRouteRouteChildren {
-  LangauthCellphoneRoute: typeof LangauthCellphoneRoute
-  LangauthForgotPasswordRoute: typeof LangauthForgotPasswordRoute
-  LangauthResetPasswordRoute: typeof LangauthResetPasswordRoute
-  LangauthSigninRoute: typeof LangauthSigninRoute
-  LangauthSignupRoute: typeof LangauthSignupRoute
-  LangauthWechatRoute: typeof LangauthWechatRoute
+interface authRouteRouteChildren {
+  authCellphoneRoute: typeof authCellphoneRoute
+  authForgotPasswordRoute: typeof authForgotPasswordRoute
+  authResetPasswordRoute: typeof authResetPasswordRoute
+  authSigninRoute: typeof authSigninRoute
+  authSignupRoute: typeof authSignupRoute
+  authWechatRoute: typeof authWechatRoute
 }
 
-const LangauthRouteRouteChildren: LangauthRouteRouteChildren = {
-  LangauthCellphoneRoute: LangauthCellphoneRoute,
-  LangauthForgotPasswordRoute: LangauthForgotPasswordRoute,
-  LangauthResetPasswordRoute: LangauthResetPasswordRoute,
-  LangauthSigninRoute: LangauthSigninRoute,
-  LangauthSignupRoute: LangauthSignupRoute,
-  LangauthWechatRoute: LangauthWechatRoute,
+const authRouteRouteChildren: authRouteRouteChildren = {
+  authCellphoneRoute: authCellphoneRoute,
+  authForgotPasswordRoute: authForgotPasswordRoute,
+  authResetPasswordRoute: authResetPasswordRoute,
+  authSigninRoute: authSigninRoute,
+  authSignupRoute: authSignupRoute,
+  authWechatRoute: authWechatRoute,
 }
 
-const LangauthRouteRouteWithChildren = LangauthRouteRoute._addFileChildren(
-  LangauthRouteRouteChildren,
+const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
+  authRouteRouteChildren,
 )
 
-interface LangchatDiscoverRouteRouteChildren {
-  LangchatDiscoverIndexRoute: typeof LangchatDiscoverIndexRoute
-  LangchatDiscoverSpacesSpaceIdRoute: typeof LangchatDiscoverSpacesSpaceIdRoute
+interface chatDiscoverRouteRouteChildren {
+  chatDiscoverIndexRoute: typeof chatDiscoverIndexRoute
+  chatDiscoverSpacesSpaceIdRoute: typeof chatDiscoverSpacesSpaceIdRoute
 }
 
-const LangchatDiscoverRouteRouteChildren: LangchatDiscoverRouteRouteChildren = {
-  LangchatDiscoverIndexRoute: LangchatDiscoverIndexRoute,
-  LangchatDiscoverSpacesSpaceIdRoute: LangchatDiscoverSpacesSpaceIdRoute,
+const chatDiscoverRouteRouteChildren: chatDiscoverRouteRouteChildren = {
+  chatDiscoverIndexRoute: chatDiscoverIndexRoute,
+  chatDiscoverSpacesSpaceIdRoute: chatDiscoverSpacesSpaceIdRoute,
 }
 
-const LangchatDiscoverRouteRouteWithChildren =
-  LangchatDiscoverRouteRoute._addFileChildren(
-    LangchatDiscoverRouteRouteChildren,
-  )
+const chatDiscoverRouteRouteWithChildren =
+  chatDiscoverRouteRoute._addFileChildren(chatDiscoverRouteRouteChildren)
 
-interface LangchatRouteRouteChildren {
-  LangchatDiscoverRouteRoute: typeof LangchatDiscoverRouteRouteWithChildren
-  LangchatContactsRoute: typeof LangchatContactsRoute
-  LangchatMeRoute: typeof LangchatMeRoute
-  LangchatMessagesRoute: typeof LangchatMessagesRoute
-  LangchatRoomsRoomIdRoute: typeof LangchatRoomsRoomIdRoute
+interface chatRouteRouteChildren {
+  chatDiscoverRouteRoute: typeof chatDiscoverRouteRouteWithChildren
+  chatContactsRoute: typeof chatContactsRoute
+  chatMeRoute: typeof chatMeRoute
+  chatMessagesRoute: typeof chatMessagesRoute
+  chatRoomsRoomIdRoute: typeof chatRoomsRoomIdRoute
 }
 
-const LangchatRouteRouteChildren: LangchatRouteRouteChildren = {
-  LangchatDiscoverRouteRoute: LangchatDiscoverRouteRouteWithChildren,
-  LangchatContactsRoute: LangchatContactsRoute,
-  LangchatMeRoute: LangchatMeRoute,
-  LangchatMessagesRoute: LangchatMessagesRoute,
-  LangchatRoomsRoomIdRoute: LangchatRoomsRoomIdRoute,
+const chatRouteRouteChildren: chatRouteRouteChildren = {
+  chatDiscoverRouteRoute: chatDiscoverRouteRouteWithChildren,
+  chatContactsRoute: chatContactsRoute,
+  chatMeRoute: chatMeRoute,
+  chatMessagesRoute: chatMessagesRoute,
+  chatRoomsRoomIdRoute: chatRoomsRoomIdRoute,
 }
 
-const LangchatRouteRouteWithChildren = LangchatRouteRoute._addFileChildren(
-  LangchatRouteRouteChildren,
+const chatRouteRouteWithChildren = chatRouteRoute._addFileChildren(
+  chatRouteRouteChildren,
 )
 
-interface LangproductRouteRouteChildren {
-  LangproductAccountRoute: typeof LangproductAccountRoute
-  LangproductAiRoute: typeof LangproductAiRoute
-  LangproductDashboardRoute: typeof LangproductDashboardRoute
-  LangproductImageGenerateRoute: typeof LangproductImageGenerateRoute
-  LangproductPaymentCancelRoute: typeof LangproductPaymentCancelRoute
-  LangproductPaymentSuccessRoute: typeof LangproductPaymentSuccessRoute
-  LangproductPremiumFeaturesRoute: typeof LangproductPremiumFeaturesRoute
-  LangproductPricingRoute: typeof LangproductPricingRoute
-  LangproductServicesRoute: typeof LangproductServicesRoute
-  LangproductUploadRoute: typeof LangproductUploadRoute
-  LangproductVideoGenerateRoute: typeof LangproductVideoGenerateRoute
+interface productRouteRouteChildren {
+  productAccountRoute: typeof productAccountRoute
+  productAiRoute: typeof productAiRoute
+  productDashboardRoute: typeof productDashboardRoute
+  productImageGenerateRoute: typeof productImageGenerateRoute
+  productPaymentCancelRoute: typeof productPaymentCancelRoute
+  productPaymentSuccessRoute: typeof productPaymentSuccessRoute
+  productPremiumFeaturesRoute: typeof productPremiumFeaturesRoute
+  productPricingRoute: typeof productPricingRoute
+  productServicesRoute: typeof productServicesRoute
+  productUploadRoute: typeof productUploadRoute
+  productVideoGenerateRoute: typeof productVideoGenerateRoute
 }
 
-const LangproductRouteRouteChildren: LangproductRouteRouteChildren = {
-  LangproductAccountRoute: LangproductAccountRoute,
-  LangproductAiRoute: LangproductAiRoute,
-  LangproductDashboardRoute: LangproductDashboardRoute,
-  LangproductImageGenerateRoute: LangproductImageGenerateRoute,
-  LangproductPaymentCancelRoute: LangproductPaymentCancelRoute,
-  LangproductPaymentSuccessRoute: LangproductPaymentSuccessRoute,
-  LangproductPremiumFeaturesRoute: LangproductPremiumFeaturesRoute,
-  LangproductPricingRoute: LangproductPricingRoute,
-  LangproductServicesRoute: LangproductServicesRoute,
-  LangproductUploadRoute: LangproductUploadRoute,
-  LangproductVideoGenerateRoute: LangproductVideoGenerateRoute,
+const productRouteRouteChildren: productRouteRouteChildren = {
+  productAccountRoute: productAccountRoute,
+  productAiRoute: productAiRoute,
+  productDashboardRoute: productDashboardRoute,
+  productImageGenerateRoute: productImageGenerateRoute,
+  productPaymentCancelRoute: productPaymentCancelRoute,
+  productPaymentSuccessRoute: productPaymentSuccessRoute,
+  productPremiumFeaturesRoute: productPremiumFeaturesRoute,
+  productPricingRoute: productPricingRoute,
+  productServicesRoute: productServicesRoute,
+  productUploadRoute: productUploadRoute,
+  productVideoGenerateRoute: productVideoGenerateRoute,
 }
 
-const LangproductRouteRouteWithChildren =
-  LangproductRouteRoute._addFileChildren(LangproductRouteRouteChildren)
-
-interface LangrootRouteRouteChildren {
-  LangrootIndexRoute: typeof LangrootIndexRoute
-}
-
-const LangrootRouteRouteChildren: LangrootRouteRouteChildren = {
-  LangrootIndexRoute: LangrootIndexRoute,
-}
-
-const LangrootRouteRouteWithChildren = LangrootRouteRoute._addFileChildren(
-  LangrootRouteRouteChildren,
+const productRouteRouteWithChildren = productRouteRoute._addFileChildren(
+  productRouteRouteChildren,
 )
 
-interface LangRouteChildren {
-  LangauthRouteRoute: typeof LangauthRouteRouteWithChildren
-  LangchatRouteRoute: typeof LangchatRouteRouteWithChildren
-  LangproductRouteRoute: typeof LangproductRouteRouteWithChildren
-  LangrootRouteRoute: typeof LangrootRouteRouteWithChildren
-  LangOnboardingRoute: typeof LangOnboardingRoute
+interface rootRouteRouteChildren {
+  rootIndexRoute: typeof rootIndexRoute
 }
 
-const LangRouteChildren: LangRouteChildren = {
-  LangauthRouteRoute: LangauthRouteRouteWithChildren,
-  LangchatRouteRoute: LangchatRouteRouteWithChildren,
-  LangproductRouteRoute: LangproductRouteRouteWithChildren,
-  LangrootRouteRoute: LangrootRouteRouteWithChildren,
-  LangOnboardingRoute: LangOnboardingRoute,
+const rootRouteRouteChildren: rootRouteRouteChildren = {
+  rootIndexRoute: rootIndexRoute,
 }
 
-const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
+const rootRouteRouteWithChildren = rootRouteRoute._addFileChildren(
+  rootRouteRouteChildren,
+)
+
+interface LocaleRouteChildren {
+  LocaleSplatRoute: typeof LocaleSplatRoute
+}
+
+const LocaleRouteChildren: LocaleRouteChildren = {
+  LocaleSplatRoute: LocaleSplatRoute,
+}
+
+const LocaleRouteWithChildren =
+  LocaleRoute._addFileChildren(LocaleRouteChildren)
 
 interface ApiVideoGenerateRouteChildren {
   ApiVideoGenerateStatusRoute: typeof ApiVideoGenerateStatusRoute
@@ -976,10 +929,12 @@ const ApiVideoGenerateRouteWithChildren =
   ApiVideoGenerateRoute._addFileChildren(ApiVideoGenerateRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LangRoute: LangRouteWithChildren,
-  PaymentCancelRoute: PaymentCancelRoute,
-  PaymentSuccessRoute: PaymentSuccessRoute,
+  authRouteRoute: authRouteRouteWithChildren,
+  chatRouteRoute: chatRouteRouteWithChildren,
+  productRouteRoute: productRouteRouteWithChildren,
+  rootRouteRoute: rootRouteRouteWithChildren,
+  LocaleRoute: LocaleRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiImageGenerateRoute: ApiImageGenerateRoute,
   ApiUploadRoute: ApiUploadRoute,

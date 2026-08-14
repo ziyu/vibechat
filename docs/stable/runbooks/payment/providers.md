@@ -26,7 +26,7 @@
 
 ## 结账与履约
 
-1. 用户从 `/$lang/services` 选择方案，Web 仅提交 `planId`、provider 和 request ID。
+1. 用户从 `/services` 选择方案，Web 仅提交 `planId`、provider 和 request ID。
 2. Backend 从服务端方案读取金额/币种，创建 `pending` 订单，再创建 provider checkout。
 3. 相同 request ID 只返回同一 checkout；创建失败将订单置为 `failed`，重试需要新 ID。
 4. `/payment-success` 和 `/payment-cancel` 只展示 UX，不确认到账。

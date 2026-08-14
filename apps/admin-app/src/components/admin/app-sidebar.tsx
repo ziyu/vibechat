@@ -15,7 +15,7 @@ import {
 } from "@vibechat/react-shared/ui/sidebar"
 
 export function AppSidebar() {
-  const { t, locale: currentLocale } = useTranslation()
+  const { t } = useTranslation()
   const routerState = useRouterState()
   const pathname = routerState.location.pathname
 
@@ -71,7 +71,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="admin-sidebar">
       <SidebarHeader className="admin-sidebar-header">
-        <a href={`/${currentLocale}/admin`} className="admin-wordmark">
+        <a href="/admin" className="admin-wordmark">
           <img src="/logo.svg" alt="" />
           <span><strong>{t.adminApp.name}</strong><small>{t.adminApp.workspace}</small></span>
         </a>
@@ -81,8 +81,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${currentLocale}${dashboardItem.url}`}>
-                  <a href={`/${currentLocale}${dashboardItem.url}`}>
+                <SidebarMenuButton asChild isActive={pathname === dashboardItem.url}>
+                  <a href={dashboardItem.url}>
                     <dashboardItem.icon />
                     <span>{dashboardItem.title}</span>
                   </a>
@@ -98,8 +98,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(`/${currentLocale}${item.url}`)}>
-                    <a href={`/${currentLocale}${item.url}`}>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
+                    <a href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
                     </a>
@@ -111,7 +111,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <div className="admin-sidebar-footer">
-        <a href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/${currentLocale}/messages`}>
+        <a href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/messages`}>
           <span>{t.adminApp.openProduct}</span><ArrowUpRight className="h-4 w-4" />
         </a>
       </div>

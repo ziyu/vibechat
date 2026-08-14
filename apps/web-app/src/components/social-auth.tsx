@@ -27,7 +27,7 @@ export function SocialAuth({
   ...props
 }: SocialAuthProps) {
   const navigate = useNavigate();
-  const { locale: currentLocale, t } = useTranslation();
+  const { t } = useTranslation();
   const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(
     null
   );
@@ -41,15 +41,13 @@ export function SocialAuth({
     switch (provider) {
       case "wechat":
         navigate({
-          to: "/$lang/wechat",
-          params: { lang: currentLocale },
+          to: "/wechat",
           search: returnTo ? { returnTo } : undefined,
         });
         break;
       case "phone":
         navigate({
-          to: "/$lang/cellphone",
-          params: { lang: currentLocale },
+          to: "/cellphone",
           search: returnTo ? { returnTo } : undefined,
         });
         break;
@@ -57,10 +55,7 @@ export function SocialAuth({
         setLoadingProvider(provider);
 
         try {
-          const callbackURL = `${window.location.origin}${postAuthPath(
-            currentLocale,
-            window.location.search,
-          )}`;
+          const callbackURL = `${window.location.origin}${postAuthPath(window.location.search)}`;
           const { data, error } = await authClientReact.signIn.social({
             provider,
             callbackURL,

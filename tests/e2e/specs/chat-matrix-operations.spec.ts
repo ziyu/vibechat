@@ -74,8 +74,8 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       expect(joinResponse.ok(), await joinResponse.text()).toBeTruthy()
 
       await Promise.all([
-        first.page.goto(`/zh-CN/rooms/${encodeURIComponent(room.matrixRoomId)}`),
-        second.page.goto(`/zh-CN/rooms/${encodeURIComponent(room.matrixRoomId)}`),
+        first.page.goto(`/rooms/${encodeURIComponent(room.matrixRoomId)}`),
+        second.page.goto(`/rooms/${encodeURIComponent(room.matrixRoomId)}`),
       ])
       for (const page of [first.page, second.page]) {
         await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
@@ -159,7 +159,7 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       ).toHaveCount(1, { timeout: 20_000 })
       await expect(queuedMessage).toContainText('已发送', { timeout: 20_000 })
 
-      await first.page.goto('/zh-CN/messages')
+      await first.page.goto('/messages')
       await first.page.getByTestId('conversation-search').fill(attachmentName)
       await expect(first.page.getByTestId('conversation-row')).toHaveCount(1)
       await expect(first.page.getByTestId('conversation-row')).toContainText('Matrix Operations E2E')

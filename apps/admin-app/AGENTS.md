@@ -14,6 +14,8 @@ pnpm --dir apps/admin-app build
 
 Local port: `8005`.
 
+Canonical page routes are locale-neutral (`/admin`, `/signin`, `/forbidden`). The root route resolves `VIBECHAT_LOCALE` during SSR; `/en/**` and `/zh-CN/**` are legacy redirect boundaries only and must not be used for new navigation.
+
 ## Boundaries
 
 - Consume operations data only through the Backend `/api/*` gateway.

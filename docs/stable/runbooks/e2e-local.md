@@ -36,7 +36,7 @@ Seed 会恢复以下本地账号：
 pnpm dev
 ```
 
-该命令同时启动 Web `8001`、Backend `8002`、官网 `8003` 和 Admin `8005`。确认 `http://localhost:8001/api/health` 返回 Backend 健康状态，`http://localhost:8003/en` 可访问，Admin 登录后能打开 `http://localhost:8005/en/admin`。
+该命令同时启动 Web `8001`、Backend `8002`、官网 `8003` 和 Admin `8005`。确认 `http://localhost:8001/api/health` 返回 Backend 健康状态，`http://localhost:8003/` 可访问，Admin 登录后能打开 `http://localhost:8005/admin`。
 
 ## 2. 运行相关用例
 

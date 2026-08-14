@@ -37,7 +37,7 @@ flowchart LR
 | 数据模型 | `libs/database/schema/*/pricing-plan.ts` |
 | 公开 API | 当前未启用；恢复结账前必须由 Backend 提供 |
 | 管理 API | `apps/backend/src/routes/api/admin/pricing-plans/*` |
-| 管理页面 | `apps/admin-app/src/routes/$lang/admin/pricing/*` |
+| 管理页面 | `apps/admin-app/src/routes/admin/pricing/*` |
 
 ## 安全与一致性
 

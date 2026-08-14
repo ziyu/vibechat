@@ -35,8 +35,8 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
         error: { code: 'PROFILE_REQUEST_INVALID' },
       })
 
-      await firstPage.goto('/zh-CN/messages')
-      await expect(firstPage).toHaveURL(/\/zh-CN\/onboarding$/)
+      await firstPage.goto('/messages')
+      await expect(firstPage).toHaveURL(/\/onboarding$/)
       await expect(firstPage.getByTestId('onboarding-page')).toBeVisible()
 
       const secondSignUp = await signUpViaAPI(secondPage, {
@@ -66,7 +66,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
       const firstUsername = `alice_${suffix}`.slice(0, 30)
       await firstPage.getByTestId('profile-username').fill(firstUsername)
       await firstPage.getByTestId('complete-onboarding').click()
-      await expect(firstPage).toHaveURL(/\/zh-CN\/messages$/)
+      await expect(firstPage).toHaveURL(/\/messages$/)
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
 
       const firstBootstrapResponse = await firstPage.request.get('/v1/session/bootstrap')
@@ -78,7 +78,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
         onboardingCompleted: true,
       })
 
-      await firstPage.goto('/zh-CN/me')
+      await firstPage.goto('/me')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       await firstPage.getByTestId('edit-profile').click()
       await firstPage.getByTestId('me-profile-display-name').fill('Alice Updated')
@@ -108,7 +108,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
       )
       expect(acceptResponse.ok(), await acceptResponse.text()).toBeTruthy()
 
-      await firstPage.goto('/zh-CN/contacts')
+      await firstPage.goto('/contacts')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       await expect(firstPage.getByTestId('contact-row')).toContainText('Original Bob')
       await firstPage.getByTestId('edit-contact-remark').click()
@@ -132,8 +132,8 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
       await firstPage.getByTestId('clear-contact-remark').click()
       await expect(firstPage.getByTestId('contact-row')).toContainText('Original Bob')
 
-      await firstPage.goto('/zh-CN/onboarding')
-      await expect(firstPage).toHaveURL(/\/zh-CN\/messages$/)
+      await firstPage.goto('/onboarding')
+      await expect(firstPage).toHaveURL(/\/messages$/)
     } finally {
       await firstContext.close()
       await secondContext.close()

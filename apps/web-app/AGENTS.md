@@ -27,16 +27,18 @@ The product Web runs on `8001`. The shared backend runs on `8002`; local Vite an
 ```text
 src/routes/
 ├── __root.tsx
-├── index.tsx                    # / -> localized product entry
-├── $lang.tsx
-├── $lang/(auth)/*               # signin/signup/OTP/reset
-├── $lang/(chat)/*               # messages/rooms/contacts/discover/me
-├── $lang/(product)/*            # account/services/payment returns/AI
-├── $lang/onboarding.tsx
-├── $lang/(root)/index.tsx       # localized root -> messages
+├── (auth)/*                     # signin/signup/OTP/reset
+├── (chat)/*                     # messages/rooms/contacts/discover/me
+├── (product)/*                  # account/services/payment returns/AI
+├── (root)/index.tsx             # / -> messages
+├── onboarding.tsx
+├── $locale.tsx                  # legacy locale-prefix redirect only
+├── $locale/$.tsx                # legacy nested-path compatibility
 ├── api/$.ts                     # same-origin backend gateway only
 └── v1/$.ts                      # same-origin backend gateway only
 ```
+
+Product URLs are locale-neutral. The root route resolves the active language from the shared `VIBECHAT_LOCALE` Cookie during SSR; switching language updates that preference without changing pathname, search, or hash. `/en/**` and `/zh-CN/**` exist only as legacy redirect boundaries and must not be used for new navigation.
 
 Account, billing, upload, and AI product surfaces belong inside the authenticated product shell. Keep one product shell and route compatibility aliases; do not create a second SaaS layout.
 

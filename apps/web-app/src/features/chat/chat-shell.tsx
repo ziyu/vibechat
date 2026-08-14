@@ -13,7 +13,7 @@ import { browserProductPlatform } from '@/lib/product-platform'
 
 interface NavItem {
   id: 'messages' | 'contacts' | 'discover' | 'services' | 'me'
-  to: '/$lang/messages' | '/$lang/contacts' | '/$lang/discover' | '/$lang/services' | '/$lang/me'
+  to: '/messages' | '/contacts' | '/discover' | '/services' | '/me'
   icon: LucideIcon
   label: string
 }
@@ -56,31 +56,31 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   const items: NavItem[] = [
     {
       id: 'messages',
-      to: '/$lang/messages',
+      to: '/messages',
       icon: MessageCircleMore,
       label: t.chatApp.nav.messages,
     },
     {
       id: 'contacts',
-      to: '/$lang/contacts',
+      to: '/contacts',
       icon: ContactRound,
       label: t.chatApp.nav.contacts,
     },
     {
       id: 'discover',
-      to: '/$lang/discover',
+      to: '/discover',
       icon: Compass,
       label: t.chatApp.nav.discover,
     },
     {
       id: 'services',
-      to: '/$lang/services',
+      to: '/services',
       icon: Shapes,
       label: t.chatApp.nav.services,
     },
     {
       id: 'me',
-      to: '/$lang/me',
+      to: '/me',
       icon: UserRound,
       label: t.chatApp.nav.me,
     },
@@ -102,8 +102,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
     >
       <aside className="vc-primary-rail" data-testid="chat-primary-nav">
         <Link
-          to="/$lang/messages"
-          params={{ lang: locale }}
+          to="/messages"
           className="vc-brand-mark"
           aria-label={t.common.siteName}
         >
@@ -117,7 +116,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.id}
                 to={item.to}
-                params={{ lang: locale }}
                 className="vc-primary-link"
                 data-active={isActive(item) || undefined}
               >
@@ -132,8 +130,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <Link
-          to="/$lang/me"
-          params={{ lang: locale }}
+          to="/me"
           className="vc-rail-profile"
           aria-label={t.chatApp.me.profile}
         >
@@ -176,7 +173,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.id}
               to={item.to}
-              params={{ lang: locale }}
               className="vc-mobile-link"
               data-active={isActive(item) || undefined}
             >

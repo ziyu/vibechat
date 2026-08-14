@@ -2,14 +2,12 @@
  * E2E Test Constants
  *
  * Shared constants for all E2E test specs.
- * The default locale is 'en' for test stability; adjust if needed.
+ * Product URLs are locale-neutral. Locale-specific behavior is controlled by
+ * the VIBECHAT_LOCALE cookie in the dedicated i18n suite.
  */
 
-/** Default locale prefix used in URLs */
-export const LOCALE = 'en';
-
-/** Base URL path with locale prefix */
-export const BASE = `/${LOCALE}`;
+/** Canonical product routes have no locale prefix. */
+export const BASE = '';
 
 /** Test user credentials for signup/signin flows */
 export const TEST_USER = {
@@ -32,7 +30,7 @@ export function uniqueEmail(prefix = 'test'): string {
 
 /** Well-known page paths (without locale prefix) */
 export const PAGES = {
-  home: `${BASE}`,
+  home: '/',
   signin: `${BASE}/signin`,
   signup: `${BASE}/signup`,
   forgotPassword: `${BASE}/forgot-password`,

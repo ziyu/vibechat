@@ -37,8 +37,7 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
       <section className="vc-space-detail" data-testid="space-detail">
         <header>
           <Link
-            to="/$lang/discover"
-            params={{ lang: locale }}
+            to="/discover"
             className="vc-back-link"
           >
             <ArrowLeft size={16} />
@@ -158,8 +157,8 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
           return (
             <article key={space.id} className="vc-space-card" data-testid="space-card">
               <Link
-                to="/$lang/discover/spaces/$spaceId"
-                params={{ lang: locale, spaceId: space.id }}
+                to="/discover/spaces/$spaceId"
+                params={{ spaceId: space.id }}
                 className="vc-space-card-preview"
                 style={{ '--preview-accent': space.accent, '--preview-canvas': space.canvas } as React.CSSProperties}
               >

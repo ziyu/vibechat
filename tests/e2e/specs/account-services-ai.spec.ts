@@ -16,7 +16,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
   })
 
   test('loads account records and account security without Matrix runtime', async ({ page }) => {
-    await page.goto('/en/account')
+    await page.goto('/account')
     await expect(page.getByTestId('product-app-shell')).toBeVisible()
     await expect(page.getByTestId('account-overview')).toBeVisible()
     await page.getByRole('button', { name: 'Security' }).click()
@@ -26,19 +26,19 @@ test.describe('Account, services, AI and payment return surfaces', () => {
   })
 
   test('loads pricing and all three real AI product surfaces', async ({ page }) => {
-    await page.goto('/en/services')
+    await page.goto('/services')
     await expect(page.getByTestId('pricing-plans')).toBeVisible()
     await expect(page.getByTestId('ai-tools')).toBeVisible()
 
-    await page.goto('/en/ai')
+    await page.goto('/ai')
     await expect(page.getByTestId('ai-chat-page')).toBeVisible()
     await expect(page.getByPlaceholder('What can I help you with?')).toBeVisible()
 
-    await page.goto('/en/image-generate')
+    await page.goto('/image-generate')
     await expect(page.getByTestId('image-generation-page')).toBeVisible()
     await expect(page.getByPlaceholder('Describe the image you want to generate...')).toBeVisible()
 
-    await page.goto('/en/video-generate')
+    await page.goto('/video-generate')
     await expect(page.getByTestId('video-generation-page')).toBeVisible()
     await expect(page.getByPlaceholder('Describe the video you want to generate...')).toBeVisible()
   })
@@ -47,8 +47,8 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     const session = await page.request.get('/api/auth/get-session')
     const userId = (await session.json() as { user: { id: string } }).user.id
 
-    await page.goto('/en/premium-features')
-    await expect(page).toHaveURL(/\/en\/services$/)
+    await page.goto('/premium-features')
+    await expect(page).toHaveURL(/\/services$/)
 
     await seedActiveSubscription(userId)
     const subscriptionResponse = await page.request.get('/api/subscription/status')
@@ -59,7 +59,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     expect(subscriptionPayload.subscription).not.toHaveProperty('stripeCustomerId')
     expect(subscriptionPayload.subscription).not.toHaveProperty('stripeSubscriptionId')
     expect(subscriptionPayload.subscription).not.toHaveProperty('metadata')
-    await page.goto('/en/premium-features')
+    await page.goto('/premium-features')
     await expect(page.getByTestId('premium-features-page')).toBeVisible()
   })
 
@@ -207,11 +207,11 @@ test.describe('Account, services, AI and payment return surfaces', () => {
 
   test('preserves provider query strings through unlocalized payment returns', async ({ page }) => {
     await page.goto('/payment-success?provider=stripe&session_id=missing')
-    await expect(page).toHaveURL(/\/zh-CN\/payment-success\?provider=stripe&session_id=missing/)
+    await expect(page).toHaveURL(/\/payment-success\?provider=stripe&session_id=missing/)
     await expect(page.getByTestId('payment-success-page')).toBeVisible()
 
     await page.goto('/payment-cancel?provider=paypal')
-    await expect(page).toHaveURL(/\/zh-CN\/payment-cancel\?provider=paypal/)
+    await expect(page).toHaveURL(/\/payment-cancel\?provider=paypal/)
     await expect(page.getByTestId('payment-cancel-page')).toBeVisible()
   })
 
@@ -242,7 +242,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     const session = await page.request.get('/api/auth/get-session')
     const email = (await session.json() as { user: { email: string } }).user.email
 
-    await page.goto('/en/account')
+    await page.goto('/account')
     await expect(page.getByTestId('account-overview')).toBeVisible()
     await page.getByRole('button', { name: 'Security' }).click()
     await expect(page.getByTestId('account-security')).toBeVisible()
@@ -267,7 +267,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
 
     await signOutViaAPI(page)
     await page.goto(`/referral/${referralCode}`)
-    await expect(page).toHaveURL(new RegExp(`/zh-CN/signup\\?ref=${referralCode}`))
+    await expect(page).toHaveURL(new RegExp(`/signup\\?ref=${referralCode}`))
     await expect.poll(async () => (await page.context().cookies())
       .some((cookie) => cookie.name === 'referral_code' && cookie.value === referralCode)).toBe(true)
 
@@ -296,14 +296,14 @@ test.describe('Account, services, AI and payment return surfaces', () => {
   })
 
   test('deletes an eligible account through the real security flow', async ({ page }) => {
-    await page.goto('/en/account')
+    await page.goto('/account')
     await expect(page.getByTestId('account-overview')).toBeVisible()
     await page.getByRole('button', { name: 'Security' }).click()
     await expect(page.getByTestId('account-security')).toBeVisible()
     await page.getByTestId('security-delete-phrase').fill('DELETE')
     await page.getByTestId('security-delete-password').fill('TestPassword123!')
     await page.getByTestId('security-delete-account').click()
-    await expect(page).toHaveURL(/\/en\/(?:signin|login)$/)
+    await expect(page).toHaveURL(/\/(?:signin|login)$/)
     const session = await page.request.get('/api/auth/get-session')
     expect(await session.json()).toBeNull()
   })

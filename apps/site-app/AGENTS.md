@@ -2,7 +2,7 @@
 
 ## Overview
 
-`apps/site-app` is the public VibeChat site. It owns the localized homepage, public Blog presentation, SEO, and explicit links to the product Web origin.
+`apps/site-app` is the public VibeChat site. It owns the translated homepage, public Blog presentation, SEO, and explicit links to the product Web origin.
 
 ## Commands
 
@@ -18,6 +18,8 @@ Local port: `8003`.
 
 - Do not import Matrix, Better Auth server/client, database, product stores, payment, AI, storage providers, or another app.
 - Public configuration resolves through `config/public.ts`.
-- Product links use `VITE_WEB_APP_ORIGIN` and preserve the active locale.
+- Public URLs are locale-neutral. The root route resolves `VIBECHAT_LOCALE` during SSR, and language switching keeps pathname, search, and hash unchanged.
+- Product links use `VITE_WEB_APP_ORIGIN` without adding a locale path segment.
+- `/en/**` and `/zh-CN/**` are legacy redirect boundaries only; new routes and navigation must not depend on `$locale`.
 - Blog gateway routes may only forward public reads to `BACKEND_ORIGIN`.
 - User-visible text uses existing i18n keys; update English and Chinese together for new content.

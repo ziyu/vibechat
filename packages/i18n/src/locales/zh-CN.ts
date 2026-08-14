@@ -16,6 +16,13 @@ export const zhCN: Locale = {
     viewPlans: "查看计划",
     yes: "是",
     no: "否",
+    pageNotFound: {
+      documentTitle: "Vibe Chat - 页面不存在",
+      eyebrow: "404 / 页面不存在",
+      title: "没有找到这个页面。",
+      description: "链接可能已经失效，或者页面已被移动。你的语言偏好和账户数据不会受到影响。",
+      backHome: "返回首页"
+    },
     theme: {
       light: "浅色主题",
       dark: "深色主题",

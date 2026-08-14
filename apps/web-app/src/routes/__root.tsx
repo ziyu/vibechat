@@ -5,16 +5,21 @@ import {
   createRootRoute,
   HeadContent,
   Scripts,
-  useRouterState,
 } from '@tanstack/react-router'
 import { config } from '@config'
-import { locales } from '@vibechat/i18n'
+import { translations } from '@vibechat/i18n'
 import { ThemeProvider } from '@vibechat/react-shared/hooks/use-theme'
 import { ThemeScript } from '@vibechat/react-shared/components/theme-script'
+import { SharedAppProvider } from '@vibechat/react-shared/providers/app-context'
 import { Toaster } from '@vibechat/react-shared/ui/sonner'
+import { ReferralClaim } from '@/features/account/referral-claim'
+import { NotFoundPage } from '@/components/not-found-page'
+import { getRequestLocale } from '@/lib/locale.functions'
 import '../styles.css'
 
 export const Route = createRootRoute({
+  beforeLoad: async () => ({ locale: await getRequestLocale() }),
+  notFoundComponent: NotFoundPage,
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -31,26 +36,24 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const { locale } = Route.useRouteContext()
+  const t = translations[locale]
   return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
+    <SharedAppProvider value={{ t, locale }}>
+      <ReferralClaim />
+      <RootDocument locale={locale}>
+        <Outlet />
+      </RootDocument>
+    </SharedAppProvider>
   )
 }
 
-function useHtmlLang(): string {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const segment = pathname.split('/')[1] ?? ''
-  if ((locales as readonly string[]).includes(segment)) {
-    return segment === 'zh-CN' ? 'zh-CN' : segment
-  }
-  return 'en'
-}
-
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  const lang = useHtmlLang()
+function RootDocument({
+  children,
+  locale,
+}: Readonly<{ children: ReactNode; locale: string }>) {
   return (
-    <html lang={lang} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <HeadContent />
         <ThemeScript

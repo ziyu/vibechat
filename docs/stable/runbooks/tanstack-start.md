@@ -22,7 +22,7 @@
 
 ## 页面路由
 
-- 多语言页面位于 `src/routes/$lang/**`。
+- 多语言页面位于 `src/routes/**`。
 - 官网页面位于 `site-app`；产品 Web 的活动页面只包含 `(auth)`、`(chat)`、onboarding 和产品根入口。
 - 保护页面通过 `beforeLoad` 调用 `src/lib/auth-guard.ts`。
 - 用户可见字符串使用 `packages/i18n`，页面不得硬编码文案。
