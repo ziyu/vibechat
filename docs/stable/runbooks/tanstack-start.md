@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：`apps/web-app`
 
 ## 目录约定
@@ -20,7 +20,9 @@
 
 ## 页面路由
 
-- 多语言页面位于 `src/routes/$lang/**`。
+- 产品页面使用无语言前缀的规范路径，位于 `src/routes/(root)/**`、`src/routes/(auth)/**` 与 `src/routes/admin/**`。
+- 请求语言由根路由上下文解析：Locale Cookie 优先，可选浏览器语言探测次之，最后使用默认语言；页面不得把 locale 声明为 path param。
+- `src/routes/$locale/**` 仅兼容旧 `en`、`zh-CN` 深链，写入语言偏好后 307 到规范路径，不承载产品页面。
 - 普通页面放在 `(root)` route group，认证页放 `(auth)`，管理页面放 `admin`。
 - 保护页面通过 `beforeLoad` 调用 `src/lib/auth-guard.ts`。
 - 用户可见字符串使用 `libs/i18n`，页面不得硬编码文案。

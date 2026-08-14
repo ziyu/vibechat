@@ -19,6 +19,7 @@ import { Loader2 } from "lucide-react";
 import { createValidators } from "@libs/validators";
 import type { z } from "zod";
 import { useTranslation } from "@/hooks/use-translation";
+import { safeInternalPath } from "@/lib/navigation";
 import { config } from "@config";
 
 export function PhoneLoginForm({
@@ -155,8 +156,7 @@ export function PhoneLoginForm({
 
     if (data) {
       const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get("returnTo");
-      navigate({ to: returnTo || `/$lang`, params: { lang: locale } });
+      window.location.assign(safeInternalPath(params.get("returnTo")));
     }
 
     setLoading(false);

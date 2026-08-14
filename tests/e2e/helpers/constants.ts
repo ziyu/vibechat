@@ -2,14 +2,8 @@
  * E2E Test Constants
  *
  * Shared constants for all E2E test specs.
- * The default locale is 'en' for test stability; adjust if needed.
+ * Product routes are locale-neutral. Locale setup belongs in the individual test.
  */
-
-/** Default locale prefix used in URLs */
-export const LOCALE = 'en';
-
-/** Base URL path with locale prefix */
-export const BASE = `/${LOCALE}`;
 
 /** Test user credentials for signup/signin flows */
 export const TEST_USER = {
@@ -30,34 +24,34 @@ export function uniqueEmail(prefix = 'test'): string {
   return `e2e-${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
 }
 
-/** Well-known page paths (without locale prefix) */
+/** Well-known canonical product paths */
 export const PAGES = {
-  home: `${BASE}`,
-  signin: `${BASE}/signin`,
-  signup: `${BASE}/signup`,
-  forgotPassword: `${BASE}/forgot-password`,
-  resetPassword: `${BASE}/reset-password`,
-  dashboard: `${BASE}/dashboard`,
-  pricing: `${BASE}/pricing`,
-  paymentSuccess: `${BASE}/payment-success`,
-  paymentCancel: `${BASE}/payment-cancel`,
-  ai: `${BASE}/ai`,
-  imageGenerate: `${BASE}/image-generate`,
-  videoGenerate: `${BASE}/video-generate`,
-  upload: `${BASE}/upload`,
-  premiumFeatures: `${BASE}/premium-features`,
-  admin: `${BASE}/admin`,
-  adminUsers: `${BASE}/admin/users`,
-  adminSubscriptions: `${BASE}/admin/subscriptions`,
-  adminOrders: `${BASE}/admin/orders`,
-  adminCredits: `${BASE}/admin/credits`,
-  adminBlog: `${BASE}/admin/blog`,
-  adminBlogNew: `${BASE}/admin/blog/new`,
-  adminCommissions: `${BASE}/admin/commissions`,
-  adminWithdrawals: `${BASE}/admin/withdrawals`,
-  adminPricing: `${BASE}/admin/pricing`,
-  adminPricingNew: `${BASE}/admin/pricing/new`,
-  blog: `${BASE}/blog`,
+  home: '/',
+  signin: '/signin',
+  signup: '/signup',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
+  dashboard: '/dashboard',
+  pricing: '/pricing',
+  paymentSuccess: '/payment-success',
+  paymentCancel: '/payment-cancel',
+  ai: '/ai',
+  imageGenerate: '/image-generate',
+  videoGenerate: '/video-generate',
+  upload: '/upload',
+  premiumFeatures: '/premium-features',
+  admin: '/admin',
+  adminUsers: '/admin/users',
+  adminSubscriptions: '/admin/subscriptions',
+  adminOrders: '/admin/orders',
+  adminCredits: '/admin/credits',
+  adminBlog: '/admin/blog',
+  adminBlogNew: '/admin/blog/new',
+  adminCommissions: '/admin/commissions',
+  adminWithdrawals: '/admin/withdrawals',
+  adminPricing: '/admin/pricing',
+  adminPricingNew: '/admin/pricing/new',
+  blog: '/blog',
 } as const;
 
 /** Pre-existing admin account (not created by tests, not cleaned up) */

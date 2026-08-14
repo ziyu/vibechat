@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：`config/affiliate.ts`、`libs/affiliate`、返利 API 和管理页面
 
 ## 目标与边界
@@ -38,7 +38,7 @@ flowchart LR
 | 提现 | `libs/affiliate/withdrawal.ts` | 申请、状态和余额处理 |
 | 用户 API | `apps/web-app/src/routes/api/affiliate/*`、`api/withdrawal/*` | 当前用户的统计、记录、claim 和提现 |
 | 管理 API | `apps/web-app/src/routes/api/admin/commissions.ts`、`api/admin/withdrawals/*` | 管理查看与审批 |
-| 页面 | `apps/web-app/src/routes/$lang/admin/commissions`、`admin/withdrawals` | 管理界面 |
+| 页面 | `apps/web-app/src/routes/admin/commissions`、`admin/withdrawals` | 管理界面 |
 
 ## 不变量
 

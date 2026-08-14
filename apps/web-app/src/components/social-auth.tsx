@@ -8,6 +8,7 @@ import { authClientReact } from "@libs/auth/authClient";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
+import { safeInternalPath } from "@/lib/navigation";
 
 interface SocialAuthProps extends React.HTMLAttributes<HTMLDivElement> {
   providers?: SocialProvider[];
@@ -26,7 +27,7 @@ export function SocialAuth({
   ...props
 }: SocialAuthProps) {
   const navigate = useNavigate();
-  const { locale: currentLocale, t } = useTranslation();
+  const { t } = useTranslation();
   const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(
     null
   );
@@ -35,23 +36,19 @@ export function SocialAuth({
     if (loadingProvider) return;
 
     const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get("returnTo");
-    const queryString = returnTo
-      ? `?returnTo=${encodeURIComponent(returnTo)}`
-      : "";
+    const rawReturnTo = params.get("returnTo");
+    const returnTo = rawReturnTo ? safeInternalPath(rawReturnTo) : null;
 
     switch (provider) {
       case "wechat":
         navigate({
-          to: "/$lang/wechat",
-          params: { lang: currentLocale },
+          to: "/wechat",
           search: returnTo ? { returnTo } : undefined,
         });
         break;
       case "phone":
         navigate({
-          to: "/$lang/cellphone",
-          params: { lang: currentLocale },
+          to: "/cellphone",
           search: returnTo ? { returnTo } : undefined,
         });
         break;

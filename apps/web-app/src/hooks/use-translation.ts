@@ -1,25 +1,21 @@
 'use client'
 
-import { useParams, useNavigate, useRouterState } from '@tanstack/react-router'
+import { useRouteContext } from '@tanstack/react-router'
 import { translations, type SupportedLocale, locales, type Translations } from '@libs/i18n'
 import { createNextTranslationFunction } from '@libs/validators'
 import { config } from '@config'
+import { setLocalePreference } from '@/lib/locale.functions'
 
 export function useTranslation() {
-  const params = useParams({ strict: false }) as { lang?: string }
-  const navigate = useNavigate()
-  const routerState = useRouterState()
-  const pathname = routerState.location.pathname
-
-  const locale = (params?.lang as SupportedLocale) || config.app.i18n.defaultLocale
+  const { locale } = useRouteContext({ from: '__root__' })
   const t = translations[locale] as Translations
 
   const tWithParams = createNextTranslationFunction(t)
 
-  const changeLocale = (newLocale: SupportedLocale) => {
-    const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
-    navigate({ to: `/${newLocale}${pathWithoutLocale}` })
-    document.cookie = `${config.app.i18n.cookieKey}=${newLocale}; path=/; max-age=31536000`
+  const changeLocale = async (newLocale: SupportedLocale) => {
+    if (newLocale === locale) return
+    await setLocalePreference({ data: newLocale })
+    window.location.reload()
   }
 
   return {

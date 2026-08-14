@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：`config/payment.ts`、`libs/pricing`、定价 API 与管理页面
 
 ## 目标
@@ -37,7 +37,7 @@ flowchart LR
 | 数据模型 | `libs/database/schema/*/pricing-plan.ts` |
 | 公开 API | `apps/web-app/src/routes/api/pricing/plans.ts` |
 | 管理 API | `apps/web-app/src/routes/api/admin/pricing-plans/*` |
-| 管理页面 | `apps/web-app/src/routes/$lang/admin/pricing/*` |
+| 管理页面 | `apps/web-app/src/routes/admin/pricing/*` |
 
 ## 安全与一致性
 

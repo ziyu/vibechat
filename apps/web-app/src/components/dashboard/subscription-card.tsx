@@ -30,7 +30,7 @@ export function SubscriptionCard() {
   const openCustomerPortal = async () => {
     try {
       setRedirecting(true)
-      const returnUrl = `${window.location.origin}/${currentLocale}/dashboard`
+      const returnUrl = `${window.location.origin}/dashboard`
       const response = await fetch('/api/subscription/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +87,7 @@ export function SubscriptionCard() {
           <CardHeader><CardTitle>{t.subscription.noSubscription.title}</CardTitle></CardHeader>
           <CardContent>
             <p className="mb-4">{t.subscription.noSubscription.description}</p>
-            <Button asChild><a href={`/${currentLocale}/pricing`}>{t.subscription.noSubscription.viewPlans}</a></Button>
+            <Button asChild><a href="/pricing">{t.subscription.noSubscription.viewPlans}</a></Button>
           </CardContent>
         </Card>
       </div>

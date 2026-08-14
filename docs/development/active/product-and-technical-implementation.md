@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
 > 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -44,7 +44,7 @@
 
 | ID | 工作流 | 对应稳定设计 | 当前状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
-| A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
+| A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线；[本地化路由迁移](../../archive/locale-routing-migration-plan.md)已完成并通过 Node/Cloudflare 专项验证 | 完成其余目标路由、依赖和旧脚手架保留/删除清单 |
 | A1 | 产品壳与信息架构 | §5 | 未开始 | 无目标页面实现 | 写入 E2E 验收场景并实现四项主导航骨架 |
 | A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | 未开始 | 仅有通用 Better Auth 脚手架 | 后端/数据库复审与身份桥接 RFC 通过 |
 | A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
@@ -60,7 +60,7 @@
 ### 任务
 
 - [ ] 建立稳定设计章节到代码目录、API、数据模型和测试的追踪矩阵。
-- [ ] 盘点当前路由与目标路由差距，明确旧 `/ai`、`/pricing`、`/dashboard` 等页面的保留或退场策略。
+- [ ] 盘点当前路由与目标路由差距，明确旧 `/ai`、`/pricing`、`/dashboard` 等页面的保留或退场策略；其中[语言前缀解耦](../../archive/locale-routing-migration-plan.md)已完成，剩余页面保留/退场决策仍待盘点。
 - [ ] 在 `tests/e2e/TEST-CATALOG.md` 写 A1 产品壳验收场景，不先写 Playwright selector。
 - [ ] 明确 MVP 设计系统、响应式断点、主导航和房间画布的实现边界。
 - [ ] 为后端、数据库、认证、Matrix/Synapse 和部署拓扑分别建立待评审决策项。

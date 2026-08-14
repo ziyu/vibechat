@@ -53,6 +53,16 @@ export default defineConfig({
     // Keep this explicit instead of allowing arbitrary Host headers.
     allowedHosts: ['test.vikingship.uk'],
   },
+  resolve: {
+    alias: isCfDeploy
+      ? []
+      : [
+          {
+            find: 'cloudflare:workers',
+            replacement: path.resolve(__dirname, 'src/lib/cloudflare-workers.node.ts'),
+          },
+        ],
+  },
   plugins: [
     ...cfPlugin,
     ...nitroPlugin,

@@ -20,7 +20,7 @@ interface DeleteAccountDialogProps {
 }
 
 export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogProps) {
-  const { t, locale: currentLocale } = useTranslation()
+  const { t } = useTranslation()
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   const handleDeleteAccount = async () => {
@@ -34,7 +34,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       return
     }
     toast.success(t.dashboard.accountManagement.deleteAccount.success)
-    window.location.href = `/${currentLocale}`
+    window.location.href = '/'
     setDeleteLoading(false)
     onOpenChange(false)
   }

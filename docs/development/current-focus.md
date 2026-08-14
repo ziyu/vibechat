@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 事实来源：仓库根目录 `README.md` 与长期稳定设计
 
 ## 当前阶段
@@ -10,6 +10,8 @@
 仓库正在完成 Vibe Chat 的工程基线与产品 Web 前端骨架验收，暂不把旧 SaaS 脚手架能力视为已确认的产品范围。
 
 当前 Active 主线是[VibeChat MVP 产品与技术设计实施跟踪](./active/product-and-technical-implementation.md)中的 A0“工程基线与差距盘点”。产品核心能力状态仍为“未开始”。
+
+当前 A0 的[产品应用本地化与路由解耦迁移](../archive/locale-routing-migration-plan.md)已完成并归档：`apps/web-app` 使用无语言前缀的规范 URL，文档站继续维护独立的内容型语言 URL。A0 仍需完成其余目标路由、依赖和旧脚手架保留/删除盘点。
 
 ## 当前约束
 

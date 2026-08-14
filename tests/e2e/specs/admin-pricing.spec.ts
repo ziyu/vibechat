@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import { PAGES, TIMEOUTS, ADMIN_USER, API, BASE } from '../helpers/constants';
+import { PAGES, TIMEOUTS, ADMIN_USER, API } from '../helpers/constants';
 import { signInViaAPI } from '../helpers/auth';
 
 /**
@@ -276,7 +276,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Navigate directly to the edit page by URL (avoids client-side nav auth race)
     await page.goto(
-      `http://localhost:7001/en/admin/pricing/${apiPlan.id}`,
+      `http://localhost:7001/admin/pricing/${apiPlan.id}`,
       { timeout: TIMEOUTS.navigation }
     );
     await page.waitForLoadState('networkidle');
@@ -308,7 +308,7 @@ test.describe('Admin Pricing Management', () => {
 
     // Navigate directly to edit page
     await page.goto(
-      `http://localhost:7001/en/admin/pricing/${plan.id}`,
+      `http://localhost:7001/admin/pricing/${plan.id}`,
       { timeout: TIMEOUTS.navigation }
     );
     await page.waitForLoadState('networkidle');

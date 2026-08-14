@@ -16,6 +16,13 @@ export const en: Locale = {
     viewPlans: "View Plans",
     yes: "Yes",
     no: "No",
+    pageNotFound: {
+      documentTitle: "Vibe Chat - Page Not Found",
+      eyebrow: "404 / Page not found",
+      title: "This page doesn't exist.",
+      description: "The link may be outdated, or the page may have moved. Your language preference and account data are unchanged.",
+      backHome: "Back to home"
+    },
     theme: {
       light: "Light Theme",
       dark: "Dark Theme",

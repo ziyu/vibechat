@@ -260,7 +260,7 @@ For all providers, prefer:
 
 Source files:
 
-- `apps/web-app/src/routes/$lang/(root)/video-generate.tsx`
+- `apps/web-app/src/routes/(root)/video-generate.tsx`
 - `apps/web-app/src/routes/api/video-generate/index.ts`
 - `apps/web-app/src/routes/api/video-generate/status.ts`
 - `libs/ai/video.ts`

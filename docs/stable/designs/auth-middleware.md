@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：`apps/web-app`、`libs/auth`、`libs/permissions`
 
 ## 目标
@@ -16,7 +16,7 @@ Vibe Chat 只有一个产品 Web 应用：`apps/web-app`。页面访问控制由
 | --- | --- | --- |
 | 会话解析 | `libs/auth` | Better Auth 配置、会话与认证 handler |
 | 页面守卫 | `apps/web-app/src/lib/auth-guard.ts` | 登录、管理员、订阅访问检查与重定向 |
-| 路由接入 | `apps/web-app/src/routes/$lang/**` | 在 `beforeLoad` 调用对应守卫 |
+| 路由接入 | `apps/web-app/src/routes/**` | 在 `beforeLoad` 调用对应守卫 |
 | 权限模型 | `libs/permissions` | `Action`、`Subject`、角色与 `can()` 判断 |
 | API 保护 | `apps/web-app/src/routes/api/**` | 从请求 headers 解析会话并执行资源级权限检查 |
 
@@ -40,7 +40,7 @@ flowchart TD
 现有守卫：
 
 - `redirectIfAuthenticated`：已登录用户离开登录、注册等认证页面。
-- `requireAuth`：没有会话时跳转到 `/$lang/signin`。
+- `requireAuth`：没有会话时跳转到 `/signin`。
 - `requireAdmin`：先认证，再通过权限库检查 `MANAGE ALL`。
 - `requireSubscription`：先认证，再查询有效订阅；失败时跳转到定价页。
 
@@ -57,10 +57,8 @@ flowchart TD
 新建受保护页面时，在路由定义中直接调用守卫：
 
 ```ts
-export const Route = createFileRoute('/$lang/admin/example')({
-  beforeLoad: async ({ params }) => {
-    await requireAdmin({ params: params as { lang: string } })
-  },
+export const Route = createFileRoute('/admin/example')({
+  beforeLoad: () => requireAdmin(),
   component: ExamplePage,
 })
 ```
@@ -69,7 +67,7 @@ export const Route = createFileRoute('/$lang/admin/example')({
 
 ## 验证
 
-- 未登录访问受保护页面会跳转到对应语言的登录页。
+- 未登录访问受保护页面会跳转到规范登录路径，当前语言偏好由 Cookie 保留。
 - 普通用户不能进入管理员页面，也不能直接调用管理 API。
 - 无订阅用户不能进入订阅保护页面。
 - SSR 首次请求和客户端导航执行相同守卫逻辑。

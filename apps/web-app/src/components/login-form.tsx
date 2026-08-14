@@ -14,6 +14,7 @@ import { ResendVerificationDialog } from "./resend-verification-dialog";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import { Link } from "@tanstack/react-router";
+import { safeInternalPath } from "@/lib/navigation";
 
 export function LoginForm({
   className,
@@ -54,8 +55,7 @@ export function LoginForm({
     setUserEmail(data.email);
 
     const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get('returnTo');
-    const callbackURL = returnTo || `/${locale}`;
+    const callbackURL = safeInternalPath(params.get('returnTo'));
 
     const { error } = await authClientReact.signIn.email({
       email: data.email,
@@ -127,8 +127,7 @@ export function LoginForm({
             <div className="flex items-center">
               <Label htmlFor="password">{t.auth.signin.password}</Label>
               <Link
-                to="/$lang/forgot-password"
-                params={{ lang: locale }}
+                to="/forgot-password"
                 className="ml-auto text-sm underline-offset-4 hover:underline"
               >
                 {t.auth.signin.forgotPassword}
@@ -179,7 +178,7 @@ export function LoginForm({
         </div>
         <div className="text-center text-sm">
           {t.auth.signin.noAccount}{" "}
-          <Link to="/$lang/signup" params={{ lang: locale }} className="underline underline-offset-4">
+          <Link to="/signup" className="underline underline-offset-4">
             {t.auth.signin.signupLink}
           </Link>
         </div>

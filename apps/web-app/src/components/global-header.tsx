@@ -1,4 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { Check, Globe } from 'lucide-react'
 import { config } from '@config'
 import { type SupportedLocale, locales } from '@libs/i18n'
@@ -18,15 +18,10 @@ interface HeaderProps {
 }
 
 export default function Header({ className = '' }: HeaderProps) {
-  const location = useLocation()
-  const { t, locale: currentLocale } = useTranslation()
+  const { t, locale: currentLocale, changeLocale } = useTranslation()
 
   const handleLanguageChange = (locale: SupportedLocale) => {
-    if (locale === currentLocale) return
-
-    const pathWithoutLocale = location.pathname.replace(`/${currentLocale}`, '') || '/'
-    document.cookie = `${config.app.i18n.cookieKey}=${locale}; path=/; max-age=31536000`
-    window.location.href = `/${locale}${pathWithoutLocale}`
+    void changeLocale(locale)
   }
 
   return (
@@ -36,8 +31,7 @@ export default function Header({ className = '' }: HeaderProps) {
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link
-          to="/$lang"
-          params={{ lang: currentLocale }}
+          to="/"
           aria-label={config.app.name}
           className="rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >

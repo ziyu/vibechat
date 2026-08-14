@@ -9,6 +9,7 @@ Known pitfalls and constraints when running TanStack Start on Cloudflare Workers
 | `pnpm dev:cf` | Local dev with `@cloudflare/vite-plugin` (workerd SSR) |
 | `pnpm preview:cf` | Full build + `wrangler dev` (closest to production) |
 | `pnpm build` | Production build (CF_DEPLOY=1 enabled by default) |
+| `pnpm --dir apps/web-app exec vite --force` | Node/Vite cold dependency scan and first-load hydration |
 
 ## Known pitfalls
 
@@ -26,6 +27,11 @@ registered by `react-dom/server` are invisible to components loaded from other c
 - `vite-tsconfig-paths` v6 has a bug where it doesn't follow path aliases during the dep scan
   ([workers-sdk#11825](https://github.com/cloudflare/workers-sdk/issues/11825)).
   **Fix:** Pin `vite-tsconfig-paths` to v5.1.4.
+- Letting Node/Vite scan the Workers-only `cloudflare:workers` virtual module. When
+  `CF_DEPLOY` is unset, `vite.config.ts` aliases that import to
+  `src/lib/cloudflare-workers.node.ts`; the adapter exposes no bindings, so an
+  accidental Workers-only database path still fails through the existing binding checks.
+  Keep this alias until the virtual module is no longer reachable from the Node graph.
 
 ### 2. `require is not defined`
 
@@ -47,8 +53,9 @@ const db = env.DB  // D1 binding
 import { getEvent } from 'vinxi/http'  // ❌ vinxi is removed
 ```
 
-`cloudflare:workers` is a virtual module handled by `@cloudflare/vite-plugin` in dev
-and by the workerd runtime in production. It does not need installation.
+`cloudflare:workers` is a virtual module handled by `@cloudflare/vite-plugin` in
+Cloudflare dev/build and by the workerd runtime in production. Node/Vite uses the
+Node-only adapter described above. The virtual module does not need installation.
 
 ### 4. Native Node.js modules
 

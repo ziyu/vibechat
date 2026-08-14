@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：动态计划管理与定价页面
 
 动态定价允许你在管理后台实时创建、编辑和管理定价方案，无需修改代码或重新部署。它与现有的静态定价（`config/payment.ts`）并行运行，可随时切换。
@@ -89,7 +89,7 @@ pnpm db:push:sqlite
 
 ## 🖥️ 管理后台操作
 
-动态定价管理页面位于 `/$lang/admin/pricing`，由 `apps/web-app` 的 TanStack Start 路由实现。
+动态定价管理页面位于 `/admin/pricing`，由 `apps/web-app` 的 TanStack Start 路由实现；界面语言来自当前请求的语言偏好，不进入 URL。
 
 ### 方案列表
 

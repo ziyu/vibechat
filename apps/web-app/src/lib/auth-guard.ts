@@ -1,6 +1,7 @@
 import { redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import type { AppUser } from '@libs/permissions'
+import { safeInternalPath } from '@/lib/navigation'
 
 /**
  * Server function to get the current user's session.
@@ -64,17 +65,10 @@ const getSubscriptionAccess = createServerFn({ method: 'GET' }).handler(async ()
  * Redirect authenticated users away from auth pages (signin, signup, etc.)
  * to the dashboard. Use in `beforeLoad` of auth routes.
  */
-export async function redirectIfAuthenticated({
-  params,
-}: {
-  params: { lang: string }
-}) {
+export async function redirectIfAuthenticated() {
   const result = await getAuthSession()
   if (result?.user) {
-    throw redirect({
-      to: '/$lang/dashboard',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/dashboard' })
   }
 }
 
@@ -82,17 +76,13 @@ export async function redirectIfAuthenticated({
  * Require authentication. Redirects to signin if no session.
  * Use in `beforeLoad` of protected routes.
  */
-export async function requireAuth({
-  params,
-}: {
-  params: { lang: string }
-}) {
+export async function requireAuth(returnTo?: string) {
   const result = await getAuthSession()
   const user = result?.user
   if (!user) {
     throw redirect({
-      to: '/$lang/signin',
-      params: { lang: params.lang },
+      to: '/signin',
+      search: returnTo ? { returnTo: safeInternalPath(returnTo) } : undefined,
     })
   }
   return { user }
@@ -102,12 +92,8 @@ export async function requireAuth({
  * Require admin role. Redirects to signin or home page.
  * Use in `beforeLoad` of admin routes.
  */
-export async function requireAdmin({
-  params,
-}: {
-  params: { lang: string }
-}) {
-  const { user } = await requireAuth({ params })
+export async function requireAdmin(returnTo?: string) {
+  const { user } = await requireAuth(returnTo)
   const { can, Action, Subject, Role } = await import('@libs/permissions')
   const appUser = {
     ...user,
@@ -115,10 +101,7 @@ export async function requireAdmin({
   } as AppUser
 
   if (!can(appUser, Action.MANAGE, Subject.ALL)) {
-    throw redirect({
-      to: '/$lang',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/' })
   }
 
   return { user }
@@ -128,24 +111,17 @@ export async function requireAdmin({
  * Require active subscription. Redirects to signin or pricing.
  * Use in `beforeLoad` of subscription-protected routes.
  */
-export async function requireSubscription({
-  params,
-}: {
-  params: { lang: string }
-}) {
+export async function requireSubscription(returnTo?: string) {
   const result = await getSubscriptionAccess()
   if (!result?.user) {
     throw redirect({
-      to: '/$lang/signin',
-      params: { lang: params.lang },
+      to: '/signin',
+      search: returnTo ? { returnTo: safeInternalPath(returnTo) } : undefined,
     })
   }
 
   if (!result.hasSubscription) {
-    throw redirect({
-      to: '/$lang/pricing',
-      params: { lang: params.lang },
-    })
+    throw redirect({ to: '/pricing' })
   }
 
   return { user: result.user }

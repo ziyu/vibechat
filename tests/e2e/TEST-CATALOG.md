@@ -52,11 +52,11 @@
 
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
-| 1 | 首页加载 | 打开 `/en` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
-| 2 | 登录页加载 | 打开 `/en/signin` → 验证邮箱输入框、密码输入框、提交按钮均可见 |
-| 3 | 注册页加载 | 打开 `/en/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
-| 4 | 忘记密码页加载 | 打开 `/en/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
-| 5 | 定价页加载 | 打开 `/en/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
+| 1 | 首页加载 | 打开 `/` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
+| 2 | 登录页加载 | 打开 `/signin` → 验证邮箱输入框、密码输入框、提交按钮均可见 |
+| 3 | 注册页加载 | 打开 `/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
+| 4 | 忘记密码页加载 | 打开 `/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
+| 5 | 定价页加载 | 打开 `/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
 
 ---
 
@@ -280,17 +280,22 @@ webhook 触发后端 → 查询 plan 的 credits 字段 (100) → 调用 creditS
 
 ## 10. 语言切换测试
 
-**文件：** `specs/i18n-switching.spec.ts` ｜ **优先级：** P2 ｜ **无需登录**
+**文件：** `specs/i18n-switching.spec.ts` ｜ **优先级：** P0 ｜ **无需登录**
 
-验证页面头部的语言切换功能，确保切换后 URL 更新、内容切换且选择持久化。
+验证产品 URL 与语言偏好解耦，覆盖规范 URL、Cookie 持久化、旧链接兼容与未知语言路径。
 
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
-| 1 | 首页使用默认英文语言 | 打开 `/en` → 验证 URL 包含 `/en` |
-| 2 | 从英文切换到中文 | 打开 `/en` → 点击语言下拉菜单 → 选择"中文" → 等待页面跳转到 `/zh-CN/` → 验证 URL 包含 `/zh-CN` |
-| 3 | 从中文切换回英文 | 打开 `/zh-CN` → 点击语言下拉菜单 → 选择 "English" → 等待页面跳转到 `/en/` → 验证 URL 包含 `/en` |
-| 4 | 语言选择跨页面持久化 | 打开 `/zh-CN` → 导航到 `/zh-CN/pricing` → 验证 URL 仍是中文 → 导航到 `/zh-CN/signin` → 验证 URL 仍是中文 |
-| 5 | 子页面双语言均可访问 | 访问英文定价页 `/en/pricing` → 验证标题可见 → 访问中文定价页 `/zh-CN/pricing` → 验证标题可见 |
+| 1 | 默认语言不进入 URL | 清空 locale Cookie → 打开 `/` → 验证 URL 保持 `/` 且 `<html lang="zh-CN">` |
+| 2 | 切换语言不改变业务 URL | 打开 `/pricing?tab=credits#plans` → 切换到 English → 验证 pathname、search、hash 不变，Cookie 与 `<html lang>` 为 `en` |
+| 3 | Cookie 跨刷新和导航持久化 | 写入 English 偏好 → 刷新并导航到 `/signin` → 验证仍为英文且 URL 无语言段 |
+| 4 | 旧双语言深链兼容 | 分别打开 `/en/pricing?tab=credits`、`/zh-CN/pricing?tab=credits` → 验证写入对应 Cookie → 307 后落到 `/pricing?tab=credits` |
+| 5 | 未知语言段显示本地化 404 | 分别以 `en`、`zh-CN` 偏好打开 `/fr/pricing` → 验证返回 404、路径保持不变 → 验证对应语言的标题、说明与返回首页操作可见 → 控制台不出现缺少 `notFoundComponent` 警告 |
+| 6 | 规范子页面支持双语言 | 分别以 `en`、`zh-CN` Cookie 打开 `/pricing` → 验证 URL 相同、`<html lang>` 与内容可见 |
+| 7 | 鉴权重定向保留规范返回目标 | 未登录打开 `/dashboard?tab=account` → 验证跳转 `/signin` 且 `returnTo` 为安全的无语言前缀内部路径 |
+| 8 | 支付回跳直接使用规范路径 | 打开带 query 的 `/payment-success` 与 `/payment-cancel` → 验证页面直接渲染、query 保留且不发生语言转发 |
+
+Node/Vite 冷启动运行验收：使用 `vite --force` 启动后不得出现 `Failed to run dependency scan` 或由重复 React 实例引发的 `Invalid hook call`；该项检查启动日志和真实浏览器控制台，不以 DOM selector 代替。
 
 ---
 
@@ -1020,6 +1025,9 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-14 | TanStack Node 全量 | 27 | 34 | 7 | 另有 93 未运行；主要因本地 PG 缺 `dodo_customer_id` 导致认证 500 并连锁中止；本次新增 8 项全通过，另有 2 项旧 Blog Header 契约不符 |
+| 2026-08-14 | TanStack Node | 17 | 0 | 0 | 无前缀本地化 8 项；公共页面与未登录守卫 9 项（本地 7010）；补跑 `vite --force` 冷启动及真实浏览器，依赖扫描、首次渲染与本地化 404 控制台无错误 |
+| 2026-08-14 | Cloudflare workerd | 8 | 0 | 0 | 无前缀本地化、旧链接兼容、本地化 404、鉴权与支付回跳（本地 7011）；404 真实浏览器控制台无错误；本地未配置 `BETTER_AUTH_SECRET`，session API 仍返回环境性 500 |
 | 2026-08-11 | TanStack | 1 | 0 | 0 | 精简首页回归（`public-pages.spec.ts` 单用例） |
 | 2026-02-25 | Next.js | 35 | 0 | 0 | 全部通过（含 Stripe 支付） |
 | 2026-03-04 | Next.js | 3 | 0 | 0 | AI Chat 真实交互（ai-chat.spec.ts） |

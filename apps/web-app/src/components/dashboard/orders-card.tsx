@@ -134,7 +134,7 @@ export function OrdersCard() {
       {ordersData.length === 0 ? (
         <div className="p-6 text-center">
           <p className="text-muted-foreground mb-4">{t.dashboard.orders.noOrdersDescription}</p>
-          <Button variant="outline" asChild><a href={`/${currentLocale}/pricing`}>{t.dashboard.subscription.viewPlans}</a></Button>
+          <Button variant="outline" asChild><a href="/pricing">{t.dashboard.subscription.viewPlans}</a></Button>
         </div>
       ) : (
         <>

@@ -1,10 +1,11 @@
 import { en, zhCN } from './locales'
+import { config } from '@config'
 
 // Re-export from config for consistency
 export { config } from '@config'
 
-export const defaultLocale = 'en'
-export const locales = ['en', 'zh-CN'] as const
+export const defaultLocale = config.app.i18n.defaultLocale
+export const locales = config.app.i18n.locales
 
 export type SupportedLocale = typeof locales[number]
 
@@ -34,9 +35,26 @@ export function isValidLocale(locale: string): locale is SupportedLocale {
   return locales.includes(locale as SupportedLocale)
 }
 
+/**
+ * Normalize a locale-like value to a locale supported by the product UI.
+ * Region variants fall back to their supported base language.
+ */
+export function normalizeLocale(locale: string | null | undefined): SupportedLocale | null {
+  if (!locale) return null
+
+  const normalized = locale.trim().replace('_', '-').toLowerCase()
+  const exact = locales.find((candidate) => candidate.toLowerCase() === normalized)
+  if (exact) return exact
+
+  if (normalized === 'zh' || normalized.startsWith('zh-')) return 'zh-CN'
+  if (normalized === 'en' || normalized.startsWith('en-')) return 'en'
+
+  return null
+}
+
 // 类型安全的翻译函数
 export function getTranslation(locale: SupportedLocale): Translations {
   return translations[locale] as Translations
 }
 
-export * from './locales' 
+export * from './locales'

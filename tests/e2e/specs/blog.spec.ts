@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import { PAGES, TIMEOUTS, ADMIN_USER, BASE } from '../helpers/constants';
+import { PAGES, TIMEOUTS, ADMIN_USER } from '../helpers/constants';
 import { signInViaAPI } from '../helpers/auth';
 
 /**
@@ -217,7 +217,7 @@ test.describe('Blog', () => {
       test.skip(!createdPostId, 'No post was created in previous test');
 
       const page = await adminPage();
-      await page.goto(`${BASE}/admin/blog/${createdPostId}`, { timeout: TIMEOUTS.navigation });
+      await page.goto(`/admin/blog/${createdPostId}`, { timeout: TIMEOUTS.navigation });
 
       // Wait for form
       const titleInput = page.locator('input#title');
@@ -429,7 +429,7 @@ test.describe('Blog', () => {
     });
 
     test('blog detail page renders markdown content', async ({ page }) => {
-      await page.goto(`${BASE}/blog/${publishedSlug}`, { timeout: TIMEOUTS.navigation });
+      await page.goto(`/blog/${publishedSlug}`, { timeout: TIMEOUTS.navigation });
 
       // Title should be visible
       await expect(
@@ -456,14 +456,14 @@ test.describe('Blog', () => {
 
   test.describe('Public Navigation', () => {
     test('blog link is visible in site header', async ({ page }) => {
-      await page.goto(`${BASE}`, { timeout: TIMEOUTS.navigation });
+      await page.goto('/', { timeout: TIMEOUTS.navigation });
 
       const blogLink = page.locator('header a[href*="/blog"], nav a[href*="/blog"]').first();
       await expect(blogLink).toBeVisible({ timeout: TIMEOUTS.navigation });
     });
 
     test('blog link navigates to blog page', async ({ page }) => {
-      await page.goto(`${BASE}`, { timeout: TIMEOUTS.navigation });
+      await page.goto('/', { timeout: TIMEOUTS.navigation });
 
       const blogLink = page.locator('header a[href*="/blog"], nav a[href*="/blog"]').first();
       await blogLink.click();

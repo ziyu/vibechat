@@ -112,7 +112,7 @@ export const config = {
       locales: ['en', 'zh-CN'] as const,
       /**
        * Cookie key for locale persistence
-       * Used by the product web app and documentation site
+       * Used by the product web app
        */
       cookieKey: 'VIBECHAT_LOCALE',
 
@@ -132,7 +132,7 @@ export const config = {
       /**
        * Payment Success/Cancel URLs
        * These URLs will be used by payment providers for redirects
-       * The locale middleware will automatically add locale prefix
+       * Product routes are canonical and do not include a locale prefix
        */
       get successUrl() {
         return `${config.app.baseUrl}/payment-success`;

@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-14
 > 维护范围：日常功能开发与交付
 
 ## 应用边界
@@ -15,7 +15,7 @@
 | 共享业务与 Provider 逻辑 | `libs/*` |
 | 静态选项和默认配置 | `config/*`、`config.ts` |
 | React 共享组件与 hooks | `libs/react-shared` |
-| 产品页面 | `apps/web-app/src/routes/$lang/**` |
+| 产品页面 | `apps/web-app/src/routes/(root)/**`、`(auth)/**`、`admin/**` |
 | 产品 API | `apps/web-app/src/routes/api/**` |
 | 翻译 | `libs/i18n/locales/en.ts`、`zh-CN.ts` |
 

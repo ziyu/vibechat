@@ -2,208 +2,98 @@
 
 ## Overview
 
-The product frontend for this monorepo, built on TanStack Router + TanStack Start (Vite + Nitro server). It consumes React components from `libs/react-shared` and shared logic from `libs/*` and `config/*`.
+`apps/web-app` is the single VibeChat product application. It uses TanStack Start, TanStack Router, React, Vite, and a Cloudflare Workers production target. Shared domain behavior belongs in `libs/*`; static options and defaults belong in `config/*` or `config.ts`.
 
-## Setup Commands
+## Setup commands
 
 ```bash
-# Install dependencies (from monorepo root)
 pnpm install
-
-# Development
-pnpm dev                   # Standard Vite dev server on port 7001
-
-# Cloudflare Workers development
-pnpm --dir apps/web-app dev:cf  # CF_DEPLOY=1 Vite dev server on port 7001
-
-# Build & start
-pnpm build                 # Vite production build
-pnpm start                 # Node.js production server
-
-# Cloudflare deploy
-cd apps/web-app && pnpm run deploy:cf   # Build + wrangler deploy
-
-# Typecheck
+pnpm dev
 pnpm typecheck
+pnpm build
 ```
 
-## Code Style
+Cloudflare-specific commands:
 
-- TypeScript strict mode, React 19 JSX
-- File-system routing via TanStack Router (`src/routes/`)
-- `$lang` route param for i18n (e.g., `/$lang/dashboard`)
-- Route groups: `(auth)` for auth pages, `(root)` for main pages, `admin` for admin
-- Server API routes in `src/routes/api/` using `createAPIFileRoute`
-- Server functions via `createServerFn` for type-safe RPC
-- Shared UI from `@libs/react-shared/ui/*`
-- App-specific components in `src/components/`
-- Single `useTranslation` hook in `src/hooks/use-translation.ts`
-
-## Directory Structure
-
-```
-apps/web-app/
-├── src/
-│   ├── routes/                    # TanStack Router file-system routes
-│   │   ├── __root.tsx             # Root layout (providers, global header, toaster)
-│   │   ├── index.tsx              # / redirect to /$lang
-│   │   ├── $lang/
-│   │   │   ├── (auth)/            # Auth pages (signin, signup, forgot-password, etc.)
-│   │   │   ├── (root)/            # Main pages (home, dashboard, pricing, AI, upload, etc.)
-│   │   │   └── admin.tsx          # Admin layout + admin sub-pages
-│   │   └── api/                   # Server API routes
-│   │       ├── auth/$.ts          # Better Auth catch-all
-│   │       ├── chat.ts            # AI chat streaming
-│   │       ├── credits/           # Credits balance, status, transactions
-│   │       ├── payment/           # Payment initiate, verify, webhook, cancel
-│   │       ├── admin/             # Admin API routes
-│   │       └── ...
-│   ├── components/                # App-specific React components
-│   │   ├── global-header.tsx
-│   │   ├── login-form.tsx
-│   │   ├── signup-form.tsx
-│   │   ├── dashboard/             # Dashboard tab components
-│   │   └── admin/                 # Admin sidebar, cards
-│   ├── hooks/
-│   │   └── use-translation.ts     # i18n hook using TanStack Router params
-│   ├── router.tsx                 # Router creation
-│   └── routeTree.gen.ts           # Auto-generated route tree
-├── public/                        # Static assets (favicon, manifest, logo)
-├── vite.config.ts                 # Vite config (conditional CF plugin)
-├── tsconfig.json                  # TypeScript config with path aliases
-├── wrangler.jsonc                 # Cloudflare Workers config
-├── Dockerfile                     # Docker build for Node.js deployment
-├── .dev.vars.example              # CF local dev vars template
-└── package.json
+```bash
+pnpm --dir apps/web-app dev:cf
+pnpm --dir apps/web-app preview:cf
 ```
 
-## Usage Examples
+## Route and localization contract
 
-### Adding a New Page
+- Product routes use locale-neutral canonical URLs. Examples: `/`, `/signin`, `/dashboard`, `/admin`.
+- Route groups are `src/routes/(root)`, `src/routes/(auth)`, and `src/routes/admin`.
+- `src/routes/api` contains raw HTTP endpoints, auth handlers, uploads, webhooks, and other APIs.
+- Never add a locale parameter to a product route or pass locale through `Link`/`navigate` params.
+- `src/routes/__root.tsx` resolves the request locale and exposes it through root route context.
+- Components use `src/hooks/use-translation.ts`; route metadata uses `match.context.locale`.
+- `src/routes/$locale` and its splat child are a legacy-link compatibility boundary only. They must not render product pages.
+- Locale controls interface language. Do not use it as purchase authorization, market, currency, country, or timezone.
+
+## Directory structure
+
+```text
+apps/web-app/src/
+├── routes/
+│   ├── __root.tsx          # request locale, providers, document shell
+│   ├── (root)/             # public and signed-in product pages
+│   ├── (auth)/             # signin, signup, recovery
+│   ├── admin.tsx           # admin layout route
+│   ├── admin/              # admin pages
+│   ├── $locale.tsx         # exact legacy locale validation + redirect
+│   ├── $locale/$.tsx       # legacy deep-link catch-all
+│   └── api/                # server API routes
+├── components/             # product-specific React components
+├── hooks/                  # product hooks, including useTranslation
+├── lib/                    # route guards and server adapters
+├── router.tsx
+└── routeTree.gen.ts        # generated; do not edit by hand
+```
+
+## Adding a page
 
 ```tsx
-// src/routes/$lang/(root)/my-page.tsx
+// src/routes/(root)/my-page.tsx
 import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from '@/hooks/use-translation'
 
-export const Route = createFileRoute('/$lang/(root)/my-page')({
+export const Route = createFileRoute('/(root)/my-page')({
+  head: ({ match }) => seoHead(match.context.locale, (t) => t.myPage.metadata),
   component: MyPage,
 })
 
 function MyPage() {
   const { t } = useTranslation()
-  return <div>{t.myPage.title}</div>
+  return <h1>{t.myPage.title}</h1>
 }
 ```
 
-### Adding a Protected Page (auth required)
+Protected pages call the appropriate guard from `src/lib/auth-guard.ts` in `beforeLoad`. API routes must independently authenticate and authorize requests; page guards are not an API security boundary.
 
-```tsx
-export const Route = createFileRoute('/$lang/(root)/my-protected-page')({
-  beforeLoad: async ({ context }) => {
-    // Auth check happens in the (root) layout's beforeLoad
-  },
-  component: MyProtectedPage,
-})
-```
+## Server boundaries
 
-### Adding an API Route
+- Use `createServerFn` for typed page RPC and request adapters.
+- Use `src/routes/api/**` for raw HTTP contracts, uploads, authentication handlers, and provider callbacks.
+- Keep reusable business and provider logic in `libs/*`.
+- Validate inputs and preserve stable response shapes.
+- Cloudflare database access uses the repository's request-scoped DB helpers.
 
-```tsx
-// src/routes/api/my-endpoint.ts
-import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { json } from '@tanstack/react-start'
+## Verification
 
-export const APIRoute = createAPIFileRoute('/api/my-endpoint')({
-  GET: async ({ request }) => {
-    return json({ status: 'ok' })
-  },
-  POST: async ({ request }) => {
-    const body = await request.json()
-    return json({ received: body })
-  },
-})
-```
-
-### Using Server Functions
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getMyData = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    const data = await db.query.myTable.findMany()
-    return data
-  })
-
-// In route loader:
-export const Route = createFileRoute('/$lang/(root)/my-page')({
-  loader: () => getMyData(),
-  component: MyPage,
-})
-```
-
-## Common Tasks
-
-### Feature Placement
-
-Follow the checklist in the root `AGENTS.md`: put reusable domain logic in `libs/*`, static options in `config/*`, pages in `src/routes/$lang/`, API handlers in `src/routes/api/`, and authorization guards in route `beforeLoad` hooks.
-
-### Cloudflare Workers Deployment
-
-See `docs/stable/runbooks/deployment/cloudflare-workers.md` for the full Runbook. Key points:
-- Set `CF_DEPLOY=1` to activate Cloudflare Vite plugin
-- Configure Hyperdrive for PostgreSQL access
-- Use `wrangler secret put` for sensitive env vars
-
-## Testing Instructions
+For code or configuration changes run, from the repository root:
 
 ```bash
-# Typecheck
+pnpm docs:check
 pnpm typecheck
-
-# Build
 pnpm build
-
-# Dev server
-pnpm dev
-# Visit http://localhost:7001
-
-# E2E (start app first, then run from repo root)
-npx playwright test --config=tests/e2e/playwright.config.ts
 ```
+
+Run relevant Playwright scenarios after checking the actual DOM in the running app. Server or shared-library changes must also be exercised against the Cloudflare preview as described in `CF-NOTES.md`.
 
 ## Troubleshooting
 
-### Route Not Found (404)
-
-- Verify file is in the correct route group (`(auth)`, `(root)`, or `admin`)
-- Run `pnpm dev` — TanStack Router auto-generates `routeTree.gen.ts`
-- Check that `$lang` param is present in the URL path
-
-### Import Resolution Issues
-
-- Path aliases: `@/*` → `./src/*`, `@libs/*` → `../../libs/*`, `@config` → `../../config.ts`
-- Ensure `vite-tsconfig-paths` plugin is active in `vite.config.ts`
-
-### Cloudflare Build Fails
-
-- Ensure `CF_DEPLOY` is only set when intentionally building for Workers
-- Check `wrangler.jsonc` for correct Hyperdrive ID
-- See `docs/stable/runbooks/deployment/cloudflare-workers.md` troubleshooting section
-
-### Shared Component Errors
-
-- Shared components from `@libs/react-shared` must not import `next/*` modules
-- If a component is missing, check that the Radix dependency is in this app's `package.json`
-
-## Architecture Notes
-
-- **TanStack Start**: Full-stack React framework built on Vite + Nitro
-- **Two Server Mechanisms**: Server Routes (raw HTTP, for webhooks/auth/uploads) and Server Functions (`createServerFn`, type-safe RPC for data fetching)
-- **React Layer**: UI components and hooks are centralized in `libs/react-shared`
-- **Business Logic**: Shared domain logic and configuration live in `libs/*` and `config/*`
-- **i18n**: `/$lang/` route parameter pattern, translation via `useTranslation()` hook
-- **Auth**: Better Auth via server route catch-all, `beforeLoad` guards for protected pages
-- **Dual Deployment**: Standard Node.js (Vite build + `.output/server/index.mjs`) or Cloudflare Workers (opt-in via `CF_DEPLOY=1`)
-- **No React Server Components**: All pages are client components with server-side data loading via loaders/server functions
+- Route 404: check the route group and generated `routeTree.gen.ts`; do not add a language segment to make a page match.
+- Incorrect language: inspect `VIBECHAT_LOCALE`, `config.app.i18n`, root route context, and SSR `<html lang>`.
+- Shared component import errors: shared React code must not depend on framework-specific modules.
+- Cloudflare failures: follow `CF-NOTES.md` and the deployment Runbook.

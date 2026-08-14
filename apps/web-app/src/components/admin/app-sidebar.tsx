@@ -17,7 +17,7 @@ import {
 } from "@libs/react-shared/ui/sidebar"
 
 export function AppSidebar() {
-  const { t, locale: currentLocale } = useTranslation()
+  const { t } = useTranslation()
   const routerState = useRouterState()
   const pathname = routerState.location.pathname
   const affiliateEnabled = useAffiliateEnabled()
@@ -76,7 +76,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <a href={`/${currentLocale}`}>
+        <a href="/">
           <Logo size="md" />
         </a>
       </SidebarHeader>
@@ -85,8 +85,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${currentLocale}${dashboardItem.url}`}>
-                  <a href={`/${currentLocale}${dashboardItem.url}`}>
+                <SidebarMenuButton asChild isActive={pathname === dashboardItem.url}>
+                  <a href={dashboardItem.url}>
                     <dashboardItem.icon />
                     <span>{dashboardItem.title}</span>
                   </a>
@@ -102,8 +102,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(`/${currentLocale}${item.url}`)}>
-                    <a href={`/${currentLocale}${item.url}`}>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
+                    <a href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
                     </a>

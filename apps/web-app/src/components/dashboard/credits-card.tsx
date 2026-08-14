@@ -182,7 +182,7 @@ export function CreditsCard() {
         )}
 
         <Button asChild className="w-full">
-          <a href={`/${currentLocale}/pricing`}>
+          <a href="/pricing">
             <Coins className="mr-2 h-4 w-4" />{t.dashboard.credits.buyMore}<ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </Button>

@@ -6,17 +6,20 @@ import {
   HeadContent,
   Scripts,
   useLoaderData,
-  useRouterState,
 } from '@tanstack/react-router'
 import { config } from '@config'
 import { getPublicFeatureFlags } from '@/lib/feature-flags'
-import { locales } from '@libs/i18n'
+import { translations } from '@libs/i18n'
 import { ThemeProvider } from '@libs/react-shared/hooks/use-theme'
 import { ThemeScript } from '@libs/react-shared/components/theme-script'
+import { SharedAppProvider } from '@libs/react-shared/providers/app-context'
 import { Toaster } from '@libs/react-shared/ui/sonner'
+import { getRequestLocale } from '@/lib/locale.functions'
+import { NotFoundPage } from '@/components/not-found-page'
 import '../styles.css'
 
 export const Route = createRootRoute({
+  beforeLoad: async () => ({ locale: await getRequestLocale() }),
   loader: () => getPublicFeatureFlags(),
   head: () => ({
     meta: [
@@ -30,6 +33,7 @@ export const Route = createRootRoute({
       { rel: 'manifest', href: '/site.webmanifest' },
     ],
   }),
+  notFoundComponent: NotFoundPage,
   component: RootComponent,
 })
 
@@ -60,26 +64,23 @@ function useReferralCapture() {
 
 function RootComponent() {
   useReferralCapture()
+  const { locale } = Route.useRouteContext()
+  const t = translations[locale]
   return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
+    <SharedAppProvider value={{ t, locale }}>
+      <RootDocument locale={locale}>
+        <Outlet />
+      </RootDocument>
+    </SharedAppProvider>
   )
 }
 
-function useHtmlLang(): string {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const segment = pathname.split('/')[1] ?? ''
-  if ((locales as readonly string[]).includes(segment)) {
-    return segment === 'zh-CN' ? 'zh-CN' : segment
-  }
-  return 'en'
-}
-
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  const lang = useHtmlLang()
+function RootDocument({
+  children,
+  locale,
+}: Readonly<{ children: ReactNode; locale: string }>) {
   return (
-    <html lang={lang} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <HeadContent />
         <ThemeScript />

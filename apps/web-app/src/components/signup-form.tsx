@@ -17,6 +17,7 @@ import { Inbox } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { config } from "@config";
 import { Link } from "@tanstack/react-router";
+import { safeInternalPath } from "@/lib/navigation";
 
 export function SignupForm({
   className,
@@ -93,8 +94,7 @@ export function SignupForm({
       setIsVerificationEmailSent(true);
     } else {
       const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get("returnTo");
-      navigate({ to: returnTo || `/$lang`, params: { lang: locale } });
+      window.location.assign(safeInternalPath(params.get("returnTo")));
     }
 
     setLoading(false);
@@ -238,8 +238,7 @@ export function SignupForm({
         <div className="text-center text-sm">
           {t.auth.signup.haveAccount}{" "}
           <Link
-            to="/$lang/signin"
-            params={{ lang: locale }}
+            to="/signin"
             className="text-primary underline underline-offset-4 hover:underline"
           >
             {t.auth.signup.signinLink}
