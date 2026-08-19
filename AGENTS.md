@@ -201,3 +201,29 @@ pnpm build
 - Cloudflare 注意事项：[`apps/backend/CF-NOTES.md`](apps/backend/CF-NOTES.md)
 
 当本文件与更深层目录中的 `AGENTS.md` 同时适用时，本文件规定仓库级文档治理和交付底线，更深层文件补充局部实现约束；两者都必须遵守。
+
+## Cursor Cloud specific instructions
+
+These notes are for future Cloud Agents. The startup update script already runs `pnpm install` (Node 22, pnpm 9.4.0). Standard commands live in `README.md`, root `package.json` scripts, and `libs/database/AGENTS.md`; the notes below only capture the non-obvious setup for this environment.
+
+### Local dev uses SQLite (not Postgres)
+
+- The default `env.example` sets `DB_DIALECT="pg"`, which requires a running Postgres. This VM has no Postgres. The local `.env` is configured with `DB_DIALECT="sqlite"` + `SQLITE_DB_PATH="./data/local.sqlite"` so the whole stack runs with zero external services.
+- `.env` and `data/local.sqlite` are gitignored but persist in the environment snapshot. If `.env` is missing on a fresh pod, recreate it: `cp env.example .env` then set `DB_DIALECT="sqlite"`. Then initialize the DB: `pnpm db:push:sqlite` and (optional but recommended) `pnpm db:seed:sqlite`.
+- Seeded login accounts (from `pnpm db:seed:sqlite`): `admin@example.com` / `admin123`, `user@example.com` / `user123456`, chat users `alice|bob|carol@vibechat.test` / `VibeChatTest2026!`. Email verification and captcha are disabled in dev, so email/password signup and signin work without any email/OTP delivery.
+
+### Running services
+
+- `pnpm dev` starts backend (8002), web (8001), site (8003), admin (8005) together; `pnpm dev:web` runs just backend + web. Docs is separate: `pnpm dev:docs`. Entry points: web/chat `http://localhost:8001/messages`, site `http://localhost:8003/`, admin `http://localhost:8005/admin`. The web/site/admin apps proxy `/api` and `/v1` to the backend on `BACKEND_ORIGIN` (8002), so the backend must be up for authed screens to work.
+
+### Chat backend (Matrix/Synapse) is optional and fails closed
+
+- Without Synapse configured, `/messages` intentionally shows "消息服务尚未配置" (message service not configured) instead of loading fixtures — this is expected, not a bug. Auth, onboarding, product profile, account/billing, admin, and site all work without Synapse.
+- To exercise real chat messaging you must run local Synapse, which needs Docker (NOT installed here) plus the `MATRIX_*` env values. Follow [`docs/stable/runbooks/local-synapse.md`](docs/stable/runbooks/local-synapse.md) (`npm run matrix:dev:init` / `matrix:dev:up`).
+
+### Lint / test gotchas
+
+- There is no ESLint. The lint-equivalent gates are `pnpm boundaries:check`, `pnpm docs:check`, and `pnpm typecheck`.
+- `pnpm test` (vitest) has 3 pre-existing failures on `main` unrelated to environment setup: `tests/unit/validators/user.test.ts` (1) and `tests/unit/email/cloudflare.test.ts` (2). Everything else passes.
+- `pnpm test:api` requires the dev servers to already be running (it hits `http://localhost:8001`); it fails with "Server not reachable" otherwise.
+- `pnpm test:e2e` needs Playwright + Chromium installed globally (`npm i -g playwright @playwright/test && npx playwright install chromium`) and the dev servers running (see `tests/e2e/AGENTS.md`).
