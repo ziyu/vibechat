@@ -991,6 +991,19 @@
 .vc-recent-room-copy em { grid-column: 2; overflow: hidden; margin-top: 2px; color: var(--vc-muted); font-size: 9px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 
 .vc-create-dialog {
+  /* DialogContent is portalled to body, outside .vc-app, so it must own the
+     complete chat palette instead of relying on inherited application tokens. */
+  --vc-canvas: #f3f0e9;
+  --vc-surface: #fbfaf6;
+  --vc-surface-strong: #ffffff;
+  --vc-ink: #1c1b19;
+  --vc-muted: #777169;
+  --vc-soft: #9d968d;
+  --vc-line: #d9d4ca;
+  --vc-line-soft: #e8e4dc;
+  --vc-accent: #e4472f;
+  --vc-accent-soft: #f8e2da;
+  --vc-system: #171716;
   width: min(660px, calc(100vw - 28px)) !important;
   max-width: 660px !important;
   max-height: min(720px, calc(100svh - 28px));
@@ -1004,6 +1017,17 @@
   color: var(--vc-ink) !important;
   box-shadow: 0 30px 90px rgb(15 15 14 / 28%) !important;
   font-family: "IBM Plex Sans", "Avenir Next", "Noto Sans SC", sans-serif;
+}
+.dark .vc-create-dialog {
+  --vc-canvas: #171816;
+  --vc-surface: #20211e;
+  --vc-surface-strong: #282925;
+  --vc-ink: #f3f0e9;
+  --vc-muted: #aaa49b;
+  --vc-soft: #837e76;
+  --vc-line: #3b3b36;
+  --vc-line-soft: #30312d;
+  --vc-accent-soft: #4b2d26;
 }
 .vc-create-header { padding: 27px 30px 18px; border-bottom: 1px solid var(--vc-line-soft); }
 .vc-create-header [data-slot="dialog-title"] { margin-top: 17px; font-family: "Noto Serif SC", Georgia, serif; font-size: 25px; font-weight: 550; letter-spacing: -.03em; }

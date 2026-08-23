@@ -119,6 +119,11 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       await alice.page.getByTestId('start-chat-with-contact').click()
       const dialog = alice.page.getByTestId('new-chat-dialog')
       await expect(dialog).toContainText('Bob Social E2E')
+      const dialogBackground = await dialog.evaluate(
+        (element) => window.getComputedStyle(element).backgroundColor,
+      )
+      expect(dialogBackground).not.toBe('transparent')
+      expect(dialogBackground).not.toBe('rgba(0, 0, 0, 0)')
       await dialog.getByRole('button', { name: '下一页' }).click()
       await dialog.getByRole('button', { name: /夜航电台/ }).click()
       await dialog.getByRole('button', { name: '下一页' }).click()
