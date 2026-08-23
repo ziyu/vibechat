@@ -76,6 +76,9 @@ export class RoomService {
     });
     const record: RoomIndexRecord = {
       matrixRoomId: created.matrixRoomId,
+      spaceInstanceId: `space-${globalThis.crypto.randomUUID()}`,
+      projectId: `project-${globalThis.crypto.randomUUID()}`,
+      defaultAgentId: "pi",
       clientRequestId: input.clientRequestId,
       spaceId: space.spaceId,
       spaceVersionId: space.spaceVersionId,
@@ -87,6 +90,7 @@ export class RoomService {
       instanceConfig: input.instanceConfig,
       status: "active",
       createdAt: this.options.now?.() || new Date(),
+      updatedAt: this.options.now?.() || new Date(),
     };
 
     return this.options.repository.create(record);
@@ -95,4 +99,14 @@ export class RoomService {
   lookupAccessibleRooms(userId: string, matrixRoomIds: string[]) {
     return this.options.repository.getAccessibleByMatrixRoomIds(userId, matrixRoomIds);
   }
+
+  async getAccessibleSpaceInstance(userId: string, matrixRoomId: string) {
+    const [record] = await this.options.repository.getAccessibleByMatrixRoomIds(
+      userId,
+      [matrixRoomId],
+    );
+    return record ?? null;
+  }
 }
+
+export { RoomService as SpaceInstanceService };

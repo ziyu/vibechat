@@ -3,9 +3,11 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：产品 room index、Matrix 建房、浏览器同步、消息关系与本地缓存
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+
+> 演进说明：本切片创建的每条 `room_index` 记录已经是统一 SpaceInstance 的物理基础，不会再迁移或克隆为一套“多人 Space 实例”。`spaceId/spaceVersionId` 与 `io.vibechat.space.instance.v1` 继续兼容，并按 [Space App 设计演进](./space-app-design-transition.md)原地增加稳定 `spaceInstanceId`、App Project 与 v2 state；Matrix room/timeline 权威保持不变。
 
 ## 完成边界
 

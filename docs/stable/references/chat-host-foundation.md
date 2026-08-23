@@ -3,15 +3,15 @@
 > 生命周期：长期稳定
 > 文档类型：参考资料
 > 状态：生效
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：TanStack Start Web 应用、`packages/api-contracts`、`packages/auth-client`、`packages/product-*`、`packages/matrix-client`、产品状态 API 与聊天 E2E
-> 不包含：第三方空间市场、iframe Runtime、Web Push 与生产部署拓扑
+> 不包含：Space App Runtime、Agent queue、Draft/Release、Web Push 与生产部署拓扑
 
 ## 目标
 
 聊天宿主已经从前端 fixture 切换为 Better Auth、产品数据库与 Matrix/Synapse 的真实投影。本文记录当前可维护的宿主边界；服务不可用时产品显式失败关闭，不再生成演示账号、联系人、房间或本地模拟 mutation。
 
-目标范围与长期约束以 [VibeChat MVP 版本产品与技术设计](../designs/vibechat-mvp-product-and-technical-design.md) 为准。
+目标范围与长期约束以 [VibeChat MVP 产品与技术设计](../designs/vibechat-mvp-product-and-technical-design.md) 为准。2026-08-22 目标确认为 Chat-first Space App；本文中的内置 Space 目录、收藏、模板版本和 `spaceId` 是 A3 必须保持的市场与创建基线。
 
 ## 已实现能力
 
@@ -52,20 +52,22 @@ Chat feature 不再直接发起产品 API `fetch`；请求统一通过 `@vibecha
 
 `libs/product-state` 通过 repository/service 保存用户偏好、每房间偏好和空间收藏。PostgreSQL 与 SQLite/D1 使用相同领域契约；API 必须校验 Better Auth session、房间参与权和内置空间 ID。
 
+`libs/rooms` 与物理 `room_index` 是统一 SpaceInstance 的现有基础，不是待迁移到另一套多人实例的临时对象。A3 会在同一记录上增加稳定 `spaceInstanceId` 和 Project 指针，并把领域命名演进为 `SpaceInstanceService/Repository`；现有一对一、群聊和新增多人 Space 都映射同一个 Matrix Room 与逻辑 SpaceInstanceServer。
+
 `data-ready="true"` 仅表示产品状态与 Matrix sync 已达到可操作状态，E2E 必须等待该信号后再操作。
 
 ### 页面与宿主边界
 
 `apps/web-app/src/features/chat/*-page.tsx` 只组合页面和调用 action。宿主一级导航、控制岛、权限摘要、恢复入口与预览状态始终位于氛围画布边界之外。
 
-当前房间画布是官方内置 React 画布，不是第三方 iframe，也不会伪装成已发布第三方空间。进入 Runtime 阶段后，画布区域将替换为经过 manifest、签名、hash、sandbox 和 capability 握手的 iframe；会话列表、路由、控制岛和恢复视图不需要因此重写。
+当前 Space 画布是官方内置 React 画布，不是隔离 Space App。进入新 Runtime 阶段后，画布区域演进为每个 Space 独有的 App；完整 Chat 和 Kernel 由 Host 固定持有，源码、生成状态、发布与恢复属于 Kernel，不形成 Studio 第四边界。现有市场继续作为 Space Template 来源。
 
 ## 数据权威与缓存
 
 1. Better Auth session 与产品 profile 是账号和展示资料权威。
-2. 产品数据库是联系人、好友请求、屏蔽、备注、用户偏好、房间偏好、空间收藏和 room index 权威。
+2. 产品数据库当前是联系人、好友请求、屏蔽、备注、用户偏好、Space 偏好、模板收藏和统一 SpaceInstance（物理表 `room_index`）权威；模板收藏继续保留。
 3. Matrix/Synapse 是 room membership、timeline、关系事件、presence、typing、read receipt 和媒体内容 URI 权威。
-4. `config/chat.ts` 是当前官方内置空间版本目录；`GET /v1/spaces` 是浏览器唯一目录入口，并明确返回 `source: builtin`。
+4. `config/chat.ts` 与 `GET /v1/spaces` 是当前官方 Space Template 目录事实；Space App 契约必须保持兼容，并在未来数据化市场时通过同一领域契约演进。
 5. Matrix token 只通过内存 bootstrap 进入 SDK；Matrix SDK IndexedDB 只保存允许的 sync/timeline 缓存。
 6. localStorage 不是任何产品资料、联系人、收藏、偏好或消息正文的权威副本；旧聊天 storage key 在启动和清理时删除。
 

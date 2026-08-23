@@ -3,23 +3,35 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-12
+> 更新日期：2026-08-23
 > 维护范围：本地 Synapse、Application Service adapter、真实 Matrix bootstrap 验证
 
 ## 用途与边界
 
 此环境只用于验证 VibeChat 产品服务与 Synapse 的 Application Service 合约。它固定使用 Synapse `v1.157.0`、SQLite、`localhost` server name 和仓库内公开的本地 token，禁止暴露到公网或复用到生产。
 
-默认 `docker compose up` 不会启动 Synapse；Matrix 服务位于显式 profile 中。
+默认 `docker compose up` 不会启动 Synapse；Matrix 服务位于显式 profile 中。仓库根目录的 `pnpm dev` 和 `pnpm dev:web` 会自动完成下述初始化与启动，并向所有子进程注入本 Runbook 的本地 Matrix 配置。
 
-## 首次初始化
+## 日常启动
+
+确保 Docker Desktop 或 OrbStack 已启动，并使用 Node `>=22 <26`，然后运行：
+
+```bash
+pnpm dev
+```
+
+该命令会在首次运行时初始化被 git 忽略的 SQLite 与 Synapse 数据目录，启动 Synapse，并等待 `http://localhost:8008/_matrix/client/versions` 就绪后再启动 Backend、Web、Site、Admin 和 Space Runtime。`pnpm dev:web` 使用相同前置流程，只启动 Backend、Web 和 Space Runtime。若当前 shell 使用 Node 26，但 Homebrew 已安装 Node 22/24，启动器会自动重启到兼容版本；其他安装位置可通过 `VIBECHAT_NODE_BIN` 指定。
+
+本地 Synapse 容器在应用进程退出后保持运行，以便重启和 E2E 复用；使用 `pnpm matrix:dev:down` 显式停止。只有在确实不需要 Matrix 的诊断任务中才可设置 `VIBECHAT_DEV_SKIP_SYNAPSE=1`。
+
+## 手动初始化与故障恢复
 
 ```bash
 npm run matrix:dev:init
 npm run matrix:dev:up
 ```
 
-初始化会在被 git 忽略的 `docker-volumes/synapse` 下生成本地 signing key。确认 homeserver 可用：
+自动流程失败时可手动执行以上命令。初始化会在被 git 忽略的 `docker-volumes/synapse` 下生成本地 signing key。确认 homeserver 可用：
 
 ```bash
 curl http://localhost:8008/_matrix/client/versions
@@ -46,7 +58,7 @@ MATRIX_TOKEN_ENCRYPTION_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 MATRIX_USER_PREFIX="vibe_"
 ```
 
-随后使用隔离 SQLite 启动 Web app；产品默认地址是 `http://localhost:8001`。服务端内部地址使用 `127.0.0.1` 避免本机 IPv4/IPv6 解析差异，浏览器公开地址继续使用 `localhost`。设置 `E2E_MATRIX_EXPECT_READY=1` 可运行 `chat-auth-bootstrap.spec.ts`；正常无 Matrix 配置的 E2E 仍断言 unavailable。
+`pnpm dev` 会在环境未显式配置时自动使用这些值。产品默认地址是 `http://localhost:8001`。服务端内部地址使用 `127.0.0.1` 避免本机 IPv4/IPv6 解析差异，浏览器公开地址继续使用 `localhost`。默认 `pnpm test:e2e` 和 `pnpm test:e2e:ui` 已设置 `E2E_MATRIX_EXPECT_READY=1`，与默认开发环境保持一致；Cloudflare E2E 仍保留独立配置。
 
 ## 停止与清理
 

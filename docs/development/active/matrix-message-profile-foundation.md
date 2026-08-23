@@ -3,9 +3,9 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（A2 收口切片）
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：Matrix 日常消息操作、离线恢复、首次资料设置、资料更新与联系人备注
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 完成边界
 
@@ -36,4 +36,4 @@
 
 ## 下一出口
 
-A2 身份、社交和 Matrix 消息底座已完成。下一工作流是 A3 氛围空间 Runtime：先定义 manifest、宿主协议、capability、权限提示和 iframe sandbox 验收，再开始实现。
+A2 身份、社交和 Matrix 消息底座已完成，并继续作为 Space 的完整 Chat 基线。A3 按 2026-08-22 的 [Space App 设计演进](./space-app-design-transition.md)从 Kernel/Chat/App、App Project 和 Space SDK 开始，同时保留市场与模板创建。

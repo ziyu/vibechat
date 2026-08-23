@@ -3,9 +3,9 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：好友请求、联系人、屏蔽、房间参与者 ACL、Matrix 邀请与浏览器会话管理
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 完成边界
 
@@ -34,4 +34,4 @@
 
 ## 下一出口
 
-媒体、编辑、删除、typing、历史搜索、离线失败恢复、用户资料首次设置和备注已经在[完整消息操作与资料基础](./matrix-message-profile-foundation.md)中完成。A2 至此闭环，下一主线进入 A3 氛围空间 Runtime。
+媒体、编辑、删除、typing、历史搜索、离线失败恢复、用户资料首次设置和备注已经在[完整消息操作与资料基础](./matrix-message-profile-foundation.md)中完成。A2 至此闭环，并继续作为所有 Space 的完整 Chat 基线。下一出口见 2026-08-22 的 [Space App 设计演进](./space-app-design-transition.md)。

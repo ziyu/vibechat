@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -41,6 +42,11 @@ import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { ConversationRail } from './conversation-rail'
 import { AvatarStack, PersonAvatar, SpaceGlyph } from './chat-primitives'
+import {
+  SpaceAppSurface,
+  SpaceKernelControls,
+  useSpaceRuntime,
+} from './space-runtime'
 
 const quickReactions = ['♥', '✨', '🌙']
 
@@ -50,6 +56,7 @@ export function RoomPage({ roomId }: { roomId: string }) {
     state,
     markRoomRead,
     sendMessage,
+    requestSpaceAgent,
     sendAttachment,
     editMessage,
     deleteMessage,
@@ -65,13 +72,23 @@ export function RoomPage({ roomId }: { roomId: string }) {
   const [controlsVisible, setControlsVisible] = useState(true)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [sendError, setSendError] = useState(false)
+  const [agentError, setAgentError] = useState(false)
+  const [appFocused, setAppFocused] = useState(false)
+  const [appTheme, setAppTheme] = useState<Record<string, string>>({})
   const timelineRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const typingTimerRef = useRef<number | undefined>(undefined)
   const room = state.rooms.find((candidate) => candidate.id === roomId)
+  const spaceRuntime = useSpaceRuntime(roomId)
   const space = state.spaces.find((candidate) => candidate.id === room?.spaceId)
   const messages = useMemo(() => getRoomMessages(state, roomId), [roomId, state])
+
+  const sendFromSpaceApp = useCallback(async (text: string) => {
+    const eventId = await sendMessage(roomId, text)
+    await requestSpaceAgent(roomId, eventId, text)
+    return { eventId }
+  }, [requestSpaceAgent, roomId, sendMessage])
 
   useEffect(() => {
     markRoomRead(roomId)
@@ -100,7 +117,12 @@ export function RoomPage({ roomId }: { roomId: string }) {
       top: timelineRef.current.scrollHeight,
       behavior: 'smooth',
     })
-  }, [messages.length])
+  }, [messages.length, spaceRuntime.snapshot?.messages.length, spaceRuntime.snapshot?.build])
+
+  useEffect(() => {
+    setAppFocused(false)
+    setAppTheme({})
+  }, [roomId])
 
   if (!room || !space) {
     return (
@@ -134,7 +156,14 @@ export function RoomPage({ roomId }: { roomId: string }) {
       void editMessage(editingMessageId, text).catch(() => setSendError(true))
       setEditingMessageId(undefined)
     } else {
-      void sendMessage(room.id, text, replyToId).catch(() => setSendError(true))
+      setAgentError(false)
+      void sendMessage(room.id, text, replyToId)
+        .then((eventId) => requestSpaceAgent(room.id, eventId, text)
+          .catch(() => {
+            setAgentError(true)
+            return false
+          }))
+        .catch(() => setSendError(true))
     }
     setTyping(room.id, false)
     window.clearTimeout(typingTimerRef.current)
@@ -175,16 +204,37 @@ export function RoomPage({ roomId }: { roomId: string }) {
         className="vc-room-canvas"
         data-testid="atmosphere-canvas"
         data-light={space.id === 'space-postcard' || undefined}
+        data-app-focused={appFocused || undefined}
         style={
           {
-            '--room-accent': space.accent,
+            '--room-accent': appTheme.accent || space.accent,
             '--room-canvas': space.canvas,
+            '--room-text': appTheme.text || '#f7f1e7',
+            '--room-muted': appTheme.muted || 'rgb(255 255 255 / 55%)',
+            '--room-surface': appTheme.surface || 'rgb(255 255 255 / 9%)',
+            '--room-surface-strong': appTheme.surfaceStrong || 'rgb(18 18 17 / 91%)',
+            '--room-border': appTheme.border || 'rgb(255 255 255 / 12%)',
+            '--room-radius': appTheme.radius || '14px',
           } as CSSProperties
         }
         onMouseMove={(event) => {
           if (event.clientY < 92) setControlsVisible(true)
         }}
       >
+        <SpaceAppSurface
+          roomId={room.id}
+          appUrl={spaceRuntime.appUrl}
+          channel={spaceRuntime.channel}
+          snapshot={spaceRuntime.snapshot}
+          runtimeEvent={spaceRuntime.runtimeEvent}
+          self={{
+            id: state.currentUserId,
+            name: state.people.find((person) => person.id === state.currentUserId)?.displayName || 'Member',
+          }}
+          members={members.map((member) => ({ id: member.id, name: member.displayName }))}
+          onChatSend={sendFromSpaceApp}
+          onTheme={setAppTheme}
+        />
         <div className="vc-atmosphere-texture" aria-hidden="true">
           <i />
           <i />
@@ -217,6 +267,11 @@ export function RoomPage({ roomId }: { roomId: string }) {
             <span>{members.length}</span>
             <UsersRound size={15} />
           </button>
+          <SpaceKernelControls
+            runtime={spaceRuntime}
+            appFocused={appFocused}
+            onAppFocusedChange={setAppFocused}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="vc-control-icon" aria-label={t.chatApp.room.roomMenu}>
@@ -423,6 +478,44 @@ export function RoomPage({ roomId }: { roomId: string }) {
                 </article>
               )
             })}
+
+            {spaceRuntime.snapshot?.messages
+              .filter((message) => message.type !== 'user')
+              .map((message) => (
+                <article
+                  key={message.id}
+                  className="vc-message vc-agent-message"
+                  data-testid="space-agent-message"
+                >
+                  <span className="vc-agent-avatar">AI</span>
+                  <div className="vc-message-main">
+                    <header>
+                      <strong>{message.authorName}</strong>
+                      <time dateTime={message.createdAt}>
+                        {formatMessageTime(message.createdAt, locale)}
+                      </time>
+                    </header>
+                    <div className="vc-message-bubble">
+                      <p data-testid="message-body">{message.text}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+
+            {spaceRuntime.snapshot?.build ? (
+              <article className="vc-agent-build" data-testid="space-agent-build">
+                <span><i /></span>
+                <div>
+                  <strong>
+                    {t.chatApp.spaceRuntime.agentWorking.replace(
+                      '{agent}',
+                      spaceRuntime.snapshot.build.agentId,
+                    )}
+                  </strong>
+                  <small>{spaceRuntime.snapshot.build.stage}</small>
+                </div>
+              </article>
+            ) : null}
           </div>
         </div>
 
@@ -532,6 +625,10 @@ export function RoomPage({ roomId }: { roomId: string }) {
           </div>
           <small className="vc-composer-hint">{t.chatApp.room.composerHint}</small>
           {sendError ? <small role="alert">{t.chatApp.room.sendFailed}</small> : null}
+          {agentError ? <small role="alert">{t.chatApp.spaceRuntime.agentFailed}</small> : null}
+          {spaceRuntime.unavailable ? (
+            <small className="vc-composer-runtime-note">{t.chatApp.spaceRuntime.unavailable}</small>
+          ) : null}
         </footer>
       </section>
     </div>

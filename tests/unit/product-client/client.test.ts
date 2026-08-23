@@ -66,4 +66,21 @@ describe('ProductApiClient', () => {
 
     await expect(client.bootstrapSession()).rejects.toMatchObject({ name: 'ZodError' })
   })
+
+  it('sends Space App bridge commands through the authenticated product boundary', async () => {
+    const http = transport(Response.json({ ok: true, revision: 2 }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.sendSpaceAppCommand('!space:localhost', {
+      action: 'state.set',
+      payload: { key: 'score', value: 3 },
+    })).resolves.toMatchObject({ ok: true, revision: 2 })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/bridge',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+  })
 })

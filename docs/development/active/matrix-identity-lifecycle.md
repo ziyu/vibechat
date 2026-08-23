@@ -3,9 +3,9 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-11
+> 更新日期：2026-08-22
 > 维护范围：产品 profile、Matrix identity、session binding、integration outbox、Synapse adapter 合约
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 目标
 
@@ -39,7 +39,7 @@ route 只负责解析 Better Auth session、调用 service 和映射稳定响应
 - 设备删除可以映射到 Synapse device admin API。
 - Synapse “login as user”明确不会创建可见设备，不能用于本产品的 session-device 绑定。
 - 浏览器 Matrix device/access token 的正式签发方式必须另行决策；在此之前生产 adapter 保持 unavailable。
-- Synapse Admin token 只允许存在于产品服务端 secret，不进入浏览器、日志或氛围空间。
+- Synapse Admin token 只允许存在于产品服务端 secret，不进入浏览器、日志或生成的 Space App。
 
 ## 非目标
 

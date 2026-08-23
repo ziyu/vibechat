@@ -3,9 +3,11 @@
 > 生命周期：开发中
 > 文档类型：RFC
 > 状态：已采纳，实施中
-> 更新日期：2026-08-13
+> 更新日期：2026-08-22
 > 维护范围：`apps/*`、共享前端 packages、产品 API、Web/PWA 与未来 Desktop 宿主
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
+
+> 2026-08-22 补充：Space App 新设计要求新增独立 `apps/space-runtime` 和 Space App packages；现有 `spaces`/Discover/收藏/模板创建继续是产品基线。具体演进顺序见 [Space App 设计演进](./active/space-app-design-transition.md)。
 
 ## 1. 提案摘要
 
@@ -20,6 +22,7 @@
 5. `apps/desktop-app` 打包本地产品前端资源，不把线上 `web-app` 当远程 WebView 页面。
 6. AI、计费和用户侧推广经后续产品评审后进入共享 Backend 与唯一 Web 产品 shell；通用运营能力进入独立 Admin App。
 7. 采用渐进迁移，不进行目录整体复制或一次性重写。
+8. 新建独立 `apps/space-runtime`，明确采用 `chat-app-server` 同构的 Node 22 + TypeScript + Hono、SpaceInstanceServer、SSE/command、串行 Turn、ProjectStore 与 agentOS Apps Dev/Release；Cloudflare Backend 不启动 Node 子进程或 VM。
 
 Desktop 不属于当前 Web/PWA MVP 的既定发布范围。本 RFC 只确保当前拆分不会封死 Desktop；是否进入正式产品路线，需要在完成 Desktop 技术 spike 后更新稳定设计和产品路线图。
 
@@ -110,7 +113,8 @@ flowchart LR
     Desktop["apps/desktop-app\n本地 Desktop 宿主"]
     API["apps/backend\n共享后端、产品 API 与 Auth"]
     Docs["apps/docs-app\n开发者与用户文档"]
-    Admin["apps/admin-app\n运营与未来空间审核"]
+    Admin["apps/admin-app\n运营与 Space App 治理"]
+    Runtime["apps/space-runtime\nHono / InstanceServer / agentOS Apps"]
 
     ProductReact["packages/product-react\n共享产品 screens/providers"]
     ProductCore["packages/product-core\n纯状态与用例"]
@@ -119,6 +123,8 @@ flowchart LR
     MatrixClient["packages/matrix-client\nMatrix SDK 封装"]
     Platform["packages/platform-contracts\n宿主能力端口"]
     AuthClient["packages/auth-client\nBetter Auth React client"]
+    SpaceContracts["packages/space-app-contracts\nSDK / Agent / Runtime protocol"]
+    SpaceClient["packages/space-app-client\nKernel bridge client"]
     Server["server domain packages\nidentity/social/rooms/state"]
 
     Web --> ProductReact
@@ -137,6 +143,10 @@ flowchart LR
     Desktop --> API
     Site -. "只链接产品入口" .-> Web
     Admin --> API
+    Web --> SpaceClient
+    SpaceClient --> SpaceContracts
+    API <--> Runtime
+    Runtime --> SpaceContracts
 ```
 
 ### 4.1 App 职责
@@ -144,11 +154,12 @@ flowchart LR
 | App | 责任 | 明确禁止 |
 | --- | --- | --- |
 | `site-app` | 首页、功能说明、公开 blog、下载入口、法律页面、SEO | 数据库、Matrix SDK、聊天 store、管理后台、产品 Cookie 逻辑 |
-| `web-app` | 认证 UI、onboarding、messages、contacts、discover、me、rooms、PWA 能力 | 官网内容管理、旧 SaaS 页面、领域数据库写入、另一个 app 的源码 |
+| `web-app` | 认证 UI、onboarding、messages、contacts、me、兼容 rooms 路由、Space Kernel/Chat/App、市场与 PWA 能力 | 官网内容管理、Space Runtime 执行、领域数据库写入、另一个 app 的源码 |
 | `desktop-app` | Desktop 启动、窗口、深链、系统通知、文件选择、安全存储、更新、平台适配 | 加载线上产品 URL、直接访问数据库、复制 Web feature |
 | `backend` | Better Auth HTTP 挂载、产品 `/v1`、上传授权、Matrix identity/room bridge、Admin API、请求级 DB/日志 | 产品 React 页面、Matrix 浏览器 sync、官网内容 |
-| `docs-app` | 用户、SDK、CLI 和部署文档 | 产品运行时依赖 |
-| `admin-app` | 用户、订阅、订单、积分、定价、Blog、佣金和提现运营；A4 空间审核、撤销和治理 | 直接访问数据库、继承未评审旧产品页、导入另一个 app |
+| `docs-app` | 用户、Space SDK、Agent Adapter 和部署文档 | 产品运行时依赖 |
+| `admin-app` | 用户、订阅、订单、积分、定价、Blog、佣金和提现运营；Template/Agent/Release 撤销和治理 | 直接访问数据库、继承未评审旧产品页、导入另一个 app |
+| `space-runtime` | Node/Hono、SpaceInstanceRegistry/Server、SSE/command、Agent Adapter/session、串行 Turn、ProjectStore、agentOS Apps Dev 与不可变 Release | Better Auth Cookie 判定、产品账本/ACL 写入、产品 React 页面、第二套 Space/成员/Chat 权威 |
 
 ### 4.2 本地端口建议
 
@@ -160,8 +171,9 @@ flowchart LR
 | 文档 | `8004` |
 | Admin 运营后台 | `8005` |
 | Desktop Vite dev server | `8006` |
-| 预留 | `8007` |
+| Space Runtime | `8007` |
 | Synapse | `8008` |
+| 预留 | `8009` |
 
 端口只是本地约定，不进入 API contract。生产建议使用 `www`、`app`、`api`、`docs` 和受限的内部 review 域名。
 
@@ -173,13 +185,18 @@ flowchart LR
 | --- | --- | --- |
 | `@vibechat/api-contracts` | Zod schema、DTO、错误码、contract version | Zod 与纯 TS |
 | `@vibechat/auth-client` | Better Auth React client、插件配置、可注入 Backend base URL 的 factory | better-auth、React peer |
-| `@vibechat/product-client` | profile/social/rooms/spaces/session API client；可注入 base URL 与 auth transport | api-contracts |
+| `@vibechat/product-client` | profile/social/rooms 兼容 API、Space/Template/App/session client；可注入 base URL 与 auth transport | api-contracts |
 | `@vibechat/product-core` | 与 React、路由、运行时无关的产品状态、用例和 selector | api-contracts、product-client 接口 |
 | `@vibechat/matrix-client` | `matrix-js-sdk` 生命周期、timeline、媒体与 storage port | matrix-js-sdk、纯契约 |
 | `@vibechat/platform-contracts` | navigation、storage、file、notification、deep-link、update、external-link 能力接口 | 纯 TS |
 | `@vibechat/product-react` | ChatProvider、宿主 shell、screens、hooks | 上述 packages、design system、i18n |
+| `@vibechat/space-app-contracts` | Space SDK、Agent task、Runtime session、bridge event、错误码与序列化 schema | Zod 与纯 TS |
+| `@vibechat/space-app-sdk` | Space App 使用的浏览器 SDK | space-app-contracts |
+| `@vibechat/space-app-client` | Web/Desktop Kernel 的 bridge 与 Runtime client | space-app-contracts、platform-contracts |
 
 后续再按证据迁移 `design-system` 和 server domain packages。现有 `libs/identity`、`libs/social`、`libs/rooms`、`libs/product-state` 已有较清晰领域边界，可以先由 `backend` 继续源码引用；只有出现第二个真实服务端消费者、独立发布或依赖隔离需要时才逐个升级为 workspace package，不为目录整齐一次性搬迁全部通用 SaaS 库。
+
+`libs/rooms` 的当前 `room_index` 不是另一个产品实例。A3 将其领域命名原地演进为 `SpaceInstanceService/Repository`，并增加稳定 `spaceInstanceId`；兼容 `/v1/rooms` 仍调用同一实现。一对一、群聊和多人 Space 不得根据参与人数进入不同 app、table、service 或 Runtime actor。
 
 ### 5.1 强制依赖规则
 
@@ -205,7 +222,7 @@ apps/backend -> server domain packages -> database/providers
 interface ProductNavigation {
   openMessages(): void
   openContacts(): void
-  openRoom(roomId: string): void
+  openSpace(spaceId: string): void
   openSignIn(options?: { returnTo?: string }): void
   replaceOnboarding(): void
 }
@@ -375,7 +392,7 @@ Desktop 不应把长期 session token 放进 WebView localStorage，也不能假
 | web-app | auth/onboarding/chat E2E、PWA、Cookie/CSRF、真实 Matrix |
 | backend | contract tests、资源归属、两种 principal、幂等、错误码、独立部署 |
 | desktop-app | 深链、系统认证、secure storage、Matrix sync、休眠/断网/重启、更新签名 |
-| 跨客户端 | Web 与 Desktop 同房间双向消息、邀请、编辑/删除/回应、版本兼容 |
+| 跨客户端 | Web 与 Desktop 同一 Space 双向消息、邀请、编辑/删除/回应、版本兼容 |
 
 所有迁移阶段都必须保持一个可回滚的公开入口，不能同时切路由、Cookie domain、API host 和数据 schema。
 

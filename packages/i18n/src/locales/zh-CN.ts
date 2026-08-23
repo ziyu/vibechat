@@ -2105,6 +2105,24 @@ export const zhCN: Locale = {
       composerHint: "Enter 发送 · Shift + Enter 换行",
       sendFailed: "消息发送失败，请重试。"
     },
+    spaceRuntime: {
+      appTitle: "空间应用",
+      channelLabel: "应用版本",
+      dev: "开发版",
+      live: "已发布",
+      publish: "发布",
+      publishing: "发布中…",
+      app: "应用",
+      chat: "聊天",
+      focusApp: "打开可交互的空间应用",
+      focusChat: "返回空间聊天",
+      unavailable: "应用工具暂时不可用，聊天仍然保持连接。",
+      agentFailed: "Agent 请求未能启动，但你的消息已经发送到聊天中。",
+      agentWorking: "{agent} 正在更新空间应用",
+      emptyApp: "@{agent} 并描述需求，即可创建或修改这个空间应用。",
+      draftReady: "开发版本已就绪",
+      releaseReady: "发布版本已就绪"
+    },
     newChat: {
       peopleTitle: "这一刻想和谁分享？",
       peopleDescription: "先选择联系人，最多 50 人，然后再决定这段对话应该是什么感觉。",

@@ -93,6 +93,9 @@ describe("RoomService", () => {
 
     expect(result).toMatchObject({
       matrixRoomId: "!matrix-room:localhost",
+      spaceInstanceId: expect.stringMatching(/^space-/),
+      projectId: expect.stringMatching(/^project-/),
+      defaultAgentId: "pi",
       spaceId: space.spaceId,
       spaceVersionId: space.spaceVersionId,
       creatorUserId: input.creatorUserId,
@@ -108,6 +111,10 @@ describe("RoomService", () => {
       instanceConfig: input.instanceConfig,
     });
     expect(repository.records).toHaveLength(1);
+    await expect(service.getAccessibleSpaceInstance(
+      input.creatorUserId,
+      result.matrixRoomId,
+    )).resolves.toEqual(result);
   });
 
   it("returns the existing room for a repeated client request", async () => {

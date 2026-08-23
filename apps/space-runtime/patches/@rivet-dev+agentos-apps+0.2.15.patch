@@ -1,0 +1,62 @@
+diff --git a/dist/index.js b/dist/index.js
+index f77887e..cffe5d9 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -3063,52 +3063,15 @@ function createAppsActors(options = {}) {
+     }
+   };
+   const createBuildVm = async () => {
+-    const outputDirectory = await mkdtemp(
+-      join(tmpdir(), "agentos-apps-build-output-")
+-    );
+-    const artifactGuestPath = "/agentos-app-output/agentos-app.tar";
+-    const artifactHostPath = join(outputDirectory, "agentos-app.tar");
+-    let vm;
+-    try {
+-      vm = await AgentOs.create({
+-        ...buildVmOptions,
+-        mounts: [
+-          ...buildVmOptions.mounts ?? [],
+-          {
+-            path: "/agentos-app-output",
+-            readOnly: false,
+-            plugin: createHostDirBackend({
+-              hostPath: outputDirectory,
+-              readOnly: false
+-            })
+-          }
+-        ]
+-      });
+-    } catch (error) {
+-      await rm(outputDirectory, { recursive: true, force: true });
+-      throw error;
+-    }
++    const artifactGuestPath = "/agentos-app.tar";
++    const vm = await AgentOs.create(buildVmOptions);
+     return {
+       artifactGuestPath,
+       writeFiles: (...args) => vm.writeFiles(...args),
+       execArgv: (...args) => vm.execArgv(...args),
+-      artifactSize: async () => (await stat(artifactHostPath)).size,
+-      readArtifact: async () => new Uint8Array(await readFile(artifactHostPath)),
+-      dispose: async () => {
+-        const results = await Promise.allSettled([
+-          vm.dispose(),
+-          rm(outputDirectory, { recursive: true, force: true })
+-        ]);
+-        const failures = results.flatMap(
+-          (result) => result.status === "rejected" ? [result.reason] : []
+-        );
+-        if (failures.length > 0) {
+-          throw new AggregateError(
+-            failures,
+-            "failed to dispose AgentOS Apps build VM output"
+-          );
+-        }
+-      }
++      artifactSize: async () => (await vm.stat(artifactGuestPath)).size,
++      readArtifact: async () => new Uint8Array(await vm.readFile(artifactGuestPath)),
++      dispose: async () => vm.dispose()
+     };
+   };
+   const temporaryArtifacts = /* @__PURE__ */ new Map();

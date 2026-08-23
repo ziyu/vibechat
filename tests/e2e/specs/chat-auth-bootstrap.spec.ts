@@ -91,10 +91,10 @@ test.describe('Vibe Chat Email OTP and session bootstrap', () => {
   test('keeps password sign-in available during the migration', async ({ page }) => {
     await page.goto('/signin')
     await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true')
-    await page.getByRole('button', { name: 'Use password instead' }).click()
+    await page.getByTestId('signin-method-toggle').click()
 
     await expect(page.locator('#email')).toBeVisible()
     await expect(page.locator('#password')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Use email code instead' })).toBeVisible()
+    await expect(page.getByTestId('signin-method-toggle')).toBeVisible()
   })
 })

@@ -37,6 +37,9 @@ describe("DatabaseRoomRepository on SQLite", () => {
   it("persists and reads a room by creator-scoped idempotency key", async () => {
     const record = {
       matrixRoomId: "!room-index:localhost",
+      spaceInstanceId: "space-instance-1",
+      projectId: "space-project-1",
+      defaultAgentId: "pi",
       clientRequestId: "client-request-1",
       spaceId: "space-campfire",
       spaceVersionId: "builtin-space-campfire-v1",
@@ -45,6 +48,7 @@ describe("DatabaseRoomRepository on SQLite", () => {
       instanceConfig: { ambient: "night" },
       status: "active" as const,
       createdAt: new Date("2026-08-11T15:00:00.000Z"),
+      updatedAt: new Date("2026-08-11T15:00:00.000Z"),
     };
 
     await expect(repository.create(record)).resolves.toEqual(record);

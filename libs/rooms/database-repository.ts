@@ -20,6 +20,9 @@ export class DatabaseRoomRepository implements RoomRepository {
   async create(record: RoomIndexRecord) {
     await db.insert(roomIndex).values({
       matrixRoomId: record.matrixRoomId,
+      spaceInstanceId: record.spaceInstanceId,
+      projectId: record.projectId,
+      defaultAgentId: record.defaultAgentId,
       clientRequestId: record.clientRequestId,
       spaceId: record.spaceId,
       spaceVersionId: record.spaceVersionId,
@@ -28,6 +31,7 @@ export class DatabaseRoomRepository implements RoomRepository {
       instanceConfigJson: record.instanceConfig,
       status: record.status,
       createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
     });
     const stored = await this.getByClientRequestId(
       record.creatorUserId,
@@ -51,6 +55,9 @@ export class DatabaseRoomRepository implements RoomRepository {
   private toRecord(stored: typeof roomIndex.$inferSelect): RoomIndexRecord {
     return {
       matrixRoomId: stored.matrixRoomId,
+      spaceInstanceId: stored.spaceInstanceId || legacySpaceInstanceId(stored.matrixRoomId),
+      projectId: stored.projectId || legacyProjectId(stored.matrixRoomId),
+      defaultAgentId: stored.defaultAgentId || "pi",
       clientRequestId: stored.clientRequestId,
       spaceId: stored.spaceId,
       spaceVersionId: stored.spaceVersionId,
@@ -61,6 +68,26 @@ export class DatabaseRoomRepository implements RoomRepository {
       instanceConfig: stored.instanceConfigJson,
       status: stored.status as RoomIndexRecord["status"],
       createdAt: stored.createdAt,
+      updatedAt: stored.updatedAt,
     };
   }
+}
+
+function legacySpaceInstanceId(matrixRoomId: string) {
+  return `space-${stableId(matrixRoomId)}`;
+}
+
+function legacyProjectId(matrixRoomId: string) {
+  return `project-${stableId(matrixRoomId)}`;
+}
+
+function stableId(value: string) {
+  let hash = 2166136261;
+  let secondary = 5381;
+  for (const character of value) {
+    hash ^= character.codePointAt(0) || 0;
+    hash = Math.imul(hash, 16777619);
+    secondary = Math.imul(secondary, 33) ^ (character.codePointAt(0) || 0);
+  }
+  return `${(hash >>> 0).toString(36)}-${(secondary >>> 0).toString(36)}-${value.length.toString(36)}`;
 }

@@ -46,6 +46,7 @@ interface ChatContextValue {
   toggleRoomPinned: (roomId: string) => Promise<void>
   toggleRoomMuted: (roomId: string) => Promise<void>
   sendMessage: (roomId: string, text: string, replyToId?: string) => Promise<string>
+  requestSpaceAgent: (roomId: string, matrixEventId: string, text: string) => Promise<boolean>
   sendAttachment: (roomId: string, file: File) => Promise<string>
   editMessage: (messageId: string, text: string) => Promise<void>
   deleteMessage: (messageId: string) => Promise<void>
@@ -525,6 +526,18 @@ export function ChatProvider({
     [deliverOptimisticMessage, state.currentUserId],
   )
 
+  const requestSpaceAgent = useCallback(async (
+    roomId: string,
+    matrixEventId: string,
+    text: string,
+  ) => {
+    const agentId = roomMetadataRef.current[roomId]?.defaultAgentId || 'pi'
+    const mention = new RegExp(`(^|\\s)@${agentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'i')
+    if (!mention.test(text)) return false
+    await productApi.createSpaceAgentTurn(roomId, { matrixEventId, message: text, agentId })
+    return true
+  }, [])
+
   const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
     const client = matrixClientRef.current
     const matrixRuntime = runtimeModuleRef.current
@@ -734,6 +747,7 @@ export function ChatProvider({
     toggleRoomPinned: (roomId) => updateRoomPreference(roomId, 'pinned'),
     toggleRoomMuted: (roomId) => updateRoomPreference(roomId, 'muted'),
     sendMessage,
+    requestSpaceAgent,
     sendAttachment,
     editMessage,
     deleteMessage,
@@ -768,6 +782,7 @@ export function ChatProvider({
     rejectRoomInvite,
     retryConnection,
     sendMessage,
+    requestSpaceAgent,
     sendAttachment,
     editMessage,
     deleteMessage,

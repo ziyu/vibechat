@@ -19,6 +19,8 @@
     "@vibechat/product-client": "workspace:*",
     "@vibechat/product-core": "workspace:*",
     "@vibechat/react-shared": "workspace:*",
+    "@vibechat/space-app-contracts": "workspace:*",
+    "@vibechat/space-app-sdk": "workspace:*",
     "@vibechat/ui": "workspace:*",
     "@vibechat/validators": "workspace:*",
     "@ai-sdk/react": "3.0.6",

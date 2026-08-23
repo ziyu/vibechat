@@ -2098,6 +2098,24 @@ export const en: Locale = {
       composerHint: "Enter to send · Shift + Enter for a new line",
       sendFailed: "Message could not be sent. Try again."
     },
+    spaceRuntime: {
+      appTitle: "Space App",
+      channelLabel: "App channel",
+      dev: "Dev",
+      live: "Live",
+      publish: "Publish",
+      publishing: "Publishing…",
+      app: "App",
+      chat: "Chat",
+      focusApp: "Open the interactive Space App",
+      focusChat: "Return to Space Chat",
+      unavailable: "App tools are temporarily unavailable. Chat is still connected.",
+      agentFailed: "The Agent request could not start. Your message is already in Chat.",
+      agentWorking: "{agent} is shaping the Space App",
+      emptyApp: "Mention @{agent} to create or change this Space App.",
+      draftReady: "Dev draft ready",
+      releaseReady: "Live release ready"
+    },
     newChat: {
       peopleTitle: "Who is this moment for?",
       peopleDescription: "Choose up to 50 contacts before deciding how the conversation should feel.",

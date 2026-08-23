@@ -3,9 +3,9 @@
 > 生命周期：长期稳定
 > 文档类型：参考资料
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-22
 > 维护范围：Better Auth Email OTP、产品 session bootstrap、TanStack 登录界面与相关 E2E
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 目标
 

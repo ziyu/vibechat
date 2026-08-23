@@ -3,9 +3,11 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：TanStack 聊天宿主、产品状态 API、用户偏好、官方空间目录与 E2E
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+
+> 演进说明：官方 Space 目录、收藏和 `favoriteSpaceIds` 是本切片已经验证的 2026-08-12 当前实现，也是 2026-08-22 [Space App 设计演进](./space-app-design-transition.md)必须保留的市场基线；后续只扩展模板与 App 能力，不删除本切片契约。
 
 ## 目标
 

@@ -11,7 +11,7 @@
 
 ## 建议阅读顺序
 
-1. 先阅读[VibeChat MVP 版本产品与技术设计](./stable/designs/vibechat-mvp-product-and-technical-design.md)。
+1. 先阅读[VibeChat MVP 产品与技术设计](./stable/designs/vibechat-mvp-product-and-technical-design.md)。
 2. 再查看[VibeChat MVP 产品与技术设计 Active 实施跟踪](./development/active/product-and-technical-implementation.md)和[当前开发重点](./development/current-focus.md)。
 3. 编写或迁移文档前，遵循[文档分类、生命周期与维护规范](./governance/lifecycle-policy.md)。
 4. 只有需要调查历史决策时才进入归档区。
