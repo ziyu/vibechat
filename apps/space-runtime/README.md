@@ -9,9 +9,10 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 根目录 `pnpm dev` 或 `pnpm dev:web` 会同时启动本服务和仓库托管的 Rivet Engine；也可以单独执行 `pnpm dev:space-runtime`。默认 Engine 状态固定保存在被 git 忽略的 `apps/space-runtime/.data/rivetkit-storage/managed-engine/db`，因此停止再启动整套开发服务不会丢失 App、Draft 或 Release。需要在 `.env` 配置：
 
 - `SPACE_RUNTIME_INTERNAL_TOKEN`：Backend 与 Runtime 共享的本地内部 token。
-- `SPACE_RUNTIME_CALLBACK_ORIGIN`：积分结算回调的 Backend origin，默认 `http://127.0.0.1:8002`。
+- `SPACE_RUNTIME_CALLBACK_ORIGIN`：积分结算回调的 Backend origin，本地默认 `http://localhost:8002`；部署时必须显式配置为 Runtime 可访问的内部 Backend origin。
 - `SPACE_AGENT_DEFAULT_ID`：首版默认 `pi`，但公共 API 和队列不依赖 Pi。
 - `PI_MODE`：默认 `auto`；存在本机 Pi CLI 会话时走 `host`，具备 AgentOS provider credential 时可设为 `agentos`。
+- `PI_BIN`：可选的 Host Pi 可执行文件绝对路径。根目录 `pnpm dev` 会忽略仓库 `node_modules/.bin` 中的旧版依赖并自动解析仓库外的系统 Pi；部署时建议显式配置和固定版本。
 - `SPACE_RUNTIME_DATA_DIR`：可选的 Project/App State 本地持久化目录。
 - `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程隔离的 `/tmp/vc-space-runtime-<pid>`，避免 macOS Unix socket 路径超限。
 - `AGENTOS_APPS_DNS_SERVERS`：可选的 Release Build VM DNS，使用逗号分隔。根目录 `pnpm dev` 在本地默认注入 `1.1.1.1,8.8.8.8`，避免 macOS AgentOS `0.2.15` 无法解析系统 resolver；生产运行时若已有正确 DNS 可不设置。
@@ -48,7 +49,7 @@ Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 r
 ## 首版限制
 
 - Project、queue、Draft/Live 和 App State 已支持单实例本地恢复，Project 源码已具备 hash 校验和 Template lineage；生产 DB/Object Store、跨副本 lease/接管仍待实现。
-- 账务链已经具备逐请求预留、拒绝退款和 Runtime 回调，但 Pi 的真实 token usage 尚未接入，当前成功请求以空 usage 结算。
+- 账务链已经具备逐请求预留、Pi 真实 token usage 结算、失败退款和 Runtime 回调；同一批次的 usage 按请求稳定分摊。生产 reconciliation 和中断 turn 恢复仍待完成。
 - Agent 回复目前由 Runtime SSE 合并显示在 Space Chat UI，尚未作为 Matrix virtual-user event 回写 timeline。
 - 当前 ready Preview 只在单进程内保留最近三个版本；生产环境仍需把保留策略、跨副本路由和 artifact 恢复升级为持久协调能力。
 - 本地 Engine 会持久化 Actor 与 Release 状态，但 VM 进程不能跨宿主进程存活。仓库的 agentOS Apps `0.2.15` 兼容补丁为每次 Runtime boot 标记新的实例代次；Scaler 恢复时清除上一代 replica/admission 租约，再从同一不可变 Release 启动新副本，不删除 Release 或 App 数据。这是本地单 Runtime 恢复，不等同于生产多副本 lease 接管。

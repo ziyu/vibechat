@@ -41,6 +41,7 @@ export interface ChatMessage {
   createdAt: string
   status: MessageDeliveryStatus
   replyToId?: string
+  agentMentions?: Array<{ type: 'agent'; id: string }>
   edited?: boolean
   deleted?: boolean
   attachment?: ChatAttachment

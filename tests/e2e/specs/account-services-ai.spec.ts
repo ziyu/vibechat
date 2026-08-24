@@ -25,6 +25,23 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     await expect(page.getByText('Email & Password')).toBeVisible()
   })
 
+  test('grants the configured welcome credits exactly once at signup', async ({ page }) => {
+    const status = await page.request.get('/api/credits/status')
+    expect(status.ok()).toBeTruthy()
+    expect((await status.json() as { credits: { balance: number; totalPurchased: number } }).credits)
+      .toMatchObject({ balance: 100, totalPurchased: 100 })
+
+    const ledger = await page.request.get('/api/credits/transactions?page=1&limit=20')
+    const transactions = (await ledger.json() as {
+      transactions: Array<{ type: string; amount: string; description: string }>
+    }).transactions
+    const welcomeGrants = transactions.filter((transaction) =>
+      transaction.type === 'bonus' && transaction.description === 'new_user_bonus'
+    )
+    expect(welcomeGrants).toHaveLength(1)
+    expect(welcomeGrants[0]).toMatchObject({ type: 'bonus', amount: '100', description: 'new_user_bonus' })
+  })
+
   test('loads pricing and all three real AI product surfaces', async ({ page }) => {
     await page.goto('/services')
     await expect(page.getByTestId('pricing-plans')).toBeVisible()
@@ -285,7 +302,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     expect(repeated.ok()).toBeTruthy()
     expect(await repeated.json()).toMatchObject({ applied: false, reason: 'no_referral_code' })
     const refereeCredits = await page.request.get('/api/credits/status')
-    expect((await refereeCredits.json() as { credits: { balance: number } }).credits.balance).toBe(10)
+    expect((await refereeCredits.json() as { credits: { balance: number } }).credits.balance).toBe(110)
 
     await signOutViaAPI(page)
     expect((await signInViaAPI(page, { email: referrer.email, password: 'TestPassword123!' })).ok()).toBeTruthy()

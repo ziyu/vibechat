@@ -26,7 +26,12 @@ import type {
   ChatRoom,
   FriendRequest,
 } from '@vibechat/product-core'
-import type { RoomBootstrap, SessionBootstrap } from '@vibechat/api-contracts'
+import {
+  type RoomBootstrap,
+  type SessionBootstrap,
+  type SpaceAgentMention,
+} from '@vibechat/api-contracts'
+import { createMatrixTextContent } from './message-content'
 
 export const VIBE_SPACE_STATE_EVENT = 'io.vibechat.space.instance.v1'
 
@@ -85,6 +90,7 @@ export function sendMatrixText(
   text: string,
   transactionId: string,
   replyToId?: string,
+  agentMentions: SpaceAgentMention[] = [],
 ) {
   const room = client.getRoom(roomId)
   const pendingEvent = room?.getPendingEvents().find(
@@ -92,16 +98,7 @@ export function sendMatrixText(
   )
   if (room && pendingEvent) return client.resendEvent(pendingEvent, room)
 
-  const content = (replyToId ? {
-    msgtype: MsgType.Text,
-    body: text,
-    'm.relates_to': {
-      'm.in_reply_to': { event_id: replyToId },
-    },
-  } : {
-    msgtype: MsgType.Text,
-    body: text,
-  }) as RoomMessageEventContent
+  const content = createMatrixTextContent(text, replyToId, agentMentions)
   return client.sendEvent(
     roomId,
     EventType.RoomMessage,

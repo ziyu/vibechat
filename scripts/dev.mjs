@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import dotenv from 'dotenv'
@@ -67,6 +67,24 @@ const rivetEngineConfigPath = join(
   'config.json',
 )
 
+function resolveHostPiBinary() {
+  if (process.env.PI_BIN) return process.env.PI_BIN
+
+  const repositoryPrefix = `${repositoryRoot}${sep}`
+  const externalPath = (process.env.PATH || '')
+    .split(delimiter)
+    .filter((entry) => entry && !entry.startsWith(repositoryPrefix))
+    .join(delimiter)
+  const result = spawnSync('which', ['pi'], {
+    env: { ...process.env, PATH: externalPath },
+    encoding: 'utf8',
+  })
+  const binary = result.status === 0 ? result.stdout.trim() : ''
+  return binary || undefined
+}
+
+const hostPiBinary = resolveHostPiBinary()
+
 const developmentEnvironment = environmentForNode(process.execPath, {
   ...process.env,
   APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:8001',
@@ -87,6 +105,7 @@ const developmentEnvironment = environmentForNode(process.execPath, {
     process.env.MATRIX_TOKEN_ENCRYPTION_KEY ||
     'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   MATRIX_USER_PREFIX: process.env.MATRIX_USER_PREFIX || 'vibe_',
+  ...(hostPiBinary ? { PI_BIN: hostPiBinary } : {}),
   SPACE_AGENT_DEFAULT_ID: process.env.SPACE_AGENT_DEFAULT_ID || 'pi',
   AGENTOS_APPS_DNS_SERVERS:
     process.env.AGENTOS_APPS_DNS_SERVERS || '1.1.1.1,8.8.8.8',
@@ -100,7 +119,7 @@ const developmentEnvironment = environmentForNode(process.execPath, {
   RIVETKIT_STORAGE_PATH: rivetkitStoragePath,
   RIVET_ENGINE_DATABASE_PATH: rivetEngineDatabasePath,
   SPACE_RUNTIME_CALLBACK_ORIGIN:
-    process.env.SPACE_RUNTIME_CALLBACK_ORIGIN || 'http://127.0.0.1:8002',
+    process.env.SPACE_RUNTIME_CALLBACK_ORIGIN || 'http://localhost:8002',
   SPACE_RUNTIME_INTERNAL_TOKEN:
     process.env.SPACE_RUNTIME_INTERNAL_TOKEN ||
     'vibechat-local-space-runtime-token',
@@ -287,6 +306,7 @@ async function stopManagedRivetEngine(engine) {
 
 await ensureLocalDatabase()
 await ensureLocalSynapse()
+if (hostPiBinary) console.log(`[dev] Host Pi binary: ${hostPiBinary}`)
 const managedRivetEngine = await startManagedRivetEngine()
 
 console.log(

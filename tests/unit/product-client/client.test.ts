@@ -111,4 +111,32 @@ describe('ProductApiClient', () => {
       }),
     )
   })
+
+  it('submits a structured Agent mention with the confirmed Matrix event', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'agent-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await client.createSpaceAgentTurn('!space:localhost', {
+      matrixEventId: '$event-1',
+      message: '@pi hello',
+      agentMention: { type: 'agent', id: 'pi' },
+    })
+
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/turns',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          matrixEventId: '$event-1',
+          message: '@pi hello',
+          agentMention: { type: 'agent', id: 'pi' },
+        }),
+      }),
+    )
+  })
 })

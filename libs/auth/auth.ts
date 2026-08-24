@@ -15,6 +15,7 @@ import { config } from '@config'
 import { drainMatrixSessionRevocations, enqueueMatrixSessionRevocation } from './session-lifecycle'
 import { getTrustedAuthOrigins } from './trusted-origins'
 import { assertAccountDeletionAllowed } from './account-deletion'
+import { grantNewUserCredits } from '@libs/credits'
 export { toNextJsHandler } from "better-auth/next-js";
 /**
  * 从 referer URL 中提取信息
@@ -56,6 +57,13 @@ export const auth = betterAuth({
     }
   }),
   databaseHooks: {
+    user: {
+      create: {
+        after: async (createdUser) => {
+          await grantNewUserCredits(createdUser.id)
+        },
+      },
+    },
     session: {
       delete: {
         before: async (deletedSession) => {

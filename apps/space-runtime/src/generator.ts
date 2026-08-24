@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -8,6 +9,7 @@ import { isSpaceTemplateProjectFilePath } from "@vibechat/space-templates";
 import type { SessionStreamEntry } from "@rivet-dev/agentos";
 import { createClient } from "@rivet-dev/agentos/client";
 import type { registry } from "./actors.js";
+import type { AgentUsage } from "./agent-usage.js";
 import {
   projectFilePaths,
   requiredProjectPaths,
@@ -18,10 +20,11 @@ import {
 export interface GeneratedRevision {
   files: ProjectFiles;
   summary: string;
+  usage?: AgentUsage;
 }
 
 export type ProjectTurnResult =
-  | { kind: "chat"; message: string }
+  | { kind: "chat"; message: string; usage?: AgentUsage }
   | ({ kind: "revision" } & GeneratedRevision);
 
 export type GenerationProgress =
@@ -204,27 +207,28 @@ async function runWithHostPi(input: ProjectTurnInput) {
     }),
   );
 
-  const summary = await runHostPi(
+  const result = await runHostPi(
     workspace,
     input.appId,
     turnPrompt(input),
     input.onProgress,
   );
   const files = await readHostFiles(workspace);
-  return classifyProjectTurn(input.files, files, summary);
+  return classifyProjectTurn(input.files, files, result.summary, result.usage);
 }
 
 function classifyProjectTurn(
   before: ProjectFiles,
   after: ProjectFiles,
   summary: string,
+  usage?: AgentUsage,
 ): ProjectTurnResult {
   const message = summary.trim() || "Pi 已完成本轮处理。";
   const paths = new Set([...Object.keys(before), ...Object.keys(after)]);
   if ([...paths].some((path) => after[path] !== before[path])) {
-    return { kind: "revision", files: after, summary: message };
+    return { kind: "revision", files: after, summary: message, usage };
   }
-  return { kind: "chat", message };
+  return { kind: "chat", message, usage };
 }
 
 function runHostPi(
@@ -233,14 +237,14 @@ function runHostPi(
   prompt: string,
   onProgress?: (event: GenerationProgress) => void | Promise<void>,
 ) {
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<{ summary: string; usage?: AgentUsage }>((resolve, reject) => {
     const args = [
       "--mode",
       "json",
       "--session-dir",
       join(workspace, ".pi-sessions"),
       "--session-id",
-      `space-${appId}`,
+      hostPiSessionId(appId),
       "--no-extensions",
       "--no-skills",
       "--no-prompt-templates",
@@ -267,6 +271,8 @@ function runHostPi(
     let stdoutBuffer = "";
     let stderr = "";
     let summary = "";
+    let assistantError = "";
+    let usage: AgentUsage | undefined;
     let settled = false;
     let progressQueue = Promise.resolve();
     let agentDeltaTimer: ReturnType<typeof setTimeout> | undefined;
@@ -339,6 +345,15 @@ function runHostPi(
           }
         });
       }
+      if (
+        event.type === "message_end" &&
+        event.message?.role === "assistant"
+      ) {
+        usage = hostPiUsage(event.message.usage) ?? usage;
+        if (event.message.stopReason === "error") {
+          assistantError = event.message.errorMessage || "Pi returned an Agent error";
+        }
+      }
     };
 
     child.stdout.setEncoding("utf8");
@@ -363,15 +378,15 @@ function runHostPi(
       if (stdoutBuffer.trim()) handleLine(stdoutBuffer);
       flushAgentDeltas();
       void progressQueue.then(() => {
-        if (code !== 0) {
+        if (code !== 0 || assistantError) {
           reject(
             new Error(
-              `Pi exited with status ${code}: ${stderr.trim().slice(0, 1_000)}`,
+              assistantError || `Pi exited with status ${code}: ${stderr.trim().slice(0, 1_000)}`,
             ),
           );
           return;
         }
-        resolve(summary.trim().slice(-1_200));
+        resolve({ summary: summary.trim().slice(-1_200), usage });
       });
     });
   });
@@ -389,7 +404,51 @@ type HostPiEvent = {
   args?: Record<string, unknown>;
   partialResult?: unknown;
   isError?: boolean;
+  message?: {
+    role?: string;
+    stopReason?: string;
+    errorMessage?: string;
+    usage?: {
+      input?: unknown;
+      output?: unknown;
+      totalTokens?: unknown;
+    };
+  };
 };
+
+function hostPiUsage(
+  value: NonNullable<HostPiEvent["message"]>["usage"],
+): AgentUsage | undefined {
+  if (!value) return undefined;
+  const inputTokens = nonnegativeInteger(value.input);
+  const outputTokens = nonnegativeInteger(value.output);
+  const totalTokens = nonnegativeInteger(value.totalTokens);
+  if (inputTokens === undefined && outputTokens === undefined && totalTokens === undefined) {
+    return undefined;
+  }
+  return {
+    ...(inputTokens === undefined ? {} : { inputTokens }),
+    ...(outputTokens === undefined ? {} : { outputTokens }),
+    ...(totalTokens === undefined ? {} : { totalTokens }),
+  };
+}
+
+function nonnegativeInteger(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : undefined;
+}
+
+export function hostPiSessionId(appId: string) {
+  const bytes = createHash("sha256")
+    .update(`vibechat-space:${appId}`)
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 function hostPiDelta(event: HostPiEvent) {
   if (

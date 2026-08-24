@@ -13,6 +13,11 @@ import { streamSSE } from "hono/streaming";
 import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { registry } from "./actors.js";
 import {
+  addAgentUsage,
+  splitAgentUsage,
+  type AgentUsage,
+} from "./agent-usage.js";
+import {
   DevPreviewError,
   DevPreviewManager,
 } from "./dev-preview.js";
@@ -560,6 +565,7 @@ async function drainTurnQueue() {
 
 async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
   let succeeded = false;
+  let usage: AgentUsage | undefined;
   try {
     if (turn.kind === "publish") {
       succeeded = await publishCurrentProject(appId, turn.turnId);
@@ -569,7 +575,14 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
       succeeded = await restoreDefaultChatProject(appId, turn.turnId, recovery);
     } else {
       const agentId = turn.requests[0]?.agentId || defaultAgentId;
-      succeeded = await processTurn(appId, turn.turnId, combinedTurnRequest(turn), agentId);
+      const outcome = await processTurn(
+        appId,
+        turn.turnId,
+        combinedTurnRequest(turn),
+        agentId,
+      );
+      succeeded = outcome.succeeded;
+      usage = outcome.usage;
     }
   } catch (error) {
     console.error("Queued turn failed", boundedLogError(error));
@@ -580,7 +593,7 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
       spaceErrorCode(error),
     );
   } finally {
-    await reportTurnBilling(turn, succeeded ? "completed" : "failed").catch((error) => {
+    await reportTurnBilling(turn, succeeded ? "completed" : "failed", usage).catch((error) => {
       console.error("Space turn billing callback failed", boundedLogError(error));
     });
   }
@@ -695,6 +708,7 @@ async function processTurn(
   }, 2_000);
   const relayProgress = (event: SpaceBuildProgress) =>
     spaces.progress(appId, turnId, event);
+  let usage: AgentUsage | undefined;
 
   try {
     const existing = await loadProject(appId);
@@ -713,9 +727,10 @@ async function processTurn(
       files: currentFiles,
       onProgress: relayProgress,
     });
+    usage = addAgentUsage(usage, turn.usage);
     if (turn.kind === "chat") {
       await spaces.completeChat(appId, turnId, turn.message);
-      return true;
+      return { succeeded: true, usage };
     }
     let revision = { files: turn.files, summary: turn.summary };
 
@@ -788,7 +803,7 @@ async function processTurn(
             updatedAt: publishedAt,
             deployment,
           });
-          return true;
+          return { succeeded: true, usage };
         }
 
         await spaces.complete(appId, turnId, revision.summary, {
@@ -801,7 +816,7 @@ async function processTurn(
           updatedAt,
           publishedReleaseId: existing?.releaseId ?? null,
         });
-        return true;
+        return { succeeded: true, usage };
       } catch (error) {
         if (!isRepairableRevisionError(error) || attempt === maximumRepairs) {
           throw error;
@@ -813,13 +828,15 @@ async function processTurn(
           attempt: attempt + 1,
           message: `开发预览未通过，已把诊断反馈给 ${agent.name}…`,
         });
-        revision = await agent.reviseProject({
+        const repair = await agent.reviseProject({
           appId,
           request: message,
           files: revision.files,
           diagnostics,
           onProgress: relayProgress,
         });
+        usage = addAgentUsage(usage, repair.usage);
+        revision = repair;
       }
     }
   } catch (error) {
@@ -830,11 +847,11 @@ async function processTurn(
       errorMessage(error),
       spaceErrorCode(error),
     );
-    return false;
+    return { succeeded: false, usage };
   } finally {
     clearInterval(heartbeat);
   }
-  return false;
+  return { succeeded: false, usage };
 }
 
 async function bootstrapTemplateProject(
@@ -1141,9 +1158,12 @@ function parseBilling(value: unknown) {
 async function reportTurnBilling(
   turn: ClaimedSpaceTurn,
   status: "completed" | "failed",
+  usage?: AgentUsage,
 ) {
   if (!internalToken) return;
-  await Promise.all(turn.requests.flatMap((request) => request.billing ? [fetch(
+  const billableRequests = turn.requests.filter((request) => request.billing);
+  const allocatedUsage = splitAgentUsage(usage, billableRequests.length);
+  await Promise.all(billableRequests.flatMap((request, index) => request.billing ? [fetch(
     request.billing.callbackUrl,
     {
       method: "POST",
@@ -1154,7 +1174,7 @@ async function reportTurnBilling(
       body: JSON.stringify({
         ...request.billing,
         status,
-        ...(status === "completed" ? { usage: {} } : {}),
+        ...(status === "completed" ? { usage: allocatedUsage[index] ?? {} } : {}),
       }),
     },
   ).then((response) => {

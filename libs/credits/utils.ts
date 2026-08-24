@@ -26,6 +26,7 @@ export const TransactionTypeCode = {
   DOCUMENT_PROCESSING: 'document_processing',
   PURCHASE: 'purchase',
   BONUS: 'bonus',
+  NEW_USER_BONUS: 'new_user_bonus',
   REFUND: 'refund',
   ADJUSTMENT: 'adjustment',
   REFERRAL_SIGNUP_BONUS: 'referral_signup_bonus',

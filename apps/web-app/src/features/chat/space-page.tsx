@@ -75,8 +75,20 @@ export function SpacePage({ roomId }: { roomId: string }) {
       case 'chat.send': {
         const text = requiredText(payload.text, 4_000)
         const replyToId = optionalId(payload.replyToId)
-        const eventId = await sendMessage(roomId, text, replyToId)
-        await requestSpaceAgent(roomId, eventId, text)
+        const mentionIds = stringIds(payload.mentionIds)
+        const agent = runtime.snapshot?.availableAgents.find(
+          (candidate) => candidate.available && mentionIds.includes(candidate.id),
+        )
+        const agentMention = agent
+          ? { type: 'agent' as const, id: agent.id }
+          : undefined
+        const eventId = await sendMessage(
+          roomId,
+          text,
+          replyToId,
+          agentMention ? [agentMention] : [],
+        )
+        await requestSpaceAgent(roomId, eventId, text, agentMention)
         return { eventId }
       }
       case 'chat.attach': {
@@ -108,6 +120,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
     requestSpaceAgent,
     retryMessage,
     roomId,
+    runtime.snapshot?.availableAgents,
     sendAttachment,
     sendMessage,
     setTyping,
@@ -311,6 +324,11 @@ function requiredId(value: unknown) {
 
 function optionalId(value: unknown) {
   return value === undefined || value === null ? undefined : requiredId(value)
+}
+
+function stringIds(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
 }
 
 function requiredText(value: unknown, maximumLength: number) {

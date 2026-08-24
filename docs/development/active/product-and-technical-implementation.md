@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-22
+> 更新日期：2026-08-24
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
 > 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 > 当前变更：[Space App 设计演进与实施记录](./space-app-design-transition.md)
@@ -31,6 +31,8 @@
 - `room_index` 已原地增加 `spaceInstanceId/projectId/defaultAgentId`，历史与新房间继续使用同一记录、repository 和 Matrix Room。
 - `apps/space-runtime`、Space contracts/SDK、Backend membership gateway 与 Web Kernel/Chat/App 已接通。
 - Host Pi 已真实生成可交互 App；Dev draft 与不可变 publish/live 均返回 HTTP 200。
+- Default Chat App 已把结构化 Agent Mention 写入 Matrix event content；Backend 按精确事件核验后预留积分并入队，Host Pi 真实回复和 token usage 结算已通过本地 Synapse 浏览器走查。
+- 新账号默认获得 100 个幂等欢迎积分，可直接发起首轮 Agent 对话；配置可调整或关闭。
 - 4 个定向测试文件、10 个单元测试，以及新增 package/app 的定向 TypeScript 和 Backend Node 构建通过。
 
 尚未完成：
@@ -38,7 +40,7 @@
 - 空白 Space 创建，以及空白/已有 Space 后续应用模板。
 - 空白/已有 Space 后续应用模板。
 - Product DB/Object Store Project、跨副本 lease、v2 Matrix state 和 outbox reconciliation。
-- fake/第二 Agent Adapter、真实 token usage 结算、Matrix virtual-user 回复和真实 Synapse 双浏览器 #40 E2E。
+- fake/第二 Agent Adapter、Matrix virtual-user 回复、生产恢复和真实 Synapse 双浏览器 #40 E2E。
 
 ## 3. 状态定义
 
@@ -57,7 +59,7 @@
 | A1 | 产品壳与信息架构 | §4 | Complete（现有 IA） | `apps/web-app/src/features/chat` 与真实路由/E2E | 保留 Discover；新增 Kernel/Chat/App 与 Space 用户语义 |
 | A2 | 身份、社交、Chat 与市场底座 | §3.1、§5.1、§9 | Complete | identity/social/rooms/timeline/product-state 测试与真实 Synapse/Chromium | 保持全回归，不用本地 demo 替代 Matrix/市场 |
 | A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、`room_index` migration、Runtime、Backend gateway、Web 三边界、10 个定向 unit | 空白/后选模板、生产存储和双浏览器 App |
-| A4 | Agent Adapter、Space Dev 与发布 | §6、§7、§10、§14 阶段 3–4 | Active | 通用 Adapter、Pi、queue、credits reservation/refund、真实生成 Dev/Release smoke | fake/第二 Adapter、真实 usage、Matrix 回写和恢复 E2E |
+| A4 | Agent Adapter、Space Dev 与发布 | §6、§7、§10、§14 阶段 3–4 | Active | 通用 Adapter、Pi、结构化 Matrix Mention、queue、credits reservation/真实 usage settlement/refund、真实生成 Dev/Release smoke | fake/第二 Adapter、Matrix 回写和恢复 E2E |
 | A5 | 生产恢复与市场演进 | §11–§14 阶段 5 | 未开始 | 当前通用 Auth/Matrix/市场/账务/部署能力 | 治理、压测、安全、备份恢复和第三方市场独立评审 |
 
 ## 5. A0 当前任务：兼容护栏

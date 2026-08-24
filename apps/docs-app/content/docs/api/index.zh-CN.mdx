@@ -49,7 +49,7 @@ const response = await fetch('/v1/product-state', {
 | `GET` | `/v1/spaces/instances/:roomId/events` | 订阅当前 Space 的成员、App state、Agent 和构建事件 |
 | `GET` | `/v1/spaces/instances/:roomId/app?channel=dev\|live&version=<readyRevision>` | 在 opaque iframe 中加载固定 ready Revision 或不可变 Live App；Runtime 非 2xx 保持原始状态，不合成 Default Chat 页面 |
 | `POST` | `/v1/spaces/instances/:roomId/bridge` | 代理通过 SDK allowlist 校验的 App presence/state/event 命令 |
-| `POST` | `/v1/spaces/instances/:roomId/turns` | 提交带 Matrix event ID 的显式 `@Agent` 请求 |
+| `POST` | `/v1/spaces/instances/:roomId/turns` | 提交带 Matrix event ID 和结构化 Agent Mention 的显式请求；Backend 会复读事件并核验 sender/target 后再计费入队 |
 | `POST` | `/v1/spaces/instances/:roomId/publish` | 将固定 Dev draft 显式发布为不可变 Live release |
 | `POST` | `/v1/spaces/instances/:roomId/restore` | 由 Kernel 把当前 Space 原子恢复为官方 Default Chat 的新 ready Revision；请求必须携带幂等 ID 与预期 ready Revision，且不改变已发布 Release、Matrix timeline 或 App State |
 | `GET` | `/api/credits/status`、`/api/credits/transactions` | 当前用户积分余额与账本 |
@@ -59,7 +59,7 @@ const response = await fetch('/v1/product-state', {
 | `POST` | `/api/chat`、`/api/image-generate`、`/api/video-generate` | 带失败退款的 AI 生成 |
 | `POST` | `/api/upload` | 校验类型和大小的登录态图片上传 |
 
-支付成功/取消页只负责展示，履约权威来自验签后的 provider 回调。AI 任务和账本接口绑定当前用户，重试同一操作必须复用稳定 request ID。
+支付成功/取消页只负责展示，履约权威来自验签后的 provider 回调。AI 任务和账本接口绑定当前用户，重试同一操作必须复用稳定 request ID。新账号默认通过幂等账本交易获得 100 个欢迎积分，可直接在 Space 中与 Agent 对话；部署方可用 `CREDITS_NEW_USER_GRANT` 调整或关闭。Agent 请求先预留积分，完成后按 Runtime 返回的真实 token usage 结算，失败使用稳定交易 ID 退款。
 
 ## 产品状态示例
 

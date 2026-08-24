@@ -2,6 +2,11 @@ import { z } from 'zod'
 
 export const spaceAppChannelSchema = z.enum(['dev', 'live'])
 export const spaceAgentIdSchema = z.string().trim().min(1).max(64)
+export const spaceAgentMentionSchema = z.object({
+  type: z.literal('agent'),
+  id: spaceAgentIdSchema,
+})
+export const spaceAgentMentionsEventContentKey = 'io.vibechat.agent_mentions' as const
 
 export const spaceRuntimeMessageSchema = z.object({
   id: z.string().min(1),
@@ -68,7 +73,7 @@ export const spaceRuntimeSnapshotSchema = z.object({
 export const createSpaceAgentTurnRequestSchema = z.object({
   matrixEventId: z.string().min(1).max(255),
   message: z.string().trim().min(1).max(4_000),
-  agentId: spaceAgentIdSchema.optional(),
+  agentMention: spaceAgentMentionSchema,
 })
 
 export const spaceTurnAcceptedSchema = z.object({
@@ -112,6 +117,7 @@ export const spaceAppBridgeResponseSchema = z.object({
 }).passthrough()
 
 export type SpaceAppChannel = z.infer<typeof spaceAppChannelSchema>
+export type SpaceAgentMention = z.infer<typeof spaceAgentMentionSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>

@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、Matrix membership、积分预留和通用 Agent 契约。生产持久化、多副本接管、usage 结算和 Matrix Agent 回写仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算和通用 Agent 契约。生产持久化、多副本接管和 Matrix Agent 回写仍是后续门槛。
 
 本次产品校正确认：
 
@@ -171,8 +171,8 @@ Space route
 | Space state | `room_index` 已原地增加稳定 instance/project/default-agent ID；Matrix 仍为 v1 | 增加 v2 Project/Release/Agent state 双读与修复 |
 | App | `/spaces/:spaceId` Host 已只保留顶部 Kernel Bar 与单一 iframe；Default Chat UI 和四个模板的 Chat 入口均属于 App Project 代码；Kernel 可显式恢复官方 Default Chat App | 补齐历史 rollback、可访问性与双浏览器 contract suite |
 | Runtime | Node/Hono Runtime 已实现本地 Project、queue、SSE、Dev/Release | 迁移生产 DB/Object Store 和多副本 lease |
-| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作和结构化 member/agent Mention；Chat command 只在可信浏览器桥接执行 | 服务端统一结构化 `@agent` command，并移除迁移期文本适配 |
-| Agent | 通用 `agentId`/Adapter/queue 已实现，默认 Pi | 增加 fake/第二 Adapter、取消、真实 usage 与 Matrix 回写 |
+| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作和结构化 member/agent Mention；Backend 会按精确 Matrix event 核验 Agent target | 补齐分页、双浏览器 contract suite 和 Matrix Agent 回写 |
+| Agent | 通用 `agentId`/Adapter/queue 已实现，默认 Pi；Host Pi 真实回复与 token usage 结算已验证 | 增加 fake/第二 Adapter、取消、恢复与 Matrix 回写 |
 | 版本 | 当前 Space 始终加载内部 dev/ready channel，Kernel 显示实时版本并可固化发布；不再提供 Dev/Live 画布切换；Default Chat 恢复走新的 ready Revision | 增加历史 rollback 与双浏览器实时切换证据 |
 | 治理 | Admin 无 App/Agent 模块 | 新增 Template/Agent/Release 审核、冻结、撤销和审计 |
 
@@ -254,7 +254,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 2. 把当前完整 Chat UI 迁移为平台 Default Chat App Project，作为空白 Space 和历史 Space 缺省的 ready Revision。
 3. 扩展 `@vibechat/space-app-contracts` 与 SDK，覆盖消息订阅、发送、回复、编辑、删除、Reaction、已读、typing、媒体、member/agent Mention 搜索和结构化发送参数；历史分页仍待补充。
 4. Chat Core 继续复用现有 Matrix SDK、Backend ACL 和关系事件实现；SDK bridge 只做代理，不复制 timeline 或权限状态。
-5. App Chat command 已携带结构化 `mentionIds`，人类消息仍先取得 Matrix `eventId`；当前调度继续复用现有 `requestSpaceAgent()` 文本适配器，服务端结构化 Mention 校验仍待迁移。
+5. App Chat command 已把结构化 Agent target 写入 Matrix `io.vibechat.agent_mentions` event content；人类消息仍先取得 Matrix `eventId`，Backend 再读取该精确事件核验 sender、type、target、membership 与实例 allowlist，文本 `@name` 不再决定 Agent 调度。
 6. 当前 Space 始终走内部 dev/ready channel；Kernel Bar 显示 Agent/Revision 状态、重载和“发布此版本”，不再把 Dev/Live 作为两个用户画布。
 7. Default Chat 与官方四个差异化 Template 当前以独立 `0.1.1` App Project 进入统一市场协议；`0.1.0` 保留为历史 Version 元数据，旧 `builtin` v1–v5 与误写的 `5.0.0` 仅作开发数据兼容 alias，Agent 已定制 Project 不会被覆盖。
 8. Host 首次打开 Space 时先通过 authenticated snapshot 完成幂等 bootstrap，只有 `devPreview.state=ready` 且存在固定 `draftId` 后才挂载 App iframe；冷启动期间显示中性准备状态，不再用 Default Chat 恢复面充当超时占位。
@@ -270,8 +270,9 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-24 冷启动状态机 unit 5/5 通过，覆盖首次 building 不挂载 iframe、ready Revision 与 preview version 精确匹配、同 Space 构建/重连保留上一版以及跨 Space 不串用旧 target；全仓 18/18 typecheck/build 与文档检查通过。
 - 2026-08-24 本地发布恢复进一步收口：根 `pnpm dev` 直接管理固定版本 Rivet Engine，把数据库放入仓库内被忽略的 `apps/space-runtime/.data/rivetkit-storage/managed-engine/db`，在 Engine 健康后才启动应用，并在整栈退出时停止自身 Engine。Runtime 启动等待 Registry ready；AgentOS Apps Scaler 以 boot ID 丢弃上一进程遗留的 replica/admission 租约，但保留 Actor、App、Draft 与 Release。Alice 的 Release `4b3802b5db16fe23e62228477f9b2d8a798fde0abef1676bee8ed3d9a2e468c4` 在完整停止/重启前后保持不变，Live 均为 HTTP 200，副本从 `/0` 重建为 `/1`。这不是生产多副本接管证据；guest metadata/RPC warning 仍作为 AgentOS `0.2.15` 已知问题跟踪。
 - 2026-08-24 fallback 边界修正定向 unit 32/32 通过：App 代理保留 Runtime 503 且不注入包级 Default Chat，Dev Preview 成功/失败 Candidate 使用不同版本实例，失败后旧 ready Revision 仍可读取，刷新状态选择 Project 记录的固定 `draftId`。全仓非缓存 typecheck/build 均为 18/18，文档链接、Docs production build、Cloudflare production bundle 与真实 Synapse `chat-matrix-room.spec.ts` 2/2 通过；Alice 浏览器直接加载 `/spaces/!WGY…` 的精确 revision `95d93d0de00c212b`，Host DOM 只有 Kernel Bar 与单一 iframe，iframe 内完整 Matrix Chat 可用且没有宿主 Default Chat 闪屏。
+- 2026-08-24 新账号欢迎积分与真实 Agent 链路完成首个运行切片：注册账号通过幂等 `signup:welcome:<userId>` 交易获得默认 100 credits；Alice 的 Default Chat App 把结构化 `@pi` metadata 与人类消息写入真实 Synapse，Backend 复读精确 event 后完成 ACL/credits/queue，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 回复“积分与 Agent 对话都已打通。”。该 turn 上报 4,839 tokens，账本先预留 4 credits、再补扣 1 credit，余额从 100 变为 95；失败 turn 各自只退款一次。定向 unit 覆盖欢迎积分幂等、Matrix event content、产品 turn contract、Pi session UUID 和批次 usage 分摊。
 
-尚未完成：双 Chromium 的完整消息操作/typing/媒体/Mention contract、结构化 `@agent` E2E、Candidate 失败保护的浏览器覆盖、历史 rollback、Matrix Agent 回写、生产存储与多副本 lease。因此 A3/A4 与本文继续保持 Active。
+尚未完成：双 Chromium 的完整消息操作/typing/媒体/Mention contract、双 Chromium 结构化 `@agent` 自动化、Candidate 失败保护的浏览器覆盖、历史 rollback、Matrix Agent 回写、生产存储与多副本 lease。因此 A3/A4 与本文继续保持 Active。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
 

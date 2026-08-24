@@ -11,6 +11,7 @@ import {
 } from '@/lib/space-runtime'
 import { productApiError } from '@/lib/product-api'
 import { withCfDb } from '@/lib/with-request-db'
+import { verifyMatrixAgentMention } from '@/lib/matrix-agent-mention'
 
 export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
   server: {
@@ -30,11 +31,19 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
           if (!parsed.success) {
             return productApiError(access.requestId, 400, 'SPACE_AGENT_REQUEST_INVALID', 'The Agent request is invalid.')
           }
-          const agentId = parsed.data.agentId || access.instance.defaultAgentId
+          const agentId = parsed.data.agentMention.id
           billingContext.model = agentId
-          const mention = new RegExp(`(^|\\s)@${escapePattern(agentId)}(?=\\s|$)`, 'i')
-          if (!mention.test(parsed.data.message)) {
-            return productApiError(access.requestId, 400, 'SPACE_AGENT_MENTION_REQUIRED', 'Explicitly mention the Agent to start a turn.')
+          if (agentId !== access.instance.defaultAgentId) {
+            return productApiError(access.requestId, 403, 'SPACE_AGENT_NOT_ALLOWED', 'The mentioned Agent is not enabled for this Space.')
+          }
+          const verifiedMention = await verifyMatrixAgentMention({
+            userId: access.session.user.id,
+            matrixRoomId: params.roomId,
+            matrixEventId: parsed.data.matrixEventId,
+            agentMention: parsed.data.agentMention,
+          })
+          if (!verifiedMention) {
+            return productApiError(access.requestId, 400, 'SPACE_AGENT_MENTION_REQUIRED', 'A verified Agent mention is required to start a turn.')
           }
 
           const ai = await import('@libs/ai')
@@ -52,7 +61,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
           }
 
           await ensureSpaceTemplateProject(access.instance)
-          const callbackOrigin = process.env.SPACE_RUNTIME_CALLBACK_ORIGIN?.trim() || 'http://127.0.0.1:8002'
+          const callbackOrigin = process.env.SPACE_RUNTIME_CALLBACK_ORIGIN?.trim() || 'http://localhost:8002'
           const response = await fetchSpaceRuntime(
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}/messages`,
             runtimeJsonInit({
@@ -88,10 +97,6 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
     },
   },
 })
-
-function escapePattern(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 function stableRequestId(value: string) {
   let hash = 2166136261

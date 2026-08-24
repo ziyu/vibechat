@@ -32,6 +32,45 @@ export async function seedCredits(userId: string, amount: number): Promise<void>
   }
 }
 
+/**
+ * Testing-only balance override for explicit insufficient-credit scenarios.
+ * Signup now grants welcome credits, so those tests must reset the balance
+ * instead of relying on a newly created account being empty.
+ */
+export async function setCreditBalance(userId: string, amount: number): Promise<void> {
+  if (!Number.isFinite(amount) || amount < 0) throw new Error('Credit balance must be nonnegative');
+  const dialect = getE2eDialect();
+  if (dialect === 'd1') {
+    await executeLocalD1(
+      `UPDATE user SET credit_balance = ${amount}, updated_at = ${Math.floor(Date.now() / 1000)} WHERE id = ${sqlString(userId)}`,
+    );
+    return;
+  }
+  if (dialect === 'sqlite') {
+    const rootDir = resolve(__dirname, '../../..');
+    const sqlitePath = resolve(rootDir, process.env.SQLITE_DB_PATH || './data/local.sqlite');
+    const Database = (await import('better-sqlite3')).default;
+    const db = new Database(sqlitePath);
+    try {
+      db.prepare('UPDATE "user" SET credit_balance = ?, updated_at = ? WHERE id = ?')
+        .run(amount, new Date().toISOString(), userId);
+    } finally {
+      db.close();
+    }
+    return;
+  }
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error('DATABASE_URL not set — cannot set credits.');
+  const { Pool } = await import('pg');
+  const pool = new Pool({ connectionString: databaseUrl });
+  try {
+    await pool.query('UPDATE "user" SET credit_balance = $1, updated_at = NOW() WHERE id = $2', [amount, userId]);
+  } finally {
+    await pool.end();
+  }
+}
+
 async function seedCreditsD1(userId: string, amount: number): Promise<void> {
   const transactionId = `txn_e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const now = Math.floor(Date.now() / 1000);

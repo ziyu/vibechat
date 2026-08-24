@@ -387,7 +387,7 @@ webhook 触发后端 → 查询 plan 的 credits 字段 (100) → 调用 creditS
 |---|---------|---------|
 | 1 | 使用默认模型发送消息并获得回复 | API 注册用户 → `seedCredits(userId, 500)` → 访问 `/ai` → 等待页面渲染 → 点击 "New Chat" 清除示例消息 → 在 `<textarea>` 输入 "Hello, please respond with OK" → 点击 `button[aria-label="Submit"]` → 等待 `.is-user` 用户消息出现 → 等待 `.is-assistant` 助手消息出现 → 轮询直到助手消息文本非空（Streamdown 流式渲染） |
 | 2 | 对话历史显示用户和助手消息正确排列 | 访问 `/ai` → 清除示例消息 → 输入 "Say the word PINEAPPLE" → 提交 → 等待用户和助手消息均出现 → 验证消息总数 ≥ 2 → 验证倒数第二条为 `.is-user`、最后一条为 `.is-assistant` |
-| 3 | 积分不足时显示错误提示 | 新建浏览器上下文 → API 注册用户（不种子积分，余额为 0） → 访问 `/ai` → 清除示例消息 → 输入 "Hello" → 提交 → 验证 "Insufficient Credits" toast 或 `.bg-destructive/10` 错误区域出现 |
+| 3 | 积分不足时显示错误提示 | 新建浏览器上下文 → API 注册用户并确认获得默认欢迎积分 → `setCreditBalance(userId, 0)` 显式构造余额不足 → 访问 `/ai` → 清除示例消息 → 输入 "Hello" → 提交 → 验证 "Insufficient Credits" toast 或 `.bg-destructive/10` 错误区域出现 |
 
 ### 积分种子方式
 
@@ -420,7 +420,7 @@ seedCredits 实现 (helpers/credits.ts):
 |---|---------|---------|
 | 1 | 使用默认 Qwen 模型生成图片 | API 注册用户 → `seedCredits(userId, 500)` → 访问 `/image-generate` → 验证 `<h1>` 标题可见 → 验证 Provider 下拉框（`[role="combobox"]`）默认 "Aliyun BaiLian" → 验证 Model 下拉框默认 "Qwen Image Plus" → 在 `<textarea>` 输入 "A cute cat sitting on a table" → 点击 "Generate" 按钮 → 等待成功 toast "Image generated successfully!" 出现（超时 60 秒） → 验证 `img[alt="Generated image"]` 可见 → 验证图片 `src` 非空 → 验证 "Download" 按钮可见 |
 | 2 | 生成后可以下载图片 | 访问 `/image-generate` → 输入提示词 → 点击生成 → 等待成功 toast → 验证 "Download" 按钮可见且可用 → 点击下载 → 验证无错误发生 |
-| 3 | 积分不足时显示错误提示 | 新建浏览器上下文 → API 注册用户（不种子积分，余额为 0） → 访问 `/image-generate` → 输入提示词 → 点击生成 → 验证 "Insufficient Credits" toast 出现 |
+| 3 | 积分不足时显示错误提示 | 新建浏览器上下文 → API 注册用户并确认获得默认欢迎积分 → `setCreditBalance(userId, 0)` 显式构造余额不足 → 访问 `/image-generate` → 输入提示词 → 点击生成 → 验证 "Insufficient Credits" toast 出现 |
 
 ### 积分种子方式
 
@@ -1428,6 +1428,14 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - Alice 的同一 App/ready Revision 在完整停止并重新启动 Synapse 以外的开发栈后，通过同一 Published Release `4b3802b5db16fe23e62228477f9b2d8a798fde0abef1676bee8ed3d9a2e468c4` 返回 HTTP 200；Scaler 丢弃旧 boot 的 replica `/0` 并创建 `/1`，没有重新生成 Template Version、Project、Draft 或 Release。
 - 本证据覆盖本地单 Runtime 的 Engine 持久化和死亡 VM 租约恢复，不覆盖两个 Runtime replica 竞争 lease、interrupted Turn 回队首或账务 reconciliation，因此场景 14 和 S4 完成条件保持未通过。
 - 重启后的首次 Live 请求返回 200、固定 release header 和一个新 replica；紧接的热请求在 `58.760 ms` 返回相同的 24,168-byte App，`cold-start=0`、queue delay `0 ms`。定向 unit 31/31、真实 Synapse Chromium Matrix Space 2/2、全仓 18/18 typecheck/build、Docs production build、文档和应用边界检查通过。
+
+2026-08-24 结构化 Agent Mention、欢迎积分与真实 Pi 用量证据：
+
+- 新账号创建后通过 Better Auth `databaseHooks.user.create.after` 获得默认 100 欢迎积分；交易 ID 固定为 `signup:welcome:<userId>`，同一账号重复执行不会重复入账，`CREDITS_NEW_USER_GRANT=0` 可关闭。真实注册账号的 `/api/credits/status` 返回余额与累计购入均为 100。
+- Default Chat App 发送 Agent Mention 时把 `io.vibechat.agent_mentions` 结构化 metadata 与人类消息一起写入 Matrix；Backend 再读取该精确 `eventId`，核对 sender、事件类型、Agent target、Space membership 与实例 allowlist 后才预留积分和入队，不再用消息文本正则决定是否调度。
+- Alice 在真实 Synapse Space `!JMBcNJQgAZDgcSmOpt:localhost` 中发送 `@pi` 后，Matrix 人类消息先进入 App timeline，Kernel 显示 Agent 处理中，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 返回“积分与 Agent 对话都已打通。”；Project 未发生源码变化。
+- 该成功 turn 上报 Pi 的真实 `input/output/total` usage。4,839 tokens 先预留 4 credits，再幂等补扣 1 credit，Alice 余额由 100 变为 95；此前失败的两个 turn 均各自只产生一次 4-credit 退款。批次 usage 按整数余数稳定分摊，所有 tokens 只结算一次。
+- 当前证据是单 Chromium 的真实服务走查加定向 unit，不是场景 5/13 的完整双浏览器自动化；Agent 回复仍由 Runtime 投影到 App，尚未写成 Matrix virtual-user event，因此对应场景继续保持 Active。
 
 **文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
