@@ -44,10 +44,11 @@ describe("Space Template publication protocol", () => {
       expect(template.versions.map((item) => item.semanticVersion)).toEqual([
         "0.1.0",
         "0.1.1",
+        "0.1.2",
       ]);
       expect(version).toMatchObject({
-        id: expect.stringMatching(/^tplv-.+-0-1-1$/),
-        semanticVersion: "0.1.1",
+        id: expect.stringMatching(/^tplv-.+-0-1-2$/),
+        semanticVersion: "0.1.2",
         sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         manifestHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         projectFormat: "agentos-app-v1",
@@ -80,7 +81,7 @@ describe("Space Template publication protocol", () => {
       expect(Object.keys(project!.files)).toEqual(
         expect.arrayContaining([...spaceTemplateRequiredProjectPaths]),
       );
-      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(9);
+      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(24);
       expect(project!.files["src/index.ts"].length).toBeLessThan(1_000);
       expect(project!.files["src/index.ts"]).toContain("./runtime.js");
       expect(project!.files["src/index.ts"]).toContain("./page.js");
@@ -97,6 +98,35 @@ describe("Space Template publication protocol", () => {
       expect(project!.files["src/chat/client.ts"]).toContain(
         "data-vibechat-default-chat-app",
       );
+      expect(project!.files["src/chat/client.ts"].length).toBeLessThan(3_000);
+      expect(project!.files["src/chat/client.ts"]).toContain(
+        './client/bootstrap.js',
+      );
+      expect(project!.files["src/chat/client/composer.ts"]).toContain(
+        "submitChatMessage",
+      );
+      expect(project!.files["src/chat/client/messages.ts"]).toContain(
+        "renderMessageHtml",
+      );
+      expect(project!.files["src/chat/styles.ts"]).toContain(
+        './styles/composer.js',
+      );
+      expect(project!.files["src/chat/styles/foundation.ts"]).toContain(
+        '.vcc-root[data-mode="full"] .vcc-head',
+      );
+      expect(project!.files["src/chat/styles/composer.ts"]).toContain(
+        ".vcc-compose-wrap {\n  position: relative;",
+      );
+      const markup = project!.files["src/chat/markup.ts"];
+      expect(markup.indexOf('id="vcc-attach"')).toBeLessThan(
+        markup.indexOf('id="vcc-input"'),
+      );
+      expect(markup.indexOf('id="vcc-input"')).toBeLessThan(
+        markup.indexOf('id="vcc-send"'),
+      );
+      if (template.id !== "space-default") {
+        expect(project!.files["src/app/controller.ts"]).toBeTruthy();
+      }
       expect(isOfficialSpaceTemplate(template)).toBe(true);
       return project!;
     }));
@@ -166,7 +196,7 @@ describe("Space Template publication protocol", () => {
   it("creates an App-published user Template with exactly the same protocol", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-1",
+      "tplv-space-default-0-1-2",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -241,7 +271,7 @@ describe("Space Template publication protocol", () => {
   it("enforces one ordered SemVer sequence without empty or skipped releases", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-1",
+      "tplv-space-default-0-1-2",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -350,11 +380,11 @@ describe("Space Template publication protocol", () => {
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "builtin-space-campfire-v5",
-      )?.id).toBe("tplv-space-campfire-0-1-1");
+      )?.id).toBe("tplv-space-campfire-0-1-2");
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "tplv-space-campfire-5-0-0",
-      )?.id).toBe("tplv-space-campfire-0-1-1");
+      )?.id).toBe("tplv-space-campfire-0-1-2");
       const initialized = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
@@ -362,7 +392,7 @@ describe("Space Template publication protocol", () => {
       );
       expect(initialized.project.template).toMatchObject({
         id: "space-campfire",
-        versionId: "tplv-space-campfire-0-1-1",
+        versionId: "tplv-space-campfire-0-1-2",
         sourceHash: initialized.project.sourceHash,
         projectFormat: "agentos-app-v1",
       });
@@ -378,7 +408,7 @@ describe("Space Template publication protocol", () => {
       const first = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-1",
+        "tplv-space-campfire-0-1-2",
       );
       const customized = {
         ...first.project,
@@ -393,12 +423,12 @@ describe("Space Template publication protocol", () => {
       const repeated = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-1",
+        "tplv-space-campfire-0-1-2",
       );
       expect(repeated.created).toBe(false);
       expect(repeated.project.summary).toBe("Agent customized this Project");
       expect(repeated.project.template?.versionId).toBe(
-        "tplv-space-campfire-0-1-1",
+        "tplv-space-campfire-0-1-2",
       );
       expect(repeated.project.files["src/app/styles.ts"]).toContain(
         "// Agent revision",
@@ -415,7 +445,7 @@ describe("Space Template publication protocol", () => {
       const first = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-1",
+        "tplv-space-campfire-0-1-2",
       );
       const customized = await saveProject({
         ...first.project,
@@ -433,15 +463,17 @@ describe("Space Template publication protocol", () => {
       const candidate = await createProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-1",
+        "tplv-space-default-0-1-2",
       );
       const stillReady = await loadProject(appId);
 
       expect(candidate.template).toMatchObject({
         id: "space-default",
-        versionId: "tplv-space-default-0-1-1",
+        versionId: "tplv-space-default-0-1-2",
       });
-      expect(candidate.files["src/chat/client.ts"]).toContain("space.chat")
+      expect(candidate.files["src/chat/client/composer.ts"]).toContain(
+        "space.chat",
+      );
       expect(stillReady).toMatchObject({
         sourceHash: customized.sourceHash,
         summary: "Current ready custom App",
@@ -462,7 +494,7 @@ describe("Space Template publication protocol", () => {
       await initializeProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-1",
+        "tplv-space-default-0-1-2",
       );
       const stored = JSON.parse(await readFile(path, "utf8")) as {
         files: Record<string, string>;

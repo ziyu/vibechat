@@ -1,1 +1,1 @@
-export const appClient = ``;
+export const appClient = "";

@@ -100,7 +100,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'tplv-space-campfire-0-1-1',
+      spaceVersionId: 'tplv-space-campfire-0-1-2',
       status: 'active',
     })
 
@@ -116,9 +116,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
       templateId: 'space-campfire',
-      templateVersionId: 'tplv-space-campfire-0-1-1',
-      version: '0.1.1',
-      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.1\+sha256\./),
+      templateVersionId: 'tplv-space-campfire-0-1-2',
+      version: '0.1.2',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.2\+sha256\./),
       publisher: {
         id: 'publisher-vibechat',
         verification: 'official',

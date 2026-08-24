@@ -1,2 +1,1 @@
-export const appMarkup = `
-`;
+export const appMarkup = "";

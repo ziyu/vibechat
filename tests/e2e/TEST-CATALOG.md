@@ -1438,6 +1438,13 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - 开发栈干净重启后，Alice 再次收到 Pi 的真实回复；随后要求 Pi 把背景改为深蓝色 `#07162b` 且不发布。Pi 修改 `src/app/styles.ts`、`src/chat/styles.ts` 和 `src/app/client.ts`，保留完整 Chat Core，iframe 精确版本从 `2d68a0defce3aac1` 热更新为 `46f337b6b99d8f27`，Project 的 `publishedDraftId=2d68a0defce3aac1` 与 Release `4b3802b5…` 均未变化。该修改 turn 上报 29,856 tokens，预留与补扣合计 30 credits；Alice 最终余额为 59。
 - 当前证据是单 Chromium 的真实服务走查加定向 unit，不是场景 5/13 的完整双浏览器自动化；Agent 回复仍由 Runtime 投影到 App，尚未写成 Matrix virtual-user event，因此对应场景继续保持 Active。
 
+2026-08-25 Template App 模块化与 Composer 修正证据：
+
+- 五个官方 Project 将浏览器 SDK 视图、消息投影、Composer、启动订阅、Template controller 与 CSS 分区拆为可独立阅读和严格类型检查的源码模块；`src/index.ts` 仍只装配 Runtime，未新增包级 Default Chat fallback，也未按版本复制源码目录。
+- 全屏 Default Chat 隐藏与 Kernel Bar 重复的 App Header；附件按钮、可伸缩 textarea 和发送按钮进入同一 Composer grid，Timeline 与 Composer 使用正常文档流。五个 Project 渲染后的 module script 均可解析，官方 Catalog 固定签发相邻 patch `0.1.2`。
+- Alice 的定制 Project 以 `space-default@0.1.2` 为基线保留原有深蓝动态 App 代码，经 Runtime Candidate 构建成功后将 ready Revision 从 `644b173f6420e62d` 切换为 `b942d96a821f9542`；Published Revision `2d68a0defce3aac1` 和 Release 均未变化。
+- 定向 unit 13/13、五个 App Project 严格 TypeScript、Catalog codegen、全仓 typecheck/build 18/18、Docs production build、文档链接、应用边界和 `git diff --check` 通过。浏览器视觉走查被本地 URL 安全策略拒绝，场景 3/4 的最终视觉确认不据此标为自动化通过。
+
 **文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
 本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。
@@ -1448,8 +1455,8 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 |---|---------|---------|
 | 1 | 市场模板创建 Space | A/B 已是联系人 → A 从 Discover 浏览分类/详情并收藏模板 → Default Chat 与四个差异化官方条目分别暴露不可变 Version/Artifact 引用 → 选择固定版本创建 Space → Runtime 解析 artifact 并幂等创建 Matrix Room、Space Instance、Project 和 ready Revision → 双方立即进入同一可用 Space |
 | 2 | 空白 Space 与后选模板 | A 选择空白创建 → 复制 Default Chat App 并立即可聊天 → 之后从 Kernel/Discover 选择模板 → Candidate 验证成功后实时切换 ready Revision，成员、消息和历史不变 |
-| 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Default Chat UI 位于 App 源码 → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
-| 4 | 不可修改 Chat Core | 分别在 Default Chat App 和不同布局 Template App 中 → 双方完成文字/媒体/回复/编辑/删除/Reaction/已读/typing/历史 → 两个 App 使用同一 SDK/Matrix timeline/ACL，UI 变化不改变能力语义 |
+| 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Default Chat UI 位于 App 源码 → 全屏 Default Chat 不再渲染一条重复 Space 身份/连接状态的 App Header，抽屉式 Chat 只保留抽屉自身必要控制 → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
+| 4 | 不可修改 Chat Core | 分别在 Default Chat App 和不同布局 Template App 中 → 双方完成文字/媒体/回复/编辑/删除/Reaction/已读/typing/历史 → Composer 在桌面与移动端都按“附件、可伸缩输入、发送”稳定布局且不遮挡 timeline → 两个 App 使用同一 SDK/Matrix timeline/ACL，UI 变化不改变能力语义 |
 | 5 | Mention 与 Agent 调度 | App 查询结构化 member/agent target → 普通讨论只进入 Matrix、不调用 Agent → 带 Agent Mention 的消息先获得 Matrix event ID → 仅该事件完成 ACL/credits 和幂等入队 → Agent 回复以明确平台身份进入 Chat Core |
 | 6 | Agent provider-neutral | 相同合约分别接 Pi Adapter 与 fake/第二 Adapter → Agent ID/provider 可切换 → Project、queue、usage、错误、权限和 UI 不出现 Pi 专属字段或行为依赖 |
 | 7 | Conversation 与 Revision | A 向 Agent 提问只得到回复，Project 指针不变 → 再请求改变 App → Agent 生成 Candidate → Runtime 验证成功 → 双方实时看到相同 ready Revision → Published Release 不被改写 |
@@ -1462,7 +1469,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 | 14 | 重启、多副本与跨系统恢复 | Agent active、队列 pending、ready/Published 指针、Template lineage 和 App State 存在时终止 lease owner → 第二 Runtime replica 接管同一 `spaceInstanceId` → interrupted Turn 回队首、sequence/snapshot 恢复 → 不重复 Matrix 消息、Revision、Release 或账务 |
 | 15 | 现有房间与多人 Space 统一 | 准备一个带 v1 模板 lineage 的历史一对一 `room_index`、一个历史群聊和一个新多人 Space → 原地回填唯一 `spaceInstanceId`，不创建新记录/Matrix Room → 历史实例按 lineage lazy bootstrap 兼容 Project → 三者都经同一 SpaceInstanceRepository/Server/Project/SDK/queue → v1/v2 双读且参与人数不触发实现分支 |
 | 16 | 基础能力无回归 | #26–#39 与 #40 一起运行 → 认证、资料、联系人、邀请、Chat、Discover、分类、详情、收藏、模板版本、账户和 Admin 全绿 → 不删除 `/v1/spaces` 或模板创建 |
-| 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责导出/启动 Runtime registry 与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，不能把完整 App 压进入口文件，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
+| 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责导出/启动 Runtime registry 与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，Chat 浏览器状态机、消息渲染、Composer 交互与样式分区必须是可单独阅读和类型检查的模块，不能以压缩后的巨型字符串或单文件状态机代替项目结构，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
 | 18 | Template 有序版本治理 | 新 Template 必须从 `0.1.0` 开始 → 仅不可变 Project/能力/兼容契约变化允许按 SemVer 单步升 patch/minor/major → 跳号、倒序、重复版本、空内容升级和非规范版本被拒绝 → `currentVersionId` 始终指向最高版本 → Template schema、SDK/Runtime、Space Revision/Release 版本不与 Template 版本联动 |
 
 ---

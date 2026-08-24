@@ -38,8 +38,9 @@ packages/space-templates/
 │               ├── index.ts        # 仅启动 Runtime、装配 fetch handler
 │               ├── runtime.ts      # RivetKit actor/registry
 │               ├── page.ts         # HTML document composition
-│               ├── app/            # Template 自身的 markup/style/browser behavior
-│               └── chat/           # 默认 Chat UI 对 Chat Core/SDK 的调用实现
+│               ├── browser/        # App 内 SDK 视图类型、HTML 与模块脚本装配
+│               ├── app/            # Template 自身的 markup/style/type-checked controller
+│               └── chat/           # Chat client、message、composer 与分区 styles
 ├── scripts/generate-official-catalog.mjs
 └── src/
     ├── registry.ts
@@ -48,7 +49,7 @@ packages/space-templates/
     └── index.ts
 ```
 
-每个官方 Template 只有一份持续演进的普通多文件 `app/` 项目。`src/index.ts` 只是入口，不承载整页 HTML/CSS/浏览器脚本；Runtime、文档装配、Template App 与默认 Chat UI 按职责拆分。Chat UI 是可修改的 App 代码，Chat Core、Matrix 会话语义、mention 与 `@agent` 调度仍由 Kernel/SDK 契约保证。
+每个官方 Template 只有一份持续演进的普通多文件 `app/` 项目。`src/index.ts` 只是入口，不承载整页 HTML/CSS/浏览器脚本；Runtime、文档装配、Template App 与默认 Chat UI 按职责拆分。浏览器行为必须以可单独阅读和严格类型检查的 controller/functions 维护，再由 App 内部模块脚本装配器输出；Chat 的 DOM 绑定、消息投影、Composer、启动订阅和 CSS 分区不能重新压成单行巨型字符串或一个共享状态机。Chat UI 是可修改的 App 代码，Chat Core、Matrix 会话语义、mention 与 `@agent` 调度仍由 Kernel/SDK 契约保证。
 
 包级 `src/` 只维护协议、Registry、artifact provider 与生成目录，不维护 `chat-core.ts` 或任何可渲染的 Default Chat fallback。Default Chat UI 只能存在于 `official/space-default/app/` 的 Template Project 中；网络、Runtime 或构建失败必须保持真实错误，由 Kernel 继续加载最后 ready Revision 或显式创建恢复 Revision，不能由共享包临时拼出另一套页面。
 

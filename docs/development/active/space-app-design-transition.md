@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：实施记录
 > 状态：Active
-> 更新日期：2026-08-24
+> 更新日期：2026-08-25
 > 维护范围：Space 语义、市场与模板、Kernel Bar/Chat Core/Space App、Agent Adapter、Runtime、数据/API/UI/E2E 演进
 > 对应稳定设计：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -75,7 +75,7 @@ demo 在提交 `381c466` 核验的依赖基线为 Node `>=22 <26`、Hono `^4.12.
 
 - 五个官方 Template 已分别迁入 `packages/space-templates/official/<template-id>/`；每个 Template 只有一份持续演进的 `app/` 源码，扁平 `releases.json` 只追加 Version manifest、lock 和 immutable artifact 引用，不保存逐版本源码副本。
 - 2026-08-24 进一步纠正 `app/` 内部结构：五个官方项目和 Runtime seed 都改为普通多文件项目，`src/index.ts` 只负责导出/启动 `registry` 与 fetch handler 装配，Runtime、文档、Template App、默认 Chat UI 分模块维护；Project hash、Artifact provider、Space Project Store、Dev Preview 转译和 Agent 工作区同步均覆盖完整文件树，不再把三个必需文件误作唯一文件列表。
-- 当前五个官方 Template 都从 `0.1.0` 相邻提升到 `0.1.1`；该 patch 对应 App Project 入口实际变化，使 AgentOS Release replica 能读取导出的 `registry`，不改变 SDK、权限或状态语义。两个 Version 都保留在扁平发布索引中，仓库仍只有一份当前 `app/` 工作源码；`published` 记录不可重签，任何后续载荷变化继续追加相邻 SemVer。
+- 当前五个官方 Template 使用 `0.1.0 → 0.1.1 → 0.1.2` 的相邻 patch 序列：`0.1.1` 使 AgentOS Release replica 能读取导出的 `registry`；`0.1.2` 修正全屏 Chat Header/Composer，并把 App/Chat 浏览器行为与 CSS 从压缩字符串拆为可类型检查的职责模块。两次都不改变 SDK、权限、App State 或 Chat Core 语义。三个 Version 都保留在扁平发布索引中，仓库仍只有一份当前 `app/` 工作源码；`published` 记录不可重签，任何后续载荷变化继续追加相邻 SemVer。
 - `scripts/generate-official-catalog.mjs` 校验 ID、Publisher、provenance、Release 顺序/锁、最新 `app/` hash 和历史元数据漂移，再生成只含市场元数据的 `official-catalog.generated.ts`；Runtime 通过独立 artifact provider 加载 App，生产目标为统一 Registry/Object Store。
 - `registry.ts` 定义 `vibechat.space-template/v1`、`vibechat.space-template-version/v1` 和 `vibechat.space-template-market-entry/v1`。官方和用户 Template 共用 `createSpaceTemplateVersion()` 与 `createSpaceTemplateMarketEntry()`，不存在 `BuiltInTemplate` 公共类型。
 - 官方身份由 `publisher.verification=official` 表达；仓库创作使用 `provenance.origin=repository`。用户从 Space App 发布时使用相同版本/市场结构，只把 provenance 写为 `origin=app` 并绑定固定 `sourceSpaceRevisionId`。
@@ -83,7 +83,7 @@ demo 在提交 `381c466` 核验的依赖基线为 Node `>=22 <26`、Hono `^4.12.
 - 每个 Template Version 暴露规范化 `sourceHash` 和 `SpaceTemplateArtifact` 引用，并由 artifact、格式、capabilities、Space App SDK/Runtime compatibility 和 provenance 生成 `manifestHash` 与 content-bound `integrity`。历史 Release lock 不匹配会直接失败，必须新增版本。
 - Runtime Project 同时记录 Template lineage hash 和当前源码 hash；磁盘 JSON 内容与已记录 hash 不一致时拒绝加载。任何 Agent/人工源码修改都不会被模板重复初始化覆盖。
 - 2026-08-24 建立 [Space Template 版本规则](../../stable/references/space-template-versioning.md)：新 Template 从 `0.1.0` 开始，只能按不可变载荷变化走相邻 SemVer，禁止跳号、倒序、空升版和以 schema/SDK/开发轮次代替 Template 版本。共享 registry 和官方 codegen 同时执行门禁。
-- 管理基线前创建的 `builtin-<template>-v1..v5` 与误写的 `tplv-<template>-5-0-0` 仅保留为开发数据读取 alias；新写入统一规范化为当前 `0.1.1` `tplv-*` 版本 ID，不再签发新的 `builtin` ID。
+- 管理基线前创建的 `builtin-<template>-v1..v5` 与误写的 `tplv-<template>-5-0-0` 仅保留为开发数据读取 alias；新写入统一规范化为当前 `0.1.2` `tplv-*` 版本 ID，不再签发新的 `builtin` ID。
 
 定向 unit 已以 App 来源的用户 Template 样本验证同一版本与 Market entry 协议，并以可注入目录验证市场读取、收藏和 Publisher 标记无需官方分支。当前默认目录仍只装载五个官方条目；用户发布 API、隐私清理、审核队列、签名/撤销、Product DB/Object Store 和官方目录同步 job 尚未完成，因此不能声称用户上架已经开放。
 
@@ -92,6 +92,8 @@ demo 在提交 `381c466` 核验的依赖基线为 Node `>=22 <26`、Hono `^4.12.
 同日进一步纠正官方源码布局：每个 Template 从逐版本 Project 目录迁移为唯一 `app/` 工作源码与扁平 `releases.json`；Version/Market 只保存 `SpaceTemplateArtifact` 引用，generated catalog 不再内联源码，Runtime 经 artifact provider 校验并加载。纠正后 catalog codegen、上述 15 个定向 unit、19 个 workspace typecheck/build、文档检查和真实 Synapse Chromium Product State 9/9、Matrix Space 2/2 再次通过。
 
 同日完成 AgentOS Release 兼容 patch：五个官方 Template 只在现有 `app/` 工作树补充 Release runner 要求的 `registry` 导出，按 `0.1.0 → 0.1.1` 相邻 patch 追加 manifest、source/manifest lock、artifact 引用和 CHANGELOG；五个新 source hash 均与 `0.1.0` 不同，旧记录未覆盖，也没有创建版本源码目录。本地 AgentOS Apps Build VM 通过受控 DNS 列表访问 npm registry；最小依赖补丁只把已有 native VM `dns` 能力接入公开 options 和 Build VM。Alice 的苔原 Space 经 Kernel 恢复到 `space-default@0.1.1` Revision `2d68a0defce3aac1` 后，真实 AgentOS 构建成功写入相同 `publishedDraftId` 和 Release `4b3802b5db16fe23e62228477f9b2d8a798fde0abef1676bee8ed3d9a2e468c4`，原 Matrix `@pi hello` 消息保持。相关 unit 33/33、五个官方 App 与 Runtime seed 严格 TypeScript、真实 Synapse Matrix Space 2/2、全仓 18/18 typecheck/build、应用边界和文档检查通过。
+
+2026-08-25 完成 Template App 内部治理：五个官方 Project 不再把 Chat 状态机和 CSS 压进三个单行字符串。每个 Project 自包含浏览器 SDK 视图类型、模块脚本装配器、Chat copy/DOM/message/render/composer/bootstrap 和 foundation/timeline/composer/responsive 样式分区；四个差异化 App 的自身行为也由严格 TypeScript controller 实现。全屏 Default Chat 隐藏与 Kernel Bar 重复的 App Header，附件按钮进入 Composer，Timeline 与 Composer 使用正常 grid 文档流；抽屉 Chat 仍保留必要的关闭和身份上下文。该载荷作为不改变 Chat Core/SDK/App State 的兼容修复按 `0.1.1 → 0.1.2` 相邻 patch 签发，旧 lock 未覆盖。Alice 的定制 Project 没有被 Template 升级静默覆盖，而是以 `0.1.2` 为基线保留深蓝花纹、漂移光斑与闪烁星点，先经 Runtime 构建成功，再从 ready Revision `644b173f6420e62d` 切换到 `b942d96a821f9542`；Published Revision `2d68a0defce3aac1` 和 Release 指针保持不变。五个 Project 严格 TypeScript 检查、生成目录检查、定向 unit 13/13、全仓 typecheck/build 18/18、Docs production build、文档链接和应用边界检查均通过；本轮浏览器视觉走查被本地 URL 安全策略拒绝，仍需人工刷新页面确认最终观感。
 
 ## 3. 采纳、不采纳与产品修正
 
@@ -167,7 +169,7 @@ Space route
 | 产品语义 | UI/代码同时存在 Space 与 Room 词汇 | UI/公开文档统一 Space；Matrix Room 只保留技术语境 |
 | Chat | A2 真实 Matrix timeline 和完整消息操作继续作为 Chat Core；Host 已通过受信 bridge 向 App 提供发送、回复、编辑、删除、Reaction、附件、重试、typing、已读与 Mention | 补齐分页、双浏览器完整 contract suite 和 Matrix Agent 回写 |
 | 创建 | 官方目录包含 Default Chat App 与四个差异化模板；新建允许零联系人，默认选择 Default Chat | 补齐已有 Space 后选模板与 Candidate 回退 |
-| 市场 | 五个官方条目已拆为独立 `agentos-app-v1` Project，当前版本为有序 patch `0.1.1`，并以官方/用户共用协议和 SemVer 门禁提供分类、详情、收藏和历史 lineage | 后续迁移数据库/对象存储并完成用户发布与审核上架 |
+| 市场 | 五个官方条目已拆为独立 `agentos-app-v1` Project，当前版本为有序 patch `0.1.2`，并以官方/用户共用协议和 SemVer 门禁提供分类、详情、收藏和历史 lineage | 后续迁移数据库/对象存储并完成用户发布与审核上架 |
 | Space state | `room_index` 已原地增加稳定 instance/project/default-agent ID；Matrix 仍为 v1 | 增加 v2 Project/Release/Agent state 双读与修复 |
 | App | `/spaces/:spaceId` Host 已只保留顶部 Kernel Bar 与单一 iframe；Default Chat UI 和四个模板的 Chat 入口均属于 App Project 代码；Kernel 可显式恢复官方 Default Chat App | 补齐历史 rollback、可访问性与双浏览器 contract suite |
 | Runtime | Node/Hono Runtime 已实现本地 Project、queue、SSE、Dev/Release | 迁移生产 DB/Object Store 和多副本 lease |
@@ -256,7 +258,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 4. Chat Core 继续复用现有 Matrix SDK、Backend ACL 和关系事件实现；SDK bridge 只做代理，不复制 timeline 或权限状态。
 5. App Chat command 已把结构化 Agent target 写入 Matrix `io.vibechat.agent_mentions` event content；人类消息仍先取得 Matrix `eventId`，Backend 再读取该精确事件核验 sender、type、target、membership 与实例 allowlist，文本 `@name` 不再决定 Agent 调度。
 6. 当前 Space 始终走内部 dev/ready channel；Kernel Bar 显示 Agent/Revision 状态、重载和“发布此版本”，不再把 Dev/Live 作为两个用户画布。
-7. Default Chat 与官方四个差异化 Template 当前以独立 `0.1.1` App Project 进入统一市场协议；`0.1.0` 保留为历史 Version 元数据，旧 `builtin` v1–v5 与误写的 `5.0.0` 仅作开发数据兼容 alias，Agent 已定制 Project 不会被覆盖。
+7. Default Chat 与官方四个差异化 Template 当前以独立 `0.1.2` App Project 进入统一市场协议；`0.1.0`、`0.1.1` 保留为历史 Version 元数据，旧 `builtin` v1–v5 与误写的 `5.0.0` 仅作开发数据兼容 alias，Agent 已定制 Project 不会被覆盖。
 8. Host 首次打开 Space 时先通过 authenticated snapshot 完成幂等 bootstrap，只有 `devPreview.state=ready` 且存在固定 `draftId` 后才挂载 App iframe；冷启动期间显示中性准备状态，不再用 Default Chat 恢复面充当超时占位。
 9. Host 为同一 Space 保存最后一个 ready App target；Runtime 轮询、Agent 构建或短暂重连不会卸载它。切换 Space 时校验 snapshot 的 `matrixRoomId`，不会把旧 Space 的 App 或 snapshot 带入新实例。Backend 已删除包级 Default Chat HTML 恢复分支，Runtime 非 2xx 保持原始状态；Dev Preview 以 `spaceInstanceId + revisionId` 隔离 Candidate/ready 实例，最近三个 ready Revision 可按固定 `version` 读取，构建或启动 Candidate 不会先终止当前 ready App。Web 在页面刷新遇到 building/failed Candidate 时从 Project `draftId` 恢复最后 ready Revision；恢复 Default Chat 只能由 Kernel 显式创建新的受管 Revision。
 10. 2026-08-24 已把“恢复 Default Chat App”接入 Kernel 可信控制面：请求携带幂等 ID 与用户看到的 ready Revision，Backend 完成 session/Space membership 校验后进入同 Space 单写队列；Runtime 从官方 Default Chat Template 当前固定版本读取 artifact，在隔离 Candidate 中验证，成功才保存新的 ready Revision，并保留原 Published Release、Matrix timeline 与 App State。恢复请求不调用 Agent、不消费 AI credits，也不在浏览器或共享 Template 包拼接源码；revision 已变化时拒绝覆盖并要求用户基于最新状态重试。Alice 本地 Synapse 走查把苔原 Project 恢复为 `space-default@0.1.1` 的 ready Revision `2d68a0defce3aac1`，原 `@pi hello` Matrix 消息仍可见，随后成功固化不可变 Release；新 Kernel 系统事件不会伪装成真人或 Agent Chat 消息。

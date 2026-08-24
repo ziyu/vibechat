@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：参考资料
 > 状态：生效
-> 更新日期：2026-08-24
+> 更新日期：2026-08-25
 > 维护范围：官方与用户 Space Template 的版本签发、市场展示、兼容性和仓库目录校验
 
 ## 1. 范围与版本边界
@@ -64,4 +64,4 @@ Template ID 与 Version ID 是稳定身份；SemVer 是面向市场和升级判�
 
 2026-08-24 前的开发实现把协议迁移轮次误写成官方 Template `5.0.0`。这些条目尚未作为生产市场版本发布，因此一次性纠正为首个有序基线 `0.1.0`；这不是对已发布版本的降级或改写。
 
-本地开发数据中旧的 `builtin-<template>-v1..v5` 和 `tplv-<template>-5-0-0` 只作为读取 alias 解析到当前官方版本；当前五个官方 Template 的有序序列为 `0.1.0 → 0.1.1`。`0.1.1` 只修正 App Project 的 AgentOS Release 入口导出，源码载荷实际变化且不改变 SDK、权限或状态语义，因此按兼容缺陷修复提升 patch。新创建的 Space 和市场响应只写当前规范 Version ID。正式市场发布后不得再用 alias 或基线纠正覆盖不可变历史。
+本地开发数据中旧的 `builtin-<template>-v1..v5` 和 `tplv-<template>-5-0-0` 只作为读取 alias 解析到当前官方版本；当前五个官方 Template 的有序序列为 `0.1.0 → 0.1.1 → 0.1.2`。`0.1.1` 只修正 App Project 的 AgentOS Release 入口导出；`0.1.2` 在不改变 SDK、权限、App State 或 Chat Core 语义的前提下，修正全屏 Chat Header 与 Composer 布局，并把 App/Chat 浏览器逻辑和 CSS 拆为可类型检查、按职责维护的模块。两次源码载荷都实际变化，均按兼容缺陷修复相邻提升 patch。新创建的 Space 和市场响应只写当前规范 Version ID。正式市场发布后不得再用 alias 或基线纠正覆盖不可变历史。

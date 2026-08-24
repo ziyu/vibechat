@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-24
+> 更新日期：2026-08-25
 > 维护范围：当前实现事实、近期主线和跨应用工程约束
 > 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -29,7 +29,8 @@
 - Matrix 是当前 Space membership 和 Chat timeline 权威；底层实现和兼容 API 仍使用 Matrix Room/`roomId`。
 - 当前 `room_index` 的每条记录已经是统一 SpaceInstance 的物理基础；`POST /v1/rooms`、Discover、官方 Space 目录、收藏、`spaceId/spaceVersionId` 和 `io.vibechat.space.instance.v1` 都是必须保持的活动行为。
 - `apps/space-runtime`、Space App contracts/SDK、Backend membership gateway、通用 Agent Adapter、ready Revision/Release 与 Web Kernel/App 已形成可运行的首版纵向切片。`/spaces/:spaceId` 只固定顶部 Kernel Bar，其下单一 iframe 包含 Default Chat 或定制 App；Host 不再渲染 Chat timeline/composer。
-- 官方目录现有 Default Chat 与四个差异化模板，共五个 `agentos-app-v1` Project；每个 Template 在仓库只维护一份普通的多文件 `app/` 工作项目和一个扁平 `releases.json`。当前有序序列为 `0.1.0 → 0.1.1`：`0.1.1` 只修正 AgentOS 不可变 Release 要求的 `registry` 入口导出，按兼容缺陷修复提升 patch，未改变 SDK、权限或状态语义。`src/index.ts` 仍只负责 Runtime/handler 装配，App、Chat、样式与浏览器行为按模块维护；Artifact/Space Revision/Dev Preview/Agent 编辑均识别并校验完整项目树。Version 只引用按 hash 寻址的不可变 artifact，历史源码不按版本复制；独立发布/部署从统一 Registry/Object Store 取 artifact。共享协议与 codegen 强制首版、相邻 SemVer、最高 current、非空升版和最新源码 hash 一致；旧 `builtin` v1–v5 与误用的 `5.0.0` ID 仅作开发数据读取 alias。
+- 官方目录现有 Default Chat 与四个差异化模板，共五个 `agentos-app-v1` Project；每个 Template 在仓库只维护一份普通的多文件 `app/` 工作项目和一个扁平 `releases.json`。当前有序序列为 `0.1.0 → 0.1.1 → 0.1.2`：`0.1.1` 修正 AgentOS 不可变 Release 的 `registry` 入口，`0.1.2` 修正全屏 Chat Header/Composer 并把浏览器 SDK 视图、消息渲染、Composer、启动订阅、Template controller 和 CSS 分区拆成可类型检查的职责模块；两者都不改变 SDK、权限、App State 或 Chat Core 语义。`src/index.ts` 仍只负责 Runtime/handler 装配；Artifact/Space Revision/Dev Preview/Agent 编辑均识别并校验完整项目树。Version 只引用按 hash 寻址的不可变 artifact，历史源码不按版本复制；独立发布/部署从统一 Registry/Object Store 取 artifact。共享协议与 codegen 强制首版、相邻 SemVer、最高 current、非空升版和最新源码 hash 一致；旧 `builtin` v1–v5 与误用的 `5.0.0` ID 仅作开发数据读取 alias。
+- Alice 的现有定制 Space 已按同一 Project 协议迁移到 `space-default@0.1.2` 的模块化 Chat 基线；迁移保留其 App 自有深蓝动态视觉和 Published Release，只在 Runtime Candidate ready 后切换当前 ready Revision。
 - 官方与用户 Template 的版本和市场协议已经统一：官方标记来自 `publisher.verification=official`，来源为 `repository`；App 来源用户样本使用同一结构和 `origin=app`。`/v1/spaces`、创建、收藏、Matrix snapshot、Runtime 与 Discover 不再依赖 `builtin` 类型。用户发布 API、审核与生产存储仍待实现。
 - Backend 会向 opaque iframe 注入受信任 Space SDK shim，App 不需要网络脚本权限；真实成员 ID、共享 App state 和刷新恢复已在本地 Synapse 浏览器流程中验证。
 - Space App SDK 首版已代理发送、附件、回复、编辑、删除、Reaction、重试、typing、已读与 member/agent Mention。Backend 不再把 Runtime 非 2xx 改写为包级 Default Chat HTML；Dev Preview 按 ready Revision 隔离并保留最近三个可寻址实例，候选构建/启动失败时 Web 继续挂载 Project 记录的最后 ready Revision。Kernel 的 Default Chat 恢复已实现：Backend 校验成员身份，Runtime 串行验证官方 Template Candidate 后才切换新的 ready Revision，并保持 Published Release、Matrix timeline 和 App State；该链路不调用 Agent 或 AI credits。

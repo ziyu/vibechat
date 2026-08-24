@@ -76,6 +76,44 @@
         "format": "agentos-app-v1",
         "sourceHash": "sha256:cd8f14588018f1646aa6868075c5e58b13546c4581b5400dbcaeab2956c85019"
       }
+    },
+    {
+      "status": "development",
+      "manifest": {
+        "schemaVersion": "vibechat.space-template-version/v1",
+        "id": "tplv-space-arcade-0-1-2",
+        "semanticVersion": "0.1.2",
+        "projectFormat": "agentos-app-v1",
+        "compatibility": {
+          "spaceAppSdk": "v1",
+          "runtime": "agentos-apps-0.2"
+        },
+        "capabilities": {
+          "permissions": [
+            "messages.read",
+            "messages.send",
+            "members.read",
+            "interactions.send"
+          ],
+          "networkDomains": []
+        },
+        "provenance": {
+          "origin": "repository",
+          "publisherId": "publisher-vibechat",
+          "sourcePath": "packages/space-templates/official/space-arcade/app"
+        }
+      },
+      "lock": {
+        "schemaVersion": "vibechat.space-template-version-lock/v1",
+        "sourceHash": "sha256:932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9",
+        "manifestHash": "sha256:bfa866c02c49b8089ab0ecd496b37bc8c15d99a883490ff2c83a36d1f8ea78ad"
+      },
+      "artifact": {
+        "schemaVersion": "vibechat.space-template-artifact/v1",
+        "id": "tpla-932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9",
+        "format": "agentos-app-v1",
+        "sourceHash": "sha256:932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9"
+      }
     }
   ]
 }
