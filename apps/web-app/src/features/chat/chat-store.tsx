@@ -284,7 +284,18 @@ export function ChatProvider({
         nextBaseState.currentUserId = bootstrap.user.id
         nextBaseState.people = [profileToChatPerson(bootstrap.user)]
         nextBaseState.spaces = directory.spaces.map((space) => ({
+          schemaVersion: space.schemaVersion,
           id: space.id,
+          versionId: space.versionId,
+          semanticVersion: space.semanticVersion,
+          integrity: space.integrity,
+          sourceHash: space.sourceHash,
+          manifestHash: space.manifestHash,
+          artifact: space.artifact,
+          projectFormat: space.projectFormat,
+          compatibility: space.compatibility,
+          provenance: space.provenance,
+          publisher: space.publisher,
           name: space.name,
           author: space.author,
           summary: space.summary,
@@ -294,7 +305,6 @@ export function ChatProvider({
           canvas: space.canvas,
           permissions: space.permissions,
           networkDomains: space.networkDomains,
-          official: space.official,
           favoriteCount: space.favoriteCount,
         }))
         nextBaseState.favoriteSpaceIds = productState.favoriteSpaceIds

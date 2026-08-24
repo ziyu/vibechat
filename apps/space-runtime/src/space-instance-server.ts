@@ -212,6 +212,11 @@ export class SpaceInstanceServer {
       value: normalized,
       updatedAt: new Date().toISOString(),
     };
+    if (!member.clientId.startsWith("guest-")) {
+      for (const clientId of space.appPresence.keys()) {
+        if (clientId.startsWith("guest-")) space.appPresence.delete(clientId);
+      }
+    }
     space.appPresence.set(member.clientId, presence);
     await this.#broadcast(space, { type: "app_presence", presence });
     return presence;

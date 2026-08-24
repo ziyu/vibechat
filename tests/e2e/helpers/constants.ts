@@ -35,6 +35,7 @@ export const PAGES = {
   signup: `${BASE}/signup`,
   forgotPassword: `${BASE}/forgot-password`,
   resetPassword: `${BASE}/reset-password`,
+  spaces: `${BASE}/spaces`,
   dashboard: `${BASE}/dashboard`,
   pricing: `${BASE}/pricing`,
   paymentSuccess: `${BASE}/payment-success`,

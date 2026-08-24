@@ -22,11 +22,17 @@ export interface CreateMatrixRoomInput {
   name: string;
   inviteMatrixUserIds: string[];
   space: {
-    spaceId: string;
+    id: string;
+    versionId: string;
     semanticVersion: string;
     integrity: string;
     permissions: string[];
     networkDomains: string[];
+    publisher: {
+      id: string;
+      displayName: string;
+      verification: "official" | "verified" | "unverified";
+    };
   };
   instanceConfig: Record<string, unknown>;
 }

@@ -25,6 +25,7 @@ import {
 } from "./generator.js";
 import {
   assertAppId,
+  initializeProjectFromTemplate,
   loadProject,
   projectDirectory,
   saveProject,
@@ -66,6 +67,7 @@ const agentAdapters = new Map([
 const scheduledSpaceIds = new Set<string>();
 const activeSpaceIds = new Set<string>();
 const spaceScheduleTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const templateBootstrapTasks = new Map<string, Promise<Awaited<ReturnType<typeof bootstrapTemplateProject>>>>();
 let drainingTurnQueue = false;
 
 // Rivet actor runtime sockets must stay below macOS SUN_LEN. Worktree paths are
@@ -150,6 +152,42 @@ app.get("/api/apps/:appId", async (context) => {
       devPreview: devPreviews.status(appId),
       appUrl: `/apps/${encodeURIComponent(appId)}/`,
     });
+  } catch (error) {
+    return context.json({ error: errorMessage(error) }, 400);
+  }
+});
+
+app.post("/api/apps/:appId/bootstrap", async (context) => {
+  const appId = context.req.param("appId");
+  try {
+    assertAppId(appId);
+    const body = (await context.req.json()) as {
+      templateId?: unknown;
+      templateVersionId?: unknown;
+    };
+    if (
+      typeof body.templateId !== "string" ||
+      !body.templateId.trim() ||
+      typeof body.templateVersionId !== "string" ||
+      !body.templateVersionId.trim()
+    ) {
+      return context.json(
+        { error: "templateId and templateVersionId are required" },
+        400,
+      );
+    }
+    const existingTask = templateBootstrapTasks.get(appId);
+    const task =
+      existingTask ??
+      bootstrapTemplateProject(appId, body.templateId, body.templateVersionId);
+    if (!existingTask) templateBootstrapTasks.set(appId, task);
+    try {
+      return context.json(await task);
+    } finally {
+      if (templateBootstrapTasks.get(appId) === task) {
+        templateBootstrapTasks.delete(appId);
+      }
+    }
   } catch (error) {
     return context.json({ error: errorMessage(error) }, 400);
   }
@@ -571,6 +609,7 @@ async function processTurn(
             ? { publishedDraftId: existing.publishedDraftId }
             : {}),
           ...(existing?.releaseId ? { releaseId: existing.releaseId } : {}),
+          ...(existing?.template ? { template: existing.template } : {}),
         });
 
         if (requestsPublishAfterRevision(message)) {
@@ -596,6 +635,7 @@ async function processTurn(
             draftId: preview.version,
             publishedDraftId: preview.version,
             releaseId: deployment.release,
+            ...(existing?.template ? { template: existing.template } : {}),
           });
           await spaces.complete(appId, turnId, revision.summary, {
             type: "deployed",
@@ -652,6 +692,49 @@ async function processTurn(
     clearInterval(heartbeat);
   }
   return false;
+}
+
+async function bootstrapTemplateProject(
+  appId: string,
+  templateId: string,
+  templateVersionId: string,
+) {
+  const initialized = await initializeProjectFromTemplate(
+    appId,
+    templateId,
+    templateVersionId,
+  );
+  let project = initialized.project;
+  let preview = await devPreviews.prepare(appId, project.files);
+
+  // An Agent revision may have landed while a first template preview was
+  // building. Always prepare and persist the latest files, never restore the
+  // template over a newer Project revision.
+  const latest = await loadProject(appId);
+  if (latest && latest.updatedAt !== project.updatedAt) {
+    project = latest;
+    preview = await devPreviews.prepare(appId, project.files);
+  }
+  if (project.draftId !== preview.version) {
+    project = {
+      ...project,
+      draftId: preview.version,
+      updatedAt: preview.updatedAt,
+    };
+    await saveProject(project);
+  }
+  await spaces.announce(appId, {
+    type: "dev_ready",
+    appId,
+    version: preview.version,
+    devUrl: preview.url,
+    updatedAt: preview.updatedAt,
+  });
+  return {
+    created: initialized.created,
+    project,
+    devPreview: devPreviews.status(appId),
+  };
 }
 
 async function publishCurrentProject(appId: string, turnId: string) {
@@ -862,7 +945,7 @@ function responseHeaders(
 
 function parseMember(clientId: unknown, name: unknown): SpaceMember {
   const normalizedClientId =
-    typeof clientId === "string" && /^[a-zA-Z0-9-]{1,64}$/.test(clientId)
+    typeof clientId === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(clientId)
       ? clientId
       : `guest-${Math.random().toString(36).slice(2, 10)}`;
   const normalizedName =

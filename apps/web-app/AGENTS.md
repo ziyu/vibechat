@@ -2,7 +2,7 @@
 
 ## Overview
 
-`apps/web-app` is the VibeChat product Web/PWA host. It owns authentication UI, onboarding, chat routes, Matrix browser runtime composition, and a thin same-origin gateway to `apps/backend`.
+`apps/web-app` is the VibeChat product Web/PWA host. It owns authentication UI, onboarding, Space routes, the fixed Kernel Bar, the trusted Space App capability bridge, Matrix browser runtime composition, and a thin same-origin gateway to `apps/backend`. Chat Core is fixed platform capability, but its visible UI belongs to Space App code rather than Host DOM.
 
 It does not own the public site, product API business handlers, database access, payment/AI provider implementations, or the future Desktop host. It does own the authenticated product UI for account, billing, upload, and AI capabilities exposed by the shared Backend.
 
@@ -28,7 +28,7 @@ The product Web runs on `8001`. The shared backend runs on `8002`; local Vite an
 src/routes/
 ├── __root.tsx
 ├── (auth)/*                     # signin/signup/OTP/reset
-├── (chat)/*                     # messages/rooms/contacts/discover/me
+├── (chat)/*                     # spaces/contacts/discover/me; messages/rooms only redirect
 ├── (product)/*                  # account/services/payment returns/AI
 ├── (root)/index.tsx             # / -> messages
 ├── onboarding.tsx
@@ -39,6 +39,8 @@ src/routes/
 ```
 
 Product URLs are locale-neutral. The root route resolves the active language from the shared `VIBECHAT_LOCALE` Cookie during SSR; switching language updates that preference without changing pathname, search, or hash. `/en/**` and `/zh-CN/**` exist only as legacy redirect boundaries and must not be used for new navigation.
+
+The product home is `/spaces`; a running Space opens at `/spaces/:spaceId`. `/messages` and `/rooms/:roomId` are migration redirects only. New UI, CTA, auth callback, test, or public documentation must never generate those legacy URLs. The first migration slice may resolve `:spaceId` from an existing Matrix Room ID, but it must still use the same SpaceInstance rather than creating a parallel frontend model. Inside a running Space, the top Kernel Bar is the only fixed Host surface; everything below it comes from the current ready Space App Project. The Default Chat App is both the blank-Space seed and recovery UI, while every Chat action remains mediated by the trusted bridge.
 
 Account, billing, upload, and AI product surfaces belong inside the authenticated product shell. Keep one product shell and route compatibility aliases; do not create a second SaaS layout.
 

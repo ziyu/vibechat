@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "vibechat.space-template/v1",
+  "id": "space-focus",
+  "slug": "focus",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "category": "focus",
+  "name": {
+    "en": "Moss Studio",
+    "zh-CN": "苔原共创室"
+  },
+  "summary": {
+    "en": "A quiet co-creation table where messages settle like shared notes.",
+    "zh-CN": "为小团队准备的安静共创 Space，消息会像便签一样落在共享桌面上。"
+  },
+  "author": "Field Notes Lab",
+  "icon": "⌁",
+  "accent": "#b7d66d",
+  "canvas": "#23342b",
+  "currentVersionId": "tplv-space-focus-0-1-0"
+}

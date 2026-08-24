@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   authorizeSpaceRuntimeRequest,
+  ensureSpaceTemplateProject,
   fetchSpaceRuntime,
   proxySpaceRuntimeResponse,
 } from '@/lib/space-runtime'
@@ -14,6 +15,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/events')({
         const access = await authorizeSpaceRuntimeRequest(request, params.roomId)
         if (!access.ok) return access.response
         try {
+          await ensureSpaceTemplateProject(access.instance)
           const query = new URLSearchParams({
             clientId: access.session.user.id,
             name: access.session.user.name || 'Member',

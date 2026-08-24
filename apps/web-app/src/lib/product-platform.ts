@@ -2,7 +2,7 @@ import type { ProductPlatform } from '@vibechat/platform-contracts'
 
 export const browserProductPlatform: ProductPlatform = {
   navigation: {
-    openMessages: (locale) => window.location.assign(`/${locale}/messages`),
+    openSpaces: () => window.location.assign('/spaces'),
     openOnboarding: (locale) => window.location.assign(`/${locale}/onboarding`),
     openSignIn: (locale) => window.location.assign(`/${locale}/signin`),
     reload: () => window.location.reload(),

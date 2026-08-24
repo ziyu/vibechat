@@ -1,4 +1,7 @@
-import { builtInChatSpaces } from "@config";
+import {
+  publishedSpaceTemplateCatalog,
+  type PublishedSpaceTemplateCatalogEntry,
+} from "@config";
 import type {
   ProductRoomAccessReader,
   ProductStateRepository,
@@ -21,8 +24,13 @@ export class ProductStateService {
   constructor(private readonly options: {
     repository: ProductStateRepository;
     rooms: ProductRoomAccessReader;
+    templates?: readonly PublishedSpaceTemplateCatalogEntry[];
     now?: () => Date;
   }) {}
+
+  private get templates() {
+    return this.options.templates ?? publishedSpaceTemplateCatalog;
+  }
 
   getSnapshot(userId: string) {
     return this.options.repository.getSnapshot(userId);
@@ -30,11 +38,19 @@ export class ProductStateService {
 
   async getSpaceDirectory(locale: "en" | "zh-CN") {
     const counts = await this.options.repository.getSpaceFavoriteCounts();
-    return builtInChatSpaces.map((space) => ({
-      id: space.spaceId,
-      versionId: space.spaceVersionId,
+    return this.templates.map((space) => ({
+      schemaVersion: space.schemaVersion,
+      id: space.id,
+      versionId: space.versionId,
       semanticVersion: space.semanticVersion,
       integrity: space.integrity,
+      sourceHash: space.sourceHash,
+      manifestHash: space.manifestHash,
+      artifact: space.artifact,
+      projectFormat: space.projectFormat,
+      compatibility: space.compatibility,
+      provenance: space.provenance,
+      publisher: space.publisher,
       name: space.name[locale],
       summary: space.summary[locale],
       author: space.author,
@@ -44,9 +60,7 @@ export class ProductStateService {
       canvas: space.canvas,
       permissions: space.permissions,
       networkDomains: space.networkDomains,
-      official: space.official,
-      favoriteCount: counts[space.spaceId] || 0,
-      source: "builtin" as const,
+      favoriteCount: counts[space.id] || 0,
     }));
   }
 
@@ -79,7 +93,7 @@ export class ProductStateService {
   }
 
   async setSpaceFavorite(userId: string, spaceId: string, favorite: boolean) {
-    if (!builtInChatSpaces.some((space) => space.spaceId === spaceId)) {
+    if (!this.templates.some((space) => space.id === spaceId)) {
       throw new ProductStateError("PRODUCT_SPACE_NOT_FOUND");
     }
     await this.options.repository.setSpaceFavorite(

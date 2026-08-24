@@ -34,10 +34,37 @@ export const updateSpaceFavoriteResponseSchema = z.object({
 });
 
 export const atmosphereSpaceSchema = z.object({
+  schemaVersion: z.literal("vibechat.space-template-market-entry/v1"),
   id: z.string().min(1),
   versionId: z.string().min(1),
   semanticVersion: z.string().min(1),
   integrity: z.string().min(1),
+  sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  manifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  artifact: z.object({
+    schemaVersion: z.literal("vibechat.space-template-artifact/v1"),
+    id: z.string().regex(/^tpla-[a-f0-9]{64}$/),
+    format: z.literal("agentos-app-v1"),
+    sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  }),
+  projectFormat: z.literal("agentos-app-v1"),
+  compatibility: z.object({
+    spaceAppSdk: z.literal("v1"),
+    runtime: z.literal("agentos-apps-0.2"),
+  }),
+  provenance: z.object({
+    origin: z.enum(["repository", "app"]),
+    publisherId: z.string().min(1),
+    sourcePath: z.string().min(1).optional(),
+    sourceRevision: z.string().min(1).optional(),
+    sourceSpaceRevisionId: z.string().min(1).optional(),
+    buildId: z.string().min(1).optional(),
+  }),
+  publisher: z.object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    verification: z.enum(["official", "verified", "unverified"]),
+  }),
   name: z.string().min(1),
   author: z.string().min(1),
   summary: z.string(),
@@ -47,9 +74,7 @@ export const atmosphereSpaceSchema = z.object({
   canvas: z.string().min(1),
   permissions: z.array(z.string()),
   networkDomains: z.array(z.string()),
-  official: z.boolean(),
   favoriteCount: z.number().int().nonnegative(),
-  source: z.literal("builtin"),
 });
 
 export const atmosphereSpaceDirectorySchema = z.object({

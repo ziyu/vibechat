@@ -1,4 +1,6 @@
 import { createDefaultRoomService } from '@libs/rooms'
+import type { SpaceInstanceRecord } from '@libs/rooms/types'
+import { injectSpaceAppSdk } from './space-app-html'
 import {
   productApiError,
   productRequestId,
@@ -40,6 +42,25 @@ export async function fetchSpaceRuntime(
   return fetch(new URL(path, origin), { ...init, headers, redirect: 'manual' })
 }
 
+export async function ensureSpaceTemplateProject(
+  instance: Pick<
+    SpaceInstanceRecord,
+    'spaceInstanceId' | 'spaceId' | 'spaceVersionId'
+  >,
+) {
+  const response = await fetchSpaceRuntime(
+    `/api/apps/${encodeURIComponent(instance.spaceInstanceId)}/bootstrap`,
+    runtimeJsonInit({
+      templateId: instance.spaceId,
+      templateVersionId: instance.spaceVersionId,
+    }),
+  )
+  if (!response.ok) {
+    throw new Error(`Space template bootstrap failed with ${response.status}`)
+  }
+  return response
+}
+
 export function runtimeJsonInit(value: unknown): RequestInit {
   return {
     method: 'POST',
@@ -48,18 +69,32 @@ export function runtimeJsonInit(value: unknown): RequestInit {
   }
 }
 
-export function proxySpaceRuntimeResponse(response: Response, options: { app?: boolean } = {}) {
+export function proxySpaceRuntimeResponse(response: Response) {
   const headers = new Headers(response.headers)
   headers.delete('set-cookie')
   headers.delete('content-length')
   headers.set('cache-control', 'private, no-store')
-  if (options.app) {
-    headers.set(
-      'content-security-policy',
-      "default-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; media-src 'self' data: blob:",
-    )
-  }
   return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+export async function proxySpaceRuntimeAppResponse(response: Response) {
+  const headers = new Headers(response.headers)
+  headers.delete('set-cookie')
+  headers.delete('content-length')
+  headers.set('cache-control', 'private, no-store')
+  headers.set(
+    'content-security-policy',
+    "default-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'none'; media-src 'self' data: blob:",
+  )
+  const contentType = headers.get('content-type') || ''
+  const body = response.ok && contentType.includes('text/html')
+    ? injectSpaceAppSdk(await response.text())
+    : response.body
+  return new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers,

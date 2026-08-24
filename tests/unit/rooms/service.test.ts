@@ -1,15 +1,35 @@
 import { describe, expect, it, vi } from "vitest";
-import type { BuiltInChatSpaceConfig } from "@config";
+import type { PublishedSpaceTemplateCatalogEntry } from "@config";
 import type { MatrixIdentityRecord } from "@libs/identity";
 import type { MatrixRoomAdapter, RoomRepository } from "@libs/rooms/contracts";
 import { RoomService, RoomServiceError } from "@libs/rooms/service";
 import type { RoomIndexRecord } from "@libs/rooms/types";
 
-const space: BuiltInChatSpaceConfig = {
-  spaceId: "space-campfire",
-  spaceVersionId: "builtin-space-campfire-v1",
-  semanticVersion: "1.0.0",
-  integrity: "builtin:space-campfire@1.0.0",
+const space: PublishedSpaceTemplateCatalogEntry = {
+  id: "space-campfire",
+  versionId: "tplv-space-campfire-0-1-0",
+  semanticVersion: "0.1.0",
+  integrity: "template:space-campfire@0.1.0+sha256.example",
+  sourceHash: `sha256:${"1".repeat(64)}`,
+  manifestHash: `sha256:${"2".repeat(64)}`,
+  artifact: {
+    schemaVersion: "vibechat.space-template-artifact/v1",
+    id: `tpla-${"1".repeat(64)}`,
+    format: "agentos-app-v1",
+    sourceHash: `sha256:${"1".repeat(64)}`,
+  },
+  projectFormat: "agentos-app-v1",
+  compatibility: { spaceAppSdk: "v1", runtime: "agentos-apps-0.2" },
+  provenance: {
+    origin: "repository",
+    publisherId: "publisher-vibechat",
+    sourcePath: "packages/space-templates/official/space-campfire/app",
+  },
+  publisher: {
+    id: "publisher-vibechat",
+    displayName: "VibeChat",
+    verification: "official",
+  },
   category: "daily",
   name: { en: "Afterglow Radio", "zh-CN": "夜航电台" },
   summary: { en: "A late-night room.", "zh-CN": "深夜房间。" },
@@ -19,7 +39,6 @@ const space: BuiltInChatSpaceConfig = {
   canvas: "#171b20",
   permissions: ["messages.read", "messages.send"],
   networkDomains: [],
-  official: true,
 };
 
 class MemoryRoomRepository implements RoomRepository {
@@ -80,7 +99,7 @@ const input = {
   accessToken: "matrix-secret-token",
   clientRequestId: "request-12345678",
   participantUserIds: ["friend-1"],
-  spaceId: space.spaceId,
+  spaceId: space.id,
   instanceConfig: { ambient: "night" },
   name: "Afterglow · Friend",
 };
@@ -96,8 +115,8 @@ describe("RoomService", () => {
       spaceInstanceId: expect.stringMatching(/^space-/),
       projectId: expect.stringMatching(/^project-/),
       defaultAgentId: "pi",
-      spaceId: space.spaceId,
-      spaceVersionId: space.spaceVersionId,
+      spaceId: space.id,
+      spaceVersionId: space.versionId,
       creatorUserId: input.creatorUserId,
       participantUserIds: [input.creatorUserId, "friend-1"],
       instanceConfig: input.instanceConfig,

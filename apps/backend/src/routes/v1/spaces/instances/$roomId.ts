@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { spaceRuntimeSnapshotSchema } from '@vibechat/api-contracts'
 import {
   authorizeSpaceRuntimeRequest,
+  ensureSpaceTemplateProject,
   fetchSpaceRuntime,
 } from '@/lib/space-runtime'
 import { productApiError } from '@/lib/product-api'
@@ -14,6 +15,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId')({
         const access = await authorizeSpaceRuntimeRequest(request, params.roomId)
         if (!access.ok) return access.response
         try {
+          await ensureSpaceTemplateProject(access.instance)
           const response = await fetchSpaceRuntime(
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}`,
           )
@@ -27,6 +29,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId')({
           }
           const raw = await response.json() as Record<string, any>
           const project = raw.project as Record<string, unknown> | null
+          const template = project?.template as Record<string, unknown> | undefined
           return Response.json(spaceRuntimeSnapshotSchema.parse({
             spaceInstanceId: access.instance.spaceInstanceId,
             matrixRoomId: access.instance.matrixRoomId,
@@ -40,6 +43,13 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId')({
               releaseId: typeof project?.releaseId === 'string' ? project.releaseId : null,
               updatedAt: typeof project?.updatedAt === 'string' ? project.updatedAt : null,
               summary: typeof project?.summary === 'string' ? project.summary : null,
+              template: template
+                && typeof template.id === 'string'
+                && typeof template.versionId === 'string'
+                && typeof template.integrity === 'string'
+                && template.projectFormat === 'agentos-app-v1'
+                ? template
+                : null,
             },
             devPreview: raw.devPreview,
             messages: raw.space?.messages ?? [],

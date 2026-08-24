@@ -20,9 +20,9 @@ import { aiImageConfig } from './config/aiImage';
 import { aiVideoConfig } from './config/aiVideo';
 import { affiliateConfig } from './config/affiliate';
 export {
-  builtInChatSpaces,
-  getBuiltInChatSpace,
-  type BuiltInChatSpaceConfig,
+  getPublishedSpaceTemplate,
+  publishedSpaceTemplateCatalog,
+  type PublishedSpaceTemplateCatalogEntry,
 } from './config/chat';
 
 // Re-export types for backwards compatibility

@@ -19,11 +19,15 @@ const ready = new Promise((resolve) => {
 function emptySnapshot() {
   return {
     appId: "",
+    locale: "en",
+    meta: { id: "", name: "Space", summary: "", icon: "V", accent: "#ff5a3d" },
     self: null,
     members: [],
+    mentions: [],
     messages: [],
     app: { revision: 0, state: {}, presence: [] },
-    agent: { build: null, queue: { activeCount: 0, pendingCount: 0 } },
+    chat: { messages: [], typingMemberIds: [] },
+    agent: { id: "pi", name: "Pi", messages: [], build: null, queue: { activeCount: 0, pendingCount: 0 } },
   };
 }
 
@@ -117,6 +121,10 @@ function acceptSnapshot(snapshot) {
       ...emptySnapshot().app,
       ...clone(snapshot?.app),
     },
+    chat: {
+      ...emptySnapshot().chat,
+      ...clone(snapshot?.chat),
+    },
     agent: {
       ...emptySnapshot().agent,
       ...clone(snapshot?.agent),
@@ -124,12 +132,16 @@ function acceptSnapshot(snapshot) {
   };
   currentSnapshot.self = normalizeMember(currentSnapshot.self);
   currentSnapshot.members = normalizeMembers(currentSnapshot.members);
+  currentSnapshot.messages = clone(currentSnapshot.chat.messages || []);
   if (!readyResolved) {
     readyResolved = true;
     resolveReady(space);
   }
   dispatch("snapshot", currentSnapshot);
   dispatch("members", currentSnapshot.members);
+  dispatch("messages", currentSnapshot.messages);
+  dispatch("typing", currentSnapshot.chat.typingMemberIds);
+  dispatch("mentions", currentSnapshot.mentions);
   dispatch("presence", presenceRecord());
   dispatch("state", stateUpdate());
   dispatch("agent", currentSnapshot.agent);
@@ -145,9 +157,10 @@ function acceptEvent(event) {
     dispatch("members", currentSnapshot.members);
     dispatch("presence", presenceRecord());
   } else if (event.type === "message" && event.message) {
-    if (!currentSnapshot.messages.some((message) => message.id === event.message.id)) {
-      currentSnapshot.messages.push(clone(event.message));
+    if (!currentSnapshot.agent.messages.some((message) => message.id === event.message.id)) {
+      currentSnapshot.agent.messages.push(clone(event.message));
     }
+    dispatch("agent", currentSnapshot.agent);
   } else if (event.type === "app_state") {
     currentSnapshot.app.revision = Number(event.revision) || 0;
     if (event.deleted) delete currentSnapshot.app.state[event.key];
@@ -179,8 +192,7 @@ function acceptEvent(event) {
     dispatch("agent", currentSnapshot.agent);
   }
 
-  if (event.type === "message") dispatch("message", event.message);
-  else if (event.type !== "presence") dispatch(event.type, event);
+  if (event.type !== "presence") dispatch(event.type, event);
   if (event.type === "app_event") {
     dispatch("event", event);
     dispatch(`event:${event.name}`, event);
@@ -256,6 +268,12 @@ export const space = Object.freeze({
   get appId() {
     return currentSnapshot.appId;
   },
+  get locale() {
+    return currentSnapshot.locale;
+  },
+  get meta() {
+    return clone(currentSnapshot.meta);
+  },
   get self() {
     return clone(currentSnapshot.self);
   },
@@ -264,6 +282,9 @@ export const space = Object.freeze({
   },
   get messages() {
     return clone(currentSnapshot.messages);
+  },
+  get mentions() {
+    return clone(currentSnapshot.mentions);
   },
   get presence() {
     return presenceRecord();
@@ -315,11 +336,52 @@ export const space = Object.freeze({
     },
   }),
   chat: Object.freeze({
-    send(text) {
-      return command("chat.send", { text });
+    get messages() {
+      return clone(currentSnapshot.chat.messages);
+    },
+    get typingMemberIds() {
+      return clone(currentSnapshot.chat.typingMemberIds);
+    },
+    send(input) {
+      return command(
+        "chat.send",
+        typeof input === "string" ? { text: input } : input,
+      );
+    },
+    attach(file) {
+      return command("chat.attach", { file });
+    },
+    edit(messageId, text) {
+      return command("chat.edit", { messageId, text });
+    },
+    delete(messageId) {
+      return command("chat.delete", { messageId });
+    },
+    toggleReaction(messageId, emoji) {
+      return command("chat.reaction.toggle", { messageId, emoji });
+    },
+    retry(messageId) {
+      return command("chat.retry", { messageId });
+    },
+    setTyping(isTyping) {
+      return command("chat.typing", { isTyping });
+    },
+    markRead() {
+      return command("chat.markRead");
     },
     on(handler) {
-      return subscribe("message", handler);
+      return subscribe("messages", handler);
+    },
+  }),
+  mention: Object.freeze({
+    search(query = "") {
+      const normalized = String(query).trim().toLowerCase();
+      return clone(currentSnapshot.mentions).filter((target) =>
+        !normalized || `${target.name} ${target.handle}`.toLowerCase().includes(normalized)
+      );
+    },
+    on(handler) {
+      return subscribe("mentions", handler);
     },
   }),
   theme: Object.freeze({

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "vibechat.space-template/v1",
+  "id": "space-postcard",
+  "slug": "postcard",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "category": "ritual",
+  "name": {
+    "en": "Tomorrow Postcard",
+    "zh-CN": "明日明信片"
+  },
+  "summary": {
+    "en": "Send what you feel now to a future moment, then open it together.",
+    "zh-CN": "把现在想说的话寄给未来，直到约定的时刻在 Space 里一起拆开。"
+  },
+  "author": "Vibe Chat Studio",
+  "icon": "◇",
+  "accent": "#d84b42",
+  "canvas": "#efe5d2",
+  "currentVersionId": "tplv-space-postcard-0-1-0"
+}

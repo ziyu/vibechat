@@ -5,6 +5,7 @@ import {
 } from '@vibechat/api-contracts'
 import {
   authorizeSpaceRuntimeRequest,
+  ensureSpaceTemplateProject,
   fetchSpaceRuntime,
   runtimeJsonInit,
 } from '@/lib/space-runtime'
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/publish')({
           if (!parsed.success) {
             return productApiError(access.requestId, 400, 'SPACE_PUBLISH_REQUEST_INVALID', 'The publish request is invalid.')
           }
+          await ensureSpaceTemplateProject(access.instance)
           const response = await fetchSpaceRuntime(
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}/publish`,
             runtimeJsonInit({

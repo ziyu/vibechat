@@ -1,13 +1,16 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { isSpaceTemplateProjectFilePath } from "@vibechat/space-templates";
 import type { SessionStreamEntry } from "@rivet-dev/agentos";
 import { createClient } from "@rivet-dev/agentos/client";
 import type { registry } from "./actors.js";
 import {
-  editablePaths,
+  projectFilePaths,
+  requiredProjectPaths,
   type ProjectFiles,
   validateFiles,
 } from "./project-store.js";
@@ -107,14 +110,9 @@ export function piMode(): PiMode {
 }
 
 export async function loadSeed(): Promise<ProjectFiles> {
-  const files = {} as ProjectFiles;
-  for (const path of editablePaths) {
-    files[path] = await readFile(
-      new URL(`../fixtures/app/${path}`, import.meta.url),
-      "utf8",
-    );
-  }
-  return files;
+  return readLocalProjectTree(
+    fileURLToPath(new URL("../fixtures/app", import.meta.url)),
+  );
 }
 
 interface ProjectTurnInput {
@@ -145,12 +143,19 @@ export async function runProjectTurn(
   await connection.ready;
 
   const tools = new Map<string, { name: string; path?: string }>();
+  const observedProjectPaths = new Set(projectFilePaths(input.files));
   let progressQueue = Promise.resolve();
   const enqueue = (value: unknown) => {
     const event = value as SessionStreamEntry;
     if (event.sessionId !== piSessionId) return;
     progressQueue = progressQueue.then(() =>
-      relaySessionEvent(agent, event, tools, input.onProgress),
+      relaySessionEvent(
+        agent,
+        event,
+        tools,
+        observedProjectPaths,
+        input.onProgress,
+      ),
     );
   };
   const unsubscribe = connection.on("sessionEvent", enqueue);
@@ -163,7 +168,7 @@ export async function runProjectTurn(
     });
     await progressQueue;
 
-    const files = validateFiles(await readAgentFiles(agent));
+    const files = validateFiles(await readAgentFiles(agent, observedProjectPaths));
     const summary = extractAcpSummary(result.message?.content);
     return classifyProjectTurn(input.files, files, summary);
   } finally {
@@ -184,11 +189,19 @@ export async function reviseProject(
 
 async function runWithHostPi(input: ProjectTurnInput) {
   const workspace = join(process.cwd(), ".data", "pi-workspaces", input.appId);
-  await mkdir(join(workspace, "src"), { recursive: true });
+  await mkdir(workspace, { recursive: true });
+  const inputPaths = projectFilePaths(input.files);
+  const existingFiles = await readLocalProjectFileEntries(workspace);
   await Promise.all(
-    editablePaths.map((path) =>
-      writeFile(join(workspace, path), input.files[path], "utf8"),
-    ),
+    Object.keys(existingFiles)
+      .filter((path) => !inputPaths.includes(path))
+      .map((path) => unlink(join(workspace, path))),
+  );
+  await Promise.all(
+    inputPaths.map(async (path) => {
+      await mkdir(dirname(join(workspace, path)), { recursive: true });
+      await writeFile(join(workspace, path), input.files[path], "utf8");
+    }),
   );
 
   const summary = await runHostPi(
@@ -207,7 +220,8 @@ function classifyProjectTurn(
   summary: string,
 ): ProjectTurnResult {
   const message = summary.trim() || "Pi 已完成本轮处理。";
-  if (editablePaths.some((path) => after[path] !== before[path])) {
+  const paths = new Set([...Object.keys(before), ...Object.keys(after)]);
+  if ([...paths].some((path) => after[path] !== before[path])) {
     return { kind: "revision", files: after, summary: message };
   }
   return { kind: "chat", message };
@@ -489,11 +503,31 @@ function hostPiActivity(
 }
 
 async function readHostFiles(workspace: string) {
-  const files = {} as ProjectFiles;
-  for (const path of editablePaths) {
-    files[path] = await readFile(join(workspace, path), "utf8");
+  return readLocalProjectTree(workspace);
+}
+
+async function readLocalProjectTree(root: string) {
+  return validateFiles(await readLocalProjectFileEntries(root));
+}
+
+async function readLocalProjectFileEntries(root: string) {
+  const files: ProjectFiles = {};
+  async function visit(directory: string): Promise<void> {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === ".pi-sessions") continue;
+      const absolutePath = join(directory, entry.name);
+      const projectPath = relative(root, absolutePath).split("\\").join("/");
+      if (!isSpaceTemplateProjectFilePath(projectPath)) continue;
+      if (entry.isDirectory()) {
+        await visit(absolutePath);
+      } else if (entry.isFile()) {
+        files[projectPath] = await readFile(absolutePath, "utf8");
+      }
+    }
   }
-  return validateFiles(files);
+  await visit(root);
+  return files;
 }
 
 function collaborationInstructions() {
@@ -502,9 +536,11 @@ function collaborationInstructions() {
     "First infer whether the user is asking for an application change or is only asking a question, discussing the product, requesting an explanation, or planning.",
     "For questions, discussion, explanations, and planning: answer directly in Chinese and do not edit any file.",
     "For requests that create, change, fix, or remove application behavior or UI: make the requested changes directly with the write or edit tools, then summarize them in Chinese.",
-    `Only edit these project files: ${editablePaths.join(", ")}.`,
+    "Edit only this Space App Project. You may create and split source modules under src/ when that improves ownership and maintainability.",
+    `Always preserve these required project files: ${requiredProjectPaths.join(", ")}.`,
+    "Keep src/index.ts as a small composition entrypoint. Put runtime setup, document composition, styles, markup, browser behavior, and Chat integration in focused modules instead of concentrating the App in src/index.ts.",
     "The generated application is the full-screen App Surface of a shared space. Its content, atmosphere, layout, and application behavior may be defined freely.",
-    "The host owns an immutable Space Kernel and Chat Surface above the app. Never implement, imitate, hide, or replace the host chat UI, Pi controls, member controls, build controls, or publishing controls.",
+    "The host owns the immutable Space Kernel and Chat Core capabilities. The App owns every surface below the Kernel, including the default Chat UI; it may change how Chat is presented and invoked, but must keep member chat, mentions, @agent dispatch, timeline operations, and recovery callable through the Space SDK.",
     "For real multiplayer behavior in the browser, import { space } from '/v1/space-app-sdk' inside a module script and await space.ready. Do not invent fake online members and do not use RivetKit actors as the browser space transport.",
     "The Space SDK exposes space.self, space.members, space.on('members', handler), space.updatePresence(object), space.presence, persistent space.state.get/set/delete/on, ephemeral space.emit(name, payload), space.onEvent(name, handler), space.chat.send(text), space.chat.on(handler), read-only space.agent, and space.theme.set(theme). space.self and each member have { id, clientId, name }; space.presence is a record keyed by member id whose values contain the member's presence fields. State may be observed with space.state.on(handler) or space.state.on(key, handler). Presence updates are coalesced by the SDK. Store only compact JSON-compatible data.",
     "Use presence for transient member-local state such as cursor or avatar position, persistent state for shared space data that must survive reconnects, and custom events for momentary interactions. These operations never request Pi, build, or publish. space.chat.send enters the ordinary Space Kernel conversation, where Pi may reply and independently decide whether code needs to change.",
@@ -517,9 +553,9 @@ function collaborationInstructions() {
     "Code changes become a Space Dev draft by default. Do not claim that a release was published; the host publishes only after an explicit user publish action.",
     "Keep package.json main as dist/index.js with a tsc build script, and keep tsconfig outDir as dist so agentOS Apps can infer the built entrypoint.",
     "Use only declared dependencies. Keep browser assets inline unless the host provides them. '/v1/space-app-sdk' is the only intentional absolute host URL.",
-    "Do not install packages, start servers, or create extra files. The host prepares the isolated Space Dev preview after you finish and runs the immutable release build only when publishing.",
-    "Do not inspect node_modules, package-manager caches, Pi documentation, or any path outside the current workspace. Preserve the RivetKit actor and registry scaffold already present in src/index.ts for build compatibility, but use the Space SDK for browser multiplayer state in both Space Dev and published spaces.",
-    "For UI-only requests, read the three editable files once and implement immediately. Usually only src/index.ts needs to change.",
+    "Do not install packages or start servers. The host prepares the isolated Space Dev preview after you finish and runs the immutable release build only when publishing.",
+    "Do not inspect node_modules, package-manager caches, Pi documentation, or any path outside the current workspace. Preserve the RivetKit actor and registry scaffold in its existing runtime module for build compatibility, but use the Space SDK for browser multiplayer state in both Space Dev and published spaces.",
+    "For UI-only requests, inspect the relevant modules once and implement immediately. Change the smallest coherent set of modules and keep their boundaries clear.",
     "Build a polished and complete application. Do not leave TODOs or placeholder copy.",
     "When practical, write each changed file completely so the live workspace preview stays coherent.",
   ].join("\n");
@@ -613,6 +649,7 @@ async function relaySessionEvent(
   agent: ReturnType<typeof client.vm.getOrCreate>,
   event: SessionStreamEntry,
   tools: Map<string, { name: string; path?: string }>,
+  observedProjectPaths: Set<string>,
   onProgress?: (event: GenerationProgress) => void | Promise<void>,
 ) {
   if (!onProgress) return;
@@ -640,6 +677,9 @@ async function relaySessionEvent(
   if (event.type === "tool_call") {
     const toolName = event.title || "tool";
     const path = toolPath(event);
+    if (path && isSpaceTemplateProjectFilePath(path)) {
+      observedProjectPaths.add(path);
+    }
     tools.set(event.toolCallId, { name: toolName, path });
     await onProgress({
       type: "activity",
@@ -663,7 +703,7 @@ async function relaySessionEvent(
   if (event.status === "completed" && isFileMutation(tool?.name)) {
     await onProgress({
       type: "workspace",
-      files: validateFiles(await readAgentFiles(agent)),
+      files: validateFiles(await readAgentFiles(agent, observedProjectPaths)),
       changedPath: tool?.path,
     });
   }
@@ -718,18 +758,19 @@ async function writeAgentFiles(
   agent: ReturnType<typeof client.vm.getOrCreate>,
   files: ProjectFiles,
 ) {
-  await Promise.all(
-    editablePaths.map((path) =>
-      agent.filesystem.writeFile(`/workspace/${path}`, files[path]),
-    ),
-  );
+  for (const path of projectFilePaths(files)) {
+    const directory = dirname(`/workspace/${path}`);
+    await agent.filesystem.mkdir(directory, { recursive: true });
+    await agent.filesystem.writeFile(`/workspace/${path}`, files[path]);
+  }
 }
 
 async function readAgentFiles(
   agent: ReturnType<typeof client.vm.getOrCreate>,
+  paths: Iterable<string>,
 ) {
-  const output = {} as ProjectFiles;
-  for (const path of editablePaths) {
+  const output: ProjectFiles = {};
+  for (const path of [...paths].sort()) {
     output[path] = decoder.decode(
       await agent.filesystem.readFile(`/workspace/${path}`),
     );

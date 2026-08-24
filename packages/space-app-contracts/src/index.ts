@@ -28,6 +28,14 @@ export const spaceRuntimeSnapshotSchema = z.object({
     releaseId: z.string().nullable(),
     updatedAt: z.string().datetime().nullable(),
     summary: z.string().nullable(),
+    template: z.object({
+      id: z.string().min(1),
+      versionId: z.string().min(1),
+      integrity: z.string().min(1),
+      sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+      manifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+      projectFormat: z.literal('agentos-app-v1'),
+    }).nullable(),
   }),
   devPreview: z.object({
     state: z.enum(['idle', 'building', 'ready', 'failed']),
@@ -75,7 +83,21 @@ export const publishSpaceAppRequestSchema = z.object({
 })
 
 export const spaceAppBridgeRequestSchema = z.object({
-  action: z.enum(['presence.update', 'state.set', 'state.delete', 'event.emit', 'chat.send', 'theme.set']),
+  action: z.enum([
+    'presence.update',
+    'state.set',
+    'state.delete',
+    'event.emit',
+    'chat.send',
+    'chat.attach',
+    'chat.edit',
+    'chat.delete',
+    'chat.reaction.toggle',
+    'chat.retry',
+    'chat.typing',
+    'chat.markRead',
+    'theme.set',
+  ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 })
 

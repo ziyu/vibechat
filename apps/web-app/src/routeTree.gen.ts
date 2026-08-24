@@ -43,11 +43,14 @@ import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-pas
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as authCellphoneRouteImport } from './routes/(auth)/cellphone'
 import { Route as LocaleSplatRouteImport } from './routes/$locale/$'
+import { Route as chatSpacesRouteRouteImport } from './routes/(chat)/spaces/route'
 import { Route as chatDiscoverRouteRouteImport } from './routes/(chat)/discover/route'
 import { Route as V1ContactsIndexRouteImport } from './routes/v1/contacts/index'
+import { Route as chatSpacesIndexRouteImport } from './routes/(chat)/spaces/index'
 import { Route as chatDiscoverIndexRouteImport } from './routes/(chat)/discover/index'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
 import { Route as ApiVideoGenerateStatusRouteImport } from './routes/api/video-generate/status'
+import { Route as chatSpacesSpaceIdRouteImport } from './routes/(chat)/spaces/$spaceId'
 import { Route as chatRoomsRoomIdRouteImport } from './routes/(chat)/rooms/$roomId'
 import { Route as chatDiscoverSpacesSpaceIdRouteImport } from './routes/(chat)/discover/spaces/$spaceId'
 
@@ -217,6 +220,11 @@ const LocaleSplatRoute = LocaleSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => LocaleRoute,
 } as any)
+const chatSpacesRouteRoute = chatSpacesRouteRouteImport.update({
+  id: '/spaces',
+  path: '/spaces',
+  getParentRoute: () => chatRouteRoute,
+} as any)
 const chatDiscoverRouteRoute = chatDiscoverRouteRouteImport.update({
   id: '/discover',
   path: '/discover',
@@ -226,6 +234,11 @@ const V1ContactsIndexRoute = V1ContactsIndexRouteImport.update({
   id: '/v1/contacts/',
   path: '/v1/contacts/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const chatSpacesIndexRoute = chatSpacesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => chatSpacesRouteRoute,
 } as any)
 const chatDiscoverIndexRoute = chatDiscoverIndexRouteImport.update({
   id: '/',
@@ -241,6 +254,11 @@ const ApiVideoGenerateStatusRoute = ApiVideoGenerateStatusRouteImport.update({
   id: '/status',
   path: '/status',
   getParentRoute: () => ApiVideoGenerateRoute,
+} as any)
+const chatSpacesSpaceIdRoute = chatSpacesSpaceIdRouteImport.update({
+  id: '/$spaceId',
+  path: '/$spaceId',
+  getParentRoute: () => chatSpacesRouteRoute,
 } as any)
 const chatRoomsRoomIdRoute = chatRoomsRoomIdRouteImport.update({
   id: '/rooms/$roomId',
@@ -258,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/$locale': typeof LocaleRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/discover': typeof chatDiscoverRouteRouteWithChildren
+  '/spaces': typeof chatSpacesRouteRouteWithChildren
   '/$locale/$': typeof LocaleSplatRoute
   '/cellphone': typeof authCellphoneRoute
   '/forgot-password': typeof authForgotPasswordRoute
@@ -287,9 +306,11 @@ export interface FileRoutesByFullPath {
   '/v1/$': typeof V1SplatRoute
   '/': typeof rootIndexRoute
   '/rooms/$roomId': typeof chatRoomsRoomIdRoute
+  '/spaces/$spaceId': typeof chatSpacesSpaceIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/discover/': typeof chatDiscoverIndexRoute
+  '/spaces/': typeof chatSpacesIndexRoute
   '/v1/contacts/': typeof V1ContactsIndexRoute
   '/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
@@ -325,9 +346,11 @@ export interface FileRoutesByTo {
   '/v1/$': typeof V1SplatRoute
   '/': typeof rootIndexRoute
   '/rooms/$roomId': typeof chatRoomsRoomIdRoute
+  '/spaces/$spaceId': typeof chatSpacesSpaceIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/discover': typeof chatDiscoverIndexRoute
+  '/spaces': typeof chatSpacesIndexRoute
   '/v1/contacts': typeof V1ContactsIndexRoute
   '/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
@@ -340,6 +363,7 @@ export interface FileRoutesById {
   '/$locale': typeof LocaleRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/(chat)/discover': typeof chatDiscoverRouteRouteWithChildren
+  '/(chat)/spaces': typeof chatSpacesRouteRouteWithChildren
   '/$locale/$': typeof LocaleSplatRoute
   '/(auth)/cellphone': typeof authCellphoneRoute
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
@@ -369,9 +393,11 @@ export interface FileRoutesById {
   '/v1/$': typeof V1SplatRoute
   '/(root)/': typeof rootIndexRoute
   '/(chat)/rooms/$roomId': typeof chatRoomsRoomIdRoute
+  '/(chat)/spaces/$spaceId': typeof chatSpacesSpaceIdRoute
   '/api/video-generate/status': typeof ApiVideoGenerateStatusRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/(chat)/discover/': typeof chatDiscoverIndexRoute
+  '/(chat)/spaces/': typeof chatSpacesIndexRoute
   '/v1/contacts/': typeof V1ContactsIndexRoute
   '/(chat)/discover/spaces/$spaceId': typeof chatDiscoverSpacesSpaceIdRoute
 }
@@ -381,6 +407,7 @@ export interface FileRouteTypes {
     | '/$locale'
     | '/onboarding'
     | '/discover'
+    | '/spaces'
     | '/$locale/$'
     | '/cellphone'
     | '/forgot-password'
@@ -410,9 +437,11 @@ export interface FileRouteTypes {
     | '/v1/$'
     | '/'
     | '/rooms/$roomId'
+    | '/spaces/$spaceId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
     | '/discover/'
+    | '/spaces/'
     | '/v1/contacts/'
     | '/discover/spaces/$spaceId'
   fileRoutesByTo: FileRoutesByTo
@@ -448,9 +477,11 @@ export interface FileRouteTypes {
     | '/v1/$'
     | '/'
     | '/rooms/$roomId'
+    | '/spaces/$spaceId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
     | '/discover'
+    | '/spaces'
     | '/v1/contacts'
     | '/discover/spaces/$spaceId'
   id:
@@ -462,6 +493,7 @@ export interface FileRouteTypes {
     | '/$locale'
     | '/onboarding'
     | '/(chat)/discover'
+    | '/(chat)/spaces'
     | '/$locale/$'
     | '/(auth)/cellphone'
     | '/(auth)/forgot-password'
@@ -491,9 +523,11 @@ export interface FileRouteTypes {
     | '/v1/$'
     | '/(root)/'
     | '/(chat)/rooms/$roomId'
+    | '/(chat)/spaces/$spaceId'
     | '/api/video-generate/status'
     | '/v1/rooms/metadata'
     | '/(chat)/discover/'
+    | '/(chat)/spaces/'
     | '/v1/contacts/'
     | '/(chat)/discover/spaces/$spaceId'
   fileRoutesById: FileRoutesById
@@ -755,6 +789,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleSplatRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/(chat)/spaces': {
+      id: '/(chat)/spaces'
+      path: '/spaces'
+      fullPath: '/spaces'
+      preLoaderRoute: typeof chatSpacesRouteRouteImport
+      parentRoute: typeof chatRouteRoute
+    }
     '/(chat)/discover': {
       id: '/(chat)/discover'
       path: '/discover'
@@ -768,6 +809,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/v1/contacts/'
       preLoaderRoute: typeof V1ContactsIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(chat)/spaces/': {
+      id: '/(chat)/spaces/'
+      path: '/'
+      fullPath: '/spaces/'
+      preLoaderRoute: typeof chatSpacesIndexRouteImport
+      parentRoute: typeof chatSpacesRouteRoute
     }
     '/(chat)/discover/': {
       id: '/(chat)/discover/'
@@ -789,6 +837,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/video-generate/status'
       preLoaderRoute: typeof ApiVideoGenerateStatusRouteImport
       parentRoute: typeof ApiVideoGenerateRoute
+    }
+    '/(chat)/spaces/$spaceId': {
+      id: '/(chat)/spaces/$spaceId'
+      path: '/$spaceId'
+      fullPath: '/spaces/$spaceId'
+      preLoaderRoute: typeof chatSpacesSpaceIdRouteImport
+      parentRoute: typeof chatSpacesRouteRoute
     }
     '/(chat)/rooms/$roomId': {
       id: '/(chat)/rooms/$roomId'
@@ -842,8 +897,23 @@ const chatDiscoverRouteRouteChildren: chatDiscoverRouteRouteChildren = {
 const chatDiscoverRouteRouteWithChildren =
   chatDiscoverRouteRoute._addFileChildren(chatDiscoverRouteRouteChildren)
 
+interface chatSpacesRouteRouteChildren {
+  chatSpacesSpaceIdRoute: typeof chatSpacesSpaceIdRoute
+  chatSpacesIndexRoute: typeof chatSpacesIndexRoute
+}
+
+const chatSpacesRouteRouteChildren: chatSpacesRouteRouteChildren = {
+  chatSpacesSpaceIdRoute: chatSpacesSpaceIdRoute,
+  chatSpacesIndexRoute: chatSpacesIndexRoute,
+}
+
+const chatSpacesRouteRouteWithChildren = chatSpacesRouteRoute._addFileChildren(
+  chatSpacesRouteRouteChildren,
+)
+
 interface chatRouteRouteChildren {
   chatDiscoverRouteRoute: typeof chatDiscoverRouteRouteWithChildren
+  chatSpacesRouteRoute: typeof chatSpacesRouteRouteWithChildren
   chatContactsRoute: typeof chatContactsRoute
   chatMeRoute: typeof chatMeRoute
   chatMessagesRoute: typeof chatMessagesRoute
@@ -852,6 +922,7 @@ interface chatRouteRouteChildren {
 
 const chatRouteRouteChildren: chatRouteRouteChildren = {
   chatDiscoverRouteRoute: chatDiscoverRouteRouteWithChildren,
+  chatSpacesRouteRoute: chatSpacesRouteRouteWithChildren,
   chatContactsRoute: chatContactsRoute,
   chatMeRoute: chatMeRoute,
   chatMessagesRoute: chatMessagesRoute,

@@ -1,7 +1,22 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
 
+function chatFrame(page: Page) {
+  return page.frameLocator('[data-testid="space-app-surface"] iframe')
+}
+
+async function openAppChat(page: Page) {
+  const frame = chatFrame(page)
+  await frame.getByTestId('message-input').waitFor({ state: 'attached' })
+  const launcher = frame.getByRole('button', { name: 'Open Space Chat' })
+  if (await launcher.isVisible()) await launcher.click()
+  await expect(frame.getByTestId('message-input')).toBeVisible()
+  return frame
+}
+
 test.describe('Vibe Chat real Matrix room and timeline', () => {
+  test.setTimeout(90_000)
+
   test.skip(
     process.env.E2E_MATRIX_EXPECT_READY !== '1',
     'Requires the local Synapse Matrix-ready profile',
@@ -85,7 +100,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'builtin-space-campfire-v1',
+      spaceVersionId: 'tplv-space-campfire-0-1-0',
       status: 'active',
     })
 
@@ -100,9 +115,14 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     )
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
-      spaceId: 'space-campfire',
-      version: '1.0.0',
-      integrity: 'builtin:space-campfire@1.0.0',
+      templateId: 'space-campfire',
+      templateVersionId: 'tplv-space-campfire-0-1-0',
+      version: '0.1.0',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.0\+sha256\./),
+      publisher: {
+        id: 'publisher-vibechat',
+        verification: 'official',
+      },
       instanceConfig: { ambient: 'night' },
       createdBy: bootstrap.matrix.userId,
       permissions: expect.arrayContaining(['messages.read', 'messages.send']),
@@ -140,19 +160,27 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       await new Promise((resolve) => setTimeout(resolve, 1_500))
       await route.continue()
     })
-    await page.goto(`/rooms/${encodeURIComponent(created.matrixRoomId)}`)
+    const readyAppResponse = page.waitForResponse((response) =>
+      response.request().resourceType() === 'document'
+      && response.url().includes('/v1/spaces/instances/')
+      && response.url().includes('/app?channel=dev'),
+    )
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
-    await expect(page.getByTestId('atmosphere-canvas')).toBeVisible()
+    await expect(page.getByTestId('space-canvas')).toBeVisible()
+    const appResponse = await readyAppResponse
+    expect(appResponse.headers()['x-vibechat-space-recovery']).toBeUndefined()
+    const chat = await openAppChat(page)
 
     const messageText = `真实 Matrix 消息 ${Date.now()}`
-    await page.getByTestId('message-input').fill(messageText)
-    await page.getByTestId('send-message').click()
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
     await expect.poll(
       () => delayedSend,
       { message: `Matrix send requests: ${matrixSendRequests.join(', ')}` },
     ).toBe(true)
-    const ownMessage = page.getByTestId('message-body')
+    const ownMessage = chat.getByTestId('message-body')
       .filter({ hasText: messageText })
       .locator('xpath=ancestor::article')
     await expect(ownMessage).toContainText('发送中…')
@@ -160,38 +188,45 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(delayedSend).toBe(true)
 
     await ownMessage.getByRole('button', { name: '回复' }).click()
-    await expect(page.getByTestId('reply-preview')).toContainText(messageText)
+    await expect(chat.getByTestId('chat-context')).toContainText(messageText)
     const replyText = `标准 Matrix 回复 ${Date.now()}`
-    await page.getByTestId('message-input').fill(replyText)
-    await page.getByTestId('send-message').click()
-    const replyMessage = page.getByTestId('message-body')
+    await chat.getByTestId('message-input').fill(replyText)
+    await chat.getByTestId('send-message').click()
+    const replyMessage = chat.getByTestId('message-body')
       .filter({ hasText: replyText })
       .locator('xpath=ancestor::article')
     await expect(replyMessage).toContainText(messageText)
     await expect(replyMessage).toContainText('已发送')
 
-    await ownMessage.getByRole('button', { name: '回应 🌙' }).click()
-    await expect(ownMessage.locator('.vc-reactions')).toContainText('🌙')
-    await ownMessage.locator('.vc-reactions').getByRole('button', { name: '🌙 1' }).click()
-    await expect(ownMessage.locator('.vc-reactions')).toHaveCount(0)
-    await ownMessage.getByRole('button', { name: '回应 🌙' }).click()
-    await expect(ownMessage.locator('.vc-reactions')).toContainText('🌙')
+    // Resolve fresh locators after the message round-trip so this assertion is
+    // independent from App-owned drawer rendering updates.
+    const readyChat = await openAppChat(page)
+    const readyOwnMessage = readyChat.getByTestId('message-body')
+      .filter({ hasText: messageText })
+      .locator('xpath=ancestor::article')
+    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
+    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
+    await readyOwnMessage.locator('.vcc-reactions').getByRole('button', { name: '🌙 1' }).click()
+    await expect(readyOwnMessage.locator('.vcc-reactions')).toHaveCount(0)
+    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
+    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
 
     await page.reload()
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
-    await expect(page.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    const reloadedChat = await openAppChat(page)
+    await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
     await expect(
-      page.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
+      reloadedChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
     ).toContainText(messageText)
     await expect(
-      page.getByTestId('message-body').filter({ hasText: 'Transaction retry should appear once' }),
+      reloadedChat.getByTestId('message-body').filter({ hasText: 'Transaction retry should appear once' }),
     ).toHaveCount(1)
     await expect(
-      page.getByTestId('message-body')
+      reloadedChat.getByTestId('message-body')
         .filter({ hasText: messageText })
         .locator('xpath=ancestor::article')
-        .locator('.vc-reactions'),
+        .locator('.vcc-reactions'),
     ).toContainText('🌙')
 
     const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage))

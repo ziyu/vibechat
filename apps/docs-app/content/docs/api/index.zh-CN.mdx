@@ -5,7 +5,7 @@ description: Vibe Chat 当前浏览器产品 API 与数据权威
 
 # 产品 API 参考
 
-Vibe Chat Web 应用通过同源产品 API 组合 Better Auth、产品数据库和 Matrix/Synapse。这里记录当前已经实现的浏览器契约；第三方氛围市场、Runtime capability 和 Web Push 尚未开放。
+Vibe Chat Web 应用通过同源产品 API 组合 Better Auth、产品数据库、Matrix/Synapse 和独立 Space Runtime。这里记录当前已经实现的浏览器契约；第三方 Space Template 上架和 Web Push 尚未开放。
 
 ## 身份验证
 
@@ -20,6 +20,12 @@ const response = await fetch('/v1/product-state', {
 
 未登录时返回 `401 AUTH_SESSION_REQUIRED`。Matrix access token 只由 `/v1/session/bootstrap` 返回给当前浏览器内存中的 Matrix client，不应写入 localStorage、日志或其他产品 API。
 
+## 产品路由
+
+`/spaces` 是登录后的产品首页。列表中的每一项都是一个运行中的 Space Instance，拥有成员、完整 Chat Core、Kernel 状态和 App Project。`/spaces/:spaceId` 只固定顶部 Kernel Bar，其下由单一 Space App 渲染，包括默认或定制后的 Chat UI；App 通过 SDK 调用不可修改的 Chat Core。首个迁移切片允许 `:spaceId` 暂时携带用于解析同一 SpaceInstance 的编码 Matrix Room ID。
+
+`/messages` 与 `/rooms/:roomId` 只保留兼容重定向。新的集成、回跳、测试和链接必须使用 Space 路由。
+
 ## 当前端点
 
 | 方法 | 路径 | 用途 |
@@ -33,12 +39,18 @@ const response = await fetch('/v1/product-state', {
 | `POST` | `/v1/friend-requests/:id/reject` | 拒绝好友请求 |
 | `PATCH` | `/v1/contacts/:userId` | 更新当前用户私有的联系人备注 |
 | `POST/DELETE` | `/v1/blocks`、`/v1/blocks/:userId` | 屏蔽或解除屏蔽 |
-| `POST` | `/v1/rooms` | 校验参与人和内置空间后幂等创建 Matrix 房间 |
+| `POST` | `/v1/rooms` | 校验成员和固定 Space Template 版本后幂等创建统一 Matrix Space 实例 |
 | `POST` | `/v1/rooms/metadata` | 批量查询当前用户可访问的产品 room index |
 | `GET/PATCH` | `/v1/product-state` | 用户通知、主题、语言、房间偏好与空间收藏快照 |
 | `PUT` | `/v1/rooms/:roomId/preferences` | 保存当前用户对真实 Matrix 房间的置顶/静音状态 |
-| `GET` | `/v1/spaces?locale=zh-CN` | 获取服务端官方内置空间目录及版本/能力信息 |
-| `PUT` | `/v1/spaces/:spaceId/favorite` | 保存当前账号的官方空间收藏 |
+| `GET` | `/v1/spaces?locale=zh-CN` | 获取统一 Space Template 市场目录、Publisher、不可变版本、`integrity`、`projectFormat` 与能力信息；当前只发布官方条目 |
+| `PUT` | `/v1/spaces/:spaceId/favorite` | 保存当前账号的已发布 Space Template 收藏 |
+| `GET` | `/v1/spaces/instances/:roomId` | 按 Matrix membership 读取统一 SpaceInstance、Template lineage、Dev/Live 与 Agent 状态 |
+| `GET` | `/v1/spaces/instances/:roomId/events` | 订阅当前 Space 的成员、App state、Agent 和构建事件 |
+| `GET` | `/v1/spaces/instances/:roomId/app?channel=dev\|live&version=<readyRevision>` | 在 opaque iframe 中加载固定 ready Revision 或不可变 Live App；Runtime 非 2xx 保持原始状态，不合成 Default Chat 页面 |
+| `POST` | `/v1/spaces/instances/:roomId/bridge` | 代理通过 SDK allowlist 校验的 App presence/state/event 命令 |
+| `POST` | `/v1/spaces/instances/:roomId/turns` | 提交带 Matrix event ID 的显式 `@Agent` 请求 |
+| `POST` | `/v1/spaces/instances/:roomId/publish` | 将固定 Dev draft 显式发布为不可变 Live release |
 | `GET` | `/api/credits/status`、`/api/credits/transactions` | 当前用户积分余额与账本 |
 | `GET` | `/api/orders`、`/api/subscription/status` | 当前用户订单与权益 |
 | `GET/POST` | `/api/affiliate/*`、`/api/withdrawal/*` | 推荐归因、佣金与 KYC 提现 |
@@ -68,7 +80,35 @@ const response = await fetch('/v1/product-state', {
 }
 ```
 
-空间目录中的 `source` 当前固定为 `builtin`。这表示该版本由产品服务内置，不代表第三方市场已经上线。
+Space Template 市场条目使用 `vibechat.space-template-market-entry/v1` 统一结构：
+
+```json
+{
+  "schemaVersion": "vibechat.space-template-market-entry/v1",
+  "id": "space-campfire",
+  "versionId": "tplv-space-campfire-0-1-0",
+  "semanticVersion": "0.1.0",
+  "artifact": {
+    "schemaVersion": "vibechat.space-template-artifact/v1",
+    "id": "tpla-<source-sha256>",
+    "format": "agentos-app-v1",
+    "sourceHash": "sha256:<source-sha256>"
+  },
+  "projectFormat": "agentos-app-v1",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "provenance": {
+    "origin": "repository",
+    "publisherId": "publisher-vibechat",
+    "sourcePath": "packages/space-templates/official/space-campfire/app"
+  }
+}
+```
+
+官方和用户 Template 不再使用不同数据类型：官方标记来自 `publisher.verification`，仓库来源使用 `provenance.origin=repository`；未来用户从 Space App 发布的版本使用相同字段和 `origin=app`。当前用户上架 API、审核和生产存储尚未开放。模板 artifact 包含按路径规范化和 hash 校验的完整多文件 App Project；模板被应用后，源码复制为该 Space 的独立 Project，后续 Agent 可拆分或新增源码模块，Revision 不修改市场版本。
 
 ## 错误结构
 

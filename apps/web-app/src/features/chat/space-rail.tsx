@@ -24,10 +24,10 @@ import {
 import { filterRooms, formatRoomTime } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
-import { AvatarStack, EmptyState, PersonAvatar, SpaceGlyph } from './chat-primitives'
-import { NewChatDialog } from './new-chat-dialog'
+import { AvatarStack, EmptyState, SpaceGlyph } from './chat-primitives'
+import { NewSpaceDialog } from './new-space-dialog'
 
-export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
+export function SpaceRail({ activeSpaceId }: { activeSpaceId?: string }) {
   const { t, locale } = useTranslation()
   const {
     state,
@@ -43,19 +43,19 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
   const rooms = filterRooms(state, query, unreadOnly)
 
   return (
-    <aside className="vc-conversation-rail" data-testid="conversation-list">
+    <aside className="vc-space-rail" data-testid="space-list">
       <header className="vc-list-header">
         <div>
-          <span className="vc-kicker">{t.chatApp.messages.kicker}</span>
-          <h1>{t.chatApp.messages.title}</h1>
+          <span className="vc-kicker">{t.chatApp.spaces.kicker}</span>
+          <h1>{t.chatApp.spaces.title}</h1>
         </div>
         <button
           type="button"
           className="vc-icon-button vc-icon-button-accent"
-          aria-label={t.chatApp.messages.newChat}
-          title={t.chatApp.messages.newChat}
+          aria-label={t.chatApp.spaces.newSpace}
+          title={t.chatApp.spaces.newSpace}
           onClick={() => setCreateOpen(true)}
-          data-testid="new-chat-button"
+          data-testid="new-space-button"
         >
           <Plus size={18} />
         </button>
@@ -67,8 +67,8 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t.chatApp.messages.searchPlaceholder}
-            data-testid="conversation-search"
+            placeholder={t.chatApp.spaces.searchPlaceholder}
+            data-testid="space-search"
           />
         </label>
         <button
@@ -79,7 +79,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
           onClick={() => setUnreadOnly((current) => !current)}
           data-testid="unread-filter"
         >
-          <span>{t.chatApp.messages.unread}</span>
+          <span>{t.chatApp.spaces.unread}</span>
           <i>{state.rooms.reduce((total, room) => total + room.unreadCount, 0)}</i>
         </button>
       </div>
@@ -95,25 +95,21 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
           return (
             <article
               key={room.id}
-              className="vc-room-row"
-              data-active={room.id === activeRoomId || undefined}
+              className="vc-room-row vc-space-row"
+              data-active={room.id === activeSpaceId || undefined}
               data-unread={room.unreadCount > 0 || undefined}
-              data-testid="conversation-row"
+              data-testid="space-row"
               data-membership={room.membership || 'join'}
             >
               <Link
-                to="/rooms/$roomId"
-                params={{ roomId: room.id }}
+                to="/spaces/$spaceId"
+                params={{ spaceId: room.id }}
                 onClick={() => markRoomRead(room.id)}
                 className="vc-room-link"
               >
-                <span className="vc-room-avatar-wrap">
-                  {members.length === 1 ? (
-                    <PersonAvatar person={members[0]} size="lg" showPresence />
-                  ) : (
-                    <AvatarStack people={members} />
-                  )}
-                  <SpaceGlyph space={space} className="vc-room-space-badge" />
+                <span className="vc-room-avatar-wrap vc-space-instance-mark">
+                  <SpaceGlyph space={space} />
+                  {room.unreadCount > 0 ? <i aria-hidden="true" /> : null}
                 </span>
                 <span className="vc-room-copy">
                   <span className="vc-room-title-line">
@@ -123,11 +119,15 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                   <span className="vc-room-summary-line">
                     <small>
                       {room.membership === 'invite'
-                        ? t.chatApp.contacts.invited
+                        ? t.chatApp.contacts.spaceInvited
                         : room.lastMessage}
                     </small>
-                    {room.muted ? <VolumeX size={12} aria-label={t.chatApp.messages.muted} /> : null}
+                    {room.muted ? <VolumeX size={12} aria-label={t.chatApp.spaces.muted} /> : null}
                     {room.unreadCount > 0 ? <i>{room.unreadCount}</i> : null}
+                  </span>
+                  <span className="vc-space-row-meta">
+                    <AvatarStack people={members} />
+                    <small>{space.name} · {room.memberIds.length}</small>
                   </span>
                 </span>
               </Link>
@@ -137,7 +137,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                   <button
                     type="button"
                     className="vc-icon-button vc-accept-button"
-                    aria-label={t.chatApp.contacts.acceptInvite}
+                    aria-label={t.chatApp.contacts.acceptSpaceInvite}
                     data-testid="accept-room-invite"
                     onClick={() => void acceptRoomInvite(room.id)}
                   >
@@ -146,7 +146,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                   <button
                     type="button"
                     className="vc-icon-button"
-                    aria-label={t.chatApp.contacts.declineInvite}
+                    aria-label={t.chatApp.contacts.declineSpaceInvite}
                     onClick={() => void rejectRoomInvite(room.id)}
                   >
                     <X size={14} />
@@ -159,7 +159,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                   <button
                     type="button"
                     className="vc-room-more"
-                    aria-label={t.chatApp.messages.roomActions}
+                    aria-label={t.chatApp.spaces.spaceActions}
                   >
                     <MoreHorizontal size={16} />
                   </button>
@@ -167,15 +167,15 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
                 <DropdownMenuContent align="end" className="vc-menu-content">
                   <DropdownMenuItem onSelect={() => void toggleRoomPinned(room.id)}>
                     {room.pinned ? <PinOff /> : <Pin />}
-                    {room.pinned ? t.chatApp.messages.unpin : t.chatApp.messages.pin}
+                    {room.pinned ? t.chatApp.spaces.unpin : t.chatApp.spaces.pin}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => void toggleRoomMuted(room.id)}>
                     {room.muted ? <Volume2 /> : <VolumeX />}
-                    {room.muted ? t.chatApp.messages.unmute : t.chatApp.messages.mute}
+                    {room.muted ? t.chatApp.spaces.unmute : t.chatApp.spaces.mute}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => markRoomRead(room.id)}>
                     <CheckCheck />
-                    {t.chatApp.messages.markRead}
+                    {t.chatApp.spaces.markRead}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu> : null}
@@ -186,8 +186,8 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
         {rooms.length === 0 ? (
           <EmptyState
             icon={<Inbox size={22} />}
-            title={t.chatApp.messages.noResults}
-            description={t.chatApp.messages.noResultsDescription}
+            title={t.chatApp.spaces.noResults}
+            description={t.chatApp.spaces.noResultsDescription}
           />
         ) : null}
       </div>
@@ -200,7 +200,7 @@ export function ConversationRail({ activeRoomId }: { activeRoomId?: string }) {
         </p>
       </div>
 
-      <NewChatDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <NewSpaceDialog open={createOpen} onOpenChange={setCreateOpen} />
     </aside>
   )
 }

@@ -27,4 +27,8 @@ export { aiConfig } from './ai';
 export { aiImageConfig } from './aiImage';
 export { aiVideoConfig } from './aiVideo';
 export { affiliateConfig } from './affiliate';
-export { builtInChatSpaces, getBuiltInChatSpace, type BuiltInChatSpaceConfig } from './chat';
+export {
+  getPublishedSpaceTemplate,
+  publishedSpaceTemplateCatalog,
+  type PublishedSpaceTemplateCatalogEntry,
+} from './chat';

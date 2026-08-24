@@ -67,6 +67,9 @@ importers:
       '@vibechat/product-core':
         specifier: workspace:*
         version: link:packages/product-core
+      '@vibechat/space-templates':
+        specifier: workspace:*
+        version: link:packages/space-templates
       '@vibechat/validators':
         specifier: workspace:*
         version: link:packages/validators
@@ -336,6 +339,9 @@ importers:
       '@vibechat/space-app-sdk':
         specifier: workspace:*
         version: link:../../packages/space-app-sdk
+      '@vibechat/space-templates':
+        specifier: workspace:*
+        version: link:../../packages/space-templates
       '@vibechat/validators':
         specifier: workspace:*
         version: link:../../packages/validators
@@ -543,6 +549,9 @@ importers:
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
+      '@vibechat/space-templates':
+        specifier: workspace:*
+        version: link:../../packages/space-templates
       hono:
         specifier: 4.12.9
         version: 4.12.9
@@ -932,6 +941,16 @@ importers:
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../space-app-contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/space-templates:
+    dependencies:
+      '@noble/hashes':
+        specifier: 2.0.1
+        version: 2.0.1
     devDependencies:
       typescript:
         specifier: ^5.8.3

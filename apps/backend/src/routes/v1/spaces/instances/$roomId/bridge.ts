@@ -5,6 +5,7 @@ import {
 } from '@vibechat/api-contracts'
 import {
   authorizeSpaceRuntimeRequest,
+  ensureSpaceTemplateProject,
   fetchSpaceRuntime,
   runtimeJsonInit,
 } from '@/lib/space-runtime'
@@ -18,7 +19,11 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/bridge')({
         const access = await authorizeSpaceRuntimeRequest(request, params.roomId)
         if (!access.ok) return access.response
         const parsed = spaceAppBridgeRequestSchema.safeParse(await request.json().catch(() => null))
-        if (!parsed.success || parsed.data.action === 'chat.send' || parsed.data.action === 'theme.set') {
+        if (
+          !parsed.success
+          || parsed.data.action.startsWith('chat.')
+          || parsed.data.action === 'theme.set'
+        ) {
           return productApiError(
             access.requestId,
             400,
@@ -27,6 +32,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/bridge')({
           )
         }
         try {
+          await ensureSpaceTemplateProject(access.instance)
           const response = await fetchSpaceRuntime(
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}/bridge`,
             runtimeJsonInit({

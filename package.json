@@ -85,6 +85,7 @@
     "@vibechat/api-contracts": "workspace:*",
     "@vibechat/i18n": "workspace:*",
     "@vibechat/product-core": "workspace:*",
+    "@vibechat/space-templates": "workspace:*",
     "@vibechat/validators": "workspace:*",
     "@ai-sdk/deepseek": "1.0.23",
     "@ai-sdk/fal": "2.0.20",

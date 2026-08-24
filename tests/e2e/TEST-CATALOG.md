@@ -94,9 +94,9 @@
 |---|---------|---------|
 | 3 | UI 表单登录 | 打开登录页 → 填写邮箱/密码 → 点击提交 → 等待 URL 离开 `/signin` |
 | 4 | API 登录 | 通过 `POST /api/auth/sign-in/email` 登录 → 验证返回 200 |
-| 5 | 登出后无法访问产品 | 先 API 登录 → 访问 `/messages` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/messages` → 验证被重定向到 `/signin` |
-| 6 | 已登录用户访问 /signin 重定向到 /messages | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/messages` |
-| 7 | 已登录用户访问 /signup 重定向到 /messages | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/messages` |
+| 5 | 登出后无法访问产品 | 先 API 登录 → 访问 `/spaces` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/spaces` → 验证被重定向到 `/signin` |
+| 6 | 已登录用户访问 /signin 重定向到 /spaces | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/spaces` |
+| 7 | 已登录用户访问 /signup 重定向到 /spaces | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/spaces` |
 
 ---
 
@@ -1046,7 +1046,7 @@ Stripe 发送 webhook → stripe listen 转发到 /api/payment/webhook/stripe
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
 | 1 | 请求登录验证码 | 打开 `/signin` → 保持 Email OTP 为默认登录方式 → 输入邮箱并请求验证码 → 验证进入六位验证码输入步骤 |
-| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/messages` |
+| 2 | 首次邮箱自动注册并登录 | 在开发环境读取 Better Auth 响应中的测试 OTP → 提交验证码 → 验证自动创建用户、写入 Cookie session 并进入 `/spaces` |
 | 3 | 获取产品 session bootstrap | 登录后请求 `GET /v1/session/bootstrap` → 验证返回当前用户 ID、邮箱、展示名和头像字段 → 验证响应明确标记 Matrix 尚未配置且不包含 access token |
 | 4 | 未登录请求被拒绝 | 清除 Cookie 后请求 `GET /v1/session/bootstrap` → 验证返回 401 和稳定的产品错误结构 |
 | 5 | 旧密码登录仍可访问 | 在登录页切换到密码登录 → 验证旧账号兼容入口仍存在，迁移期间不破坏既有认证用户 |
@@ -1227,8 +1227,8 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 独立官网 | 打开 `http://localhost:8003/` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/messages` |
-| 2 | 产品根入口 | 打开 `http://localhost:8001/` → 未登录进入 `/signin`；已登录进入 `/messages`，不渲染官网或 legacy 页面 |
+| 1 | 独立官网 | 打开 `http://localhost:8003/` → 首页 Header、单一品牌介绍和 Footer 可见 → CTA 指向 `http://localhost:8001/spaces` |
+| 2 | 产品根入口 | 打开 `http://localhost:8001/` → 未登录进入 `/signin`；已登录进入 `/spaces`，不渲染官网或 legacy 页面 |
 | 3 | Backend 健康 | 经 Web 同源路径请求 `GET /api/health` → 返回 `application=backend` 和健康数据库状态 |
 | 4 | 同源 Auth | 经 `8001/api/auth/*` 注册、登录、读取 session、退出 → Cookie 生命周期与拆分前一致 |
 | 5 | 同源产品 API | 经 `8001/v1/*` 完成 bootstrap、profile、social、rooms、spaces 与 product state → 真实 Matrix/数据库链路不变 |
@@ -1296,16 +1296,37 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 ---
 
-## 40. Space App：聊天之上的可定制空间（计划）
+## 40. Space App：聊天之上的可定制空间（Active）
+
+### 40.0 Space-first 路由迁移（P0，Verified baseline；页面形态已被 40.2 替代）
+
+- [x] 已登录用户、产品根入口和认证完成回跳统一进入 `/spaces`，一级导航显示 Spaces，不再显示“消息”。
+- [x] `/spaces` 中每一项都是一个可进入的 Space Instance，展示 Space 名称、模板/App 视觉、成员、未读和最近活动，不再呈现“联系人 + 氛围”的会话对象模型。
+- [x] 进入 `/spaces/:spaceId` 后 Kernel、Chat、App 三边界同时保持可访问；返回动作回到 `/spaces`，创建 Space 后也进入新的 Space URL。
+- [x] `/messages` 与 `/rooms/:roomId` 只做兼容重定向；官网、Admin、联系人、发现、支付完成页和内部导航不再生成旧 URL。
+- [x] 桌面与移动端均可搜索、筛选、新建和进入 Space；Space App/Runtime 失败不得阻塞 Chat。
+
+本组验收先允许 `:spaceId` 使用已有 Matrix Room ID 作为解析键，但产品界面、ARIA、测试 ID 和公开文档必须使用 Space 语义。完成证据需包含新旧 URL、创建后 URL、桌面/移动端截图或 DOM 结果、真实 Matrix Chat 与 App 共存结果、定向 E2E、typecheck 和 build。
+
+2026-08-23 验证证据：
+
+- Chromium `chat-real-product-state.spec.ts` 9/9 通过，覆盖 `/spaces` 认证守卫、Space 集合/卡片、旧 `/messages` 和 `/rooms/:roomId` 重定向、Space 详情、移动端搜索/筛选/新建/进入，以及 Space App 返回 503 时 Chat composer 仍可使用。
+- Chromium `chat-matrix-room.spec.ts` 与 `chat-social-invite.spec.ts` 3/3 通过，覆盖模板创建后进入 `/spaces/:spaceId`、不透明创建弹窗、双用户邀请/加入、双向 Chat、持久消息与回复。
+- 真实登录浏览器同时显示 Kernel 控件、Matrix Chat composer 与官方 Template Dev App；完整 dev 栈重启后 App state 仍恢复。`pnpm docs:check`、`pnpm build:docs`、全仓 18/18 package/app `pnpm typecheck` 与 `pnpm build` 均通过。
+
+以上只证明 `/spaces` 路由、Matrix Chat、Runtime 与 App 并列画布可以共存。宿主固定 Chat composer/timeline 的页面形态不再是目标，不能用于勾选 40.2。
 
 ### 40.1 首版纵向链路（P0，Active）
 
-- [ ] 新建模板 Space 后进入同一 Matrix 会话，两个已登录用户仍能发送、接收、回复、编辑、删除和 reaction；Kernel/App 加载失败不得遮挡 composer 或 timeline。
-- [ ] 在同一 Space 发送普通文本不会创建 Agent turn；发送 `@pi <需求>` 后，人类消息先出现在 Matrix timeline，随后 Kernel 显示唯一 Agent turn。
+- [x] 官方目录的 Default Chat 与四个差异化 Space Template 都声明不可变版本与 `agentos-app-v1` Project 源码，源码彼此独立且不再共享 Runtime 通用 seed。
+- [x] 选择固定模板版本创建 Space 后，Runtime 幂等复制为该 `spaceInstanceId` 的独立 Project，并在首次 Agent 对话前提供 ready Dev App；重复 bootstrap 不覆盖 Agent 后续修改。
+- [x] 带 v1 模板 lineage 的历史房间原地 lazy bootstrap 到兼容 Project，不创建新 Matrix Room、Space Instance 或聊天记录。
+- [ ] 新建模板 Space 后进入同一 Matrix 会话，两个已登录用户通过 Template App 的 Chat SDK 仍能发送、接收、回复、编辑、删除和 reaction。
+- [ ] 在同一 Space 发送普通文本不会创建 Agent turn；App 提交平台结构化 `@agent` Mention 后，人类消息先进入 Matrix timeline，随后 Kernel 显示唯一 Agent turn。
 - [ ] 对同一 Matrix `event_id` 重试 Agent command 只接受一次；相邻 Agent 请求按接收顺序执行，publish 作为单独屏障。
-- [ ] Agent 修改 Project 后 App 默认刷新到 Dev draft；另一位成员打开同一 Space 能看到相同 draft 与 App state。
-- [ ] 未点击发布时 Live 保持旧版本；点击发布后 Live 切到固定 release，刷新后仍保持，后续 Dev 修改不覆盖 Live。
-- [ ] Agent、Dev 构建或 Space Runtime 不可用时，真人 Matrix Chat 仍可正常使用，并显示可重试而非伪成功状态。
+- [ ] Agent 修改 Project 后 Candidate 通过校验并实时切换为当前 ready Revision；另一位成员看到相同 App 与 App state。
+- [ ] Publish 将固定 ready Revision 固化为不可变 Release；后续实时更新不改写该 Release。
+- [ ] Agent/Candidate 构建失败时继续运行最后 ready Revision；Kernel Bar 可以恢复 Default Chat App，Chat Core 数据不受影响。
 
 首版完成证据需记录真实命令、运行环境、两个用户/浏览器、Matrix event id、Space instance id、draft id 与 release id。缺少 Synapse、Pi/provider 凭据或 AgentOS Runtime 时，只能记录未覆盖项，不能勾选通过。
 
@@ -1320,34 +1341,105 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 2026-08-23 本地运行基线（仍不足以勾选本组 Agent/App E2E）：
 
 - `pnpm dev` 自动复用 Node 24、准备本地 SQLite、初始化/启动 Synapse，并启动 Backend、Web、Site、Admin 和 Space Runtime；`/_matrix/client/versions`、Backend health、Space Runtime health 与 RivetKit health 均返回 200。
-- Alice 的真实 session bootstrap 返回 `matrix.status=ready`，浏览器 `/messages` 显示“Synapse 已连接”和“Matrix 时间线已同步”，不再进入消息服务未配置保护页。
+- Alice 的真实 session bootstrap 返回 `matrix.status=ready`，浏览器 Space 宿主显示“Synapse 已连接”和“Matrix 时间线已同步”，不再进入服务未配置保护页。
 - `pnpm test:matrix:integration` 1/1 通过；Bootstrap、认证兼容、Matrix Room 创建和持久消息定向 Chromium E2E 5/5 通过。
 - 本轮尚未执行双 Chromium、显式 `@agent`、共享 Draft/App State 与 publish，所以 40.1 六项仍保持未勾选。
 
-**文件：** 计划新增 `specs/space-app-runtime.spec.ts`、`specs/space-app-collaboration.spec.ts` 与对应 unit/contract suites ｜ **优先级：** P0 ｜ **状态：** Planned ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
+2026-08-23 官方 Template 迁移证据（只覆盖上方前三个模板复选项）：
 
-本组场景验收 2026-08-22 生效的 Space App 新设计。产品语义统一为 Space；每个 Space 首先拥有完整 Chat，再叠加 Kernel 和可定制 App。Space 市场、分类、收藏、版本和模板创建保持不变；空白 Space 也可以创建并在之后选择模板。界面只有 Kernel、Chat、App 三个边界。Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 采用 `chat-app-server` 同构的 Node/Hono、Instance Server、SSE/command、串行 Turn、ProjectStore、agentOS Apps Dev/Release 和 SDK 技术链。现有房间与多人 Space 必须映射同一 SpaceInstance。Draft 自动可预览，只有明确且有权限的发布才切换不可变 Live Release。
+- `@vibechat/space-templates` unit 验证 Default Chat 与四个差异化 v4 条目拥有不同 App Project 源码、`agentos-app-v1` 格式和 v1 lineage 兼容；ProjectStore 验证重复 bootstrap 不覆盖后续自定义 Revision。
+- Alice 从 v2 苔原共创室创建 Matrix Room `!JMBcNJQgAZDgcSmOpt:localhost`，首次 Agent turn 前即得到独立 SpaceInstance `space-4abc25a3-8cc2-4146-90ea-98d969063633` 与 ready Draft `85b251af233f07b6`；SDK 共享便签写入、刷新恢复和 Chat composer 共存通过，完整 dev 栈重启后 presence 仍解析为真实 `user_*` 成员而非 guest。
+- 历史 v1 夜航电台 `!qcRWjoykTSidOmkOix:localhost` 没有新建 Room/Instance，在原 lineage 上 lazy bootstrap ready Draft `3a849bb6345867b5`。
+- 定向 unit 13/13 通过；`pnpm docs:check`、Docs production build、全仓 18/18 package/app `pnpm typecheck` 与 `pnpm build` 通过。完整双 Chromium Agent/publish #40 E2E 尚未执行，其余复选项保持未通过。
 
-#30 的真实 Matrix Chat 与 #35 的官方 Space 目录/收藏是本组必须保持的基础回归，不会被 #40 替代。#40 只能增量增加空白创建、App、Agent、Draft 和 Release。
+### 40.2 实时 Space App Surface 与不可修改 Chat Core（P0，Active）
+
+- [x] 产品文案、URL 和 Kernel 状态都把 Space 描述为持续可用、实时更新的在线空间，不出现 Workspace、试验场或“发布后才能使用”的语义。
+- [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
+- [ ] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
+- [ ] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
+- [ ] App 通过 SDK 查询平台结构化 member/agent Mention；普通消息不调度 Agent，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue。
+- [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
+- [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
+- [ ] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
+- [ ] App 无法覆盖/伪造 Kernel Bar，不能读取 Matrix token、伪造身份、改写 Mention 解析、绕过屏蔽/ACL/计费或建立第二条消息 timeline。
+
+完成证据必须包含 Default Chat App 源码、Custom Template App 源码、Host DOM 只有 Kernel Bar + iframe 的断言、两种 App 的 Chat Core contract suite、双 Chromium 实时 Revision 切换、Candidate 失败保护、结构化 `@agent` 去重和发布固化结果。
+
+2026-08-23 第一版证据：
+
+- Host 浏览器 DOM 只有 Kernel Bar 与单一 iframe；差异化夜航电台 App 内提供自己的 Chat drawer，新建流程默认选择 Default Chat 且允许零联系人。
+- `chat-matrix-room.spec.ts` 2/2 通过，覆盖固定 Template Version Space 创建、ready snapshot 后挂载 App iframe、真实 Matrix 发送/回复/Reaction，以及刷新后历史唯一恢复。
+- `chat-matrix-operations.spec.ts` 1/1 通过，覆盖两个真实用户在同一 Template App 内的 typing、发送/接收、编辑、撤回、附件、离线失败/重试和刷新恢复。
+- Space Template/Runtime/Product State 定向 unit 12/12 通过，覆盖五个不同 App Project、Default Chat App HTML 恢复、安全升级未修改内置 Project、自定义 Project 不覆盖；全仓 18/18 package/app `pnpm typecheck` 通过。
+- 本证据尚未覆盖双 Chromium 完整操作、媒体/typing/Mention、结构化 `@agent`、Candidate 失败、rollback 和发布固化，所以其余复选项保持未通过。
+
+2026-08-24 冷启动修正证据：
+
+- ready App target 状态机 unit 5/5 通过：首次 `building` 不生成 iframe URL，ready preview 与 `draftId` 精确匹配后挂载，同一 Space 构建/重连保留上一版，切换 Space 不串用旧 snapshot/target。
+- 本地 Synapse Chromium `chat-matrix-room.spec.ts` 2/2 通过；新建 Template Space 的首个 App 文档响应不包含 `x-vibechat-space-recovery: default-chat-app`，随后在同一 Template App 内完成真实发送、回复、Reaction 和刷新恢复。
+- 全仓 18/18 package/app `typecheck` 与 `build`、应用边界、文档链接和 `git diff --check` 通过。
+
+2026-08-24 App fallback 边界修正证据（尚不足以勾选 Candidate 双浏览器 E2E）：
+
+- Backend App 代理不再导入或合成包级 Default Chat HTML；Runtime 503 保持 503，SDK 只注入成功的 HTML。无效 revision 被产品 API 拒绝。
+- Dev Preview 定向 unit 验证 Candidate 与 ready Revision 使用不同版本实例，Candidate 失败后旧 ready Revision 仍可按固定版本读取；Web 状态机验证页面刷新时从 Project `draftId` 恢复旧版本。
+- 相关 Space Runtime/Template/Product State/Room unit 32/32 通过，全仓非缓存 typecheck/build 均为 18/18，文档链接、Docs production build、Cloudflare production bundle 与真实 Synapse `chat-matrix-room.spec.ts` 2/2 通过。Alice 浏览器打开默认 Chat Space 后 iframe URL 固定到 revision `95d93d0de00c212b`，Host DOM 只有 Kernel Bar + iframe，完整 Matrix Chat 在 App 内可用且没有宿主 Default Chat 闪屏。
+- 尚未用双 Chromium 制造真实 Agent Candidate 构建失败并验证另一成员重载，所以“失败保持最后 ready Revision”复选项继续保持未勾选。
+
+2026-08-23 Template Source 管理证据（目录结论已由 2026-08-24 修正）：
+
+- 五个官方 Template 已拆为五个独立目录；当时采用的逐 Version Project 源码目录已被后续单一 `app/` 工作源码 + immutable artifact 方案替代，不能再作为当前结构依据。
+- `SpaceTemplate`、`SpaceTemplateVersion` 与 `SpaceTemplateMarketEntry` 是官方/用户共用协议；官方标记只来自 `publisher.verification=official`。App 来源用户样本使用完全相同结构，以 `provenance.origin=app` 和固定 `sourceSpaceRevisionId` 记录来源。
+- `/v1/spaces`、创建服务、Matrix Template snapshot、Runtime bootstrap、收藏和 Discover 已移除 `source=builtin`/官方专用布尔类型；旧 `builtin` v1–v5 与误写的 `5.0.0` ID 仅作开发数据 alias，新写入规范化为 `0.1.0` `tplv-*`。
+- Runtime Project JSON 保存 Template lineage hash 与当前 Project hash；加载时拒绝 hash 不一致的文件，重复初始化不覆盖已定制 Project。
+- 定向 unit `catalog.test.ts`、`product-state/service.test.ts`、`rooms/service.test.ts`、`rooms/synapse-room-adapter.test.ts` 共 14/14 通过；本地 Synapse Chromium 的 Product State 9/9 与 Matrix Space 2/2 通过；全仓 18/18 package/app typecheck/build、文档链接检查和 Docs production build 通过。用户发布 API/审核和生产 Product DB/Object Store 仍未完成。
+
+2026-08-24 Template 版本治理证据：
+
+- 五个尚未正式发布的官方 Template 从误写的开发轮次 `5.0.0` 一次性纠正为首个有序基线 `0.1.0`；Project source 保持不变，Version manifest、repository provenance、source/manifest lock 与生成目录同步重签。
+- 共享 registry 与官方 codegen 同时拒绝非规范 SemVer、非 `0.1.0` 首版、跳号/倒序/重复、非最高 current、空载荷升版和已锁版本漂移；Template schema、SDK/Runtime 与 Space Revision/Release 不触发 Template 升版。
+- 旧 `builtin` v1–v5 与误写的 `tplv-<template>-5-0-0` 均只读兼容到当前 `0.1.0`，新市场响应和 Space lineage 只签发规范 Version ID。
+- 定向 unit 15/15、Product State Chromium 9/9 通过；真实登录页面的创建流程显示五个 `App 模板 v0.1.0`。全仓 19 个 workspace project 的递归 typecheck/build、Docs production build、文档链接、应用边界、catalog codegen 与 `git diff --check` 通过。
+
+2026-08-24 Template Source 单一项目树修正证据：
+
+- 每个官方 Template 只维护 `official/<template-id>/app/` 一份工作源码；`releases.json` 扁平追加发布元数据，不再按 SemVer 创建或复制源码目录。
+- Template Version 与市场条目都携带统一 `SpaceTemplateArtifact` 引用；生成目录不内联 App source。开发 Node provider 校验当前 `app/` hash，生产 Runtime 按 artifact ID 从统一 Registry/Object Store 解析，官方固定 Git revision 与用户固定 ready Revision 使用同一 artifact 协议。
+- catalog codegen、定向 unit 15/15、全仓 19 个 workspace project 的递归 typecheck/build、文档链接、Docs production build 与 `git diff --check` 通过；本地 Synapse Chromium 的 Product State 9/9 与 Matrix Space 2/2 通过，覆盖市场 Artifact 数据、固定 Template Version 创建、App iframe 真实聊天和刷新恢复。
+
+2026-08-24 Template App 多文件项目修正证据：
+
+- 五个官方 App 与 Runtime seed 已把 `src/index.ts` 收敛为约 250 字节的装配入口，Runtime、page、Template App 和默认 Chat UI 分为至少 9 个源码模块；`src/index.ts` 不再内联整页 HTML/CSS/浏览器脚本。
+- Template Registry、codegen、Node Artifact provider、Space Project Store、Dev Preview 和 Host/AgentOS Agent 工作区均改为完整项目树协议：保留三个历史入口的 canonical 顺序并对新增路径稳定排序，嵌套文件参与 hash，三个必需入口不是白名单；路径穿越、隐藏文件、依赖/构建目录、符号链接、文件数与大小越界被拒绝。迁移后本地已有 25/25 Space Project 均通过 sourceHash 加载校验。
+- 新建 `space-campfire` 测试 Space 从 11 文件 Artifact 完成真实 Runtime bootstrap，Dev VM 成功转译模块依赖并返回 200、`夜航电台` 标题与 Default Chat App marker。Space Runtime/Template 定向 unit 18/18、五个官方 Project 与 seed 独立 TypeScript 编译、catalog check、全仓 18/18 typecheck/build、Docs production build、文档检查和 `git diff --check` 通过。
+
+**文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
+
+本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。
+
+#30 的真实 Matrix Chat 与 #35 的官方 Space 目录/收藏是本组必须保持的基础回归，不会被 #40 替代。#40 只能增量增加空白创建、Default Chat App、完整 SDK、Agent、ready Revision 和 Release。
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 市场模板创建 Space | A/B 已是联系人 → A 从 Discover 浏览分类/详情并收藏模板 → 选择固定版本创建 Space → 请求保留模板引用 → 幂等创建 Matrix Room、Space Instance 和独立 Project → 双方进入同一 Space |
-| 2 | 空白 Space 与后选模板 | A 选择空白创建 → 不含模板字段也能立即进入完整 Chat → 之后从 Kernel/Discover 选择模板 → 创建可回退 Draft，成员、消息和历史不变 |
-| 3 | Kernel/Chat/App 三边界 | 进入 Space → Kernel 状态与控制、完整 Chat、隔离 App 都可访问 → 不存在 Studio 第四边界 → App 视觉变化不能隐藏、替换或伪造 Kernel/Chat |
-| 4 | 完整 Chat 基线 | App 未 ready、Agent 未配置、余额不足和 Runtime 断线四种状态下 → 双方仍可文字/媒体/回复/编辑/删除/回应/已读/typing → 真实 Matrix timeline 与错误恢复保持工作 |
-| 5 | 显式 Agent 寻址 | A/B 普通讨论只进入 Matrix、不调用 Agent → A `@Agent` 或从 Kernel 选择 Agent 提问 → 仅该请求完成 ACL/credits 后入队 → Agent 回复以明确身份进入 Chat |
+| 1 | 市场模板创建 Space | A/B 已是联系人 → A 从 Discover 浏览分类/详情并收藏模板 → Default Chat 与四个差异化官方条目分别暴露不可变 Version/Artifact 引用 → 选择固定版本创建 Space → Runtime 解析 artifact 并幂等创建 Matrix Room、Space Instance、Project 和 ready Revision → 双方立即进入同一可用 Space |
+| 2 | 空白 Space 与后选模板 | A 选择空白创建 → 复制 Default Chat App 并立即可聊天 → 之后从 Kernel/Discover 选择模板 → Candidate 验证成功后实时切换 ready Revision，成员、消息和历史不变 |
+| 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Default Chat UI 位于 App 源码 → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
+| 4 | 不可修改 Chat Core | 分别在 Default Chat App 和不同布局 Template App 中 → 双方完成文字/媒体/回复/编辑/删除/Reaction/已读/typing/历史 → 两个 App 使用同一 SDK/Matrix timeline/ACL，UI 变化不改变能力语义 |
+| 5 | Mention 与 Agent 调度 | App 查询结构化 member/agent target → 普通讨论只进入 Matrix、不调用 Agent → 带 Agent Mention 的消息先获得 Matrix event ID → 仅该事件完成 ACL/credits 和幂等入队 → Agent 回复以明确平台身份进入 Chat Core |
 | 6 | Agent provider-neutral | 相同合约分别接 Pi Adapter 与 fake/第二 Adapter → Agent ID/provider 可切换 → Project、queue、usage、错误、权限和 UI 不出现 Pi 专属字段或行为依赖 |
-| 7 | Conversation 与 Revision | A 向 Agent 提问只得到回复，Project 指针不变 → 再请求改变 App → Agent 生成 candidate → Space Dev 成功 → 双方看到相同 Draft 和“尚未发布”，Live 不变 |
+| 7 | Conversation 与 Revision | A 向 Agent 提问只得到回复，Project 指针不变 → 再请求改变 App → Agent 生成 Candidate → Runtime 验证成功 → 双方实时看到相同 ready Revision → Published Release 不被改写 |
 | 8 | 多成员批次与单写 | A/B 连续提交兼容定制 → 保留作者、Agent 和顺序并合并一批 → 同一 Space 只有一个 active write batch → 不同 Space 在配额内并行 → 普通 Chat 不被批处理阻塞 |
-| 9 | Publish 屏障与不可变发布 | 修改 M1 → 发布 P → 修改 M2 连续入队 → P 只发布固定 M1 Revision并原子更新 Live → M2 不越过 P → 重复 idempotency key 返回同一 Release |
-| 10 | 失败保护与恢复 | 已有可用 Live 时提交无法构建的 Draft/发布 → 自动修复达到上限后稳定失败 → 最后 ready Draft 与 Live 不被覆盖 → Kernel 显示截断诊断且 Chat 保持可用 |
-| 11 | Space SDK 数据语义 | 双浏览器 App 读取真实 members/messages → presence 实时同步且断开移除 → state.set 刷新/重连后恢复并支持 revision conflict → emit 只实时广播 → chat.send 使用当前成员身份 |
-| 12 | iframe 与身份安全 | 伪造 iframe/source/nonce/action/userId/spaceId/agentId、超大 JSON、原型污染 key 和越权 publish → Kernel/Backend 拒绝 → App 无法读取 Cookie、Matrix token、Agent 凭据、源码或发布 API |
-| 13 | ACL、积分与退款 | `space.chat` 与 `agent.invoke` 独立 → 无 Agent 权限/余额时消息仍进 Chat但请求不入队 → 有权限请求逐条 reservation → provider/Dev 失败只退款一次 → 重放不重复扣费 |
-| 14 | 重启、多副本与跨系统恢复 | Agent active、队列 pending、Draft/Live、Template lineage 和 App State 存在时终止 lease owner → 第二 Runtime replica 接管同一 `spaceInstanceId` → interrupted Turn 回队首、sequence/snapshot 恢复 → 不重复 Matrix 消息、Revision、Release 或账务，Chat 全程可用 |
-| 15 | 现有房间与多人 Space 统一 | 准备一个历史一对一 `room_index`、一个历史群聊和一个新多人 Space → 原地回填唯一 `spaceInstanceId`，不创建新记录/Matrix Room → 三者都经同一 SpaceInstanceRepository/Server/Project/SDK/queue → v1/v2 双读且参与人数不触发实现分支 |
+| 9 | Publish 屏障与不可变发布 | ready Revision M1 → 发布 P → 修改 M2 连续入队 → P 只固化 M1 并原子更新 Published 指针 → M2 不越过 P 且仍可成为当前 ready Revision → 重复 idempotency key 返回同一 Release |
+| 10 | 失败保护与恢复 | 当前运行 ready Revision 时提交无法构建的 Candidate/发布 → Candidate 在独立版本实例中失败且不会终止当前 ready App → App 代理保持真实非 2xx，不合成包级 Default Chat 页面 → 当前 ready Revision 在 iframe 重载与页面刷新后仍按固定版本可用，Published Release 不被覆盖 → Kernel Bar 显示诊断并可显式恢复由 Template Project 管理的 Default Chat App |
+| 11 | Space SDK 数据语义 | 双浏览器 App 读取真实 members/chat → 完整消息操作、Mention、presence、state CAS 和瞬时 event 均走版本化 SDK → chat.send 使用当前成员身份 → UI 代码无法改变服务端结果 |
+| 12 | iframe 与身份安全 | 伪造 iframe/source/nonce/action/userId/spaceId/mention target/agentId、超大 JSON、原型污染 key 和越权 publish → Kernel/Backend 拒绝 → App 无法覆盖 Kernel Bar、读取 Cookie/Matrix token/Agent 凭据/源码或发布 API |
+| 13 | ACL、积分与退款 | `space.chat` 与 `agent.invoke` 独立 → 无 Agent 权限/余额时消息仍进 Chat但请求不入队 → 有权限请求逐条 reservation → provider/Candidate 构建失败只退款一次 → 重放不重复扣费 |
+| 14 | 重启、多副本与跨系统恢复 | Agent active、队列 pending、ready/Published 指针、Template lineage 和 App State 存在时终止 lease owner → 第二 Runtime replica 接管同一 `spaceInstanceId` → interrupted Turn 回队首、sequence/snapshot 恢复 → 不重复 Matrix 消息、Revision、Release 或账务 |
+| 15 | 现有房间与多人 Space 统一 | 准备一个带 v1 模板 lineage 的历史一对一 `room_index`、一个历史群聊和一个新多人 Space → 原地回填唯一 `spaceInstanceId`，不创建新记录/Matrix Room → 历史实例按 lineage lazy bootstrap 兼容 Project → 三者都经同一 SpaceInstanceRepository/Server/Project/SDK/queue → v1/v2 双读且参与人数不触发实现分支 |
 | 16 | 基础能力无回归 | #26–#39 与 #40 一起运行 → 认证、资料、联系人、邀请、Chat、Discover、分类、详情、收藏、模板版本、账户和 Admin 全绿 → 不删除 `/v1/spaces` 或模板创建 |
+| 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责 Runtime 启动与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，不能把完整 App 压进入口文件，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
+| 18 | Template 有序版本治理 | 新 Template 必须从 `0.1.0` 开始 → 仅不可变 Project/能力/兼容契约变化允许按 SemVer 单步升 patch/minor/major → 跳号、倒序、重复版本、空内容升级和非规范版本被拒绝 → `currentVersionId` 始终指向最高版本 → Template schema、SDK/Runtime、Space Revision/Release 版本不与 Template 版本联动 |
 
 ---
 
@@ -1372,7 +1464,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 | ✅ | 37 | 跨宿主 Workspace Package 边界 | pnpm workspace、backend/Web/Site、SQLite、本地 Synapse | 8 |
 | ✅ | 38 | 独立 Admin App 与运营管理链路 | Admin/Backend、SQLite、seeded Admin/普通用户 | 9 |
 | ✅ | 39 | 产品能力完整迁移 | Web/Backend/Admin、SQLite、本地 Synapse | 9 |
-| Planned | 40 | Space App：聊天之上的可定制空间 | Web/Backend/Space Runtime、SQLite、本地 Synapse、双 Chromium | 16 |
+| Planned | 40 | Space App：聊天之上的可定制空间 | Web/Backend/Space Runtime、SQLite、本地 Synapse、双 Chromium | 17 |
 
 ---
 
@@ -1382,7 +1474,12 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-24 | Space Template version governance + Market + Web + Synapse | 24 | 0 | 0 | SemVer/兼容 alias/Room/Market 定向 unit 15/15；真实 Product State Chromium 9/9；创建流程五个官方 Template 均显示 v0.1.0；另通过 19 个 workspace project 递归 typecheck/build、Docs build、边界和文档检查 |
+| 2026-08-24 | Space App cold start + Web + Runtime + Synapse | 7 | 0 | 0 | ready App 状态机 unit 5/5；真实 Matrix Space Chromium 2/2，首个 App 文档不再返回 Default Chat recovery；另通过全仓 18/18 typecheck/build、边界和文档检查 |
+| 2026-08-24 | Space Template + Market + Runtime + Web + Synapse | 25 | 0 | 0 | 统一官方/用户协议 unit 14/14；Product State Chromium 9/9；Matrix Space Chromium 2/2；另通过全仓 18/18 typecheck/build、文档链接检查和 Docs production build |
+| 2026-08-23 | Space-first Web + Backend + Runtime + Synapse | 12 | 0 | 0 | `/spaces` 首页与 Space 实例详情、旧 URL 重定向、创建/邀请/双向 Chat、App 503 故障隔离、移动端 Space 控件；另通过 docs 检查/构建及全仓 18/18 typecheck/build |
 | 2026-08-23 | Web + Backend + Synapse | 1 | 0 | 0 | 创建对话 Portal 弹窗 surface 回归：好友申请、双向联系人、不透明弹窗、Space 创建、Matrix 邀请与双向消息；另完成真实浏览器视觉走查、17 packages/apps typecheck 与完整 build |
+| 2026-08-23 | Space Template + Runtime + Web + Synapse | 13 | 0 | 0 | 四个官方模板 v2/兼容 v1、Project bootstrap、opaque iframe SDK 注入、共享 state/刷新恢复和 Chat 共存；真实浏览器创建 1 个 v2 Space 并 lazy bootstrap 1 个历史 v1 Space |
 | 2026-08-14 | Site + Web + Admin | 10 | 0 | 0 | 多应用无前缀本地化与公开页面 Chromium 回归：默认语言、URL 不变的语言切换、跨端 Cookie、三端旧前缀兼容、双语 404、公开表单与根入口；另完成真实浏览器三端走查且控制台无 error |
 | 2026-08-14 | Web + Backend + Admin + Site + Synapse | 53 | 0 | 0 | 产品能力迁移最终 Chromium 回归：账户/安全、上传真实失败关闭、AI 结算退款、支付失败幂等、推荐奖励、提现 KYC、Admin CRUD 与完整 Matrix 聊天链路；另通过 Application Service 集成、API ownership、领域单元测试、10 packages 与四 app 构建、Workers 预览和 docs 静态导出 |
 | 2026-08-13 | Admin + Backend + Web | 3 | 0 | 0 | 修复当时 `/$lang/admin/*` 与 `/api/admin/*` 的同名路由碰撞；Admin E2E 禁止接口重定向、校验 JSON content-type，并等待八个运营页面的真实 API 成功响应；另完成中文用户/订阅管理页浏览器走查、10 packages + 4 apps typecheck、packages + Backend/Web/Site/Admin/Docs build |

@@ -61,7 +61,37 @@ export interface ChatRoom {
 }
 
 export interface AtmosphereSpace {
+  schemaVersion: 'vibechat.space-template-market-entry/v1'
   id: string
+  versionId: string
+  semanticVersion: string
+  integrity: string
+  sourceHash: string
+  manifestHash: string
+  artifact: {
+    schemaVersion: 'vibechat.space-template-artifact/v1'
+    id: string
+    format: 'agentos-app-v1'
+    sourceHash: string
+  }
+  projectFormat: 'agentos-app-v1'
+  compatibility: {
+    spaceAppSdk: 'v1'
+    runtime: 'agentos-apps-0.2'
+  }
+  provenance: {
+    origin: 'repository' | 'app'
+    publisherId: string
+    sourcePath?: string
+    sourceRevision?: string
+    sourceSpaceRevisionId?: string
+    buildId?: string
+  }
+  publisher: {
+    id: string
+    displayName: string
+    verification: 'official' | 'verified' | 'unverified'
+  }
   name: string
   author: string
   summary: string
@@ -71,7 +101,6 @@ export interface AtmosphereSpace {
   canvas: string
   permissions: string[]
   networkDomains: string[]
-  official: boolean
   favoriteCount: number
 }
 

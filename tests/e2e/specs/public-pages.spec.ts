@@ -74,7 +74,7 @@ test.describe('Split application boundaries', () => {
 
   test('web root is a product entry and backend health is same-origin', async ({ page }) => {
     await page.goto(PAGES.home, { timeout: TIMEOUTS.navigation });
-    await expect(page).toHaveURL(/\/(messages|signin)$/);
+    await expect(page).toHaveURL(/\/(spaces|signin)$/);
 
     const health = await page.request.get('/api/health');
     expect(health.ok(), await health.text()).toBeTruthy();

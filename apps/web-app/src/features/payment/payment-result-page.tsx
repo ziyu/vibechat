@@ -64,7 +64,7 @@ export function PaymentResultPage({ mode }: { mode: 'success' | 'cancel' }) {
         {checking ? <div className="vc-payment-checking"><RefreshCcw className="vc-spin" />{attempt < 15 ? t.payment.steps.payDesc : t.payment.result.failed}</div> : null}
         <div className="vc-payment-result-actions">
           {mode === 'success' ? <Link to="/account">{t.payment.result.success.actions.viewSubscription}</Link> : <Link to="/services">{t.payment.result.cancel.actions.tryAgain}</Link>}
-          <Link to="/messages" data-quiet>{mode === 'success' ? t.payment.result.success.actions.backToHome : t.payment.result.cancel.actions.backToHome}</Link>
+          <Link to="/spaces" data-quiet>{mode === 'success' ? t.payment.result.success.actions.backToHome : t.payment.result.cancel.actions.backToHome}</Link>
           {checking && attempt >= 15 ? <button type="button" onClick={() => { setAttempt(0); void verify() }}>{t.chatApp.account.retry}</button> : null}
         </div>
       </div>

@@ -1,19 +1,21 @@
 import { createHash } from "node:crypto";
+import { posix } from "node:path";
 import { createClient } from "@rivet-dev/agentos/client";
 import ts from "typescript";
 import type { registry } from "./actors.js";
 import {
   assertAppId,
-  editablePaths,
+  projectFilePaths,
   type ProjectFiles,
 } from "./project-store.js";
 
 const workspace = "/workspace";
 const devPort = 4173;
 const runnerPath = `${workspace}/space-dev-runner.mjs`;
-const applicationPath = `${workspace}/space-dev-application.mjs`;
+const devBuildRoot = `${workspace}/.space-dev`;
 const rivetKitShimPath = `${workspace}/space-dev-rivetkit.mjs`;
 const maximumProxyBodyBytes = 4 * 1024 * 1024;
+const maximumRetainedReadyPreviews = 3;
 const decoder = new TextDecoder();
 const devSessionId = `${process.pid}-${Date.now().toString(36)}`;
 
@@ -33,6 +35,14 @@ export interface DevPreviewResult {
   url: string;
 }
 
+interface ReadyDevPreview extends DevPreviewResult {
+  actorKey: string;
+  pid: number;
+}
+
+type DevPreviewVm = ReturnType<typeof client.vm.getOrCreate>;
+export type DevPreviewVmFactory = (actorKey: string) => DevPreviewVm;
+
 export class DevPreviewError extends Error {
   readonly code = "space_dev_preview_failed";
   readonly diagnostics: string;
@@ -48,11 +58,19 @@ type StatusReporter = (message: string) => void | Promise<void>;
 
 export class DevPreviewManager {
   readonly #statuses = new Map<string, DevPreviewStatus>();
-  readonly #pids = new Map<string, number>();
+  readonly #readyPreviews = new Map<string, Map<string, ReadyDevPreview>>();
+  readonly #latestReadyVersions = new Map<string, string>();
   readonly #active = new Map<
     string,
     { version: string; promise: Promise<DevPreviewResult> }
   >();
+  readonly #getVm: DevPreviewVmFactory;
+
+  constructor(
+    getVm: DevPreviewVmFactory = (actorKey) => client.vm.getOrCreate(actorKey),
+  ) {
+    this.#getVm = getVm;
+  }
 
   status(appId: string): DevPreviewStatus {
     assertAppId(appId);
@@ -66,11 +84,19 @@ export class DevPreviewManager {
   ): Promise<DevPreviewResult> {
     assertAppId(appId);
     const version = draftVersion(files);
-    const current = this.#statuses.get(appId);
-    if (current?.state === "ready" && current.version === version) {
+    const retained = this.#readyPreviews.get(appId)?.get(version);
+    if (retained) {
+      if (!this.#active.has(appId)) {
+        this.#latestReadyVersions.set(appId, version);
+        this.#statuses.set(appId, {
+          state: "ready",
+          version,
+          updatedAt: retained.updatedAt,
+        });
+      }
       return Promise.resolve({
         version,
-        updatedAt: current.updatedAt,
+        updatedAt: retained.updatedAt,
         url: devPreviewUrl(appId, version),
       });
     }
@@ -104,11 +130,19 @@ export class DevPreviewManager {
         `dev preview request exceeds ${maximumProxyBodyBytes} bytes`,
       );
     }
-    const status = this.status(appId);
-    if (status.state !== "ready") {
-      throw new DevPreviewError("Space 开发预览尚未就绪");
+    const requestedVersion = devPreviewVersionFromUrl(url);
+    const version = requestedVersion ?? this.#latestReadyVersions.get(appId);
+    const preview = version
+      ? this.#readyPreviews.get(appId)?.get(version)
+      : undefined;
+    if (!preview) {
+      throw new DevPreviewError(
+        requestedVersion
+          ? `Space ready Revision ${requestedVersion} is unavailable`
+          : "Space 开发预览尚未就绪",
+      );
     }
-    return client.vm.getOrCreate(devActorKey(appId)).vmFetch(devPort, url, {
+    return this.#getVm(preview.actorKey).vmFetch(devPort, url, {
       method: request.method,
       headers: request.headers,
       ...(request.body ? { body: request.body } : {}),
@@ -122,34 +156,45 @@ export class DevPreviewManager {
     onStatus?: StatusReporter,
   ): Promise<DevPreviewResult> {
     this.#statuses.set(appId, { state: "building", version });
-    const agent = client.vm.getOrCreate(devActorKey(appId));
+    const actorKey = devActorKey(appId, version);
+    const agent = this.#getVm(actorKey);
 
     try {
       await onStatus?.("正在同步到 Space Dev VM…");
-      await agent.filesystem.mkdir(`${workspace}/src`, { recursive: true });
+      const sourcePaths = projectFilePaths(files);
+      const sourceDirectories = new Set(
+        sourcePaths
+          .map((path) => posix.dirname(path))
+          .filter((path) => path !== "."),
+      );
+      for (const directory of [...sourceDirectories].sort()) {
+        await agent.filesystem.mkdir(`${workspace}/${directory}`, { recursive: true });
+      }
       await agent.filesystem.writeFiles(
-        editablePaths.map((path) => ({
+        sourcePaths.map((path) => ({
           path: `${workspace}/${path}`,
           content: files[path],
         })),
       );
 
       await onStatus?.("正在快速转译开发版本…");
-      const compiled = compileDevApplication(files["src/index.ts"]);
+      const compiled = compileDevProject(files);
+      const buildDirectories = new Set(
+        compiled.files
+          .map((file) => posix.dirname(file.path))
+          .filter((path) => path !== "."),
+      );
+      for (const directory of [...buildDirectories].sort()) {
+        await agent.filesystem.mkdir(`${devBuildRoot}/${directory}`, { recursive: true });
+      }
       await agent.filesystem.writeFiles([
-        { path: applicationPath, content: compiled.code },
+        ...compiled.files.map((file) => ({
+          path: `${devBuildRoot}/${file.path}`,
+          content: file.content,
+        })),
         { path: rivetKitShimPath, content: rivetKitShim(compiled.imports) },
         { path: runnerPath, content: devRunnerSource() },
       ]);
-      const previousPid = this.#pids.get(appId);
-      if (
-        previousPid !== undefined &&
-        Number.isSafeInteger(previousPid) &&
-        previousPid > 0
-      ) {
-        await agent.process.kill(previousPid).catch(() => undefined);
-      }
-
       await onStatus?.("正在重载 Space 开发应用…");
       const process = await agent.javascript.spawnFile(runnerPath, {
         cwd: workspace,
@@ -159,10 +204,16 @@ export class DevPreviewManager {
         },
         output: { retainEvents: true },
       });
-      this.#pids.set(appId, process.pid);
       await waitUntilReady(agent, process.pid, version);
 
       const updatedAt = new Date().toISOString();
+      await this.#retainReadyPreview(appId, {
+        version,
+        updatedAt,
+        url: devPreviewUrl(appId, version),
+        actorKey,
+        pid: process.pid,
+      });
       this.#statuses.set(appId, { state: "ready", version, updatedAt });
       return { version, updatedAt, url: devPreviewUrl(appId, version) };
     } catch (error) {
@@ -175,22 +226,48 @@ export class DevPreviewManager {
       throw normalized;
     }
   }
+
+  async #retainReadyPreview(appId: string, preview: ReadyDevPreview) {
+    let retained = this.#readyPreviews.get(appId);
+    if (!retained) {
+      retained = new Map();
+      this.#readyPreviews.set(appId, retained);
+    }
+    retained.delete(preview.version);
+    retained.set(preview.version, preview);
+    this.#latestReadyVersions.set(appId, preview.version);
+
+    while (retained.size > maximumRetainedReadyPreviews) {
+      const oldest = retained.entries().next().value as
+        | [string, ReadyDevPreview]
+        | undefined;
+      if (!oldest) break;
+      retained.delete(oldest[0]);
+      await this.#getVm(oldest[1].actorKey).process.kill(oldest[1].pid)
+        .catch(() => undefined);
+    }
+  }
 }
 
 export function draftVersion(files: ProjectFiles) {
   const hash = createHash("sha256");
-  for (const path of editablePaths) {
+  for (const path of projectFilePaths(files)) {
     hash.update(path).update("\0").update(files[path]).update("\0");
   }
   return hash.digest("hex").slice(0, 16);
 }
 
 export function devPreviewUrl(appId: string, version: string) {
-  return `/runtime/dev/apps/${encodeURIComponent(appId)}/?draft=${encodeURIComponent(version)}`;
+  return `/runtime/dev/apps/${encodeURIComponent(appId)}/?version=${encodeURIComponent(version)}`;
 }
 
-function devActorKey(appId: string) {
-  return `space-dev-${devSessionId}-${appId}`;
+function devPreviewVersionFromUrl(url: string) {
+  const search = new URL(url).searchParams;
+  return search.get("version") ?? search.get("draft");
+}
+
+function devActorKey(appId: string, version: string) {
+  return `space-dev-${devSessionId}-${appId}-${version}`;
 }
 
 async function waitUntilReady(
@@ -239,76 +316,96 @@ function normalizeDevError(error: unknown) {
   return new DevPreviewError(message);
 }
 
-function compileDevApplication(source: string) {
-  const sourceFile = ts.createSourceFile(
-    "src/index.ts",
-    source,
-    ts.ScriptTarget.ES2022,
-    true,
-    ts.ScriptKind.TS,
-  );
+function compileDevProject(project: ProjectFiles) {
   const imports = new Set<string>();
-  for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement)) continue;
-    const specifier = ts.isStringLiteral(statement.moduleSpecifier)
-      ? statement.moduleSpecifier.text
-      : "";
-    if (specifier !== "rivetkit" && !specifier.startsWith("rivetkit/")) {
+  const output = new Map<string, string>();
+  for (const path of projectFilePaths(project)) {
+    const source = project[path];
+    if (!/\.tsx?$/.test(path)) {
+      output.set(path, source);
       continue;
     }
-    const bindings = statement.importClause?.namedBindings;
-    if (bindings && ts.isNamedImports(bindings)) {
-      for (const binding of bindings.elements) {
-        imports.add(binding.propertyName?.text ?? binding.name.text);
+    const sourceFile = ts.createSourceFile(
+      path,
+      source,
+      ts.ScriptTarget.ES2022,
+      true,
+      path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+    for (const statement of sourceFile.statements) {
+      if (!ts.isImportDeclaration(statement)) continue;
+      const specifier = ts.isStringLiteral(statement.moduleSpecifier)
+        ? statement.moduleSpecifier.text
+        : "";
+      if (specifier !== "rivetkit" && !specifier.startsWith("rivetkit/")) {
+        continue;
+      }
+      const bindings = statement.importClause?.namedBindings;
+      if (bindings && ts.isNamedImports(bindings)) {
+        for (const binding of bindings.elements) {
+          imports.add(binding.propertyName?.text ?? binding.name.text);
+        }
       }
     }
-  }
 
-  const result = ts.transpileModule(source, {
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-      verbatimModuleSyntax: false,
-    },
-    fileName: "src/index.ts",
-    reportDiagnostics: true,
-  });
-  const errors = (result.diagnostics ?? []).filter(
-    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
-  );
-  if (errors.length > 0) {
-    const diagnostics = errors
-      .map((diagnostic) => {
-        const message = ts.flattenDiagnosticMessageText(
-          diagnostic.messageText,
-          "\n",
-        );
-        if (diagnostic.start === undefined) return message;
-        const position = sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
-        return `src/index.ts:${position.line + 1}:${position.character + 1} ${message}`;
-      })
-      .join("\n");
-    throw new DevPreviewError("开发版本存在 TypeScript 语法错误", diagnostics);
-  }
-
-  const code = result.outputText
-    .replace(
-      /(\bfrom\s*)(["'])rivetkit(?:\/[^"']*)?\2/g,
-      (_match, prefix: string, quote: string) =>
-        `${prefix}${quote}./space-dev-rivetkit.mjs${quote}`,
-    )
-    .replace(
-      /(^\s*import\s*)(["'])rivetkit(?:\/[^"']*)?\2/gm,
-      (_match, prefix: string, quote: string) =>
-        `${prefix}${quote}./space-dev-rivetkit.mjs${quote}`,
-    )
-    .replace(
-      /(\bimport\s*\(\s*)(["'])rivetkit(?:\/[^"']*)?\2/g,
-      (_match, prefix: string, quote: string) =>
-        `${prefix}${quote}./space-dev-rivetkit.mjs${quote}`,
+    const result = ts.transpileModule(source, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        verbatimModuleSyntax: false,
+        jsx: ts.JsxEmit.ReactJSX,
+      },
+      fileName: path,
+      reportDiagnostics: true,
+    });
+    const errors = (result.diagnostics ?? []).filter(
+      (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
     );
-  return { code, imports };
+    if (errors.length > 0) {
+      const diagnostics = errors
+        .map((diagnostic) => {
+          const message = ts.flattenDiagnosticMessageText(
+            diagnostic.messageText,
+            "\n",
+          );
+          if (diagnostic.start === undefined) return `${path}: ${message}`;
+          const position = sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
+          return `${path}:${position.line + 1}:${position.character + 1} ${message}`;
+        })
+        .join("\n");
+      throw new DevPreviewError("开发版本存在 TypeScript 语法错误", diagnostics);
+    }
+
+    const code = result.outputText
+      .replace(
+        /(\bfrom\s*)(["'])rivetkit(?:\/[^"']*)?\2/g,
+        (_match, prefix: string, quote: string) =>
+          `${prefix}${quote}file://${rivetKitShimPath}${quote}`,
+      )
+      .replace(
+        /(^\s*import\s*)(["'])rivetkit(?:\/[^"']*)?\2/gm,
+        (_match, prefix: string, quote: string) =>
+          `${prefix}${quote}file://${rivetKitShimPath}${quote}`,
+      )
+      .replace(
+        /(\bimport\s*\(\s*)(["'])rivetkit(?:\/[^"']*)?\2/g,
+        (_match, prefix: string, quote: string) =>
+          `${prefix}${quote}file://${rivetKitShimPath}${quote}`,
+      );
+    const outputPath = path.replace(/\.tsx?$/, ".js");
+    if (output.has(outputPath) && outputPath !== path) {
+      throw new DevPreviewError(`开发项目的输出路径冲突：${outputPath}`);
+    }
+    output.set(outputPath, code);
+  }
+  if (!output.has("src/index.js")) {
+    throw new DevPreviewError("开发项目缺少可执行入口 src/index.ts");
+  }
+  return {
+    files: [...output].map(([path, content]) => ({ path, content })),
+    imports,
+  };
 }
 
 function rivetKitShim(imports: Set<string>) {
@@ -365,7 +462,7 @@ function devRunnerSource() {
 
 const port = Number(process.env.SPACE_DEV_PORT || "${devPort}");
 const version = process.env.SPACE_DEV_VERSION || "dev";
-const application = await import("./space-dev-application.mjs");
+const application = await import("./.space-dev/src/index.js");
 if (typeof application.default !== "function") {
   throw new TypeError("Space App must default-export a fetch handler");
 }

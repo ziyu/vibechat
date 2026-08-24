@@ -10,11 +10,17 @@ const input = {
   name: "Afterglow",
   inviteMatrixUserIds: ["@vibe_friend:localhost"],
   space: {
-    spaceId: "space-campfire",
-    semanticVersion: "1.0.0",
-    integrity: "builtin:space-campfire@1.0.0",
+    id: "space-campfire",
+    versionId: "tplv-space-campfire-0-1-0",
+    semanticVersion: "0.1.0",
+    integrity: "template:space-campfire@0.1.0+sha256.example",
     permissions: ["messages.read", "messages.send"],
     networkDomains: [],
+    publisher: {
+      id: "publisher-vibechat",
+      displayName: "VibeChat",
+      verification: "official" as const,
+    },
   },
   instanceConfig: { ambient: "night" },
 };
@@ -46,7 +52,12 @@ describe("SynapseMatrixRoomAdapter", () => {
         type: "io.vibechat.space.instance.v1",
         state_key: "",
         content: {
-          spaceId: "space-campfire",
+          templateId: "space-campfire",
+          templateVersionId: "tplv-space-campfire-0-1-0",
+          publisher: {
+            id: "publisher-vibechat",
+            verification: "official",
+          },
           createdBy: "@vibe_creator:localhost",
           instanceConfig: { ambient: "night" },
         },

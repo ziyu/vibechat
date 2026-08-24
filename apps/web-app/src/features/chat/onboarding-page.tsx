@@ -38,7 +38,7 @@ export function OnboardingPage() {
       .then((nextProfile) => {
         if (disposed) return
         if (nextProfile.onboardingCompleted) {
-          browserProductPlatform.navigation.openMessages(locale)
+          browserProductPlatform.navigation.openSpaces(locale)
           return
         }
         setProfile(nextProfile)
@@ -81,7 +81,7 @@ export function OnboardingPage() {
         avatarUrl,
         completeOnboarding: true,
       })
-      browserProductPlatform.navigation.openMessages(locale)
+      browserProductPlatform.navigation.openSpaces(locale)
     } catch (cause) {
       const code = cause instanceof ProductApiClientError
         ? cause.code

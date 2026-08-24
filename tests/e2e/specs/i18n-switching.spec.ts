@@ -98,7 +98,7 @@ test.describe('locale-neutral multi-app routing', () => {
     for (const locale of ['en', 'zh-CN'] as const) {
       await context.clearCookies()
       await preferLocale(context, locale)
-      await expectLocalized404(page, locale, `${ORIGINS.web}/fr/messages`)
+      await expectLocalized404(page, locale, `${ORIGINS.web}/fr/spaces`)
       await expectLocalized404(page, locale, `${ORIGINS.site}/fr/blog`)
       await expectLocalized404(page, locale, `${ORIGINS.admin}/fr/admin`)
     }

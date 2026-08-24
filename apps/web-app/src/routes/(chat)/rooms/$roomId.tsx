@@ -1,11 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { RoomPage } from '@/features/chat/room-page'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(chat)/rooms/$roomId')({
-  component: RoomRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/spaces/$spaceId',
+      params: { spaceId: params.roomId },
+    })
+  },
 })
-
-function RoomRoute() {
-  const { roomId } = Route.useParams()
-  return <RoomPage roomId={roomId} />
-}

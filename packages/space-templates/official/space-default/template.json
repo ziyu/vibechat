@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "vibechat.space-template/v1",
+  "id": "space-default",
+  "slug": "default",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "category": "daily",
+  "name": {
+    "en": "Vibe Chat",
+    "zh-CN": "默认 Chat"
+  },
+  "summary": {
+    "en": "A calm, complete Chat App ready to use now and reshape with an Agent later.",
+    "zh-CN": "创建后立即可用的完整 Chat App，之后可随时通过 Agent 改造成任何形态。"
+  },
+  "author": "VibeChat Kernel",
+  "icon": "V",
+  "accent": "#ff5a3d",
+  "canvas": "#10120f",
+  "currentVersionId": "tplv-space-default-0-1-0"
+}

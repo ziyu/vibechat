@@ -7,7 +7,7 @@ import type { SpaceCategory } from '@vibechat/product-core'
 import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { SpaceGlyph } from './chat-primitives'
-import { NewChatDialog } from './new-chat-dialog'
+import { NewSpaceDialog } from './new-space-dialog'
 
 const categories: Array<'all' | SpaceCategory> = ['all', 'daily', 'focus', 'play', 'ritual']
 
@@ -70,7 +70,9 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
           </div>
           <div className="vc-space-detail-copy">
             <span className="vc-kicker">
-              {selectedSpace.official ? t.chatApp.discover.official : t.chatApp.discover.community}
+              {selectedSpace.publisher.verification === 'official'
+                ? t.chatApp.discover.official
+                : t.chatApp.discover.community}
             </span>
             <h1>{selectedSpace.name}</h1>
             <p className="vc-space-author">{t.chatApp.discover.by.replace('{author}', selectedSpace.author)}</p>
@@ -111,7 +113,7 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
           </div>
         </div>
 
-        <NewChatDialog
+        <NewSpaceDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           initialSpaceId={selectedSpace.id}
@@ -166,7 +168,9 @@ export function DiscoverPage({ spaceId }: { spaceId?: string }) {
                 <span className="vc-space-card-symbol">{space.icon}</span>
                 <i />
                 <span className="vc-space-card-badge">
-                  {space.official ? t.chatApp.discover.official : t.chatApp.discover.community}
+                  {space.publisher.verification === 'official'
+                    ? t.chatApp.discover.official
+                    : t.chatApp.discover.community}
                 </span>
               </Link>
               <div className="vc-space-card-copy">

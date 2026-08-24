@@ -19,6 +19,7 @@
     "@vibechat/api-contracts": "workspace:*",
     "@vibechat/i18n": "workspace:*",
     "@vibechat/space-app-sdk": "workspace:*",
+    "@vibechat/space-templates": "workspace:*",
     "@vibechat/validators": "workspace:*",
     "@tanstack/react-router": "^1.120.3",
     "@tanstack/react-start": "^1.120.3",

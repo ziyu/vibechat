@@ -5,6 +5,7 @@ import {
 } from '@vibechat/api-contracts'
 import {
   authorizeSpaceRuntimeRequest,
+  ensureSpaceTemplateProject,
   fetchSpaceRuntime,
   runtimeJsonInit,
 } from '@/lib/space-runtime'
@@ -50,6 +51,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
             })
           }
 
+          await ensureSpaceTemplateProject(access.instance)
           const callbackOrigin = process.env.SPACE_RUNTIME_CALLBACK_ORIGIN?.trim() || 'http://127.0.0.1:8002'
           const response = await fetchSpaceRuntime(
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}/messages`,

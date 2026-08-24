@@ -14,7 +14,7 @@ import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
 
-export function NewChatDialog({
+export function NewSpaceDialog({
   open,
   onOpenChange,
   initialSpaceId,
@@ -25,13 +25,13 @@ export function NewChatDialog({
   initialSpaceId?: string
   initialParticipantIds?: string[]
 }) {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { state, createRoom } = useChat()
   const [step, setStep] = useState(initialSpaceId ? 0 : 0)
   const [query, setQuery] = useState('')
   const [participantIds, setParticipantIds] = useState<string[]>(initialParticipantIds ?? [])
-  const [spaceId, setSpaceId] = useState(initialSpaceId ?? '')
+  const [spaceId, setSpaceId] = useState(initialSpaceId ?? 'space-default')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(false)
 
@@ -40,7 +40,7 @@ export function NewChatDialog({
     setStep(0)
     setQuery('')
     setParticipantIds(initialParticipantIds ?? [])
-    setSpaceId(initialSpaceId ?? '')
+    setSpaceId(initialSpaceId ?? 'space-default')
     setCreating(false)
     setCreateError(false)
   }, [initialParticipantIds, initialSpaceId, open])
@@ -71,15 +71,15 @@ export function NewChatDialog({
   }
 
   const handleCreate = async () => {
-    if (!participantIds.length || !spaceId) return
+    if (!spaceId) return
     setCreating(true)
     setCreateError(false)
     try {
       const roomId = await createRoom({ participantIds, spaceId })
       onOpenChange(false)
       navigate({
-        to: '/rooms/$roomId',
-        params: { roomId },
+        to: '/spaces/$spaceId',
+        params: { spaceId: roomId },
       })
     } catch {
       setCreateError(true)
@@ -89,25 +89,25 @@ export function NewChatDialog({
   }
 
   const titles = [
-    t.chatApp.newChat.peopleTitle,
-    t.chatApp.newChat.spaceTitle,
-    t.chatApp.newChat.reviewTitle,
+    t.chatApp.newSpace.peopleTitle,
+    t.chatApp.newSpace.spaceTitle,
+    t.chatApp.newSpace.reviewTitle,
   ]
   const descriptions = [
-    t.chatApp.newChat.peopleDescription,
-    t.chatApp.newChat.spaceDescription,
-    t.chatApp.newChat.reviewDescription,
+    t.chatApp.newSpace.peopleDescription,
+    t.chatApp.newSpace.spaceDescription,
+    t.chatApp.newSpace.reviewDescription,
   ]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="vc-create-dialog"
-        data-testid="new-chat-dialog"
-        aria-describedby="new-chat-description"
+        data-testid="new-space-dialog"
+        aria-describedby="new-space-description"
       >
         <DialogHeader className="vc-create-header">
-          <div className="vc-create-progress" aria-label={t.chatApp.newChat.progressLabel}>
+          <div className="vc-create-progress" aria-label={t.chatApp.newSpace.progressLabel}>
             {[0, 1, 2].map((index) => (
               <span key={index} data-current={index === step || undefined} data-complete={index < step || undefined}>
                 {index < step ? <Check size={12} /> : index + 1}
@@ -115,7 +115,7 @@ export function NewChatDialog({
             ))}
           </div>
           <DialogTitle>{titles[step]}</DialogTitle>
-          <DialogDescription id="new-chat-description">
+          <DialogDescription id="new-space-description">
             {descriptions[step]}
           </DialogDescription>
         </DialogHeader>
@@ -128,12 +128,12 @@ export function NewChatDialog({
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={t.chatApp.newChat.searchPeople}
+                  placeholder={t.chatApp.newSpace.searchPeople}
                   autoFocus
                 />
               </label>
               {selectedPeople.length ? (
-                <div className="vc-selected-people" aria-label={t.chatApp.newChat.selectedPeople}>
+                <div className="vc-selected-people" aria-label={t.chatApp.newSpace.selectedPeople}>
                   {selectedPeople.map((person) => (
                     <button key={person.id} type="button" onClick={() => togglePerson(person.id)}>
                       <PersonAvatar person={person} size="sm" />
@@ -183,6 +183,12 @@ export function NewChatDialog({
                     <span>
                       <strong>{space.name}</strong>
                       <small>{space.summary}</small>
+                      <b className="vc-template-version">
+                        {t.chatApp.newSpace.templateVersion.replace(
+                          '{version}',
+                          space.semanticVersion,
+                        )}
+                      </b>
                     </span>
                     <i>{selected ? <Check size={14} /> : null}</i>
                   </button>
@@ -196,24 +202,33 @@ export function NewChatDialog({
               <div className="vc-review-summary">
                 <SpaceGlyph space={selectedSpace} />
                 <span>
-                  <small>{t.chatApp.newChat.atmosphere}</small>
+                  <small>{t.chatApp.newSpace.template}</small>
                   <strong>{selectedSpace.name}</strong>
-                  <em>{selectedSpace.author}</em>
+                  <em>
+                    {selectedSpace.author} · {t.chatApp.newSpace.templateVersion.replace(
+                      '{version}',
+                      selectedSpace.semanticVersion,
+                    )}
+                  </em>
                 </span>
               </div>
               <div className="vc-review-row">
                 <UsersRound size={17} />
                 <span>
-                  <small>{t.chatApp.newChat.participants}</small>
-                  <strong>{selectedPeople.map((person) => person.displayName).join('、')}</strong>
+                  <small>{t.chatApp.newSpace.participants}</small>
+                  <strong>
+                    {selectedPeople.length
+                      ? selectedPeople.map((person) => person.displayName).join('、')
+                      : t.chatApp.newSpace.justYou}
+                  </strong>
                 </span>
               </div>
               <div className="vc-review-row">
                 <LockKeyhole size={17} />
                 <span>
-                  <small>{t.chatApp.newChat.permissions}</small>
+                  <small>{t.chatApp.newSpace.permissions}</small>
                   <strong>
-                    {t.chatApp.newChat.permissionSummary.replace(
+                    {t.chatApp.newSpace.permissionSummary.replace(
                       '{count}',
                       selectedSpace.permissions.length.toString(),
                     )}
@@ -221,9 +236,9 @@ export function NewChatDialog({
                 </span>
               </div>
               <p>
-                {t.chatApp.newChat.matrixNotice}
+                {t.chatApp.newSpace.matrixNotice}
               </p>
-              {createError ? <p role="alert">{t.chatApp.newChat.createFailed}</p> : null}
+              {createError ? <p role="alert">{t.chatApp.newSpace.createFailed}</p> : null}
             </div>
           ) : null}
         </div>
@@ -241,7 +256,7 @@ export function NewChatDialog({
             <button
               type="button"
               className="vc-button vc-button-primary"
-              disabled={step === 0 ? participantIds.length === 0 : !spaceId}
+              disabled={step === 1 && !spaceId}
               onClick={() => setStep(step + 1)}
             >
               {t.actions.next}
@@ -253,7 +268,7 @@ export function NewChatDialog({
               onClick={handleCreate}
               disabled={creating}
             >
-              {creating ? t.chatApp.newChat.creating : t.chatApp.newChat.create}
+              {creating ? t.chatApp.newSpace.creating : t.chatApp.newSpace.create}
             </button>
           )}
         </footer>
