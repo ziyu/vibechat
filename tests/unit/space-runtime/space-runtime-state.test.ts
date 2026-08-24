@@ -1,7 +1,9 @@
 import type { SpaceRuntimeSnapshot } from '@vibechat/space-app-contracts'
 import { describe, expect, it } from 'vitest'
 import {
+  selectAgentConversationMessages,
   selectReadySpaceAppTarget,
+  shouldProjectRuntimeEventToApp,
   type ReadySpaceAppTarget,
 } from '../../../apps/web-app/src/features/chat/space-runtime-state'
 
@@ -41,6 +43,68 @@ const previous: ReadySpaceAppTarget = {
 }
 
 describe('Space Runtime ready App selection', () => {
+  it('projects only real Agent replies into customizable App chat', () => {
+    const current = snapshot('!space:localhost', 'ready')
+    current.messages = [
+      {
+        id: 'user-1',
+        turnId: 'turn-1',
+        type: 'user',
+        authorId: 'member-1',
+        authorName: 'Member One',
+        text: '发布当前开发版本',
+        createdAt: '2026-08-24T00:00:00.000Z',
+      },
+      {
+        id: 'agent-1',
+        turnId: 'turn-1',
+        type: 'agent',
+        authorId: 'pi',
+        authorName: 'Pi',
+        text: '我已经完成界面调整。',
+        createdAt: '2026-08-24T00:00:01.000Z',
+      },
+      {
+        id: 'kernel-1',
+        turnId: 'turn-2',
+        type: 'agent',
+        authorId: 'kernel',
+        authorName: 'Kernel',
+        text: '当前开发版本已正式发布。',
+        createdAt: '2026-08-24T00:00:02.000Z',
+      },
+      {
+        id: 'error-1',
+        turnId: 'turn-3',
+        type: 'error',
+        authorId: 'system',
+        authorName: 'ERROR',
+        text: 'release failed',
+        createdAt: '2026-08-24T00:00:03.000Z',
+      },
+    ]
+
+    expect(selectAgentConversationMessages(current)).toEqual([
+      expect.objectContaining({ id: 'agent-1', authorId: 'pi' }),
+    ])
+    expect(shouldProjectRuntimeEventToApp({
+      type: 'message',
+      message: current.messages[1],
+    })).toBe(true)
+    expect(shouldProjectRuntimeEventToApp({
+      type: 'message',
+      message: current.messages[2],
+    })).toBe(false)
+    expect(shouldProjectRuntimeEventToApp({
+      type: 'message',
+      message: current.messages[3],
+    })).toBe(false)
+    expect(shouldProjectRuntimeEventToApp({
+      type: 'queue_updated',
+      activeCount: 1,
+    })).toBe(true)
+  })
+
   it('does not mount an App iframe before the first ready Revision', () => {
     expect(selectReadySpaceAppTarget({
       roomId: '!space:localhost',

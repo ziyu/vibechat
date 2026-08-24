@@ -81,6 +81,7 @@ import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin
 import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
 import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
 import { Route as V1SpacesInstancesRoomIdTurnsRouteImport } from './routes/v1/spaces/instances/$roomId/turns'
+import { Route as V1SpacesInstancesRoomIdRestoreRouteImport } from './routes/v1/spaces/instances/$roomId/restore'
 import { Route as V1SpacesInstancesRoomIdPublishRouteImport } from './routes/v1/spaces/instances/$roomId/publish'
 import { Route as V1SpacesInstancesRoomIdEventsRouteImport } from './routes/v1/spaces/instances/$roomId/events'
 import { Route as V1SpacesInstancesRoomIdBridgeRouteImport } from './routes/v1/spaces/instances/$roomId/bridge'
@@ -459,6 +460,12 @@ const V1SpacesInstancesRoomIdTurnsRoute =
     path: '/turns',
     getParentRoute: () => V1SpacesInstancesRoomIdRoute,
   } as any)
+const V1SpacesInstancesRoomIdRestoreRoute =
+  V1SpacesInstancesRoomIdRestoreRouteImport.update({
+    id: '/restore',
+    path: '/restore',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
 const V1SpacesInstancesRoomIdPublishRoute =
   V1SpacesInstancesRoomIdPublishRouteImport.update({
     id: '/publish',
@@ -557,6 +564,7 @@ export interface FileRoutesByFullPath {
   '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
   '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
@@ -635,6 +643,7 @@ export interface FileRoutesByTo {
   '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
   '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete': typeof ApiAdminUsersDeleteIndexRoute
@@ -714,6 +723,7 @@ export interface FileRoutesById {
   '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
   '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
@@ -794,6 +804,7 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/bridge'
     | '/v1/spaces/instances/$roomId/events'
     | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
@@ -872,6 +883,7 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/bridge'
     | '/v1/spaces/instances/$roomId/events'
     | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions'
     | '/api/admin/users/delete'
@@ -950,6 +962,7 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/bridge'
     | '/v1/spaces/instances/$roomId/events'
     | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
@@ -1536,6 +1549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1SpacesInstancesRoomIdTurnsRouteImport
       parentRoute: typeof V1SpacesInstancesRoomIdRoute
     }
+    '/v1/spaces/instances/$roomId/restore': {
+      id: '/v1/spaces/instances/$roomId/restore'
+      path: '/restore'
+      fullPath: '/v1/spaces/instances/$roomId/restore'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdRestoreRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
     '/v1/spaces/instances/$roomId/publish': {
       id: '/v1/spaces/instances/$roomId/publish'
       path: '/publish'
@@ -1572,6 +1592,7 @@ interface V1SpacesInstancesRoomIdRouteChildren {
   V1SpacesInstancesRoomIdBridgeRoute: typeof V1SpacesInstancesRoomIdBridgeRoute
   V1SpacesInstancesRoomIdEventsRoute: typeof V1SpacesInstancesRoomIdEventsRoute
   V1SpacesInstancesRoomIdPublishRoute: typeof V1SpacesInstancesRoomIdPublishRoute
+  V1SpacesInstancesRoomIdRestoreRoute: typeof V1SpacesInstancesRoomIdRestoreRoute
   V1SpacesInstancesRoomIdTurnsRoute: typeof V1SpacesInstancesRoomIdTurnsRoute
 }
 
@@ -1581,6 +1602,7 @@ const V1SpacesInstancesRoomIdRouteChildren: V1SpacesInstancesRoomIdRouteChildren
     V1SpacesInstancesRoomIdBridgeRoute: V1SpacesInstancesRoomIdBridgeRoute,
     V1SpacesInstancesRoomIdEventsRoute: V1SpacesInstancesRoomIdEventsRoute,
     V1SpacesInstancesRoomIdPublishRoute: V1SpacesInstancesRoomIdPublishRoute,
+    V1SpacesInstancesRoomIdRestoreRoute: V1SpacesInstancesRoomIdRestoreRoute,
     V1SpacesInstancesRoomIdTurnsRoute: V1SpacesInstancesRoomIdTurnsRoute,
   }
 

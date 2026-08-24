@@ -38,6 +38,44 @@
         "format": "agentos-app-v1",
         "sourceHash": "sha256:bf176c6b8abbe6dbab8c8515a60f1ba49104219f75396b950cb39ab5de80715a"
       }
+    },
+    {
+      "status": "development",
+      "manifest": {
+        "schemaVersion": "vibechat.space-template-version/v1",
+        "id": "tplv-space-campfire-0-1-1",
+        "semanticVersion": "0.1.1",
+        "projectFormat": "agentos-app-v1",
+        "compatibility": {
+          "spaceAppSdk": "v1",
+          "runtime": "agentos-apps-0.2"
+        },
+        "capabilities": {
+          "permissions": [
+            "messages.read",
+            "messages.send",
+            "members.read",
+            "interactions.send"
+          ],
+          "networkDomains": []
+        },
+        "provenance": {
+          "origin": "repository",
+          "publisherId": "publisher-vibechat",
+          "sourcePath": "packages/space-templates/official/space-campfire/app"
+        }
+      },
+      "lock": {
+        "schemaVersion": "vibechat.space-template-version-lock/v1",
+        "sourceHash": "sha256:971b7254741afab05e47616b36a86d0ff512d777e6f8c3cb38b78bb2b2dd506b",
+        "manifestHash": "sha256:56c721d600ffdf131ba8caf4513ef7d3e19e474587e358c9a5101b21b48a77f6"
+      },
+      "artifact": {
+        "schemaVersion": "vibechat.space-template-artifact/v1",
+        "id": "tpla-971b7254741afab05e47616b36a86d0ff512d777e6f8c3cb38b78bb2b2dd506b",
+        "format": "agentos-app-v1",
+        "sourceHash": "sha256:971b7254741afab05e47616b36a86d0ff512d777e6f8c3cb38b78bb2b2dd506b"
+      }
     }
   ]
 }

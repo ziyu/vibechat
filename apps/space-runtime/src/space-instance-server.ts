@@ -94,9 +94,15 @@ interface BeginTurnInput {
   externalRequestId: string;
   agentId: string;
   billing?: SpaceTurnBilling;
+  recovery?: SpaceTurnRecovery;
 }
 
-export type SpaceTurnKind = "message" | "publish";
+export type SpaceTurnKind = "message" | "publish" | "restore";
+
+export interface SpaceTurnRecovery {
+  target: "default-chat";
+  expectedReadyRevisionId: string;
+}
 
 export interface SpaceTurnRequest {
   turnId: string;
@@ -108,6 +114,7 @@ export interface SpaceTurnRequest {
   externalRequestId: string;
   agentId: string;
   billing?: SpaceTurnBilling;
+  recovery?: SpaceTurnRecovery;
 }
 
 export interface SpaceTurnBilling {
@@ -334,6 +341,7 @@ export class SpaceInstanceServer {
       externalRequestId: input.externalRequestId,
       agentId: input.agentId,
       ...(input.billing ? { billing: input.billing } : {}),
+      ...(input.recovery ? { recovery: input.recovery } : {}),
     });
     const queuePosition = space.activeTurns.length + space.queuedTurns.length;
     await this.#save(space);
@@ -356,7 +364,7 @@ export class SpaceInstanceServer {
     const firstQueued = space.queuedTurns[0];
     if (!firstQueued) return null;
     const kind = firstQueued.kind;
-    const batchSize = kind === "publish"
+    const batchSize = kind !== "message"
       ? 1
       : space.queuedTurns.findIndex(
           (request) => request.kind !== kind || request.agentId !== firstQueued.agentId,
@@ -373,7 +381,9 @@ export class SpaceInstanceServer {
       requestCount: space.activeTurns.length,
       startedAt: new Date().toISOString(),
       stage:
-        space.activeTurns.length > 1
+        kind === "restore"
+          ? "Kernel 正在恢复默认 Chat App"
+          : space.activeTurns.length > 1
           ? `${first.agentId} 正在理解 ${space.activeTurns.length} 条消息`
           : `${first.agentId} 正在理解消息`,
       agentText: "",
@@ -676,13 +686,18 @@ function isSpaceTurnRequest(value: unknown): value is SpaceTurnRequest {
   const request = value as Partial<SpaceTurnRequest>;
   return (
     typeof request.turnId === "string" &&
-    (request.kind === "message" || request.kind === "publish") &&
+    (request.kind === "message" || request.kind === "publish" || request.kind === "restore") &&
     typeof request.clientId === "string" &&
     typeof request.authorName === "string" &&
     typeof request.text === "string" &&
     typeof request.createdAt === "string" &&
     typeof request.externalRequestId === "string" &&
-    typeof request.agentId === "string"
+    typeof request.agentId === "string" &&
+    (request.kind !== "restore" || (
+      request.recovery?.target === "default-chat" &&
+      typeof request.recovery.expectedReadyRevisionId === "string" &&
+      /^[a-f0-9]{16}$/.test(request.recovery.expectedReadyRevisionId)
+    ))
   );
 }
 

@@ -10,6 +10,7 @@ import {
 } from "@rivet-dev/agentos-apps";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { registry } from "./actors.js";
 import {
   DevPreviewError,
@@ -25,6 +26,7 @@ import {
 } from "./generator.js";
 import {
   assertAppId,
+  createProjectFromTemplate,
   initializeProjectFromTemplate,
   loadProject,
   projectDirectory,
@@ -39,6 +41,7 @@ import {
 
 const maximumPromptLength = 4_000;
 const maximumRepairs = 3;
+const defaultChatTemplateId = "space-default";
 const maximumConcurrentTurns = Math.max(
   1,
   Math.min(8, Number.parseInt(process.env.PI_MAX_CONCURRENCY ?? "2", 10) || 2),
@@ -297,7 +300,54 @@ app.post("/api/apps/:appId/publish", async (context) => {
     text: "发布当前开发版本",
     kind: "publish",
     externalRequestId: body.requestId,
-    agentId: defaultAgentId,
+    agentId: "kernel",
+  });
+  return context.json({ accepted: true, ...turn }, 202);
+});
+
+app.post("/api/apps/:appId/restore", async (context) => {
+  const appId = context.req.param("appId");
+  try {
+    assertAppId(appId);
+  } catch (error) {
+    return context.json({ error: errorMessage(error) }, 400);
+  }
+
+  let request: unknown;
+  try {
+    request = await context.req.json();
+  } catch {
+    request = {};
+  }
+  const body = request as {
+    clientId?: unknown;
+    authorName?: unknown;
+    requestId?: unknown;
+    target?: unknown;
+    expectedReadyRevisionId?: unknown;
+  };
+  const member = parseMember(body.clientId, body.authorName);
+  if (typeof body.requestId !== "string" || !body.requestId.trim()) {
+    return context.json({ error: "requestId is required" }, 400);
+  }
+  if (
+    body.target !== "default-chat" ||
+    typeof body.expectedReadyRevisionId !== "string" ||
+    !/^[a-f0-9]{16}$/.test(body.expectedReadyRevisionId)
+  ) {
+    return context.json({ error: "a valid restore target and ready revision are required" }, 400);
+  }
+  const turn = await spaces.beginTurn(appId, {
+    clientId: member.clientId,
+    authorName: member.name,
+    text: "恢复默认 Chat App",
+    kind: "restore",
+    externalRequestId: body.requestId,
+    agentId: "kernel",
+    recovery: {
+      target: body.target,
+      expectedReadyRevisionId: body.expectedReadyRevisionId,
+    },
   });
   return context.json({ accepted: true, ...turn }, 202);
 });
@@ -349,13 +399,14 @@ app.post("/api/apps/:appId/messages", async (context) => {
   if (body.billing && !billing) {
     return context.json({ error: "billing callback is invalid" }, 400);
   }
+  const kind = isPublishOnlyMessage(message.trim()) ? "publish" : "message";
   const turn = await spaces.beginTurn(appId, {
     clientId: member.clientId,
     authorName: member.name,
     text: message.trim(),
-    kind: isPublishOnlyMessage(message.trim()) ? "publish" : "message",
+    kind,
     externalRequestId: body.matrixEventId,
-    agentId,
+    agentId: kind === "publish" ? "kernel" : agentId,
     ...(billing ? { billing } : {}),
   });
   return context.json({ accepted: true, ...turn }, 202);
@@ -503,6 +554,10 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
   try {
     if (turn.kind === "publish") {
       succeeded = await publishCurrentProject(appId, turn.turnId);
+    } else if (turn.kind === "restore") {
+      const recovery = turn.requests[0]?.recovery;
+      if (!recovery) throw new Error("Space restore request is missing recovery metadata");
+      succeeded = await restoreDefaultChatProject(appId, turn.turnId, recovery);
     } else {
       const agentId = turn.requests[0]?.agentId || defaultAgentId;
       succeeded = await processTurn(appId, turn.turnId, combinedTurnRequest(turn), agentId);
@@ -519,6 +574,85 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
     await reportTurnBilling(turn, succeeded ? "completed" : "failed").catch((error) => {
       console.error("Space turn billing callback failed", boundedLogError(error));
     });
+  }
+}
+
+async function restoreDefaultChatProject(
+  appId: string,
+  turnId: string,
+  recovery: NonNullable<ClaimedSpaceTurn["requests"][number]["recovery"]>,
+) {
+  const startedAt = Date.now();
+  const heartbeat = setInterval(() => {
+    void spaces
+      .heartbeat(appId, turnId, Math.floor((Date.now() - startedAt) / 1_000))
+      .catch(() => undefined);
+  }, 2_000);
+  const relayProgress = (event: SpaceBuildProgress) =>
+    spaces.progress(appId, turnId, event);
+
+  try {
+    const current = await loadProject(appId);
+    if (!current?.draftId) {
+      throw new Error("Space 还没有可恢复的 ready Revision。");
+    }
+    if (current.draftId !== recovery.expectedReadyRevisionId) {
+      throw new SpaceReadyRevisionChangedError(
+        recovery.expectedReadyRevisionId,
+        current.draftId,
+      );
+    }
+    const template = getOfficialSpaceTemplate(defaultChatTemplateId);
+    if (!template) throw new Error("Default Chat Template is unavailable");
+
+    await relayProgress({
+      type: "status",
+      stage: "recovering",
+      message: "正在从官方 Template 准备 Default Chat App Candidate…",
+    });
+    const candidate = await createProjectFromTemplate(
+      appId,
+      template.id,
+      template.currentVersionId,
+    );
+    const preview = await devPreviews.prepare(
+      appId,
+      candidate.files,
+      (status) => relayProgress({
+        type: "status",
+        stage: "recovering",
+        message: status,
+      }),
+    );
+    const updatedAt = preview.updatedAt;
+    await saveProject({
+      ...candidate,
+      updatedAt,
+      draftId: preview.version,
+      ...(current.publishedDraftId
+        ? { publishedDraftId: current.publishedDraftId }
+        : {}),
+      ...(current.releaseId ? { releaseId: current.releaseId } : {}),
+    });
+    await spaces.complete(appId, turnId, "已恢复 Default Chat App。", {
+      type: "draft_ready",
+      message: "已恢复 Default Chat App。",
+      appId,
+      appUrl: `/apps/${encodeURIComponent(appId)}/`,
+      devUrl: preview.url,
+      version: preview.version,
+      updatedAt,
+      recoveredFromRevisionId: current.draftId,
+      recoveryTarget: recovery.target,
+      publishedReleaseId: current.releaseId ?? null,
+    });
+    return true;
+  } catch (error) {
+    console.error("Default Chat recovery failed", boundedLogError(error));
+    await spaces.fail(appId, turnId, errorMessage(error), spaceErrorCode(error));
+    return false;
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
@@ -853,9 +987,19 @@ function requestsPublishAfterRevision(message: string) {
 }
 
 function spaceErrorCode(error: unknown) {
+  if (error instanceof SpaceReadyRevisionChangedError) return error.code;
   if (error instanceof DevPreviewError) return error.code;
   if (error instanceof AgentOSAppsError) return error.code;
   return undefined;
+}
+
+class SpaceReadyRevisionChangedError extends Error {
+  readonly code = "space_ready_revision_changed";
+
+  constructor(expected: string, actual: string) {
+    super(`Space ready Revision changed from ${expected} to ${actual}; refresh and retry recovery.`);
+    this.name = "SpaceReadyRevisionChangedError";
+  }
 }
 
 function isAgentOSAppsError(error: unknown) {

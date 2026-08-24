@@ -2131,7 +2131,13 @@ export const en: Locale = {
       updating: "Updating",
       ready: "Ready",
       reloadApp: "Reload Space App",
-      publishVersion: "Publish version"
+      publishVersion: "Publish version",
+      restoreDefaultChat: "Restore Default Chat App",
+      restoreDefaultChatTitle: "Restore the default Chat App?",
+      restoreDefaultChatDescription: "VibeChat will validate the official Default Chat Template and make it a new ready revision. Chat history, members, App state, and the published release stay unchanged.",
+      restoreDefaultChatConfirm: "Restore Default Chat",
+      restoringDefaultChat: "Restoring…",
+      restoreDefaultChatFailed: "The restore request could not start. Refresh the Space and try again."
     },
     newSpace: {
       peopleTitle: "Who belongs in this Space?",

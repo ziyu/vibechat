@@ -81,9 +81,10 @@ export function getOfficialSpaceTemplateVersion(
   const exact = template.versions.find((version) => version.id === versionId);
   if (exact) return exact;
 
-  // Development data created before the ordered 0.1.0 baseline used synthetic
-  // builtin v1..v5 IDs or the mistaken 5.0.0 publication ID. Read those aliases
-  // without ever emitting them for new Spaces or market responses.
+  // Development data created before ordered SemVer used synthetic builtin
+  // v1..v5 IDs or the mistaken 5.0.0 publication ID. Resolve those aliases to
+  // the current official version without ever emitting them for new Spaces or
+  // market responses.
   const legacyVersionIds = new Set([
     ...Array.from({ length: 5 }, (_, index) => `builtin-${templateId}-v${index + 1}`),
     `tplv-${templateId}-5-0-0`,

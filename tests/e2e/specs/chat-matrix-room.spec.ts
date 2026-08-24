@@ -100,7 +100,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'tplv-space-campfire-0-1-0',
+      spaceVersionId: 'tplv-space-campfire-0-1-1',
       status: 'active',
     })
 
@@ -116,9 +116,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
       templateId: 'space-campfire',
-      templateVersionId: 'tplv-space-campfire-0-1-0',
-      version: '0.1.0',
-      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.0\+sha256\./),
+      templateVersionId: 'tplv-space-campfire-0-1-1',
+      version: '0.1.1',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.1\+sha256\./),
       publisher: {
         id: 'publisher-vibechat',
         verification: 'official',
@@ -228,6 +228,57 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
         .locator('xpath=ancestor::article')
         .locator('.vcc-reactions'),
     ).toContainText('🌙')
+
+    const runtimeUrl = `/v1/spaces/instances/${encodeURIComponent(created.matrixRoomId)}`
+    const beforeRestoreResponse = await page.request.get(runtimeUrl)
+    expect(beforeRestoreResponse.ok(), await beforeRestoreResponse.text()).toBeTruthy()
+    const beforeRestore = await beforeRestoreResponse.json()
+    expect(beforeRestore.project).toMatchObject({
+      draftId: expect.stringMatching(/^[a-f0-9]{16}$/),
+      template: { id: 'space-campfire' },
+    })
+
+    const publishedReleaseId = beforeRestore.project.releaseId
+
+    await page.getByRole('button', { name: 'Space 菜单' }).click()
+    await page.getByTestId('restore-default-chat').click()
+    const recoveryDialog = page.getByTestId('restore-default-chat-dialog')
+    await expect(recoveryDialog).toBeVisible()
+    await expect(recoveryDialog).toContainText(beforeRestore.project.draftId.slice(0, 7))
+    await page.getByTestId('confirm-restore-default-chat').click()
+
+    await expect.poll(async () => {
+      const response = await page.request.get(runtimeUrl)
+      if (!response.ok()) return null
+      const snapshot = await response.json()
+      return {
+        draftChanged: snapshot.project.draftId !== beforeRestore.project.draftId,
+        releaseId: snapshot.project.releaseId,
+        templateId: snapshot.project.template?.id,
+        previewState: snapshot.devPreview.state,
+      }
+    }, { timeout: 20_000 }).toEqual({
+      draftChanged: true,
+      releaseId: publishedReleaseId,
+      templateId: 'space-default',
+      previewState: 'ready',
+    })
+
+    await expect(page.getByTestId('space-kernel-bar').locator('code')).not.toContainText(
+      beforeRestore.project.draftId.slice(0, 7),
+    )
+    const restoredChat = await openAppChat(page)
+    await expect(restoredChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    await expect(
+      restoredChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
+    ).toContainText(messageText)
+    await expect(
+      restoredChat.getByTestId('message-body')
+        .filter({ hasText: messageText })
+        .locator('xpath=ancestor::article')
+        .locator('.vcc-reactions'),
+    ).toContainText('🌙')
+    await expect(restoredChat.getByText('已恢复 Default Chat App。')).toHaveCount(0)
 
     const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage))
     expect(localStorageDump).not.toContain(bootstrap.matrix.accessToken)

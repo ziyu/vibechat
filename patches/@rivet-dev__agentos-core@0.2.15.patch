@@ -1,0 +1,61 @@
+diff --git a/dist/agent-os.d.ts b/dist/agent-os.d.ts
+index 884338dae4d1455cbf16b56f5929ce7ac9894f10..2f80ef1349cd9730ceec74cb54039c051290fabd 100644
+--- a/dist/agent-os.d.ts
++++ b/dist/agent-os.d.ts
+@@ -375,6 +375,11 @@ export interface AgentOsOptions {
+     defaultSoftware?: boolean;
+     /** Loopback ports to exempt from SSRF checks (for testing with host-side mock servers). */
+     loopbackExemptPorts?: number[];
++    /** Explicit DNS resolver configuration forwarded to the VM runtime. */
++    dns?: {
++        nameServers: string[];
++        overrides: Record<string, string[]>;
++    };
+     /**
+      * Allowed Node.js builtins for guest Node processes.
+      * Defaults to the hardened builtin set used by the native sidecar bridge.
+diff --git a/dist/agent-os.js b/dist/agent-os.js
+index ae407d9aad02adb843276deec23e810324e2aebd..89660f2b9d64fc2f0d80ce1814bc1a859076d33f 100644
+--- a/dist/agent-os.js
++++ b/dist/agent-os.js
+@@ -1900,6 +1900,7 @@ export class AgentOs {
+                     rootFilesystem: serializeRootFilesystemForSidecar(options?.rootFilesystem, bootstrapLower),
+                     permissions: sidecarPermissions,
+                     limits: options?.limits,
++                    dns: options?.dns,
+                     loopbackExemptPorts: options?.loopbackExemptPorts ?? [],
+                     bootstrapCommands,
+                     ...(options?.rootFilesystem?.type === "native"
+diff --git a/dist/options-schema.d.ts b/dist/options-schema.d.ts
+index 476e4a4b6dee675413607cc9c915f4e4cd84c694..0ef6e6f4ed373e1697043749acdbcd5fbda3afa0 100644
+--- a/dist/options-schema.d.ts
++++ b/dist/options-schema.d.ts
+@@ -298,6 +298,10 @@ export declare const agentOsOptionFieldSchemas: {
+     readonly software: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
+     readonly defaultSoftware: z.ZodOptional<z.ZodBoolean>;
+     readonly loopbackExemptPorts: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
++    readonly dns: z.ZodType<{
++        nameServers: string[];
++        overrides: Record<string, string[]>;
++    } | undefined>;
+     readonly allowedNodeBuiltins: z.ZodOptional<z.ZodArray<z.ZodString>>;
+     readonly highResolutionTime: z.ZodOptional<z.ZodBoolean>;
+     readonly database: z.ZodOptional<z.ZodDiscriminatedUnion<[z.ZodObject<{
+diff --git a/dist/options-schema.js b/dist/options-schema.js
+index 5ccda8196840f40e7af282290f369b9c3879ccaa..00d5e4e9357285315929db7bd848c9836ae87d07 100644
+--- a/dist/options-schema.js
++++ b/dist/options-schema.js
+@@ -344,6 +344,13 @@ export const agentOsOptionFieldSchemas = {
+     software: z.array(z.unknown()).optional(),
+     defaultSoftware: z.boolean().optional(),
+     loopbackExemptPorts: z.array(z.number().int().min(0).max(65535)).optional(),
++    dns: z
++        .object({
++        nameServers: stringArray.min(1),
++        overrides: z.record(z.string(), stringArray),
++    })
++        .strict()
++        .optional(),
+     allowedNodeBuiltins: stringArray.optional(),
+     highResolutionTime: z.boolean().optional(),
+     database: z

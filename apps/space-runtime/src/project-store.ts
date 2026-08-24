@@ -147,6 +147,26 @@ export async function initializeProjectFromTemplate(
     return { created: false, project: upgraded } as const;
   }
 
+  const project = await createProjectFromTemplate(
+    appId,
+    templateId,
+    templateVersionId,
+  );
+  await saveProject(project);
+  return { created: true, project } as const;
+}
+
+/**
+ * Materializes an immutable Template Version as a new, unsaved Space Project.
+ * Callers must validate its Candidate before replacing the current ready Project.
+ */
+export async function createProjectFromTemplate(
+  appId: string,
+  templateId: string,
+  templateVersionId: string,
+) {
+  assertAppId(appId);
+
   const templateVersion = getOfficialSpaceTemplateVersion(
     templateId,
     templateVersionId,
@@ -176,8 +196,7 @@ export async function initializeProjectFromTemplate(
       projectFormat: templateVersion.projectFormat,
     },
   };
-  await saveProject(project);
-  return { created: true, project } as const;
+  return project;
 }
 
 async function upgradeUnmodifiedTemplateProject(existing: StoredProject) {

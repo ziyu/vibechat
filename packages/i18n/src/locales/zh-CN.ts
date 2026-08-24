@@ -2138,7 +2138,13 @@ export const zhCN: Locale = {
       updating: "正在更新",
       ready: "可用",
       reloadApp: "重新加载 Space App",
-      publishVersion: "发布版本"
+      publishVersion: "发布版本",
+      restoreDefaultChat: "恢复默认 Chat App",
+      restoreDefaultChatTitle: "恢复为默认 Chat App？",
+      restoreDefaultChatDescription: "VibeChat 会验证官方 Default Chat Template，并把它生成为新的 ready Revision。聊天历史、成员、App State 和已发布版本都会保持不变。",
+      restoreDefaultChatConfirm: "恢复默认 Chat",
+      restoringDefaultChat: "正在恢复…",
+      restoreDefaultChatFailed: "恢复请求未能启动，请刷新 Space 后重试。"
     },
     newSpace: {
       peopleTitle: "谁属于这个 Space？",

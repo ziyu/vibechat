@@ -50,6 +50,7 @@ import {
   type SpaceAppBridgeRequest,
   type CreateSpaceAgentTurnRequest,
   type PublishSpaceAppRequest,
+  type RestoreSpaceAppRequest,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -248,6 +249,15 @@ export class ProductApiClient {
       `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/publish`,
       spaceTurnAcceptedSchema,
       'SPACE_APP_PUBLISH_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  restoreSpaceApp(matrixRoomId: string, input: RestoreSpaceAppRequest) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/restore`,
+      spaceTurnAcceptedSchema,
+      'SPACE_APP_RESTORE_FAILED',
       this.jsonInit('POST', input),
     )
   }

@@ -64,4 +64,4 @@ Template ID 与 Version ID 是稳定身份；SemVer 是面向市场和升级判�
 
 2026-08-24 前的开发实现把协议迁移轮次误写成官方 Template `5.0.0`。这些条目尚未作为生产市场版本发布，因此一次性纠正为首个有序基线 `0.1.0`；这不是对已发布版本的降级或改写。
 
-本地开发数据中旧的 `builtin-<template>-v1..v5` 和 `tplv-<template>-5-0-0` 只作为读取 alias 解析到当前 `0.1.0`。新创建的 Space 和市场响应只写规范的 `0.1.0` Version ID。正式市场发布后不得再用 alias 或基线纠正覆盖不可变历史。
+本地开发数据中旧的 `builtin-<template>-v1..v5` 和 `tplv-<template>-5-0-0` 只作为读取 alias 解析到当前官方版本；当前五个官方 Template 的有序序列为 `0.1.0 → 0.1.1`。`0.1.1` 只修正 App Project 的 AgentOS Release 入口导出，源码载荷实际变化且不改变 SDK、权限或状态语义，因此按兼容缺陷修复提升 patch。新创建的 Space 和市场响应只写当前规范 Version ID。正式市场发布后不得再用 alias 或基线纠正覆盖不可变历史。

@@ -549,7 +549,7 @@ function collaborationInstructions() {
     "When the user asks to change the background, atmosphere, scenery, or space itself, change the generated app's actual full-viewport html/body App Surface. Never treat space:theme as the background implementation; it only coordinates the overlaid Chat Surface.",
     "Make requested visual changes clearly perceptible instead of using near-identical colors or effects too subtle to notice, while preserving readability and the user's requested mood.",
     "For visual changes, keep that space:theme message aligned with the app palette so the fixed chat remains readable over the App Surface.",
-    "The project is deployed by agentOS Apps. It must compile under strict TypeScript, call registry.start(), and default-export a Web fetch handler.",
+    "The project is deployed by agentOS Apps. It must compile under strict TypeScript, export the RivetKit registry from src/index.ts, call registry.start(), and default-export a Web fetch handler.",
     "Code changes become a Space Dev draft by default. Do not claim that a release was published; the host publishes only after an explicit user publish action.",
     "Keep package.json main as dist/index.js with a tsc build script, and keep tsconfig outDir as dist so agentOS Apps can infer the built entrypoint.",
     "Use only declared dependencies. Keep browser assets inline unless the host provides them. '/v1/space-app-sdk' is the only intentional absolute host URL.",

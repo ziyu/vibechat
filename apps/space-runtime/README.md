@@ -14,6 +14,7 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 - `PI_MODE`：默认 `auto`；存在本机 Pi CLI 会话时走 `host`，具备 AgentOS provider credential 时可设为 `agentos`。
 - `SPACE_RUNTIME_DATA_DIR`：可选的 Project/App State 本地持久化目录。
 - `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程隔离的 `/tmp/vc-space-runtime-<pid>`，避免 macOS Unix socket 路径超限。
+- `AGENTOS_APPS_DNS_SERVERS`：可选的 Release Build VM DNS，使用逗号分隔。根目录 `pnpm dev` 在本地默认注入 `1.1.1.1,8.8.8.8`，避免 macOS AgentOS `0.2.15` 无法解析系统 resolver；生产运行时若已有正确 DNS 可不设置。
 
 本服务依赖的 `isolated-vm` 尚不支持 Node 26；开发和构建使用仓库约定的 Node 22–24。仅有 Claude Code credential 而没有 AgentOS provider credential 时，使用 Host Pi 模式。
 
@@ -24,6 +25,7 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 3. `SpaceInstanceServer` 持久化请求并按 Space 串行执行；不同 Space 在配额内并行。
 4. Agent 写入 Project 后，agentOS Apps 在独立版本实例中构建 Candidate；成功后该固定 revision 成为新的 ready App，Web iframe 按 `version` 精确加载。
 5. 有权限的成员显式发布后生成不可变 Release；Live 不会被后续 Draft 自动覆盖。
+6. 成员也可以从可信 Kernel 菜单显式恢复 Default Chat App；Backend 校验身份和 Matrix membership，Runtime 用请求中的 expected ready Revision 做并发保护，再从官方固定 Template Artifact 构建隔离 Candidate。只有 Candidate ready 才保存新的 ready Revision，已有 Release、Matrix timeline 与 App State 不变；该 Turn 不进入 Agent Adapter 或 AI credits。
 
 Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 ready Revision 使用不同 actor key，启动 Candidate 不会停止成员正在使用的 ready App；当前进程保留最近三个 ready 版本供 iframe 重载和页面刷新按 revision 读取。Candidate 构建或启动失败只更新诊断，不改变最后 ready 指针。
 
@@ -45,4 +47,4 @@ Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 r
 - 账务链已经具备逐请求预留、拒绝退款和 Runtime 回调，但 Pi 的真实 token usage 尚未接入，当前成功请求以空 usage 结算。
 - Agent 回复目前由 Runtime SSE 合并显示在 Space Chat UI，尚未作为 Matrix virtual-user event 回写 timeline。
 - 当前 ready Preview 只在单进程内保留最近三个版本；生产环境仍需把保留策略、跨副本路由和 artifact 恢复升级为持久协调能力。
-- agentOS Apps `0.2.15` 停止 Dev/Release worker 时可能输出 guest metadata/RPC timeout 噪声；已发布 artifact 仍可正常读取，升级前保留为已知问题。
+- agentOS Apps `0.2.15` 停止 Dev/Release worker 时可能输出 guest metadata/RPC timeout 噪声；已发布 artifact 仍可正常读取，升级前保留为已知问题。仓库补丁还为 Build VM 补齐 `dns` options 透传并移除 macOS 不稳定的 host-dir artifact mount；补丁只影响隔离构建 VM，不改变 App 或 Agent 协议。

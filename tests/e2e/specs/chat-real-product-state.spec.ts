@@ -119,8 +119,8 @@ test.describe('Vibe Chat real persisted product state', () => {
       expect(directory.spaces).toHaveLength(5)
       expect(directory.spaces.find((space: { id: string }) => space.id === 'space-campfire')).toMatchObject({
         id: 'space-campfire',
-        versionId: 'tplv-space-campfire-0-1-0',
-        semanticVersion: '0.1.0',
+        versionId: 'tplv-space-campfire-0-1-1',
+        semanticVersion: '0.1.1',
         artifact: {
           schemaVersion: 'vibechat.space-template-artifact/v1',
           id: expect.stringMatching(/^tpla-[a-f0-9]{64}$/),

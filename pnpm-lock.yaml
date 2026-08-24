@@ -6,8 +6,11 @@ settings:
 
 patchedDependencies:
   '@rivet-dev/agentos-apps@0.2.15':
-    hash: 3feudqsudxcyx4z3k56emcpd6m
-    path: apps/space-runtime/patches/@rivet-dev+agentos-apps+0.2.15.patch
+    hash: ptdqyv4bppigbcyqd2mxr4wqnq
+    path: patches/@rivet-dev__agentos-apps@0.2.15.patch
+  '@rivet-dev/agentos-core@0.2.15':
+    hash: i7m64e4phivdw5bveag4rky7jy
+    path: patches/@rivet-dev__agentos-core@0.2.15.patch
 
 importers:
 
@@ -545,7 +548,7 @@ importers:
         version: 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       '@rivet-dev/agentos-apps':
         specifier: 0.2.15
-        version: 0.2.15(patch_hash=3feudqsudxcyx4z3k56emcpd6m)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+        version: 0.2.15(patch_hash=ptdqyv4bppigbcyqd2mxr4wqnq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
@@ -14731,13 +14734,13 @@ snapshots:
     dependencies:
       '@secure-exec/core': 0.2.1
 
-  '@rivet-dev/agentos-apps@0.2.15(patch_hash=3feudqsudxcyx4z3k56emcpd6m)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
+  '@rivet-dev/agentos-apps@0.2.15(patch_hash=ptdqyv4bppigbcyqd2mxr4wqnq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
     dependencies:
       '@agentos-software/apps-builder': 0.2.15
       '@agentos-software/sh': 0.2.15
       '@agentos-software/tar': 0.3.5
       '@rivet-dev/agentos': 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
-      '@rivet-dev/agentos-core': 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
+      '@rivet-dev/agentos-core': 0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
       '@rivet-dev/agentos-toolchain': 0.2.15
       hono: 4.12.9
       rivetkit: 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(ws@8.18.0)
@@ -14784,7 +14787,7 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@rivet-dev/agentos-core@0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)':
+  '@rivet-dev/agentos-core@0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)':
     dependencies:
       '@agentclientprotocol/sdk': 0.16.1(zod@4.2.1)
       '@agentos-software/claude-code': 0.2.7
@@ -14867,7 +14870,7 @@ snapshots:
     dependencies:
       '@agentclientprotocol/sdk': 0.16.1(zod@4.2.1)
       '@agentos-software/common': 0.2.15
-      '@rivet-dev/agentos-core': 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
+      '@rivet-dev/agentos-core': 0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
       '@rivetkit/react': 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       rivetkit: 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(ws@8.18.0)
       zod: 4.2.1

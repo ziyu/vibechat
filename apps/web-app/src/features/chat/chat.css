@@ -1321,6 +1321,97 @@
   --vc-line-soft: #30312d;
   --vc-accent-soft: #4b2d26;
 }
+
+.vc-space-recovery-dialog {
+  --vc-dialog-surface: #fbfaf6;
+  --vc-dialog-ink: #1c1b19;
+  --vc-dialog-muted: #777169;
+  --vc-dialog-line: #ddd8cf;
+  --vc-dialog-accent: #e4472f;
+  width: min(430px, calc(100vw - 28px)) !important;
+  max-width: 430px !important;
+  gap: 18px !important;
+  border-color: var(--vc-dialog-line) !important;
+  border-radius: 18px !important;
+  background: var(--vc-dialog-surface) !important;
+  color: var(--vc-dialog-ink) !important;
+  box-shadow: 0 30px 90px rgb(15 15 14 / 30%) !important;
+  font-family: "IBM Plex Sans", "Avenir Next", "Noto Sans SC", sans-serif;
+}
+.dark .vc-space-recovery-dialog {
+  --vc-dialog-surface: #20211e;
+  --vc-dialog-ink: #f3f0e9;
+  --vc-dialog-muted: #aaa49b;
+  --vc-dialog-line: #3b3b36;
+}
+.vc-space-recovery-dialog [data-slot="dialog-header"] { gap: 9px; padding-right: 26px; }
+.vc-space-recovery-dialog [data-slot="dialog-title"] {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-size: 22px;
+  font-weight: 550;
+  letter-spacing: -.025em;
+}
+.vc-space-recovery-dialog [data-slot="dialog-description"] {
+  color: var(--vc-dialog-muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.vc-space-recovery-symbol {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  margin-bottom: 5px;
+  border: 1px solid color-mix(in srgb, var(--vc-dialog-accent) 30%, var(--vc-dialog-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-dialog-accent) 9%, var(--vc-dialog-surface));
+  color: var(--vc-dialog-accent);
+}
+.vc-space-recovery-symbol svg { width: 17px; }
+.vc-space-recovery-revision {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 13px;
+  border: 1px solid var(--vc-dialog-line);
+  border-radius: 11px;
+  color: var(--vc-dialog-muted);
+  font-size: 9px;
+}
+.vc-space-recovery-revision code {
+  color: var(--vc-dialog-ink);
+  font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.vc-space-recovery-error {
+  margin: -7px 0 0;
+  color: var(--vc-dialog-accent);
+  font-size: 9px;
+  line-height: 1.5;
+}
+.vc-space-recovery-dialog [data-slot="dialog-footer"] { margin-top: 2px; }
+.vc-space-recovery-cancel,
+.vc-space-recovery-confirm {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--vc-dialog-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-dialog-ink);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vc-space-recovery-confirm {
+  border-color: var(--vc-dialog-accent);
+  background: var(--vc-dialog-accent);
+  color: #fff;
+}
+.vc-space-recovery-cancel:disabled,
+.vc-space-recovery-confirm:disabled { opacity: .45; cursor: default; }
 .vc-create-header { padding: 27px 30px 18px; border-bottom: 1px solid var(--vc-line-soft); }
 .vc-create-header [data-slot="dialog-title"] { margin-top: 17px; font-family: "Noto Serif SC", Georgia, serif; font-size: 25px; font-weight: 550; letter-spacing: -.03em; }
 .vc-create-header [data-slot="dialog-description"] { max-width: 510px; color: var(--vc-muted); font-size: 11px; line-height: 1.6; }

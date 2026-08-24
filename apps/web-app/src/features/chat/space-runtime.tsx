@@ -11,7 +11,9 @@ import type { ChatMessage } from '@vibechat/product-core'
 import { ProductApiClient } from '@vibechat/product-client'
 import { useTranslation } from '@/hooks/use-translation'
 import {
+  selectAgentConversationMessages,
   selectReadySpaceAppTarget,
+  shouldProjectRuntimeEventToApp,
   type ReadySpaceAppTarget,
 } from './space-runtime-state'
 
@@ -25,6 +27,8 @@ export function useSpaceRuntime(roomId: string) {
   const [runtimeEvent, setRuntimeEvent] = useState<SpaceRuntimeEvent | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreError, setRestoreError] = useState(false)
   const [readyAppTarget, setReadyAppTarget] = useState<ReadySpaceAppTarget | null>(null)
   const mounted = useRef(true)
   const activeRoomId = useRef(roomId)
@@ -46,6 +50,8 @@ export function useSpaceRuntime(roomId: string) {
     setSnapshot(null)
     setRuntimeEvent(null)
     setUnavailable(false)
+    setRestoring(false)
+    setRestoreError(false)
     void refresh()
     const timer = window.setInterval(() => void refresh(), 1_500)
     const events = new EventSource(productApi.spaceEventsUrl(roomId), { withCredentials: true })
@@ -89,6 +95,26 @@ export function useSpaceRuntime(roomId: string) {
     }
   }, [refresh, roomId])
 
+  const restoreDefaultChat = useCallback(async () => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
+    setRestoring(true)
+    setRestoreError(false)
+    try {
+      await productApi.restoreSpaceApp(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        target: 'default-chat',
+        expectedReadyRevisionId,
+      })
+      await refresh()
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setRestoreError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setRestoring(false)
+    }
+  }, [refresh, roomId, snapshot?.project.draftId])
+
   const appUrl = readyAppTarget?.roomId === roomId ? readyAppTarget.url : null
 
   return {
@@ -96,7 +122,10 @@ export function useSpaceRuntime(roomId: string) {
     runtimeEvent,
     unavailable,
     publishing,
+    restoring,
+    restoreError,
     publish,
+    restoreDefaultChat,
     refresh,
     appUrl,
   }
@@ -160,6 +189,10 @@ export function SpaceAppSurface({
     const agents = snapshot?.availableAgents?.length
       ? snapshot.availableAgents
       : [{ id: snapshot?.defaultAgentId || 'pi', name: 'Pi', available: true }]
+    const activeAgentId = snapshot?.build?.agentId || snapshot?.defaultAgentId || 'pi'
+    const activeAgentName = activeAgentId === 'kernel'
+      ? 'Kernel'
+      : agents.find((agent) => agent.id === activeAgentId)?.name || activeAgentId
     return {
       appId: snapshot?.spaceInstanceId || '',
       locale,
@@ -194,9 +227,9 @@ export function SpaceAppSurface({
         presence: snapshot?.appState.presence || [],
       },
       agent: {
-        id: snapshot?.defaultAgentId || 'pi',
-        name: agents.find((agent) => agent.id === snapshot?.defaultAgentId)?.name || 'Pi',
-        messages: snapshot?.messages || [],
+        id: activeAgentId,
+        name: activeAgentName,
+        messages: selectAgentConversationMessages(snapshot),
         build: snapshot?.build || null,
         queue: snapshot?.queue || { activeCount: 0, pendingCount: 0 },
       },
@@ -216,7 +249,7 @@ export function SpaceAppSurface({
   }, [initializeApp])
 
   useEffect(() => {
-    if (!runtimeEvent) return
+    if (!runtimeEvent || !shouldProjectRuntimeEventToApp(runtimeEvent)) return
     postToApp({ type: 'space:event', version: bridgeVersion, event: runtimeEvent })
   }, [postToApp, runtimeEvent])
 

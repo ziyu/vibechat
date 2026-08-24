@@ -73,4 +73,56 @@ describe('SpaceInstanceServer', () => {
     })
     expect(snapshot.app.presence).toHaveLength(1)
   })
+
+  it('deduplicates Kernel recovery and claims it as an exclusive ordered turn', async () => {
+    const server = new SpaceInstanceServer()
+    const recovery = await server.beginTurn('space-instance-recovery', {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '恢复默认 Chat App',
+      kind: 'restore',
+      externalRequestId: 'restore-request-1',
+      agentId: 'kernel',
+      recovery: {
+        target: 'default-chat',
+        expectedReadyRevisionId: '0123456789abcdef',
+      },
+    })
+    const duplicate = await server.beginTurn('space-instance-recovery', {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '恢复默认 Chat App',
+      kind: 'restore',
+      externalRequestId: 'restore-request-1',
+      agentId: 'kernel',
+      recovery: {
+        target: 'default-chat',
+        expectedReadyRevisionId: '0123456789abcdef',
+      },
+    })
+    await server.beginTurn('space-instance-recovery', {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '@pi add a scoreboard',
+      externalRequestId: '$matrix-event-after-recovery',
+      agentId: 'pi',
+    })
+
+    expect(duplicate).toMatchObject({ turnId: recovery.turnId, deduplicated: true })
+    const claimed = await server.claimTurn('space-instance-recovery')
+    expect(claimed).toMatchObject({
+      kind: 'restore',
+      requests: [{
+        recovery: {
+          target: 'default-chat',
+          expectedReadyRevisionId: '0123456789abcdef',
+        },
+      }],
+    })
+    expect(claimed?.requests).toHaveLength(1)
+    await server.completeChat('space-instance-recovery', recovery.turnId, 'Restored')
+    await expect(server.claimTurn('space-instance-recovery')).resolves.toMatchObject({
+      kind: 'message',
+    })
+  })
 })

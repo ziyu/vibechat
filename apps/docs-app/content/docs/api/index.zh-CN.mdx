@@ -51,6 +51,7 @@ const response = await fetch('/v1/product-state', {
 | `POST` | `/v1/spaces/instances/:roomId/bridge` | 代理通过 SDK allowlist 校验的 App presence/state/event 命令 |
 | `POST` | `/v1/spaces/instances/:roomId/turns` | 提交带 Matrix event ID 的显式 `@Agent` 请求 |
 | `POST` | `/v1/spaces/instances/:roomId/publish` | 将固定 Dev draft 显式发布为不可变 Live release |
+| `POST` | `/v1/spaces/instances/:roomId/restore` | 由 Kernel 把当前 Space 原子恢复为官方 Default Chat 的新 ready Revision；请求必须携带幂等 ID 与预期 ready Revision，且不改变已发布 Release、Matrix timeline 或 App State |
 | `GET` | `/api/credits/status`、`/api/credits/transactions` | 当前用户积分余额与账本 |
 | `GET` | `/api/orders`、`/api/subscription/status` | 当前用户订单与权益 |
 | `GET/POST` | `/api/affiliate/*`、`/api/withdrawal/*` | 推荐归因、佣金与 KYC 提现 |
@@ -86,8 +87,8 @@ Space Template 市场条目使用 `vibechat.space-template-market-entry/v1` 统�
 {
   "schemaVersion": "vibechat.space-template-market-entry/v1",
   "id": "space-campfire",
-  "versionId": "tplv-space-campfire-0-1-0",
-  "semanticVersion": "0.1.0",
+  "versionId": "tplv-space-campfire-0-1-1",
+  "semanticVersion": "0.1.1",
   "artifact": {
     "schemaVersion": "vibechat.space-template-artifact/v1",
     "id": "tpla-<source-sha256>",

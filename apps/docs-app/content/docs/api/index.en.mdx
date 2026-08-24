@@ -51,6 +51,7 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `POST` | `/v1/spaces/instances/:roomId/bridge` | Proxy SDK commands allowed by the presence/state/event allowlist |
 | `POST` | `/v1/spaces/instances/:roomId/turns` | Submit an explicit `@Agent` request keyed by a Matrix event ID |
 | `POST` | `/v1/spaces/instances/:roomId/publish` | Explicitly publish a fixed Dev draft as an immutable Live release |
+| `POST` | `/v1/spaces/instances/:roomId/restore` | Atomically restore the Space through Kernel to a new ready Revision built from the official Default Chat artifact; the request carries an idempotency key and expected ready Revision and preserves the published Release, Matrix timeline, and App State |
 | `GET` | `/api/credits/status`, `/api/credits/transactions` | Current user's balance and ledger |
 | `GET` | `/api/orders`, `/api/subscription/status` | Current user's purchases and entitlement |
 | `GET/POST` | `/api/affiliate/*`, `/api/withdrawal/*` | Referral attribution, commissions and KYC-gated withdrawal |
@@ -86,8 +87,8 @@ Space Template Market entries use the common `vibechat.space-template-market-ent
 {
   "schemaVersion": "vibechat.space-template-market-entry/v1",
   "id": "space-campfire",
-  "versionId": "tplv-space-campfire-0-1-0",
-  "semanticVersion": "0.1.0",
+  "versionId": "tplv-space-campfire-0-1-1",
+  "semanticVersion": "0.1.1",
   "artifact": {
     "schemaVersion": "vibechat.space-template-artifact/v1",
     "id": "tpla-<source-sha256>",

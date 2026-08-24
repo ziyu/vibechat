@@ -50,7 +50,7 @@ packages/space-templates/
 
 每个官方 Template 只有一份持续演进的普通多文件 `app/` 项目。`src/index.ts` 只是入口，不承载整页 HTML/CSS/浏览器脚本；Runtime、文档装配、Template App 与默认 Chat UI 按职责拆分。Chat UI 是可修改的 App 代码，Chat Core、Matrix 会话语义、mention 与 `@agent` 调度仍由 Kernel/SDK 契约保证。
 
-包级 `src/` 只维护协议、Registry、artifact provider 与生成目录，不维护 `chat-core.ts` 或任何可渲染的 Default Chat fallback。Default Chat UI 只能存在于 `official/default-chat/app/` 的 Template Project 中；网络、Runtime 或构建失败必须保持真实错误，由 Kernel 继续加载最后 ready Revision 或显式创建恢复 Revision，不能由共享包临时拼出另一套页面。
+包级 `src/` 只维护协议、Registry、artifact provider 与生成目录，不维护 `chat-core.ts` 或任何可渲染的 Default Chat fallback。Default Chat UI 只能存在于 `official/space-default/app/` 的 Template Project 中；网络、Runtime 或构建失败必须保持真实错误，由 Kernel 继续加载最后 ready Revision 或显式创建恢复 Revision，不能由共享包临时拼出另一套页面。
 
 `releases.json` 是扁平、追加式的发布索引，只保存 Version manifest、release status、source/manifest lock 和 content-addressed artifact 引用，不复制历史源码。`development` 记录可在正式发布前重签同一开发基线；切换为 `published` 后不可重签。已发布历史由 Template Registry/Object Store 中的不可变 artifact 保存，并可由固定 Git revision 重建；仓库 Git 历史负责审查源码演进。
 
@@ -65,13 +65,14 @@ packages/space-templates/
 5. `createSpaceTemplateMarketEntry()` 对两种来源生成相同市场结构；消费者只能根据 Publisher verification 展示官方/认证标记。
 6. Space 创建后同时保存 Template lineage hash 与当前 Project hash；只有完全未修改的兼容快照可以迁移，任何 Agent/人工修改都不会被模板升级覆盖。
 7. Matrix 只保存 Template/Project/Release 指针和安全快照，不保存源码或构建产物。
+8. `agentos-app-v1` 的 `src/index.ts` 必须导出 RivetKit `registry`、调用 `registry.start()` 并默认导出 fetch handler；Dev Preview 与不可变 Release 使用同一入口契约。
 
 ## 发布官方新版本
 
 1. 直接在 `official/<template-id>/app/` 演进源码并更新 `CHANGELOG.md`；不要创建版本源码目录。
 2. 从固定 Git revision 构建 `agentos-app-v1` artifact，计算 content hash，上传统一 Template Registry/Object Store。
 3. 为新版本分配新的 `tplv-*` ID，在扁平 `releases.json` 末尾追加 manifest/lock/artifact 记录，并把 `template.json.currentVersionId` 指向它；不得覆盖旧记录。
-4. 开发中的 `0.1.0` 基线可运行 `pnpm --filter @vibechat/space-templates lock:development` 重签，但仅限最新且显式标为 `development` 的记录；正式发布时将 status 固化为 `published`。后续新版本用 `lock:new` 为最新未签发记录计算 lock，再运行 `generate`。`check:generated` 会拒绝已发布记录漂移、顺序/ID 错误、最新源码与 artifact hash 不一致和陈旧 catalog。
+4. 最新且显式标为 `development` 的记录可在正式发布前运行 `pnpm --filter @vibechat/space-templates lock:development` 受控重签；正式发布时将 status 固化为 `published`。后续源码载荷变化必须先按规则追加相邻 SemVer，再用 `lock:new` 为最新未签发记录计算 lock，并运行 `generate`。`check:generated` 会拒绝已发布记录漂移、顺序/ID 错误、空升版、最新源码与 artifact hash 不一致和陈旧 catalog。
 5. 运行 Template/Runtime/Product State tests、文档检查、typecheck、build 和适用的 Matrix/Space App E2E。
 
 若某个 Template 需要独立发布部署，发布器使用该 Version 引用的 immutable artifact，而不是检出一个版本源码目录。官方发布器以固定 Git revision 的 `app/` 为 build context；用户发布器以固定 ready Revision 为 build context。两者产生同样的 artifact、SBOM、provenance 和 Registry 记录，也都不得从 generated catalog 反向恢复源码。

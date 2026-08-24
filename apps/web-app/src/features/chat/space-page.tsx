@@ -8,11 +8,20 @@ import {
   MoreHorizontal,
   Pin,
   PinOff,
+  RotateCcw,
   Volume2,
   VolumeX,
   UsersRound,
 } from 'lucide-react'
 import type { SpaceAppBridgeRequest } from '@vibechat/space-app-contracts'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@vibechat/react-shared/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +57,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
     toggleRoomPinned,
   } = useChat()
   const [reloadKey, setReloadKey] = useState(0)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const room = state.rooms.find((candidate) => candidate.id === roomId)
   const space = state.spaces.find((candidate) => candidate.id === room?.spaceId)
   const runtime = useSpaceRuntime(roomId)
@@ -184,6 +194,21 @@ export function SpacePage({ roomId }: { roomId: string }) {
               {room.muted ? t.chatApp.spaces.unmute : t.chatApp.spaces.mute}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-testid="restore-default-chat"
+              disabled={
+                !runtime.snapshot?.project.draftId
+                || Boolean(runtime.snapshot.build)
+                || runtime.publishing
+                || runtime.restoring
+                || runtime.unavailable
+              }
+              onSelect={() => setRestoreDialogOpen(true)}
+            >
+              <RotateCcw />
+              {t.chatApp.spaceRuntime.restoreDefaultChat}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => markRoomRead(room.id)}>
               <CheckCheck />
               {t.chatApp.spaces.markRead}
@@ -218,6 +243,61 @@ export function SpacePage({ roomId }: { roomId: string }) {
           onRetry={() => void runtime.refresh()}
         />
       </main>
+
+      <Dialog
+        open={restoreDialogOpen}
+        onOpenChange={(open) => {
+          if (!runtime.restoring) setRestoreDialogOpen(open)
+        }}
+      >
+        <DialogContent
+          className="vc-space-recovery-dialog"
+          data-testid="restore-default-chat-dialog"
+        >
+          <DialogHeader>
+            <span className="vc-space-recovery-symbol" aria-hidden="true">
+              <RotateCcw />
+            </span>
+            <DialogTitle>{t.chatApp.spaceRuntime.restoreDefaultChatTitle}</DialogTitle>
+            <DialogDescription>
+              {t.chatApp.spaceRuntime.restoreDefaultChatDescription}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="vc-space-recovery-revision">
+            <span>{t.chatApp.spaceRuntime.ready}</span>
+            <code>{runtime.snapshot?.project.draftId?.slice(0, 7)}</code>
+          </div>
+          {runtime.restoreError ? (
+            <p className="vc-space-recovery-error" role="alert">
+              {t.chatApp.spaceRuntime.restoreDefaultChatFailed}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <button
+              type="button"
+              className="vc-space-recovery-cancel"
+              disabled={runtime.restoring}
+              onClick={() => setRestoreDialogOpen(false)}
+            >
+              {t.actions.cancel}
+            </button>
+            <button
+              type="button"
+              className="vc-space-recovery-confirm"
+              data-testid="confirm-restore-default-chat"
+              disabled={runtime.restoring || !runtime.snapshot?.project.draftId}
+              onClick={() => void runtime.restoreDefaultChat()
+                .then(() => setRestoreDialogOpen(false))
+                .catch(() => undefined)}
+            >
+              <RotateCcw size={14} />
+              {runtime.restoring
+                ? t.chatApp.spaceRuntime.restoringDefaultChat
+                : t.chatApp.spaceRuntime.restoreDefaultChatConfirm}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

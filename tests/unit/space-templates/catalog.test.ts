@@ -15,6 +15,7 @@ import {
 } from "@vibechat/space-templates";
 import { loadOfficialSpaceTemplateArtifact } from "@vibechat/space-templates/node";
 import {
+  createProjectFromTemplate,
   initializeProjectFromTemplate,
   loadProject,
   projectDirectory,
@@ -40,9 +41,13 @@ describe("Space Template publication protocol", () => {
         id: "publisher-vibechat",
         verification: "official",
       });
+      expect(template.versions.map((item) => item.semanticVersion)).toEqual([
+        "0.1.0",
+        "0.1.1",
+      ]);
       expect(version).toMatchObject({
-        id: expect.stringMatching(/^tplv-.+-0-1-0$/),
-        semanticVersion: "0.1.0",
+        id: expect.stringMatching(/^tplv-.+-0-1-1$/),
+        semanticVersion: "0.1.1",
         sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         manifestHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         projectFormat: "agentos-app-v1",
@@ -81,6 +86,9 @@ describe("Space Template publication protocol", () => {
       expect(project!.files["src/index.ts"]).toContain("./page.js");
       expect(project!.files["src/index.ts"]).toContain(
         "registry.start()",
+      );
+      expect(project!.files["src/index.ts"]).toContain(
+        'export { registry } from "./runtime.js"',
       );
       expect(project!.files["src/runtime.ts"]).toContain("setup(");
       expect(project!.files["src/chat/client.ts"]).toContain(
@@ -158,7 +166,7 @@ describe("Space Template publication protocol", () => {
   it("creates an App-published user Template with exactly the same protocol", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-0",
+      "tplv-space-default-0-1-1",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -233,7 +241,7 @@ describe("Space Template publication protocol", () => {
   it("enforces one ordered SemVer sequence without empty or skipped releases", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-0",
+      "tplv-space-default-0-1-1",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -342,11 +350,11 @@ describe("Space Template publication protocol", () => {
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "builtin-space-campfire-v5",
-      )?.id).toBe("tplv-space-campfire-0-1-0");
+      )?.id).toBe("tplv-space-campfire-0-1-1");
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "tplv-space-campfire-5-0-0",
-      )?.id).toBe("tplv-space-campfire-0-1-0");
+      )?.id).toBe("tplv-space-campfire-0-1-1");
       const initialized = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
@@ -354,7 +362,7 @@ describe("Space Template publication protocol", () => {
       );
       expect(initialized.project.template).toMatchObject({
         id: "space-campfire",
-        versionId: "tplv-space-campfire-0-1-0",
+        versionId: "tplv-space-campfire-0-1-1",
         sourceHash: initialized.project.sourceHash,
         projectFormat: "agentos-app-v1",
       });
@@ -370,7 +378,7 @@ describe("Space Template publication protocol", () => {
       const first = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-0",
+        "tplv-space-campfire-0-1-1",
       );
       const customized = {
         ...first.project,
@@ -385,16 +393,63 @@ describe("Space Template publication protocol", () => {
       const repeated = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-0",
+        "tplv-space-campfire-0-1-1",
       );
       expect(repeated.created).toBe(false);
       expect(repeated.project.summary).toBe("Agent customized this Project");
       expect(repeated.project.template?.versionId).toBe(
-        "tplv-space-campfire-0-1-0",
+        "tplv-space-campfire-0-1-1",
       );
       expect(repeated.project.files["src/app/styles.ts"]).toContain(
         "// Agent revision",
       );
+    } finally {
+      await unlink(path).catch(() => undefined);
+    }
+  });
+
+  it("materializes a recovery Candidate without replacing the current ready Project", async () => {
+    const appId = `template-${randomUUID()}`;
+    const path = join(projectDirectory(), `${appId}.json`);
+    try {
+      const first = await initializeProjectFromTemplate(
+        appId,
+        "space-campfire",
+        "tplv-space-campfire-0-1-1",
+      );
+      const customized = await saveProject({
+        ...first.project,
+        files: {
+          ...first.project.files,
+          "src/app/styles.ts": `${first.project.files["src/app/styles.ts"]}\n// current ready revision\n`,
+        },
+        summary: "Current ready custom App",
+        draftId: "0123456789abcdef",
+        publishedDraftId: "fedcba9876543210",
+        releaseId: "release-1",
+        updatedAt: new Date(Date.now() + 1_000).toISOString(),
+      });
+
+      const candidate = await createProjectFromTemplate(
+        appId,
+        "space-default",
+        "tplv-space-default-0-1-1",
+      );
+      const stillReady = await loadProject(appId);
+
+      expect(candidate.template).toMatchObject({
+        id: "space-default",
+        versionId: "tplv-space-default-0-1-1",
+      });
+      expect(candidate.files["src/chat/client.ts"]).toContain("space.chat")
+      expect(stillReady).toMatchObject({
+        sourceHash: customized.sourceHash,
+        summary: "Current ready custom App",
+        draftId: "0123456789abcdef",
+        publishedDraftId: "fedcba9876543210",
+        releaseId: "release-1",
+      });
+      expect(stillReady?.files["src/app/styles.ts"]).toContain("// current ready revision");
     } finally {
       await unlink(path).catch(() => undefined);
     }
@@ -407,7 +462,7 @@ describe("Space Template publication protocol", () => {
       await initializeProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-0",
+        "tplv-space-default-0-1-1",
       );
       const stored = JSON.parse(await readFile(path, "utf8")) as {
         files: Record<string, string>;

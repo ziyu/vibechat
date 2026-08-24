@@ -86,8 +86,8 @@ describe('ProductStateService', () => {
       schemaVersion: 'vibechat.space-template-market-entry/v1',
       id: 'space-campfire',
       name: '夜航电台',
-      versionId: 'tplv-space-campfire-0-1-0',
-      semanticVersion: '0.1.0',
+      versionId: 'tplv-space-campfire-0-1-1',
+      semanticVersion: '0.1.1',
       sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       manifestHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       artifact: {
