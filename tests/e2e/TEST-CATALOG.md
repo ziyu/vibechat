@@ -1422,6 +1422,13 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - 本地 AgentOS Build VM 使用显式 DNS；Agent 生成约束同步要求入口导出 `registry`。Alice 的现有 Space 经 Kernel 恢复到 `space-default@0.1.1` Revision `2d68a0defce3aac1`，原 Matrix 消息保持，随后成功固化 64 位内容寻址 Release。
 - 显式发布归属 Kernel；Host 只把真实 Agent reply 投影给 App，不把恢复、发布或 Runtime error 伪装成 Pi/成员聊天。相关 unit 33/33、五个官方 App 与 Runtime seed 严格 TypeScript、真实 Synapse Matrix Space 2/2、全仓 18/18 typecheck/build、边界和文档检查通过。
 
+2026-08-24 本地 Engine 生命周期与 Published Release 重启证据（尚不足以勾选生产多副本接管）：
+
+- 根 `pnpm dev` 启动仓库托管的 Rivet Engine 并等待健康后再启动应用，Engine 使用固定 filesystem 数据库；正常退出时端口 `6420` 释放，数据库、Actor 与 Release 保留。若端口已被未知 Engine 占用，启动器失败关闭而不终止未知进程。
+- Alice 的同一 App/ready Revision 在完整停止并重新启动 Synapse 以外的开发栈后，通过同一 Published Release `4b3802b5db16fe23e62228477f9b2d8a798fde0abef1676bee8ed3d9a2e468c4` 返回 HTTP 200；Scaler 丢弃旧 boot 的 replica `/0` 并创建 `/1`，没有重新生成 Template Version、Project、Draft 或 Release。
+- 本证据覆盖本地单 Runtime 的 Engine 持久化和死亡 VM 租约恢复，不覆盖两个 Runtime replica 竞争 lease、interrupted Turn 回队首或账务 reconciliation，因此场景 14 和 S4 完成条件保持未通过。
+- 重启后的首次 Live 请求返回 200、固定 release header 和一个新 replica；紧接的热请求在 `58.760 ms` 返回相同的 24,168-byte App，`cold-start=0`、queue delay `0 ms`。定向 unit 31/31、真实 Synapse Chromium Matrix Space 2/2、全仓 18/18 typecheck/build、Docs production build、文档和应用边界检查通过。
+
 **文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
 本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。
@@ -1482,6 +1489,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-24 | Space Runtime managed Engine + Published Release recovery | 33 | 0 | 0 | Runtime/Template/Product 定向 unit 31/31；真实 Matrix Space Chromium 2/2；完整停止/重启后 Alice 的同一 Release 冷启动与热请求均为 200；另通过全仓 18/18 typecheck/build、Docs build、边界和文档检查 |
 | 2026-08-24 | Space Kernel recovery + Template 0.1.1 + AgentOS Release + Synapse | 35 | 0 | 0 | Runtime/Template/Web/Product Client 定向 unit 33/33；真实 Matrix Space Chromium 2/2；Alice 现有 Space 恢复到 `space-default@0.1.1` 后成功固化 64 位 Release；另通过五个官方 App + Runtime seed 独立 TypeScript、全仓 18/18 typecheck/build、边界和文档检查 |
 | 2026-08-24 | Space Template version governance + Market + Web + Synapse | 24 | 0 | 0 | SemVer/兼容 alias/Room/Market 定向 unit 15/15；真实 Product State Chromium 9/9；创建流程五个官方 Template 均显示 v0.1.0；另通过 19 个 workspace project 递归 typecheck/build、Docs build、边界和文档检查 |
 | 2026-08-24 | Space App cold start + Web + Runtime + Synapse | 7 | 0 | 0 | ready App 状态机 unit 5/5；真实 Matrix Space Chromium 2/2，首个 App 文档不再返回 Default Chat recovery；另通过全仓 18/18 typecheck/build、边界和文档检查 |

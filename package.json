@@ -68,6 +68,7 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "1.58.2",
+    "@rivetkit/engine-cli": "2.3.9",
     "@types/ali-oss": "^6.16.11",
     "@types/better-sqlite3": "7.6.13",
     "@types/mjml": "4.7.4",

@@ -2,7 +2,47 @@ diff --git a/dist/index.js b/dist/index.js
 index f77887e6ac1e3949746542a92c3a31b7e500fabf..d14fd9c0b675f5836de73aa47b00725fc4ccb760 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -3028,7 +3028,14 @@ function createAppsActors(options = {}) {
+@@ -1584,3 +1584,4 @@ function createAppsActors(options = {}) {
++  const runtimeBootId = randomUUID2();
+   const maxSourceBytes = DEFAULT_MAX_SOURCE_BYTES;
+   const maxFiles = DEFAULT_MAX_FILES;
+   const maxVersions = DEFAULT_MAX_VERSIONS;
+@@ -2687,6 +2688,7 @@ function createAppsActors(options = {}) {
+       actionTimeout: warmTimeoutMs + 3e4
+     },
+     createState: () => ({
++      runtimeBootId,
+       appId: null,
+       release: null,
+       region: null,
+@@ -2704,6 +2706,26 @@ function createAppsActors(options = {}) {
+     }),
+     onWake: async (c) => {
+       const state = c.state;
++      const previousRuntimeBootId = state.runtimeBootId;
++      state.runtimeBootId = runtimeBootId;
++      if (previousRuntimeBootId !== runtimeBootId) {
++        const staleKeys = [
++          ...state.replicas.map((replica) => replica.key),
++          ...state.warmingReplicaKeys ?? []
++        ];
++        state.replicas = [];
++        state.warmingReplicaKeys = [];
++        state.warmingReplicas = 0;
++        state.admissions = {};
++        state.reconcileScheduledAt = null;
++        state.revision += 1;
++        if (staleKeys.length > 0) {
++          c.log.warn({
++            msg: "discarding AgentOS Apps replicas from a previous runtime boot",
++            staleReplicas: staleKeys.length
++          });
++        }
++      }
+       const strandedKeys = [...state.warmingReplicaKeys ?? []];
+       const strandedCount = Math.max(
+         state.warmingReplicas ?? 0,
+@@ -3028,7 +3050,14 @@ function createAppsActors(options = {}) {
        }
      }
    });
@@ -17,7 +57,7 @@ index f77887e6ac1e3949746542a92c3a31b7e500fabf..d14fd9c0b675f5836de73aa47b00725f
      defaultSoftware: false,
      software: [sh, tar, appsBuilder],
      permissions: {
-@@ -3063,52 +3070,15 @@ function createAppsActors(options = {}) {
+@@ -3063,52 +3092,15 @@ function createAppsActors(options = {}) {
      }
    };
    const createBuildVm = async () => {
@@ -75,3 +115,15 @@ index f77887e6ac1e3949746542a92c3a31b7e500fabf..d14fd9c0b675f5836de73aa47b00725f
      };
    };
    const temporaryArtifacts = /* @__PURE__ */ new Map();
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 6db06f1f6c4551451442219cd95c63d7fd71aa2f..b07b0f509f3b8b950a6e92445718e5ae02f390da 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -97,6 +97,7 @@ interface AdmissionLease {
+     expiresAt: number;
+ }
+ interface ScalerState {
++    runtimeBootId?: string;
+     appId: string | null;
+     release: string | null;
+     region: string | null;

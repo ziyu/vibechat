@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -13,6 +14,7 @@ import {
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const scriptPath = fileURLToPath(import.meta.url)
+const require = createRequire(import.meta.url)
 
 if (!isSupportedNode(process.execPath)) {
   const compatibleNode = resolveCompatibleNode()
@@ -47,6 +49,24 @@ if (!filters) {
   throw new Error(`Unknown development mode: ${mode}`)
 }
 
+const configuredRivetEndpoint =
+  process.env.RIVET_ENDPOINT || process.env.AGENTOS_ENDPOINT
+const localRivetEndpoint = 'http://127.0.0.1:6420'
+const managesLocalRivetEngine = !configuredRivetEndpoint
+const rivetkitStoragePath =
+  process.env.RIVETKIT_STORAGE_PATH ||
+  join(repositoryRoot, 'apps', 'space-runtime', '.data', 'rivetkit-storage')
+const rivetEngineDatabasePath = join(
+  rivetkitStoragePath,
+  'managed-engine',
+  'db',
+)
+const rivetEngineConfigPath = join(
+  rivetkitStoragePath,
+  'managed-engine',
+  'config.json',
+)
+
 const developmentEnvironment = environmentForNode(process.execPath, {
   ...process.env,
   APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:8001',
@@ -70,6 +90,15 @@ const developmentEnvironment = environmentForNode(process.execPath, {
   SPACE_AGENT_DEFAULT_ID: process.env.SPACE_AGENT_DEFAULT_ID || 'pi',
   AGENTOS_APPS_DNS_SERVERS:
     process.env.AGENTOS_APPS_DNS_SERVERS || '1.1.1.1,8.8.8.8',
+  AGENTOS_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+  RIVET_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+  ...(managesLocalRivetEngine
+    ? { RIVET_RUN_ENGINE: '0' }
+    : process.env.RIVET_RUN_ENGINE
+      ? { RIVET_RUN_ENGINE: process.env.RIVET_RUN_ENGINE }
+      : {}),
+  RIVETKIT_STORAGE_PATH: rivetkitStoragePath,
+  RIVET_ENGINE_DATABASE_PATH: rivetEngineDatabasePath,
   SPACE_RUNTIME_CALLBACK_ORIGIN:
     process.env.SPACE_RUNTIME_CALLBACK_ORIGIN || 'http://127.0.0.1:8002',
   SPACE_RUNTIME_INTERNAL_TOKEN:
@@ -171,8 +200,94 @@ async function ensureLocalSynapse() {
   throw new Error('Synapse did not become ready within 30 seconds')
 }
 
+async function localRivetEngineIsReady() {
+  try {
+    const response = await fetch(`${localRivetEndpoint}/health`, {
+      signal: AbortSignal.timeout(750),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+async function startManagedRivetEngine() {
+  if (!managesLocalRivetEngine) {
+    console.log(`[dev] Using configured Rivet Engine at ${configuredRivetEndpoint}`)
+    return null
+  }
+  if (await localRivetEngineIsReady()) {
+    throw new Error(
+      `A Rivet Engine is already listening at ${localRivetEndpoint}. Stop the stale local Engine, then run pnpm dev again.`,
+    )
+  }
+
+  const { getEnginePath } = require('@rivetkit/engine-cli')
+  await mkdir(rivetEngineDatabasePath, { recursive: true })
+  await writeFile(
+    rivetEngineConfigPath,
+    `${JSON.stringify(
+      {
+        file_system: { path: rivetEngineDatabasePath },
+        telemetry: { enabled: false },
+      },
+      null,
+      2,
+    )}\n`,
+    'utf8',
+  )
+  console.log(`[dev] Starting managed Rivet Engine at ${localRivetEndpoint}`)
+  const engine = spawn(
+    getEnginePath(),
+    ['--config', rivetEngineConfigPath, 'start'],
+    {
+      cwd: join(repositoryRoot, 'apps', 'space-runtime'),
+      env: developmentEnvironment,
+      stdio: 'inherit',
+    },
+  )
+  let spawnError = null
+  engine.once('error', (error) => {
+    spawnError = error
+  })
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (spawnError) {
+      throw new Error(`Failed to start Rivet Engine: ${spawnError.message}`, {
+        cause: spawnError,
+      })
+    }
+    if (engine.exitCode !== null || engine.signalCode !== null) {
+      throw new Error(
+        `Rivet Engine exited before readiness (${engine.signalCode || engine.exitCode})`,
+      )
+    }
+    if (await localRivetEngineIsReady()) {
+      console.log(`[dev] Rivet Engine is ready at ${localRivetEndpoint}`)
+      return engine
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 250))
+  }
+
+  engine.kill('SIGTERM')
+  throw new Error('Rivet Engine did not become ready within 30 seconds')
+}
+
+async function stopManagedRivetEngine(engine) {
+  if (!engine || engine.exitCode !== null || engine.signalCode !== null) return
+  engine.kill('SIGTERM')
+  await Promise.race([
+    new Promise((resolveExit) => engine.once('exit', resolveExit)),
+    new Promise((resolveDelay) => setTimeout(resolveDelay, 5_000)),
+  ])
+  if (engine.exitCode === null && engine.signalCode === null) {
+    engine.kill('SIGKILL')
+  }
+}
+
 await ensureLocalDatabase()
 await ensureLocalSynapse()
+const managedRivetEngine = await startManagedRivetEngine()
 
 console.log(
   '[dev] Starting VibeChat: Web 8001, Backend 8002, Site 8003, Admin 8005, Space Runtime 8007',
@@ -195,6 +310,7 @@ const child = spawn(
 )
 
 let terminating = false
+let managedEngineFailed = false
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     terminating = true
@@ -204,9 +320,24 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 child.once('error', (error) => {
   console.error('[dev] Failed to start application processes', error)
+  void stopManagedRivetEngine(managedRivetEngine)
   process.exitCode = 1
 })
 
-child.once('close', (code) => {
-  process.exitCode = code ?? (terminating ? 0 : 1)
+managedRivetEngine?.once('exit', (code, signal) => {
+  if (terminating) return
+  console.error(
+    `[dev] Managed Rivet Engine exited unexpectedly (${signal || code || 'unknown'})`,
+  )
+  managedEngineFailed = true
+  terminating = true
+  child.kill('SIGTERM')
+})
+
+child.once('close', async (code) => {
+  const expectedStop = terminating
+  terminating = true
+  await stopManagedRivetEngine(managedRivetEngine)
+  process.exitCode =
+    code ?? (expectedStop && !managedEngineFailed ? 0 : 1)
 })

@@ -6,7 +6,7 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 
 ## 本地运行
 
-根目录 `pnpm dev` 或 `pnpm dev:web` 会同时启动本服务；也可以单独执行 `pnpm dev:space-runtime`。需要在 `.env` 配置：
+根目录 `pnpm dev` 或 `pnpm dev:web` 会同时启动本服务和仓库托管的 Rivet Engine；也可以单独执行 `pnpm dev:space-runtime`。默认 Engine 状态固定保存在被 git 忽略的 `apps/space-runtime/.data/rivetkit-storage/managed-engine/db`，因此停止再启动整套开发服务不会丢失 App、Draft 或 Release。需要在 `.env` 配置：
 
 - `SPACE_RUNTIME_INTERNAL_TOKEN`：Backend 与 Runtime 共享的本地内部 token。
 - `SPACE_RUNTIME_CALLBACK_ORIGIN`：积分结算回调的 Backend origin，默认 `http://127.0.0.1:8002`。
@@ -15,8 +15,12 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 - `SPACE_RUNTIME_DATA_DIR`：可选的 Project/App State 本地持久化目录。
 - `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程隔离的 `/tmp/vc-space-runtime-<pid>`，避免 macOS Unix socket 路径超限。
 - `AGENTOS_APPS_DNS_SERVERS`：可选的 Release Build VM DNS，使用逗号分隔。根目录 `pnpm dev` 在本地默认注入 `1.1.1.1,8.8.8.8`，避免 macOS AgentOS `0.2.15` 无法解析系统 resolver；生产运行时若已有正确 DNS 可不设置。
+- `RIVET_ENDPOINT` / `AGENTOS_ENDPOINT`：可选的外部 Rivet Engine 地址。未设置时，根目录启动器负责启动和停止本地 Engine；设置后只连接指定 Engine，不再创建本地进程。
+- `RIVET_ENGINE_DATABASE_PATH`：可选的本地 Engine 数据库目录；默认使用上述仓库内持久化路径。
 
 本服务依赖的 `isolated-vm` 尚不支持 Node 26；开发和构建使用仓库约定的 Node 22–24。仅有 Claude Code credential 而没有 AgentOS provider credential 时，使用 Host Pi 模式。
+
+本地启动器拒绝复用占用 `6420` 的未知 Engine，避免把 Space Release 意外写入另一个项目的数据库。正常退出 `pnpm dev` 会同时停止它拥有的 Engine，Synapse 容器则继续保留以便复用。单独执行 `pnpm dev:space-runtime` 且未配置 endpoint 时，Space Runtime 仍会使用 RivetKit managed mode 启动 Engine。
 
 ## 请求链路
 
@@ -47,4 +51,5 @@ Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 r
 - 账务链已经具备逐请求预留、拒绝退款和 Runtime 回调，但 Pi 的真实 token usage 尚未接入，当前成功请求以空 usage 结算。
 - Agent 回复目前由 Runtime SSE 合并显示在 Space Chat UI，尚未作为 Matrix virtual-user event 回写 timeline。
 - 当前 ready Preview 只在单进程内保留最近三个版本；生产环境仍需把保留策略、跨副本路由和 artifact 恢复升级为持久协调能力。
-- agentOS Apps `0.2.15` 停止 Dev/Release worker 时可能输出 guest metadata/RPC timeout 噪声；已发布 artifact 仍可正常读取，升级前保留为已知问题。仓库补丁还为 Build VM 补齐 `dns` options 透传并移除 macOS 不稳定的 host-dir artifact mount；补丁只影响隔离构建 VM，不改变 App 或 Agent 协议。
+- 本地 Engine 会持久化 Actor 与 Release 状态，但 VM 进程不能跨宿主进程存活。仓库的 agentOS Apps `0.2.15` 兼容补丁为每次 Runtime boot 标记新的实例代次；Scaler 恢复时清除上一代 replica/admission 租约，再从同一不可变 Release 启动新副本，不删除 Release 或 App 数据。这是本地单 Runtime 恢复，不等同于生产多副本 lease 接管。
+- agentOS Apps `0.2.15` 停止 Dev/Release worker 时可能输出 guest metadata/RPC timeout 噪声；普通 Dev/Live HTML 已可正常读取，升级前仍保留为已知问题。仓库补丁还为 Build VM 补齐 `dns` options 透传并移除 macOS 不稳定的 host-dir artifact mount；补丁只影响隔离构建 VM，不改变 App 或 Agent 协议。

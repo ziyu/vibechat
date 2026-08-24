@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@rivet-dev/agentos-apps@0.2.15':
-    hash: ptdqyv4bppigbcyqd2mxr4wqnq
+    hash: temeowaqu46ixeolx5qiwbn2qm
     path: patches/@rivet-dev__agentos-apps@0.2.15.patch
   '@rivet-dev/agentos-core@0.2.15':
     hash: i7m64e4phivdw5bveag4rky7jy
@@ -149,6 +149,9 @@ importers:
       '@playwright/test':
         specifier: 1.58.2
         version: 1.58.2
+      '@rivetkit/engine-cli':
+        specifier: 2.3.9
+        version: 2.3.9
       '@types/ali-oss':
         specifier: ^6.16.11
         version: 6.16.13
@@ -548,7 +551,7 @@ importers:
         version: 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       '@rivet-dev/agentos-apps':
         specifier: 0.2.15
-        version: 0.2.15(patch_hash=ptdqyv4bppigbcyqd2mxr4wqnq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+        version: 0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
@@ -14734,7 +14737,7 @@ snapshots:
     dependencies:
       '@secure-exec/core': 0.2.1
 
-  '@rivet-dev/agentos-apps@0.2.15(patch_hash=ptdqyv4bppigbcyqd2mxr4wqnq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
+  '@rivet-dev/agentos-apps@0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
     dependencies:
       '@agentos-software/apps-builder': 0.2.15
       '@agentos-software/sh': 0.2.15

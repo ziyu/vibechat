@@ -82,25 +82,34 @@ const rivetkitStoragePath = resolve(
   process.env.RIVETKIT_STORAGE_PATH ??
     join(process.cwd(), ".data", "rivetkit-storage"),
 );
-const rivetEngineDataDirectory = join(
-  rivetkitStoragePath,
-  ".rivetkit",
-  "var",
-  "engine",
-  "db",
+const rivetEngineDataDirectory = resolve(
+  process.env.RIVET_ENGINE_DATABASE_PATH ??
+    join(rivetkitStoragePath, "managed-engine", "db"),
 );
 await Promise.all([
   mkdir(agentOsTemporaryDirectory, { recursive: true }),
   mkdir(rivetEngineDataDirectory, { recursive: true }),
 ]);
 process.env.TMPDIR = agentOsTemporaryDirectory;
-process.env.RIVET_ENDPOINT ??=
-  process.env.AGENTOS_ENDPOINT ?? "http://127.0.0.1:6420";
+const configuredRivetEndpoint =
+  process.env.RIVET_ENDPOINT ?? process.env.AGENTOS_ENDPOINT;
+const localRivetEndpoint = "http://127.0.0.1:6420";
+const startsLocalRivetEngine = !configuredRivetEndpoint;
+if (configuredRivetEndpoint) {
+  process.env.RIVET_ENDPOINT = configuredRivetEndpoint;
+} else {
+  process.env.RIVET_RUN_ENGINE ??= "1";
+}
 // Keep this prototype's actors and releases isolated from other RivetKit
 // projects on the same laptop. The environment variable remains overridable.
 process.env.RIVETKIT_STORAGE_PATH ??= rivetkitStoragePath;
 
-registry.start();
+const registryReady = registry.startAndWait();
+// AgentOS Apps resolves its client connection lazily from RIVET_ENDPOINT.
+// Set it only after Registry has parsed RIVET_RUN_ENGINE, because RivetKit
+// intentionally rejects an explicit endpoint combined with managed Engine mode.
+if (startsLocalRivetEngine) process.env.RIVET_ENDPOINT = localRivetEndpoint;
+await registryReady;
 
 const app = new Hono();
 

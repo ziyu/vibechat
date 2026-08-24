@@ -3,14 +3,14 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-23
-> 维护范围：本地 Synapse、Application Service adapter、真实 Matrix bootstrap 验证
+> 更新日期：2026-08-24
+> 维护范围：本地 Synapse、Rivet Engine、Application Service adapter、真实 Matrix/Space App bootstrap 验证
 
 ## 用途与边界
 
 此环境只用于验证 VibeChat 产品服务与 Synapse 的 Application Service 合约。它固定使用 Synapse `v1.157.0`、SQLite、`localhost` server name 和仓库内公开的本地 token，禁止暴露到公网或复用到生产。
 
-默认 `docker compose up` 不会启动 Synapse；Matrix 服务位于显式 profile 中。仓库根目录的 `pnpm dev` 和 `pnpm dev:web` 会自动完成下述初始化与启动，并向所有子进程注入本 Runbook 的本地 Matrix 配置。
+默认 `docker compose up` 不会启动 Synapse；Matrix 服务位于显式 profile 中。仓库根目录的 `pnpm dev` 和 `pnpm dev:web` 会自动完成下述初始化与启动，并向所有子进程注入本 Runbook 的本地 Matrix 配置。相同启动器还会运行一个仓库托管的本地 Rivet Engine，供 Space Runtime 恢复 App、Draft 与不可变 Release。
 
 ## 日常启动
 
@@ -20,9 +20,9 @@
 pnpm dev
 ```
 
-该命令会在首次运行时初始化被 git 忽略的 SQLite 与 Synapse 数据目录，启动 Synapse，并等待 `http://localhost:8008/_matrix/client/versions` 就绪后再启动 Backend、Web、Site、Admin 和 Space Runtime。`pnpm dev:web` 使用相同前置流程，只启动 Backend、Web 和 Space Runtime。若当前 shell 使用 Node 26，但 Homebrew 已安装 Node 22/24，启动器会自动重启到兼容版本；其他安装位置可通过 `VIBECHAT_NODE_BIN` 指定。
+该命令会在首次运行时初始化被 git 忽略的 SQLite 与 Synapse 数据目录，启动 Synapse 并等待 `http://localhost:8008/_matrix/client/versions` 就绪；随后启动持久化到 `apps/space-runtime/.data/rivetkit-storage/managed-engine/db` 的 Rivet Engine 并等待 `http://127.0.0.1:6420/health` 就绪，最后启动 Backend、Web、Site、Admin 和 Space Runtime。`pnpm dev:web` 使用相同前置流程，只启动 Backend、Web 和 Space Runtime。若当前 shell 使用 Node 26，但 Homebrew 已安装 Node 22/24，启动器会自动重启到兼容版本；其他安装位置可通过 `VIBECHAT_NODE_BIN` 指定。
 
-本地 Synapse 容器在应用进程退出后保持运行，以便重启和 E2E 复用；使用 `pnpm matrix:dev:down` 显式停止。只有在确实不需要 Matrix 的诊断任务中才可设置 `VIBECHAT_DEV_SKIP_SYNAPSE=1`。
+本地 Synapse 容器在应用进程退出后保持运行，以便重启和 E2E 复用；使用 `pnpm matrix:dev:down` 显式停止。Rivet Engine 的进程由本次 `pnpm dev` 独占管理，正常退出时一并停止，但数据库保留供下次恢复。启动前若 `6420` 已有未知 Engine，启动器会拒绝继续，先停止该进程或通过 `RIVET_ENDPOINT` / `AGENTOS_ENDPOINT` 明确连接外部 Engine；它不会擅自终止未知进程。只有在确实不需要 Matrix 的诊断任务中才可设置 `VIBECHAT_DEV_SKIP_SYNAPSE=1`。
 
 ## 手动初始化与故障恢复
 
@@ -67,3 +67,5 @@ npm run matrix:dev:down
 ```
 
 需要全新 homeserver 时，停止服务后删除 `docker-volumes/synapse`，再重新执行首次初始化。该目录包含 signing key、Matrix access token 数据和消息数据库，不应提交或随意分享。
+
+需要全新 Space App Engine 时，应先正常退出开发进程，再备份并显式移走 `apps/space-runtime/.data/rivetkit-storage/managed-engine/db`。该操作会清除本机 Runtime Actor、App 与 Release 状态，不能作为普通故障恢复步骤；启动器不会自动删除旧数据库。历史版本曾使用的 `.rivetkit/var/engine/db` 也不会被自动迁移或删除。
