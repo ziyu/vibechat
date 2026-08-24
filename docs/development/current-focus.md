@@ -37,7 +37,7 @@
 - Host Pi 已真实生成共享计数器 Draft，Dev 与发布后的不可变 Live 均成功读取；定向 unit、TypeScript 和 Backend Node 构建已通过。
 - 默认 `pnpm dev` 已可自动准备 SQLite、初始化/启动本地 Synapse，并启动 Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
 - 默认开发启动器现同时拥有本地 Rivet Engine 生命周期：先用仓库固定的 filesystem 数据库启动并等待健康，再启动应用；整栈退出时只停止 Engine 进程并保留 Actor/Release 数据。Runtime boot 代次会清理已持久化但已死亡的 AgentOS replica/admission 租约，再从原不可变 Release 启动新副本。Alice 的同一 `0.1.1` Release 在完整停止/重启后继续返回 HTTP 200，replica 从旧 `/0` 重建为 `/1`；这只证明本地单 Runtime 恢复，生产多副本 lease 仍未完成。
-- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi` Matrix event 核验、默认 100 欢迎积分、Host Pi 回复和实际 token usage 结算。双浏览器完整 Chat/Agent contract、Agent 回复 Matrix 回写、rollback、生产持久化与跨副本接管尚未完成，因此 A3/A4 保持 Active。
+- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi` Matrix event 核验、默认 100 欢迎积分、Host Pi 回复、实际 token usage 结算，以及 Pi 修改 App 后 ready Revision 从 `2d68a0defce3aac1` 实时切换到 `46f337b6b99d8f27` 且 Published Release 不变。双浏览器完整 Chat/Agent contract、Agent 回复 Matrix 回写、rollback、生产持久化与跨副本接管尚未完成，因此 A3/A4 保持 Active。
 
 ## 当前约束
 

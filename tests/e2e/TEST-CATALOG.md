@@ -1435,6 +1435,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - Default Chat App 发送 Agent Mention 时把 `io.vibechat.agent_mentions` 结构化 metadata 与人类消息一起写入 Matrix；Backend 再读取该精确 `eventId`，核对 sender、事件类型、Agent target、Space membership 与实例 allowlist 后才预留积分和入队，不再用消息文本正则决定是否调度。
 - Alice 在真实 Synapse Space `!JMBcNJQgAZDgcSmOpt:localhost` 中发送 `@pi` 后，Matrix 人类消息先进入 App timeline，Kernel 显示 Agent 处理中，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 返回“积分与 Agent 对话都已打通。”；Project 未发生源码变化。
 - 该成功 turn 上报 Pi 的真实 `input/output/total` usage。4,839 tokens 先预留 4 credits，再幂等补扣 1 credit，Alice 余额由 100 变为 95；此前失败的两个 turn 均各自只产生一次 4-credit 退款。批次 usage 按整数余数稳定分摊，所有 tokens 只结算一次。
+- 开发栈干净重启后，Alice 再次收到 Pi 的真实回复；随后要求 Pi 把背景改为深蓝色 `#07162b` 且不发布。Pi 修改 `src/app/styles.ts`、`src/chat/styles.ts` 和 `src/app/client.ts`，保留完整 Chat Core，iframe 精确版本从 `2d68a0defce3aac1` 热更新为 `46f337b6b99d8f27`，Project 的 `publishedDraftId=2d68a0defce3aac1` 与 Release `4b3802b5…` 均未变化。该修改 turn 上报 29,856 tokens，预留与补扣合计 30 credits；Alice 最终余额为 59。
 - 当前证据是单 Chromium 的真实服务走查加定向 unit，不是场景 5/13 的完整双浏览器自动化；Agent 回复仍由 Runtime 投影到 App，尚未写成 Matrix virtual-user event，因此对应场景继续保持 Active。
 
 **文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
