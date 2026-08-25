@@ -1,5 +1,8 @@
 export interface RoomIndexRecord {
   matrixRoomId: string;
+  spaceInstanceId: string;
+  projectId: string;
+  defaultAgentId: string;
   clientRequestId: string;
   spaceId: string;
   spaceVersionId: string;
@@ -8,7 +11,10 @@ export interface RoomIndexRecord {
   instanceConfig: Record<string, unknown>;
   status: "active";
   createdAt: Date;
+  updatedAt: Date;
 }
+
+export type SpaceInstanceRecord = RoomIndexRecord;
 
 export interface CreateMatrixRoomInput {
   creatorMatrixUserId: string;
@@ -16,11 +22,17 @@ export interface CreateMatrixRoomInput {
   name: string;
   inviteMatrixUserIds: string[];
   space: {
-    spaceId: string;
+    id: string;
+    versionId: string;
     semanticVersion: string;
     integrity: string;
     permissions: string[];
     networkDomains: string[];
+    publisher: {
+      id: string;
+      displayName: string;
+      verification: "official" | "verified" | "unverified";
+    };
   };
   instanceConfig: Record<string, unknown>;
 }

@@ -1,7 +1,24 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
 
 const password = 'VibeChat-e2e-password-2026!'
+
+function chatFrame(page: Page) {
+  return page.frameLocator('[data-testid="space-app-surface"] iframe')
+}
+
+async function openAppChat(page: Page) {
+  const frame = chatFrame(page)
+  const input = frame.getByTestId('message-input')
+  const root = frame.locator('#vcc-root')
+  await input.waitFor({ state: 'attached' })
+  if (await root.getAttribute('data-open') !== 'true') {
+    await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
+  }
+  await expect(root).toHaveAttribute('data-open', 'true')
+  await expect(input).toBeInViewport()
+  return frame
+}
 
 test.describe('Vibe Chat protected product routes', () => {
   test('routes password sign-up into required product onboarding', async ({ page }) => {
@@ -16,7 +33,7 @@ test.describe('Vibe Chat protected product routes', () => {
     await expect(page.getByTestId('onboarding-page')).toBeVisible()
   })
 
-  for (const path of ['messages', 'contacts', 'discover', 'me', 'rooms/not-a-room']) {
+  for (const path of ['spaces', 'contacts', 'discover', 'me', 'spaces/not-a-space']) {
     test(`redirects unauthenticated /${path} without rendering product data`, async ({ page }) => {
       await page.goto(`/${path}`)
       await expect(page).toHaveURL(/\/signin$/)
@@ -69,11 +86,11 @@ test.describe('Vibe Chat real persisted product state', () => {
         }),
       })
     })
-    await page.goto('/messages')
+    await page.goto('/spaces')
 
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'false')
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-sync-state', 'UNAVAILABLE')
-    await expect(page.getByTestId('chat-service-state')).toContainText('消息服务尚未配置')
+    await expect(page.getByTestId('chat-service-state')).toContainText('Space 服务尚未连接')
     await expect(page.getByTestId('message-input')).toHaveCount(0)
     await expect(page.getByText(/River|林林/)).toHaveCount(0)
     await expect(page.getByRole('button', { name: '退出登录' })).toBeVisible()
@@ -98,20 +115,34 @@ test.describe('Vibe Chat real persisted product state', () => {
         username: `state_a_${suffix}`.slice(0, 30),
       })
 
-      await firstPage.goto('/messages')
+      await firstPage.goto('/spaces')
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
-      await expect(firstPage.getByTestId('conversation-row')).toHaveCount(0)
+      await expect(firstPage.getByTestId('space-row')).toHaveCount(0)
       await expect(firstPage.getByText(/River|林林/)).toHaveCount(0)
 
       const directoryResponse = await firstPage.request.get('/v1/spaces?locale=zh-CN')
       expect(directoryResponse.ok(), await directoryResponse.text()).toBeTruthy()
       const directory = await directoryResponse.json()
-      expect(directory.spaces).toHaveLength(4)
-      expect(directory.spaces[0]).toMatchObject({
+      expect(directory.spaces).toHaveLength(5)
+      expect(directory.spaces.find((space: { id: string }) => space.id === 'space-campfire')).toMatchObject({
         id: 'space-campfire',
-        versionId: 'builtin-space-campfire-v1',
-        source: 'builtin',
-        official: true,
+        versionId: 'tplv-space-campfire-0-1-2',
+        semanticVersion: '0.1.2',
+        artifact: {
+          schemaVersion: 'vibechat.space-template-artifact/v1',
+          id: expect.stringMatching(/^tpla-[a-f0-9]{64}$/),
+          format: 'agentos-app-v1',
+          sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        },
+        projectFormat: 'agentos-app-v1',
+        publisher: {
+          id: 'publisher-vibechat',
+          verification: 'official',
+        },
+        provenance: {
+          origin: 'repository',
+          publisherId: 'publisher-vibechat',
+        },
       })
 
       await firstPage.goto('/discover/spaces/space-campfire')
@@ -154,10 +185,36 @@ test.describe('Vibe Chat real persisted product state', () => {
           muted: true,
         }],
       })
-      await secondSessionPage.goto('/messages')
+      await secondSessionPage.goto('/spaces')
       await expect(secondSessionPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
-      await expect(secondSessionPage.getByTestId('conversation-row')).toContainText('持久化状态房间')
-      await expect(secondSessionPage.getByTestId('conversation-row').locator('[aria-label="已静音"]')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('space-row')).toContainText('持久化状态房间')
+      await expect(secondSessionPage.getByTestId('space-row').locator('[aria-label="已静音"]')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('spaces-overview')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('space-card')).toHaveCount(1)
+      await expect(secondSessionPage.getByTestId('chat-primary-nav').getByRole('link', { name: '空间' })).toBeVisible()
+      await expect(secondSessionPage.getByTestId('chat-primary-nav').getByRole('link', { name: '消息' })).toHaveCount(0)
+
+      await secondSessionPage.goto('/messages')
+      await expect(secondSessionPage).toHaveURL(/\/spaces$/)
+      await secondSessionPage.goto(`/rooms/${encodeURIComponent(room.matrixRoomId)}`)
+      await expect(secondSessionPage).toHaveURL(new RegExp(`/spaces/${encodeURIComponent(room.matrixRoomId)}`))
+      await expect(secondSessionPage.getByTestId('space-canvas')).toBeVisible()
+      let appChat = await openAppChat(secondSessionPage)
+      await expect(appChat.getByTestId('message-input')).toBeVisible()
+
+      await secondSessionPage.reload()
+      await expect(secondSessionPage.getByTestId('space-app-surface')).toBeVisible()
+      appChat = await openAppChat(secondSessionPage)
+      await expect(appChat.getByTestId('message-input')).toBeVisible()
+
+      await secondSessionPage.setViewportSize({ width: 390, height: 844 })
+      await secondSessionPage.goto('/spaces')
+      await expect(secondSessionPage.getByTestId('space-list')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('space-row')).toHaveCount(1)
+      await expect(secondSessionPage.getByTestId('space-search')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('unread-filter')).toBeVisible()
+      await expect(secondSessionPage.getByTestId('new-space-button')).toBeVisible()
+      await expect(secondSessionPage.locator('.vc-mobile-nav').getByText('空间')).toBeVisible()
 
       const otherSignUp = await signUpViaAPI(otherUserPage, {
         name: 'State Bob',

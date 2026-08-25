@@ -1,7 +1,24 @@
-import { expect, test, type BrowserContext } from '@playwright/test'
+import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
 
 const password = 'VibeChat-e2e-password-2026!'
+
+function chatFrame(page: Page) {
+  return page.frameLocator('[data-testid="space-app-surface"] iframe')
+}
+
+async function openAppChat(page: Page) {
+  const frame = chatFrame(page)
+  const input = frame.getByTestId('message-input')
+  const root = frame.locator('#vcc-root')
+  await input.waitFor({ state: 'attached' })
+  if (await root.getAttribute('data-open') !== 'true') {
+    await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
+  }
+  await expect(root).toHaveAttribute('data-open', 'true')
+  await expect(input).toBeInViewport()
+  return frame
+}
 
 async function createMatrixUser(context: BrowserContext, name: string, email: string) {
   const page = await context.newPage()
@@ -74,55 +91,58 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       expect(joinResponse.ok(), await joinResponse.text()).toBeTruthy()
 
       await Promise.all([
-        first.page.goto(`/rooms/${encodeURIComponent(room.matrixRoomId)}`),
-        second.page.goto(`/rooms/${encodeURIComponent(room.matrixRoomId)}`),
+        first.page.goto(`/spaces/${encodeURIComponent(room.matrixRoomId)}`),
+        second.page.goto(`/spaces/${encodeURIComponent(room.matrixRoomId)}`),
       ])
       for (const page of [first.page, second.page]) {
         await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
         await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
       }
+      const [firstChat, secondChat] = await Promise.all([
+        openAppChat(first.page),
+        openAppChat(second.page),
+      ])
 
-      await first.page.getByTestId('message-input').fill(`typing-${suffix}`)
-      await expect(second.page.getByTestId('typing-indicator')).toBeVisible()
-      await first.page.getByTestId('message-input').fill('')
-      await expect(second.page.getByTestId('typing-indicator')).toHaveCount(0)
+      await firstChat.getByTestId('message-input').fill(`typing-${suffix}`)
+      await expect(secondChat.getByTestId('typing-indicator')).toBeVisible()
+      await firstChat.getByTestId('message-input').fill('')
+      await expect(secondChat.getByTestId('typing-indicator')).toBeHidden()
 
       const originalText = `Original matrix text ${suffix}`
-      await first.page.getByTestId('message-input').fill(originalText)
-      await first.page.getByTestId('send-message').click()
-      const firstMessage = first.page.getByTestId('message-body')
+      await firstChat.getByTestId('message-input').fill(originalText)
+      await firstChat.getByTestId('send-message').click()
+      const firstMessage = firstChat.getByTestId('message-body')
         .filter({ hasText: originalText })
         .locator('xpath=ancestor::article')
-      const secondMessage = second.page.getByTestId('message-body')
+      const secondMessage = secondChat.getByTestId('message-body')
         .filter({ hasText: originalText })
         .locator('xpath=ancestor::article')
       await expect(firstMessage).toContainText('已发送')
       await expect(secondMessage).toBeVisible()
-      await expect(secondMessage.getByRole('button', { name: '编辑消息' })).toHaveCount(0)
-      await expect(secondMessage.getByRole('button', { name: '删除消息' })).toHaveCount(0)
+      await expect(secondMessage.getByRole('button', { name: '编辑' })).toHaveCount(0)
+      await expect(secondMessage.getByRole('button', { name: '删除' })).toHaveCount(0)
 
       await firstMessage.hover()
-      await firstMessage.getByRole('button', { name: '编辑消息' }).click()
-      await expect(first.page.getByTestId('edit-preview')).toBeVisible()
+      await firstMessage.getByRole('button', { name: '编辑' }).click()
+      await expect(firstChat.getByTestId('chat-context')).toBeVisible()
       const editedText = `Edited matrix text ${suffix}`
-      await first.page.getByTestId('message-input').fill(editedText)
-      await first.page.getByTestId('send-message').click()
-      const editedFirstMessage = first.page.getByTestId('message-body')
+      await firstChat.getByTestId('message-input').fill(editedText)
+      await firstChat.getByTestId('send-message').click()
+      const editedFirstMessage = firstChat.getByTestId('message-body')
         .filter({ hasText: editedText })
         .locator('xpath=ancestor::article')
-      const editedSecondMessage = second.page.getByTestId('message-body')
+      const editedSecondMessage = secondChat.getByTestId('message-body')
         .filter({ hasText: editedText })
         .locator('xpath=ancestor::article')
       await expect(editedFirstMessage).toContainText('已编辑')
       await expect(editedSecondMessage).toContainText('已编辑')
 
-      first.page.once('dialog', (dialog) => void dialog.accept())
       await editedFirstMessage.hover()
-      await editedFirstMessage.getByRole('button', { name: '删除消息' }).click()
-      const deletedFirstMessage = first.page.getByTestId('message-body')
+      await editedFirstMessage.getByRole('button', { name: '删除' }).click()
+      const deletedFirstMessage = firstChat.getByTestId('message-body')
         .filter({ hasText: '这条消息已删除' })
         .locator('xpath=ancestor::article')
-      const deletedSecondMessage = second.page.getByTestId('message-body')
+      const deletedSecondMessage = secondChat.getByTestId('message-body')
         .filter({ hasText: '这条消息已删除' })
         .locator('xpath=ancestor::article')
       await expect(deletedFirstMessage).toBeVisible()
@@ -130,47 +150,48 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
 
       const attachmentName = `matrix-attachment-${suffix}.txt`
       const attachmentContent = `attachment-content-${suffix}`
-      await first.page.getByTestId('attachment-input').setInputFiles({
+      await firstChat.getByTestId('attachment-input').setInputFiles({
         name: attachmentName,
         mimeType: 'text/plain',
         buffer: Buffer.from(attachmentContent),
       })
-      const firstAttachment = first.page.getByTestId('message-attachment')
+      const firstAttachment = firstChat.getByTestId('message-attachment')
         .filter({ hasText: attachmentName })
-      const secondAttachment = second.page.getByTestId('message-attachment')
+      const secondAttachment = secondChat.getByTestId('message-attachment')
         .filter({ hasText: attachmentName })
       await expect(firstAttachment).toBeVisible({ timeout: 15_000 })
       await expect(secondAttachment).toBeVisible({ timeout: 15_000 })
 
       const offlineText = `Queued while offline ${suffix}`
       await secondContext.setOffline(true)
-      await second.page.getByTestId('message-input').fill(offlineText)
-      await second.page.getByTestId('send-message').click()
-      const queuedMessage = second.page.getByTestId('message-body')
+      await secondChat.getByTestId('message-input').fill(offlineText)
+      await secondChat.getByTestId('send-message').click()
+      const queuedMessage = secondChat.getByTestId('message-body')
         .filter({ hasText: offlineText })
         .locator('xpath=ancestor::article')
       await expect(queuedMessage).toContainText(/发送中|发送失败/)
-      await expect(first.page.getByTestId('message-body').filter({ hasText: offlineText })).toHaveCount(0)
+      await expect(firstChat.getByTestId('message-body').filter({ hasText: offlineText })).toHaveCount(0)
       await secondContext.setOffline(false)
       const retryButton = queuedMessage.getByTestId('retry-message')
       if (await retryButton.count()) await retryButton.click()
       await expect(
-        first.page.getByTestId('message-body').filter({ hasText: offlineText }),
+        firstChat.getByTestId('message-body').filter({ hasText: offlineText }),
       ).toHaveCount(1, { timeout: 20_000 })
       await expect(queuedMessage).toContainText('已发送', { timeout: 20_000 })
 
-      await first.page.goto('/messages')
-      await first.page.getByTestId('conversation-search').fill(attachmentName)
-      await expect(first.page.getByTestId('conversation-row')).toHaveCount(1)
-      await expect(first.page.getByTestId('conversation-row')).toContainText('Matrix Operations E2E')
+      await first.page.goto('/spaces')
+      await first.page.getByTestId('space-search').fill(attachmentName)
+      await expect(first.page.getByTestId('space-row')).toHaveCount(1)
+      await expect(first.page.getByTestId('space-row')).toContainText('Matrix Operations E2E')
 
       await second.page.reload()
       await expect(second.page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
+      const reloadedChat = await openAppChat(second.page)
       await expect(
-        second.page.getByTestId('message-body').filter({ hasText: '这条消息已删除' }),
+        reloadedChat.getByTestId('message-body').filter({ hasText: '这条消息已删除' }),
       ).toHaveCount(1)
       await expect(
-        second.page.getByTestId('message-attachment').filter({ hasText: attachmentName }),
+        reloadedChat.getByTestId('message-attachment').filter({ hasText: attachmentName }),
       ).toBeVisible()
       const localStorageDump = await first.page.evaluate(() => JSON.stringify(window.localStorage))
       expect(localStorageDump).not.toContain(attachmentContent)

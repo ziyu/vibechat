@@ -16,6 +16,7 @@ COPY config ./config
 COPY apps/web-app ./apps/web-app
 COPY packages ./packages
 COPY libs ./libs
+COPY patches ./patches
 COPY scripts ./scripts
 
 ARG NODE_OPTIONS="--max-old-space-size=6144"

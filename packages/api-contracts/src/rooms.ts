@@ -11,10 +11,14 @@ export const createRoomRequestSchema = z.object({
 
 export const roomBootstrapSchema = z.object({
   matrixRoomId: z.string().min(1),
+  spaceInstanceId: z.string().min(1),
+  projectId: z.string().min(1),
+  defaultAgentId: z.string().min(1),
   spaceId: z.string().min(1),
   spaceVersionId: z.string().min(1),
   status: z.literal("active"),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 export const roomMetadataLookupRequestSchema = z.object({

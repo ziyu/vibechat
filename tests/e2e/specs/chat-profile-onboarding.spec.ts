@@ -35,7 +35,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
         error: { code: 'PROFILE_REQUEST_INVALID' },
       })
 
-      await firstPage.goto('/messages')
+      await firstPage.goto('/spaces')
       await expect(firstPage).toHaveURL(/\/onboarding$/)
       await expect(firstPage.getByTestId('onboarding-page')).toBeVisible()
 
@@ -66,7 +66,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
       const firstUsername = `alice_${suffix}`.slice(0, 30)
       await firstPage.getByTestId('profile-username').fill(firstUsername)
       await firstPage.getByTestId('complete-onboarding').click()
-      await expect(firstPage).toHaveURL(/\/messages$/)
+      await expect(firstPage).toHaveURL(/\/spaces$/)
       await expect(firstPage.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
 
       const firstBootstrapResponse = await firstPage.request.get('/v1/session/bootstrap')
@@ -133,7 +133,7 @@ test.describe('Vibe Chat profile onboarding and contact remarks', () => {
       await expect(firstPage.getByTestId('contact-row')).toContainText('Original Bob')
 
       await firstPage.goto('/onboarding')
-      await expect(firstPage).toHaveURL(/\/messages$/)
+      await expect(firstPage).toHaveURL(/\/spaces$/)
     } finally {
       await firstContext.close()
       await secondContext.close()

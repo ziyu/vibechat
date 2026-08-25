@@ -1,4 +1,4 @@
-import type { BuiltInChatSpaceConfig } from "@config";
+import type { PublishedSpaceTemplateCatalogEntry } from "@config";
 import type {
   MatrixRoomAdapter,
   RoomIdentityReader,
@@ -38,7 +38,7 @@ export class RoomService {
     identities: RoomIdentityReader;
     participantPolicy: RoomParticipantPolicy;
     matrix: MatrixRoomAdapter;
-    spaces: BuiltInChatSpaceConfig[];
+    spaces: readonly PublishedSpaceTemplateCatalogEntry[];
     now?: () => Date;
   }) {}
 
@@ -49,7 +49,7 @@ export class RoomService {
     );
     if (existing) return existing;
 
-    const space = this.options.spaces.find((candidate) => candidate.spaceId === input.spaceId);
+    const space = this.options.spaces.find((candidate) => candidate.id === input.spaceId);
     if (!space) throw new RoomServiceError("ROOM_SPACE_NOT_FOUND");
 
     const participantUserIds = input.participantUserIds.filter(
@@ -76,9 +76,12 @@ export class RoomService {
     });
     const record: RoomIndexRecord = {
       matrixRoomId: created.matrixRoomId,
+      spaceInstanceId: `space-${globalThis.crypto.randomUUID()}`,
+      projectId: `project-${globalThis.crypto.randomUUID()}`,
+      defaultAgentId: "pi",
       clientRequestId: input.clientRequestId,
-      spaceId: space.spaceId,
-      spaceVersionId: space.spaceVersionId,
+      spaceId: space.id,
+      spaceVersionId: space.versionId,
       creatorUserId: input.creatorUserId,
       participantUserIds: Array.from(new Set([
         input.creatorUserId,
@@ -87,6 +90,7 @@ export class RoomService {
       instanceConfig: input.instanceConfig,
       status: "active",
       createdAt: this.options.now?.() || new Date(),
+      updatedAt: this.options.now?.() || new Date(),
     };
 
     return this.options.repository.create(record);
@@ -95,4 +99,14 @@ export class RoomService {
   lookupAccessibleRooms(userId: string, matrixRoomIds: string[]) {
     return this.options.repository.getAccessibleByMatrixRoomIds(userId, matrixRoomIds);
   }
+
+  async getAccessibleSpaceInstance(userId: string, matrixRoomId: string) {
+    const [record] = await this.options.repository.getAccessibleByMatrixRoomIds(
+      userId,
+      [matrixRoomId],
+    );
+    return record ?? null;
+  }
 }
+
+export { RoomService as SpaceInstanceService };

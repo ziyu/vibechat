@@ -1,1983 +1,1208 @@
-# VibeChat MVP 版本产品与技术设计
+# VibeChat MVP 产品与技术设计
 
 > 生命周期：长期稳定
 > 文档类型：设计
-> 状态：MVP 基线设计
-> 日期：2026-08-12
-> 首发平台：Web / PWA
-> 目标规模：10,000 DAU 以内，约 1,000 峰值并发连接
-> Active 实施：[VibeChat MVP 产品与技术设计实施跟踪](../../development/active/product-and-technical-implementation.md)
-
-## 目录
-
-1. [执行摘要](#1-执行摘要)
-2. [产品定义与核心概念](#2-产品定义与核心概念)
-3. [范围与成功标准](#3-范围与成功标准)
-4. [技术选型与系统架构](#4-技术选型与系统架构)
-5. [用户端产品与前端设计](#5-用户端产品与前端设计)
-6. [氛围空间运行时](#6-氛围空间运行时)
-7. [氛围空间开发与发布](#7-氛围空间开发与发布)
-8. [后端服务设计](#8-后端服务设计)
-9. [数据模型与 Matrix 映射](#9-数据模型与-matrix-映射)
-10. [消息、媒体、搜索与推送](#10-消息媒体搜索与推送)
-11. [安全、隐私与合规](#11-安全隐私与合规)
-12. [部署、扩展与可观测性](#12-部署扩展与可观测性)
-13. [测试与验收](#13-测试与验收)
-14. [实施阶段](#14-实施阶段)
-15. [风险与缓解措施](#15-风险与缓解措施)
-16. [已确定决策与后续范围](#16-已确定决策与后续范围)
-
----
+> 状态：生效
+> 更新日期：2026-08-24
+> 维护范围：VibeChat Web/PWA、Space Kernel、Chat、Space App Runtime、Agent 协作生成、Space 市场、Matrix 消息底座与发布系统
+> 事实边界：本文定义目标状态；当前实现、迁移差距与完成证据见 [Active 实施跟踪](../../development/active/product-and-technical-implementation.md)
+> 设计演进：[Space App 设计演进与实施记录](../../development/active/space-app-design-transition.md)
 
 ## 1. 执行摘要
 
-Vibe Chat 是一个以“氛围”为核心的消费级即时聊天平台。传统聊天产品把消息列表和输入框视为固定界面；Vibe Chat 则把每个聊天房间定义成一个独立的**氛围空间实例**。氛围空间在技术上是一个微 App，可以从完全空白的画布开始，通过平台 SDK 获取参与人、消息、媒体、房间共享状态和自定义互动能力，自行决定聊天如何呈现、如何输入以及如何互动。
+VibeChat 是一个以聊天为基础、可由 Agent 持续定制并实时更新的多人 **Space** 产品。Space 不是 Workspace、编辑器或试验场，也不是“先开发、后使用”的容器；它从创建完成起就是成员正在共同使用的在线空间。App 的更新发生在这个可用空间中：只有通过校验的 Revision 才能替换当前运行版本，构建中的 Candidate 和失败结果不会打断成员正在使用的 Space。
 
-产品采用以下基础架构：
+每个 Space 首先拥有完整且不可被 App 代码修改的 Chat Core：成员、邀请、消息、Mention、媒体、回复、编辑、删除、回应、已读、正在输入、历史同步、`@agent` 调度和权限由平台实现并保持可用。在 Chat Core 之上，每个 Space 拥有一份独立的 App Project。Kernel 顶条以下的整个界面都由 App 代码渲染；默认 Project 提供完整 Chat UI，成员可以通过模板或 Agent 任意改变聊天能力的呈现、布局和调用方式，但不能改写 Chat Core 的数据、权限、投递或 Agent 调度语义。
 
-- 使用 **Matrix 协议、`matrix-js-sdk` 和独立部署的 Synapse** 复用成熟的即时通信能力，包括同步、本地回显、发送队列、失败重试、消息关系、已读、正在输入、媒体和房间成员关系。
-- 使用自研闭源 React 宿主客户端，不 fork AGPL/商业双许可的 Element Web。
-- 使用 **Better Auth + Email OTP plugin** 负责邮箱验证码注册登录、用户身份、Cookie 会话和会话管理，不自研认证系统。
-- 产品业务后端选型暂缓；API schema 统一使用 **Zod 4**，不作为后端框架选型约束。
-- 氛围空间的微 App 代码在隔离 iframe 中运行，永远不能直接取得 Matrix access token、宿主 DOM、Cookie 或宿主存储。
-- 每个房间只有一个氛围空间，不能叠加其他空间。更换氛围通过“克隆迁移”创建新房间，旧房间与历史保持不变。
-- MVP 面向熟人私聊和小群，首发 Web/PWA，不包含 E2EE、音视频、公共聊天室、原生移动端和无代码编辑器。
+Space 可以通过两种方式开始：
 
-### 1.1 核心设计原则
+1. 创建空白 Space，立即运行平台提供的默认 Chat App，之后再从市场选择模板或与 Agent 对话改变整个 Space 界面。
+2. 从 Space 市场选择一个模板创建 Space，模板作为初始 App Project 的来源。
 
-1. **房间即氛围空间，而不是房间加插件。**
-2. **氛围空间拥有完整会话画布，宿主拥有账号、安全和退出能力。**
-3. **可靠消息属于平台，表现形式属于氛围空间。**
-4. **危险操作必须由 iframe 外的系统界面确认。**
-5. **所有空间版本不可变、可审计、可撤销、可恢复。**
-6. **即使氛围空间崩溃或下架，用户仍能读取基础消息并迁移房间。**
-7. **创建聊天仍遵循熟悉路径：先选人，再设置氛围。**
+市场中的模板不是正在运行的聊天实例。模板被应用时会复制为该 Space 独有的 Project/Revision；之后的成员、消息、状态和定制都只属于当前 Space，不会反向修改市场模板。
 
----
+Space 只有三个逻辑与信任边界；它们不等于三个固定视觉面板：
 
-## 2. 产品定义与核心概念
+- **Kernel Bar**：唯一固定的宿主界面，位于 Space 顶部，负责 Space 身份、成员、权限、Agent 状态、实时版本、发布、恢复和治理。模板与 Agent 不能修改、遮挡或伪造它。
+- **Chat Core**：平台可信的消息与调度能力层，不是固定 UI。它维护人与人聊天、Mention、`@agent`、关系事件、历史和权限；只能通过版本化 Space SDK 调用。
+- **Space App**：Kernel Bar 以下的完整可编程界面，包括默认 Chat UI。它可以重新组织或完全改写聊天的呈现和交互，也可以成为游戏、工具、场景、仪式或其他实时多人体验。
+
+源码、生成进度、版本历史、发布和恢复入口属于 Kernel Bar 展开的可信控制面板，不构成第四个 Studio/Workspace 边界。`Dev` 只表示 Runtime 的持续更新通道，不是用户进入的试验环境；Space 默认使用最后一个 ready Revision，并在新 Revision ready 后实时切换。用户可以将当前 Revision 发布为不可变版本。
+
+Agent 不是固定为 Pi。Pi 只是在 demo 中验证了对话分类、项目修改、隔离预览和发布链路的一种实现选择。正式架构使用 provider-neutral 的 Agent Adapter；同一 Space 可以配置默认 Agent，后续可以接入不同模型、编码 Agent、领域 Agent 或多 Agent 协作。
+
+Space Runtime 的技术路线明确采用 `chat-app-server` 已验证的同构方案，而不是只借鉴产品语义：Node 22 + TypeScript + Hono 服务、每个 Space 一个逻辑实例服务器、SSE 实时下行与受控命令上行、同实例串行 Turn 队列、Project Store、Dev Preview Manager、agentOS Apps 隔离开发/不可变发布，以及 iframe Space SDK bridge。正式实现只把 demo 的 Guest 身份、本地 JSON 和单机内存调度替换成 Better Auth + Matrix、Product DB/Object Store 和可恢复 lease；核心对象边界与执行顺序保持一致。
+
+本设计保留已经完成的 Better Auth、产品资料、联系人、邀请、Matrix identity、Matrix room/timeline、Space 市场基础、收藏和跨宿主 package 基线，只在其上增加 Space App、Agent、Draft 和 Release 能力。
+
+### 1.1 本次设计校正
+
+以下结论是硬约束：
+
+- 产品语义统一使用 **Space**；`Matrix room` 只表示底层协议对象，不作为用户可见产品名称。
+- Space 市场、分类、详情、收藏、版本和模板选择继续存在，不因生成式 App 而退场。
+- 空白 Space 与模板 Space 都必须拥有完整 Chat Core；默认 Chat App 必须可用，App 或 Agent 构建失败时仍保留最后一个 ready App 和 Chat 能力。
+- 现有认证、资料、联系人、邀请、消息和 Space 目录能力必须保持兼容和回归全绿。
+- Kernel Bar、Chat Core、Space App 是仅有的三个逻辑边界；只有 Kernel Bar 是固定宿主 UI，不再定义 Studio/Workspace Surface。
+- Agent 是可插拔能力，Pi 仅是示例 provider，不进入公共产品契约或数据库核心命名。
+- 创建 Space 时可以选择模板，也可以跳过模板创建空白 Space。
+- 使用 Default Chat App 的 Space 可以直接应用模板；已有定制时必须先生成并验证 Candidate，不能静默覆盖当前 ready Revision 或 Published Release。
+
+### 1.2 核心原则
+
+1. **Chat Core 是产品基础；Chat UI 是默认 App 代码。**
+2. **产品叫 Space；Matrix room 只是 Space 的消息与成员底座。**
+3. **Kernel Bar、Chat Core、Space App 三个逻辑边界固定；只有 Kernel Bar 是固定宿主界面。**
+4. **市场模板可复用，Space 实例的成员、消息、项目和状态独立。**
+5. **普通人类对话不自动修改 App；面向 Agent 的定制请求才进入生成队列。**
+6. **Agent provider 可替换；编排、权限、计费、项目和发布契约归平台所有。**
+7. **Space 始终使用最后一个 ready Revision；新 ready Revision 实时更新当前 Space，显式发布用于固化不可变 Release。**
+8. **同一 Space 的 App 写入严格串行，不同 Space 在配额内并行。**
+9. **App 无法获取凭据、源码管理、Agent 控制、构建或发布能力。**
+10. **App/Agent/Runtime 失败不能破坏 Chat Core，也不能替换最后一个 ready App 或已发布 Release。**
+
+## 2. 产品定义与术语
 
 ### 2.1 核心实体
 
-| 实体                       | 定义                                                              |
-| -------------------------- | ----------------------------------------------------------------- |
-| 用户 User                  | 由 Better Auth 管理的产品账号，同时映射到一个本地 Matrix 用户     |
-| 联系人 Contact             | 产品层的双向好友关系；Matrix 不作为好友关系的权威来源             |
-| 氛围空间 Atmosphere Space  | 一个可创建聊天房间的空间类型，在技术上由微 App 实现               |
-| 空间版本 Space Version     | 氛围空间的不可变、已签名发布版本                                  |
-| 房间 Room / Space Instance | 某一空间版本与参与人、实例配置共同创建的聊天实例                  |
-| 宿主 Host                  | 用户端 PWA，负责账号、导航、Matrix 连接、安全控制和 iframe 运行时 |
-| 互动事件 Interaction       | 氛围空间自定义的可持久化房间事件，必须带宿主可读降级文本          |
-| 恢复视图 Recovery View     | 氛围空间失效时由宿主提供的只读基础消息界面                        |
+| 实体 | 定义 |
+| --- | --- |
+| User | Better Auth 管理的产品账号，并映射到一个 Matrix 用户 |
+| Space | 用户可见、持续可用并实时更新的多人空间，拥有成员、Chat Core、Kernel Bar、App Project 和权限；不是 Workspace 或试验环境 |
+| Matrix Room | Space 在 Matrix/Synapse 中的底层成员与消息容器，仅用于协议、代码和运维语境 |
+| Space Template | 市场中可发现、收藏、版本化和审核的 Space 起始模板 |
+| Template Version | 模板的一次不可变发布，包含初始 App source/artifact、能力声明、说明和 provenance |
+| Space Kernel Bar | Space 中唯一固定的可信宿主 UI；维护身份、ACL、Agent 编排、模板来源、版本指针、状态和恢复 |
+| Chat Core | 平台固定、无固定视觉形态的 Matrix 聊天与 Agent 调度能力；App 只能通过 SDK 调用，不能修改其实现和语义 |
+| Default Chat App | 空白 Space 的默认 App Project，以可定制代码实现完整 Chat UI，并调用 Chat Core |
+| Space App | Kernel Bar 以下的全部运行界面，包括默认或定制后的 Chat UI |
+| App Project | 某个 Space 独有的源码、Candidate、当前 ready Revision、Published Release、Agent 上下文和模板 lineage |
+| Revision | 一次通过基础校验的不可变源码快照 |
+| Draft | 现有实现中的兼容指针名，目标语义是当前 Space 正在使用但尚未发布固化的 ready Revision，不表示试验空间 |
+| Release | 从固定 Revision 构建出的不可变正式产物 |
+| Agent | 通过受控 Adapter 参与 Space 对话和 App 定制的 AI 执行主体 |
+| Agent Adapter | 将平台统一任务协议适配到 Pi 或其他 Agent/provider 的服务端实现 |
+| Agent Turn | Agent 对一条或一批 Space 请求的可审计处理单元 |
+| Space Instance Server | `chat-app-server.LocalRoomServer` 的正式同构实现；每个 Space 一个逻辑状态机，管理连接、App State、presence、Agent 队列、进度和恢复 |
+| Space SDK | App 与 Kernel 之间唯一受控的浏览器能力桥 |
 
-术语规范：
+### 2.2 术语规则
 
-- 产品界面、产品文档、开放 API 和开发者文档统一使用“氛围空间”；上下文明确时可简称“空间”。
-- “微 App”只用于说明氛围空间的技术实现形态，不作为用户可见的产品实体名称。
-- 对外契约统一使用 `spaceId`、`spaceVersionId`、`/spaces` 和 `io.vibechat.space.*`。
-- 不保留此前基于 App 的产品实体称谓。
+- 用户界面、产品设计和公开文档统一使用 `Space`/“空间”。
+- `roomId`、`Matrix room` 只允许出现在现有兼容 API、Matrix 事件和基础设施实现说明中。
+- 市场对象统一称为 `Space Template`，运行中的协作对象称为 `Space`，避免模板与实例混淆。
+- `Kernel Bar`、`Chat Core` 和 `Space App` 是三个逻辑边界；`Chat Core` 不是独立固定面板，生成面板、历史、发布与恢复是 Kernel 的功能，不使用 `Studio` 或 `Workspace` 命名。
+- 公共契约使用 `agentId`、`agentProvider`、`agentSessionRef`；不得使用 `piSession` 等 provider 专属字段。
+- `ready Revision` 表示当前 Space 实时使用的已验证版本；`Release` 表示由成员显式固化的不可变发布版本。现有 `Draft/Live` 名称只作为迁移兼容字段。
 
-### 2.2 不变量
+### 2.3 不变量
 
-- 一个产品房间对应一个 Matrix room。
-- 一个房间在任意时刻只对应一个 `spaceId`。
-- 房间不能叠加第二个氛围空间。
-- 空间身份不能在原房间中替换。
-- 空间版本可以升级，但发布物本身不可变。
-- 权限或联网域名增加时，成员必须重新确认。
-- 克隆迁移会创建新房间，不修改源房间。
-- Matrix 保存消息与成员关系的权威事实；产品数据库保存好友、市场、审核和业务索引。
-- 氛围空间的微 App 不直接连接 Matrix，只能通过宿主 capability API 操作。
+- 一个 Space、一个现有 `room_index` 记录、一个 Matrix Room、一个逻辑 Space Instance Server 和一个 App Project 构成同一实例；不得同时创建“聊天房间实例”和“多人 Space 实例”。
+- 私聊、已有房间和多人 Space 只在成员数量与展示上不同，使用相同 ID 映射、Repository、Instance Server、SDK、队列和发布链路。
+- 一个 Space 即使没有额外模板、Agent 不可用或余额不足，也拥有可调用的完整 Chat Core；创建时以 Default Chat App 作为第一个 ready Revision。
+- Space Template 可以被多个 Space 使用，但每次应用都会创建独立 Revision，不共享可变 App State。
+- 一个 Space 同时最多有一个当前 ready Revision 和一个 Published Release 指针；构建中的 Candidate 不对成员可见。
+- Revision、Template Version 和 Release 一旦生成不可原地修改；指针可以前移或恢复。
+- App 不能替换或遮挡 Kernel Bar，也不能修改 Chat Core、成员权威、发布确认、账号或支付能力；App 可以任意替换 Kernel Bar 以下的 Chat UI 和其他交互界面。
+- 一个 Space 同一时间只有一个 App 写入批次；多个只读或不同 Space 请求可按配额并发。
+- Matrix 是成员与聊天消息权威；Product DB 是 Space 索引、市场、Project、队列、版本和持久 App State 权威。
+- Agent 只能通过平台授予的上下文、工具和预算工作，不能因 prompt 获得额外权限。
+- App SDK 不暴露源码、构建、发布、Agent 工具、凭据、任意宿主请求或自定义高权限通道。
 
-### 2.3 宿主入口与房间边界
+## 3. MVP 范围与成功标准
 
-宿主在房间之外提供类似传统即时聊天产品的入口：会话列表、联系人、选人发起聊天、未读数、通知和全局搜索。这里的“传统”只描述用户如何找到人并进入会话，不代表平台提供传统聊天房间或固定消息界面。
+### 3.1 必须保留的基础能力
 
-- 用户选择参与人后必须继续选择并配置一个氛围空间，才能创建房间。
-- 系统不存在默认传统聊天空间，也不存在脱离氛围空间运行的普通产品房间。
-- 一旦进入房间，整个会话区域都由该房间的氛围空间渲染。
-- 宿主只在 iframe 外保留返回、安全确认、成员权限、故障恢复等系统控制。
-- 平台提供 headless 消息、媒体、成员、状态和互动 API，但不规定消息气泡、输入框或会话布局。
-- 平台可以发布官方氛围空间，第三方也可以发布氛围空间；二者使用完全相同的公开 SDK 和审核规则。
+- Better Auth 登录、注册、OTP、session、资料设置和设备撤销。
+- 联系人搜索、好友请求、接受/拒绝、屏蔽和从联系人发起 Space。
+- Space 创建、邀请、成员同步和真实 Matrix timeline。
+- 文字、媒体、回复、编辑、删除、回应、已读、typing、历史加载和错误恢复。
+- Space 市场的目录、分类、详情、收藏、版本、权限说明和创建入口。
+- 账号、偏好、积分、计费、Admin 和多应用/package 边界。
 
----
+以上能力不因 Space App 改造降级。任何切片如果让 Chat 依赖 Agent、让市场入口消失或破坏旧 Space 可读性，都不能发布。
 
-## 3. 范围与成功标准
+### 3.2 新增目标
 
-### 3.1 MVP 目标
+- 创建 Space 时选择空白或市场模板；从模板详情也可以直接发起创建。
+- 空白 Space 立即运行 Default Chat App，而不是空画布；之后可以应用模板或请求 Agent 改写整个 App Surface。
+- Space 成员可以在 Chat 中选择或提及 Agent，进行普通问答或提出 App 定制请求。
+- Agent 将定制请求转成受限项目修改；Candidate 验证成功后生成新的 ready Revision 并实时更新当前 Space，不自动创建 Published Release。
+- Candidate 在隔离 Runtime 中验证；验证成功后成为新的 ready Revision，并通过持续更新通道实时替换当前 Space App。
+- 有发布权限的成员通过 Kernel Bar 将当前 ready Revision 固化为不可变 Release；失败保持当前 ready Revision 和旧 Release。
+- App 使用 Space SDK 获取成员、完整授权 Chat 能力、Mention、`@agent` 调度、presence、持久 state 和瞬时 event；UI 形态由 App 决定。
+- Runtime/Agent 重启后恢复 Project、App State、队列、请求和账务状态。
+- Agent Adapter 支持替换 provider，不要求数据库迁移或前端重写。
 
-- 用户可以通过 Better Auth 的邮箱验证码流程自动注册或登录。
-- 用户可以搜索、添加、接受、拒绝和屏蔽联系人。
-- 用户可以先选择参与人，再选择氛围并创建私聊或小群。
-- 用户可以在氛围空间市场中浏览、搜索、预览和收藏空间。
-- 第三方开发者可以从空白画布创建氛围空间，通过 CLI 上传审核并发布。
-- 氛围空间可以完全控制会话画布，并使用平台 API 操作消息、成员、媒体、状态和互动。
-- 氛围空间崩溃、撤销、断网或版本不兼容时，房间仍可恢复和迁移。
-- 系统能够在 1,000 峰值并发连接下保持可靠消息传递。
+### 3.3 MVP 非目标
 
-### 3.2 MVP 非目标
+- App 修改 Chat Core、成员权威、认证、支付或 Kernel Bar；App 替换 Chat UI 属于目标能力，不在非目标内。
+- App 直接调用 Agent 工具、读取源码或自行发布。
+- 任意 URL、任意 npm 项目或未经审核压缩包直接成为市场模板。
+- Agent 获得平台密钥、用户 Cookie、Matrix token、账单详情或任意外部网络。
+- 多个 App 同时控制一个 Space 的主 App Surface。
+- E2EE、音视频、Matrix 联邦和原生移动端。
+- 在首个 Agent 切片中完成开放 Agent 商店、多 Agent 自主协商或用户自带 provider key。
+- 把当前官方模板目录冒充已经上线的第三方创作者生态。
 
-- 端到端加密。
-- 语音和视频通话。
-- Matrix 联邦。
-- 公共聊天室和陌生人社区。
-- 用户评分与评论。
-- 图形化开发者 Studio。
-- 普通用户无代码搭建。
-- 房间叠加多个氛围空间。
-- 任意 HTTPS 地址直接加载为氛围空间。
-- 原生 iOS 和 Android 客户端。
+### 3.4 成功指标
 
-### 3.3 核心成功指标
+| 指标 | MVP 目标 |
+| --- | --- |
+| 普通 Matrix 消息同区域对端渲染 | p95 < 500ms |
+| App State/瞬时事件在线广播 | p95 < 300ms |
+| 新 ready Revision 实时切换 | p95 < 2s |
+| 已缓存 Published Release 首次 ready | p95 < 2s |
+| Agent 请求接受反馈 | 1s 内展示排队或拒绝原因 |
+| Agent 或 Runtime 故障期间 Chat | 保持可用，不丢已确认消息 |
+| 已入队 Agent 请求 | 服务重启后可恢复，不静默丢弃 |
+| Candidate/发布失败 | 100% 保持当前 ready Revision 和上一个 Published Release 可用 |
+| 模板应用 | 不修改市场版本，不丢 Space Chat/成员/旧 Release |
+| 可信宿主界面 | WCAG 2.2 AA |
 
-- 消息发送到同区域对端渲染 p95 小于 500ms。
-- 已缓存氛围空间的画布 ready 时间小于 2 秒。
-- 会话列表首次可交互时间小于 2.5 秒。
-- 核心消息服务月度可用性目标为 99.9%。
-- 已确认发送成功的消息在滚动重启中不丢失。
-- 宿主导航、系统控制层和恢复视图达到 WCAG 2.2 AA；第三方氛围空间在发布审核中接受基础无障碍检查。
-- 空间越权请求、未声明联网和 iframe 逃逸均被阻止。
+Agent 完成时间依赖 provider 和变更复杂度，不承诺固定秒数；Kernel 必须持续展示队列、阶段、心跳和可恢复错误。
 
----
+## 4. 用户体验与信息架构
 
-## 4. 技术选型与系统架构
+### 4.1 一级入口
 
-### 4.1 开源基础选择
+前端不再提供独立“消息”产品入口。用户进入的是持续运行的 Space；Chat Core 是每个 Space 内固定存在的能力，而它的界面由 Space App 代码定义。一级入口为：
 
-#### Matrix
-
-使用 Matrix 作为通信协议和房间状态模型。`matrix-js-sdk` 采用 Apache-2.0，并处理同步、房间状态、成员、消息关系、本地回显、队列、重试和分页：
-
-- <https://github.com/matrix-org/matrix-js-sdk>
-
-#### Synapse
-
-生产环境运行未修改的 Synapse，作为独立 Matrix 服务。Synapse 当前采用 AGPL/商业双许可：
-
-- <https://github.com/element-hq/synapse>
-
-闭源宿主和产品 API 仅通过标准 HTTP/Admin API 与 Synapse 通信，不修改或链接 Synapse 源码。商业发布前必须由法律顾问复核 AGPL 边界、源码提供方式和许可证声明。
-
-#### Better Auth
-
-使用 Better Auth 作为唯一的产品认证实现，并启用 Email OTP plugin：
-
-- Better Auth 负责用户、验证码、自动注册、会话 Cookie、会话查询/撤销和认证端点限流。
-- React 宿主只通过 `better-auth/client` 和 `emailOTPClient()` 发起认证，不自行调用认证数据表。
-- 产品 API 仅挂载 Better Auth handler，并在业务 route 中通过 `auth.api.getSession()` 验证身份。
-- Product PostgreSQL 使用 Better Auth 官方 schema 与 CLI migration；产品代码不得自行写入其核心认证表。
-- MVP 将 Better Auth `user`、`session`、`account` 持久化在 PostgreSQL，并显式启用 `session.storeSessionInDatabase: true`；Redis secondary storage 只承载短期 verification 和认证限流数据。
-- 邮件服务只实现 `sendVerificationOTP()` 投递适配器，不参与 OTP 生成、保存、过期或校验。
-- 登录成功后的 Matrix 用户与设备创建属于产品集成，由独立 bootstrap 流程完成，不放入 Better Auth 的认证判定逻辑。
-
-官方文档：
-
-- <https://better-auth.com/docs/plugins/email-otp>
-- <https://better-auth.com/docs/concepts/session-management>
-- <https://better-auth.com/docs/concepts/database>
-
-#### 不直接 fork Element Web
-
-Element Web 功能成熟，但当前采用 AGPL/GPL/商业多重许可，不符合“不购买商业许可且宿主闭源”的选择：
-
-- <https://github.com/element-hq/element-web>
-
-因此本项目复用 Matrix 通信引擎，而不复用 Element UI 源码。
-
-### 4.2 技术栈
-
-| 层             | 技术                                    | 责任                                                            |
-| -------------- | --------------------------------------- | --------------------------------------------------------------- |
-| 用户宿主       | React、TypeScript、Vite、PWA            | 导航、联系人、市场、Matrix 连接、空间微 App 容器                |
-| 前端服务端状态 | TanStack Query                          | 产品 REST 数据缓存和失效                                        |
-| 前端本地状态   | Zustand                                 | 导航、控制岛、权限面板、临时 UI 状态                            |
-| 路由           | TanStack Router                         | 桌面与移动响应式路由                                            |
-| 宿主组件       | Radix Primitives + 自研样式             | 可访问的弹层、菜单、对话框和表单                                |
-| 用户认证       | Better Auth + Email OTP plugin          | 邮箱验证码注册登录、用户、Cookie session 和会话撤销             |
-| 认证客户端     | `better-auth/client` + `emailOTPClient` | 登录状态、OTP、退出和设备会话管理                               |
-| Matrix 客户端  | `matrix-js-sdk`                         | Matrix 同步、消息、媒体和成员关系                               |
-| 产品 API       | 待定（TypeScript 为候选）               | Better Auth 挂载、Matrix 身份桥接、社交、房间、市场、审核、推送 |
-| API schema     | Zod 4                                   | 类型、校验、序列化、OpenAPI                                     |
-| 主数据库       | PostgreSQL                              | 产品业务数据                                                    |
-| 缓存与队列     | Redis、BullMQ                           | Better Auth 短期 verification/限流、扫描、邮件、推送、发布任务  |
-| 消息服务       | Synapse                                 | Matrix room、事件、同步、媒体元数据                             |
-| 对象存储       | S3 兼容存储                             | 空间包、海报、扫描产物、媒体归档                                |
-| 静态分发       | CDN                                     | 宿主静态资源和已签名空间版本                                    |
-| 可观测性       | Pino、OpenTelemetry、Prometheus         | 日志、追踪、指标和告警                                          |
-
-候选方案应提供 schema 验证、模块封装、TypeScript 类型集成和明确的 LTS 策略；最终后端选型将在前端骨架建立后重新评审。
-
-### 4.3 系统结构
-
-```mermaid
-flowchart LR
-    subgraph Browser["用户浏览器 / PWA"]
-        Host["Vibe Chat 宿主"]
-        MatrixSDK["matrix-js-sdk"]
-        SpaceFrame["隔离空间微 App iframe"]
-        SW["Service Worker"]
-        Host <--> MatrixSDK
-        Host <-->|"Capability API / postMessage"| SpaceFrame
-        Host <--> SW
-    end
-
-    subgraph Edge["边缘与静态分发"]
-        HostCDN["宿主 CDN"]
-        SpaceCDN["空间独立域名 CDN"]
-        Gateway["Ingress / API Gateway"]
-    end
-
-    subgraph Product["产品平台"]
-        API["产品 API + Better Auth"]
-        Workers["BullMQ Workers"]
-        Push["Web Push Gateway"]
-        Scanner["空间扫描与审核服务"]
-    end
-
-    subgraph Matrix["Matrix 基础设施"]
-        Synapse["Synapse Workers"]
-        MatrixDB["Matrix PostgreSQL"]
-    end
-
-    subgraph Data["产品数据"]
-        ProductDB["Product PostgreSQL"]
-        Redis["Redis"]
-        ObjectStore["S3 Object Storage"]
-    end
-
-    Host --> HostCDN
-    SpaceFrame --> SpaceCDN
-    Host --> Gateway --> API
-    MatrixSDK --> Gateway --> Synapse
-    SW <--> Push
-    API <--> ProductDB
-    API <--> Redis
-    API <--> Synapse
-    Workers <--> Redis
-    Workers <--> ProductDB
-    Workers <--> ObjectStore
-    Scanner <--> ObjectStore
-    Synapse <--> MatrixDB
-    Synapse --> Push
-```
-
-### 4.4 Monorepo 结构
-
-```text
-apps/
-  site-app/              官网与公开内容
-  web-app/               用户端宿主 PWA
-  backend/               共享后端、产品 API 与 Better Auth
-  docs-app/              SDK、用户与部署文档
-  desktop-app/           后续 Desktop spike 通过后创建
-  admin-app/             独立运营后台；A4 在此加入空间审核模块
-packages/
-  auth/                  Better Auth 服务端配置、客户端和邮件适配器
-  sdk/                   @vibechat/sdk
-  protocol/              postMessage 与 Matrix 事件契约
-  api-contracts/         Zod schema 与生成客户端
-  design-system/         宿主设计系统
-  cli/                   create/dev/validate/publish CLI
-  test-harness/          空间微 App 模拟宿主与测试工具
-infra/
-  compose/               本地完整环境
-  kubernetes/            生产工作负载
-  observability/         指标、日志与告警
-```
-
----
-
-## 5. 用户端产品与前端设计
-
-### 5.1 信息架构
-
-一级导航固定为：
-
-1. 消息
+1. Spaces
 2. 联系人
 3. 发现
-4. 我的
+4. 服务
+5. 我的
 
-| 路由                        | 页面                         |
-| --------------------------- | ---------------------------- |
-| `/auth`                     | 邮箱验证码登录               |
-| `/onboarding`               | 昵称、用户名和头像设置       |
-| `/messages`                 | 会话列表                     |
-| `/rooms/:roomId`            | 房间氛围空间画布             |
-| `/contacts`                 | 联系人、好友请求和用户搜索   |
-| `/discover`                 | 氛围空间市场                 |
-| `/discover/spaces/:spaceId` | 空间详情与预览               |
-| `/me`                       | 账号、隐私、通知和开发者入口 |
+| 路由 | 目标职责 |
+| --- | --- |
+| `/auth`、`/signin`、`/signup` | 认证流程 |
+| `/onboarding` | 昵称、用户名和头像设置 |
+| `/spaces` | 当前用户可访问的 Space 列表、未读、App/成员状态和创建入口 |
+| `/spaces/:spaceId` | 一个实时可用的 Space：顶部固定 Kernel Bar，其下运行完整 Space App；首个迁移切片允许 `spaceId` 暂时解析现有 Matrix Room ID |
+| `/contacts` | 联系人、好友请求、搜索和发起 Space |
+| `/discover` | Space Template 市场、分类、详情、收藏和创建入口 |
+| `/services` | 账号可用的付费与 AI 服务入口，不承担 Space Agent 编排 |
+| `/me` | 账号、会话、偏好、积分和隐私 |
 
-### 5.2 响应式框架
+`/messages` 与 `/rooms/:roomId` 只保留为迁移期兼容重定向，分别转到 `/spaces` 与 `/spaces/:spaceId`；任何新导航、回跳、公开 CTA、测试或用户文档不得继续生成旧 URL。底层 `roomId`、Matrix Room 与 `/v1/rooms` 兼容 API 仍可存在，但不能泄露为前端产品对象。
 
-#### 桌面：宽度 ≥ 1100px
-
-- 72px 一级导航栏。
-- 340px 会话/联系人/市场列表栏。
-- 剩余区域为详情或房间画布。
-- 房间画布打开时不会卸载会话列表，以保持快速切换。
-
-#### 平板：720–1099px
-
-- 64px 一级导航栏。
-- 列表与详情双栏切换。
-- 房间打开后隐藏列表，通过返回按钮恢复。
-
-#### 移动：宽度 < 720px
-
-- 底部四项导航栏。
-- 每个页面独占视口。
-- 进入房间后隐藏底部导航，房间控制岛负责退出。
-- 使用安全区 inset，避免遮挡 iOS 浏览器和 PWA 系统区域。
-
-### 5.3 视觉方向
-
-宿主采用“中性数字画廊”风格，让氛围空间成为视觉主体：
-
-- 暖灰白背景、近黑正文、灰褐次级文字。
-- 朱红作为系统强调色，仅用于创建、确认、警告和未读。
-- 不使用常见紫色渐变或模板化玻璃拟态。
-- 中文正文使用自托管思源黑体，编辑型标题使用思源宋体；拉丁字符使用 IBM Plex Sans。
-- 统一 4/8px 间距网格。
-- 宿主使用中等圆角；空间画布不继承宿主圆角或颜色。
-- 常规反馈 160ms，页面进入 240ms。
-- `prefers-reduced-motion` 下取消位移和缩放，只保留透明度变化。
-
-#### 核心颜色 token
-
-```css
-:root {
-  --host-canvas: #f3f0e9;
-  --host-surface: #fbfaf6;
-  --host-ink: #1c1b19;
-  --host-muted: #777169;
-  --host-line: #d9d4ca;
-  --host-accent: #e4472f;
-  --host-danger: #bc2c2c;
-  --host-system-overlay: rgba(17, 17, 16, 0.9);
-}
-```
-
-### 5.4 登录 `/auth`
-
-页面包含：
-
-- 品牌说明和一个只使用虚拟数据的氛围画布预览。
-- 邮箱输入。
-- 六位验证码输入。
-- 发送倒计时和重新发送。
-- 服务条款和隐私政策入口。
-
-状态：
-
-- 邮箱格式错误。
-- 验证码错误或过期。
-- 发送频率超限。
-- 邮件发送延迟。
-- 服务不可用。
-- 登录成功后恢复之前访问的房间路径。
-
-实现约束：
-
-- 发送验证码调用 `authClient.emailOtp.sendVerificationOtp({ type: "sign-in" })`。
-- 验证码登录调用 `authClient.signIn.emailOtp()`；未注册邮箱由 Better Auth 自动创建用户。
-- 页面不直接请求自定义登录接口，也不自行保存、比对或刷新验证码。
-- 成功建立 Better Auth session 后，再调用产品 Matrix bootstrap API。
-
-### 5.5 首次设置 `/onboarding`
-
-- 设置昵称。
-- 设置唯一用户名。
-- 上传、裁剪或跳过头像。
-- 用一屏说明“先选人，再为聊天设置氛围”。
-- 不在首次页面立即弹系统推送权限；用户完成第一次聊天后再用上下文提示申请。
-
-### 5.6 消息页 `/messages`
-
-#### 会话列表
-
-会话卡保持完全统一，不允许氛围空间自定义布局或颜色。
-
-每行展示：
-
-- 单聊头像或群头像。
-- 房间名称。
-- 最后一条宿主可读摘要。
-- 时间。
-- 未读数。
-- 静音、置顶、失败或离线标志。
-- 小型空间图标仅用于辅助识别，不改变卡片视觉结构。
-
-排序：
-
-1. 置顶会话。
-2. 未读会话。
-3. 最后活动时间倒序。
-
-交互：
-
-- 搜索会话、联系人和历史消息。
-- 未读筛选。
-- 置顶、静音、标记已读。
-- 进入房间。
-- 更换氛围，实际进入克隆迁移。
-- 离开房间。
-- 氛围空间失效时显示恢复标志。
-
-空间自定义事件必须包含 `fallbackText`，宿主用它生成会话摘要、通知和恢复视图。如果事件不合法或缺少降级文本，宿主可以持久化原始事件，但不展示为可读摘要。
-
-#### 空状态
-
-- 无会话时显示“开始第一次聊天”。
-- 有联系人时展示最近联系人快捷入口。
-- 无联系人时先引导添加联系人。
-
-### 5.7 新建聊天流程
-
-入口采用传统即时聊天产品熟悉的选人方式：点击消息页右上角“新聊天”，先选择人，再设置氛围。
+### 4.2 创建 Space
 
 ```mermaid
 flowchart LR
-    Start["新聊天"] --> People["选择参与人"]
-    People --> Atmosphere["设置氛围"]
-    Atmosphere --> Configure["配置空间实例"]
-    Configure --> Permissions["确认权限和联网域名"]
-    Permissions --> Create["创建 Matrix Room"]
-    Create --> Canvas["进入房间画布"]
+    Start["新建 Space"] --> People["选择参与人"]
+    People --> StartMode{"如何开始"}
+    StartMode -->|"空白"| Blank["创建空白 Project"]
+    StartMode -->|"选择模板"| Market["浏览/选择 Space Template 版本"]
+    Market --> Confirm["确认模板权限与版本"]
+    Blank --> DefaultChat["复制 Default Chat App"]
+    DefaultChat --> Create["创建 Matrix Room 与 Space 实例"]
+    Confirm --> Create
+    Create --> Enter["进入 Kernel Bar + 实时 Space App"]
 ```
 
-#### 第一步：选择参与人
-
-- 最近联系人。
-- 全部联系人。
-- 搜索用户名或邮箱。
-- 支持单选和多选，MVP 小群最多 50 人。
-- 被屏蔽用户不可选择。
-- 如果已有与同一用户的会话，展示“打开已有会话”与“创建新的氛围会话”。
-
-#### 第二步：设置氛围
-
-- 不提供默认空间；用户必须明确选择一个可用的氛围空间。
-- 最近使用。
-- 官方精选。
-- 已收藏。
-- 全部氛围。
-- 搜索和分类筛选。
-
-空间卡片展示海报、名称、开发者、短简介、敏感权限数量和是否连接外部服务。
-
-#### 第三步：配置氛围空间
-
-- 没有配置项时直接跳过。
-- 提供 `configSchema` 时，宿主渲染统一的 schema 表单。
-- 提供 `setupEntry` 时，在隔离 iframe 中运行空间自定义设置画布。
-- `setupEntry` 只能输出符合 manifest schema 的 `instanceConfig`。
-- 设置阶段没有 Matrix room，也不能读取真实参与人的历史信息；只会得到所选成员的最小展示资料。
-
-#### 第四步：权限确认
-
-展示：
-
-- 空间开发者和当前版本。
-- 会读取的消息、成员、媒体或状态范围。
-- 可执行的成员和消息操作。
-- 外部联网域名。
-- 隐私说明。
-
-用户确认后才发送房间创建请求。
-
-#### 第五步：创建与邀请
-
-- 产品 API 创建 Matrix room。
-- 写入空间 instance 状态。
-- 邀请其他成员。
-- 创建人立即进入房间。
-- 受邀成员收到带完整空间权限信息的邀请卡。
-
-### 5.8 联系人 `/contacts`
-
-分区：
-
-- 好友请求。
-- 最近联系人。
-- 全部联系人。
-- 添加联系人。
-
-功能：
-
-- 按用户名或完整邮箱搜索。
-- 默认不提供公开全量用户目录。
-- 接受、拒绝或屏蔽好友请求。
-- 修改备注名。
-- 查看共同房间。
-- 发起聊天并进入“设置氛围”。
-- 查看与该联系人已有的多个氛围会话。
-- 屏蔽后停止新邀请和好友请求，但保留用户已有消息数据。
-
-### 5.9 发现 `/discover`
-
-MVP 的发现页是氛围空间市场，不包含公开聊天室。
-
-首页包含：
-
-- 编辑精选主展示位。
-- 最近上新。
-- 热门氛围。
-- 官方氛围空间。
-- 日常、陪伴、游戏、学习、仪式、角色扮演、实验等分类。
-- 搜索、权限和是否外部联网的筛选。
-
-MVP 不开放用户评分和评论。排序由人工精选、使用量、崩溃率、加载性能和举报情况决定。
-
-#### 空间详情 `/discover/spaces/:spaceId`
-
-- 海报和开发者身份。
-- 功能说明与适用场景。
-- 使用虚拟成员和虚拟消息的沙箱预览。
-- 权限、联网域名和隐私说明。
-- 版本记录。
-- 收藏和举报。
-- “使用这个氛围聊天”：预选当前空间，再进入选择参与人流程。
-
-### 5.10 我的 `/me`
-
-- 昵称、用户名和头像。
-- 邮箱和账号安全。
-- 通知偏好。
-- 外观、语言和减少动态效果。
-- 好友申请范围。
-- 黑名单。
-- 登录设备和会话。
-- PWA 安装状态。
-- 缓存与离线数据管理。
-- 开发者令牌和 CLI 文档入口。
-- 开源许可证与 Synapse 源码入口。
-- 退出登录和注销账号。
-
-其中登录设备与会话列表直接使用 Better Auth 的 `listSessions`、`revokeSession`、`revokeOtherSessions` 和 `signOut`；产品层只补充显示对应 Matrix device 的同步状态。
-
-### 5.11 邀请体验
-
-邀请卡展示：
-
-- 邀请人和其他参与人。
-- 房间使用的氛围空间、版本和开发者。
-- 空间海报。
-- 所需权限。
-- 外部联网域名。
-- 接受、拒绝和屏蔽邀请人。
-
-接受邀请即表示接受当前空间版本的权限。空间权限扩大或新增联网域名时，现有成员必须重新确认后才能加载新版本。
-
-### 5.12 房间全画布 `/rooms/:roomId`
-
-- iframe 覆盖完整会话区域。
-- 氛围空间自行渲染消息、输入、成员、动画和互动。
-- 宿主不提供固定消息框或输入栏。
-- iframe 外始终保留不可伪造的系统控制层。
-
-#### 自动收起控制岛
-
-控制岛包含：
-
-- 返回消息列表。
-- 房间名称和空间图标。
-- 网络/同步状态。
-- 成员入口。
-- 系统菜单。
-
-行为：
-
-- 进入房间后显示 3 秒，然后自动收起。
-- 鼠标进入顶部、触摸顶部边缘、按 `Esc` 或键盘聚焦时重新出现。
-- 断线、危险操作、崩溃或权限请求时强制显示。
-- 采用固定的黑色高对比半透明胶囊，不允许空间修改样式。
-- 减少动态效果模式下只淡入淡出。
-
-#### 系统菜单
-
-- 房间与氛围空间信息。
-- 成员列表。
-- 权限和联网域名。
-- 通知设置。
-- 基础消息恢复视图。
-- 举报房间或氛围空间。
-- 更换氛围。
-- 离开房间。
-
-### 5.13 加载、离线和错误状态
-
-加载顺序：
-
-1. 展示宿主房间骨架。
-2. 获取空间 bootstrap 信息。
-3. 验证版本状态、签名和哈希。
-4. 加载 iframe。
-5. 完成 SDK 握手。
-6. 授予 capability。
-7. 空间发出 `ready` 后切换画布。
-
-错误处理：
-
-- 5 秒未 ready：显示“仍在加载”、重试和恢复视图入口。
-- manifest 或哈希错误：禁止执行空间代码。
-- iframe 崩溃：保留 Matrix 连接，允许重载。
-- 离线且空间已缓存：加载空间和缓存消息，发送操作进入队列。
-- 离线且空间未缓存：进入只读恢复视图。
-- 空间版本被撤销：停止执行并进入恢复视图。
-
-### 5.14 更换氛围与克隆迁移
-
-流程：
-
-1. 从系统菜单选择“更换氛围”。
-2. 选择目标氛围空间。
-3. 展示可迁移和不可迁移内容。
-4. 配置目标空间。
-5. 用户确认。
-6. 创建新房间并邀请原成员。
-7. 新旧房间互相保留来源/去向链接。
-
-自动迁移：
-
-- 房间名称和群头像。
-- 原成员邀请列表。
-- 宿主中立配置。
-- 双方 migration schema 兼容且用户确认的结构化空间状态。
-
-不迁移：
-
-- 聊天历史。
-- 旧空间私有数据。
-- 未经用户确认的外部服务数据。
-- 原成员的自动加入状态。
-
----
-
-## 6. 氛围空间运行时
-
-### 6.1 安全边界
-
-```mermaid
-flowchart TB
-    subgraph Trusted["可信宿主 Origin"]
-        UI["导航与系统控制层"]
-        Runtime["Space Runtime Controller"]
-        MatrixClient["Matrix Client"]
-        Token["Matrix Access Token"]
-        Runtime <--> MatrixClient
-        MatrixClient --> Token
-    end
-
-    subgraph Untrusted["不可信空间 iframe / Opaque Origin"]
-        Space["第三方空间微 App Bundle"]
-        SDK["@vibechat/sdk"]
-        Space <--> SDK
-    end
-
-    Runtime <-->|"Validated postMessage"| SDK
-    Space -. "不可访问" .-> Token
-    Space -. "不可访问" .-> UI
-```
-
-iframe 默认配置：
-
-```html
-<iframe
-  sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads"
-  referrerpolicy="no-referrer"
-  allow="clipboard-write"
-/>
-```
-
-默认不允许：
-
-- `allow-same-origin`
-- 顶层导航。
-- 任意弹窗。
-- 摄像头和麦克风。
-- 未声明网络域名。
-- 宿主存储和 Cookie。
-
-### 6.2 空间 manifest
-
-```json
-{
-  "schemaVersion": 1,
-  "spaceId": "com.example.campfire",
-  "version": "1.2.0",
-  "name": "Campfire",
-  "entry": "index.html",
-  "setupEntry": "setup.html",
-  "integrity": "sha256-...",
-  "minHostVersion": "1.0.0",
-  "permissions": [
-    "context.read",
-    "members.read",
-    "messages.read",
-    "messages.send",
-    "interactions.send",
-    "state.shared.read",
-    "state.shared.write"
-  ],
-  "networkDomains": ["api.example.com"],
-  "configSchema": {},
-  "migrationSchema": {}
-}
-```
-
-规则：
-
-- `spaceId + version` 唯一。
-- 发布后的 manifest、HTML、JS、CSS 和资源不可修改。
-- 完整包使用内容哈希和平台签名。
-- 新版本必须重新扫描和审核。
-- 外部域名必须精确声明，不接受任意通配符。
-
-### 6.3 生命周期
-
-```text
-unloaded
-  -> validating
-  -> loading
-  -> handshaking
-  -> ready
-  -> suspended | error | revoked
-```
-
-- `validating`：检查房间状态、版本、签名、权限和成员同意状态。
-- `loading`：加载已签名静态资源。
-- `handshaking`：协商 SDK 和宿主协议版本。
-- `ready`：开始传递消息和状态事件。
-- `suspended`：房间切换、标签页后台或资源配额触发暂停。
-- `error`：空间异常、超时或违反协议。
-- `revoked`：平台撤销版本，禁止继续执行。
-
-### 6.4 通信协议
-
-请求：
-
-```json
-{
-  "protocol": "vibechat/1",
-  "requestId": "01J...",
-  "method": "messages.send",
-  "params": {
-    "type": "text",
-    "text": "hello"
-  }
-}
-```
-
-响应：
-
-```json
-{
-  "protocol": "vibechat/1",
-  "requestId": "01J...",
-  "ok": true,
-  "result": {
-    "eventId": "$...",
-    "transactionId": "..."
-  }
-}
-```
-
-事件：
-
-```json
-{
-  "protocol": "vibechat/1",
-  "event": "messages.timeline.appended",
-  "sequence": 42,
-  "payload": {}
-}
-```
-
-要求：
-
-- 验证 `event.source === iframe.contentWindow`。
-- 每个 iframe 使用独立 session nonce。
-- 所有 payload 使用共享 Zod schema 验证。
-- 忽略未知字段，拒绝未知方法。
-- request ID 在当前 session 内唯一。
-- 写操作需要幂等 transaction ID。
-- 每类 capability 独立限流。
-
-### 6.5 Capability 设计
-
-| Capability           | 能力                             | 授权方式                 |
-| -------------------- | -------------------------------- | ------------------------ |
-| `context.read`       | 当前用户、房间、语言、主题、视口 | 接受邀请时               |
-| `members.read`       | 当前成员列表与展示资料           | 接受邀请时               |
-| `members.invite`     | 请求邀请联系人                   | 每次宿主确认             |
-| `members.remove`     | 请求移除成员                     | 每次确认并校验权限       |
-| `messages.read`      | 读取允许范围内的时间线           | 接受邀请时               |
-| `messages.send`      | 发送平台标准消息                 | 接受邀请时               |
-| `messages.modify`    | 编辑或删除当前用户消息           | 每次删除确认，编辑按权限 |
-| `messages.moderate`  | 删除他人消息                     | 每次确认并校验房间权限   |
-| `media.read`         | 读取已授权媒体句柄               | 接受邀请时               |
-| `media.write`        | 请求选择或上传媒体               | 用户直接手势触发         |
-| `state.shared.read`  | 读取空间房间共享状态             | 接受邀请时               |
-| `state.shared.write` | 修改空间房间共享状态             | 接受邀请时并限流         |
-| `state.private`      | 读写当前用户私有空间状态         | 接受邀请时               |
-| `interactions.read`  | 订阅自定义互动事件               | 接受邀请时               |
-| `interactions.send`  | 发送自定义互动事件               | 接受邀请时并限流         |
-| `host.openExternal`  | 打开外部地址                     | 每次确认                 |
-| `host.clipboard`     | 写剪贴板                         | 用户手势触发             |
-| `host.notify`        | 请求宿主通知                     | 安装权限 + 前后台规则    |
-
-### 6.6 SDK API 分组
-
-#### `context.*`
-
-- `context.get()`
-- `context.onVisibilityChange()`
-- `context.onLocaleChange()`
-- `context.onViewportChange()`
-
-#### `members.*`
-
-- `members.list()`
-- `members.get(userId)`
-- `members.requestInvite(userIds)`
-- `members.requestRemove(userId, reason)`
-
-#### `messages.*`
-
-- `messages.subscribe(filter)`
-- `messages.paginate(cursor, limit)`
-- `messages.search(query, cursor)`
-- `messages.sendText(text, options)`
-- `messages.sendMedia(mediaHandle, options)`
-- `messages.reply(eventId, content)`
-- `messages.react(eventId, key)`
-- `messages.edit(eventId, content)`
-- `messages.requestRedact(eventId, reason)`
-- `messages.markRead(eventId)`
-- `messages.setTyping(isTyping, timeout)`
-
-#### `media.*`
-
-- `media.pick(options)`
-- `media.upload(fileHandle, metadata)`
-- `media.getDownloadHandle(mediaId)`
-- `media.getThumbnail(mediaId, size)`
-
-#### `state.*`
-
-- `state.shared.get(key)`
-- `state.shared.set(key, value, expectedVersion)`
-- `state.shared.subscribe(prefix)`
-- `state.private.get(key)`
-- `state.private.set(key, value)`
-
-#### `interactions.*`
-
-- `interactions.subscribe(types)`
-- `interactions.send(type, payload, fallbackText, notificationSummary)`
-
-#### `host.*`
-
-- `host.openExternal(url)`
-- `host.copyText(text)`
-- `host.download(mediaHandle)`
-- `host.requestNotification(payload)`
-- `host.reportCrash(details)`
-
-### 6.7 空间状态分层
-
-| 状态               | 存储                  | 适用范围                       |
-| ------------------ | --------------------- | ------------------------------ |
-| 空间 instance 配置 | Matrix room state     | 房间创建配置、版本、权限       |
-| 小型共享状态       | Matrix state event    | 当前阶段、主题状态、有限 KV    |
-| 高频互动           | Matrix timeline event | 游戏动作、仪式、投票、协作行为 |
-| 用户私有状态       | Product PostgreSQL    | 草稿、个人偏好、未共享进度     |
-| 大型或专用数据     | 审核通过的开发者后端  | 复杂计算和第三方服务           |
-
-共享状态写入使用 `expectedVersion` 做乐观并发控制。冲突时返回当前版本，由空间决定合并或重试。
-
-### 6.8 外部联网
-
-- manifest 精确声明 `networkDomains`。
-- 审核通过后生成对应 CSP `connect-src`。
-- 权限确认页向成员展示所有域名。
-- 不允许运行时临时扩大域名。
-- 新增域名必须发布新版本并重新获得成员确认。
-- 宿主 token、Matrix token 和平台 Cookie不会附加到第三方请求。
-
-### 6.9 恢复视图
-
-恢复视图属于宿主，不属于任何氛围空间，提供：
-
-- 标准文字消息。
-- 媒体附件元数据和受控下载。
-- 自定义事件的 `fallbackText`。
-- 消息时间、发送者和编辑/删除状态。
-- 房间成员。
-- 空间版本、失效原因和迁移入口。
-
-恢复视图不尝试解释空间私有视觉或复杂状态。
-
----
-
-## 7. 氛围空间开发与发布
-
-### 7.1 MVP 开发方式
-
-MVP 不制作图形化 Studio，提供 CLI、SDK、文档站和本地模拟宿主。
-
-```text
-vibe init       创建空白 Vanilla 或 React 项目
-vibe dev        启动本地模拟宿主与热更新
-vibe validate   校验 manifest、schema、权限和资源
-vibe test       执行 SDK contract 与沙箱测试
-vibe pack       生成不可变构建包
-vibe publish    上传新版本
-vibe status     查看扫描与审核状态
-vibe logs       查看构建、扫描和运行时错误
-```
-
-用户在“我的 → 开发者”创建、命名和撤销 CLI token。
-
-### 7.2 本地模拟宿主
-
-- 虚拟当前用户。
-- 1–50 个虚拟成员。
-- 虚拟消息、媒体、已读和输入状态。
-- capability 开关。
-- 网络断开、消息失败、权限拒绝和空间暂停模拟。
-- 桌面、平板和移动视口。
-- 系统控制岛和敏感操作确认预览。
-- `postMessage` 调试日志和 schema 错误定位。
-
-### 7.3 发布流程
+- 从市场模板详情发起时，创建流程预选该模板，用户仍需选择成员并确认。
+- 选择空白时不要求 initial prompt，不等待 Agent；创建事务复制平台 Default Chat App，Space 创建完成后立即是可聊天的 ready 状态。
+- 空白 Space 在没有已发布定制 App 时，可以从 Kernel 或发现页应用模板。
+- 已有定制时再次应用模板必须显示影响、创建 Candidate 并保留恢复点，不能清空消息、成员或历史版本。
+- 创建事务以 `clientRequestId` 幂等；Matrix Room 创建成功但 Space/Project 索引未提交时由 outbox/reconciler 补偿。
+- 模板不可用时可以回退为空白创建，不应阻塞基础聊天。
+
+### 4.3 Kernel Bar、Chat Core 与 Space App
+
+#### Kernel Bar：唯一固定的宿主界面
+
+Kernel Bar 固定在 Space 顶部，是模板、Agent 和 App 代码都不能修改的可信边界，负责：
+
+- 返回、Space 名称、成员、连接状态和系统菜单。
+- Agent 选择、队列/生成状态、当前 ready Revision 与已发布 Release 状态。
+- 源码/版本历史、发布、恢复、权限、举报和治理入口。
+- App 崩溃、加载失败、余额不足和 Agent 不可用时，重载最后 ready Revision 或恢复 Default Chat App。
+
+Kernel 的扩展内容只能由顶条打开可信抽屉或模态框。它不在 App DOM/iframe 内，App 不得覆盖其像素区域、拦截其输入或伪造相同来源的控制状态。
+
+#### Chat Core：固定能力，不是固定界面
+
+Chat Core 由 Matrix、Backend、权限系统和 Agent 调度共同实现：
+
+- 支持成员消息、媒体、回复、编辑、删除、Reaction、已读、typing、历史和错误恢复。
+- 支持对人类成员的 Mention，以及对允许 Agent 的结构化 `@agent` Mention。
+- 人类消息先进入 Matrix；只有服务端确认的结构化 Agent Mention 才能按 `eventId` 幂等创建 Agent Turn。
+- App 不能读取 Matrix token、伪造作者或系统/Agent 身份、绕过屏蔽/ACL、改变 Mention 解析、跳过计费确认或建立第二条消息 timeline。
+- Chat Core 的接口、事件和错误语义由版本化 Space SDK 提供；Project 代码只能调用，不能覆盖实现。
+
+#### Space App：Kernel Bar 以下的全部界面
+
+Space App 不是附加画布，而是 Space 的完整可编程 Surface：
+
+- Default Chat App 是空白 Space 的初始 Project，以 App 代码提供完整 Chat UI。
+- 模板和 Agent 可以任意改变 Chat 的布局、文案、组件、入口和交互方式，也可以把聊天融入游戏、工具、场景或其他实时体验。
+- 每个 ready Revision 必须仍提供用户可到达的 Chat Core 调用路径；具体可以是输入框、卡片、命令面板、场景动作或其他设计，不要求保留默认聊天布局。
+- App 可以选择展示哪些消息投影和 Agent 状态，但不能改变平台保存的消息、Mention、Agent 调度、权限或审计结果。
+- App 在隔离 origin/Runtime 中执行，只能通过 Space SDK 使用平台能力。
+
+因此“三边界”是信任和能力分层，不是“三栏布局”。产品页面不再由宿主同时渲染固定 Chat Panel 和 App Panel。
+
+### 4.4 聊天与 Agent 语义
+
+- 所有人类消息先按标准 Matrix 消息保存和广播，不等待 Agent。
+- 普通成员之间的对话默认不进入 Agent 队列。
+- 用户通过 Space App 调用结构化 `@Agent` Mention，或通过 Kernel Bar 的可信 Agent 操作发起 Agent Turn；平台不依赖 App 自行解析纯文本。
+- Space 可以配置一个默认 Agent；未明确选中时不得把每条人类聊天都自动送入付费 Agent。
+- Agent 对请求分类：
+  - **Conversation**：回答、解释、讨论或澄清，不修改 Project。
+  - **Revision**：创建、修改、修复或删除 App 行为，产生候选源码。
+- Conversation 只追加带明确 Agent 身份的 Matrix 回复。
+- Revision 必须经过 Space Runtime 验证，成功后成为新的 ready Revision，并实时更新当前 Space；Kernel Bar 同时标记它是否已经固化为 Release。
+- Agent 思考、工具调用和构建日志只显示为 Kernel 状态；最终回复和稳定失败摘要进入 Chat Core，再由当前 App 决定如何呈现。
+
+### 4.5 Agent 选择与扩展
+
+- Agent Registry 保存 `agentId`、provider、模型/能力、可用工具、费用策略、版本和状态。
+- Space 保存默认 Agent 与允许 Agent 列表；成员权限决定谁能调用、切换或管理 Agent。
+- MVP 可以先接入一个 Pi Adapter，但 UI、API、队列、表名、错误码和账务必须使用通用 Agent 术语。
+- 新增 Agent Adapter 必须通过相同的权限、上下文裁剪、项目工具、usage、取消、超时和审计合约。
+- 不同 Agent 不得直接共享隐藏 session；跨 Agent 上下文只能通过平台持有的可审计 Space 摘要、Project 和授权消息窗口。
+- 未来多 Agent 协作应作为独立设计，不改变 Chat 权威或 App 发布规则。
+
+### 4.6 多成员协作
+
+- Agent 忙碌时，Chat 消息仍立即保存、同步和展示。
+- 同一 Space 的相邻 Agent 定制请求可以在短窗口内按服务端接收顺序合并。
+- 后续明确修正可以覆盖同批次前文；无法安全合并时 Agent 先在 Chat 中请求澄清。
+- Publish 单独成批，是前后修改都不能跨越的顺序屏障。
+- 在线成员看到同一队列数量、Agent 阶段、当前 ready Revision 和 Published Release 指针。
+- 默认成员可聊天；`agent.invoke`、`agent.manage`、`app.edit`、`app.publish` 和 `space.manage` 独立授权。
+
+### 4.7 实时版本、发布与恢复
+
+- Agent 修改或模板应用先形成 Candidate；Candidate 只在隔离 Runtime 中构建，不是成员使用的 Space。
+- Candidate 验证成功后成为新的 ready Revision，默认通过内部 `dev` channel 实时切换给当前 Space 的在线成员。`dev` 是交付通道名，不是产品中的 Workspace 或试验场语义。
+- 构建失败不会替换最后一个 ready Revision；成员继续使用原 Space App，Chat Core 继续接收和同步消息。
+- 具备 `app.publish` 权限的成员可以通过 Kernel Bar 将固定 ready Revision 发布为不可变 Release，用于版本留档、恢复、分享或稳定部署。
+- 发布失败不改变当前 ready Revision 或上一个 Published Release；恢复只移动 ready/published 指针，不改写历史。
+- 模板应用、Agent 修改、发布和手动恢复都形成 lineage，任何操作都不能删除 Chat 历史。
+- Kernel Bar 使用“实时版本 / 已发布版本”等产品文案；`Draft`、`Dev`、`Live` 可以保留为内部兼容字段，但不能把 Space 描述成开发环境。
+
+### 4.8 响应式与可访问性
+
+- 桌面端保留 Space 列表与 Space 主区域；Kernel 不覆盖全局账号退出能力。
+- 移动端 Space 独占视口；Kernel Bar 仍固定，Kernel 关键操作支持键盘与触摸，其下全部由响应式 App 代码渲染。
+- Kernel Bar 与 Default Chat App 支持屏幕阅读器、200% 字体缩放、高对比和 `prefers-reduced-motion`；市场模板必须声明并验证相同最低门槛。
+- App 崩溃、加载失败或不满足最低可用性要求时，Kernel Bar 提供重载最后 ready Revision、回滚或恢复 Default Chat App；不额外渲染一套固定宿主 Chat UI。
+
+## 5. 系统架构
+
+### 5.1 已实现底座与新增目标
+
+| 边界 | 当前事实 | 目标 |
+| --- | --- | --- |
+| Auth/Profile/Social | Better Auth、资料、联系人和屏蔽已实现 | 保持 |
+| Matrix Chat | identity、device、room、timeline、媒体与关系事件已实现 | 继续作为成员与聊天权威 |
+| Space 创建 | 当前以 `/v1/rooms` 创建 Matrix Room，并要求内置 `spaceId` | 保持兼容，补充空白/模板模式和 Space 实例语义 |
+| Space 市场 | 服务端内置目录、分类、详情、收藏和版本已实现 | 保持并升级为 Space Template 市场 |
+| App Runtime | 未实现 | 新增隔离 App、Space SDK 与 Space Dev |
+| Agent 协作 | 现有 AI 是独立能力 | 新增 provider-neutral Agent Registry、Adapter 和 Space 队列 |
+| 发布 | 未实现 | 新增不可变 Revision/Release 和原子 Live 指针 |
+
+### 5.2 目标拓扑
 
 ```mermaid
 flowchart LR
-    Build["开发者构建"] --> Validate["CLI 本地校验"]
-    Validate --> Upload["上传不可变包"]
-    Upload --> Scan["自动扫描"]
-    Scan --> Review["人工审核"]
-    Review --> Sign["平台签名"]
-    Sign --> CDN["空间 CDN 发布"]
-    Review -->|"拒绝/修改"| Developer["反馈给开发者"]
+    subgraph Browser["浏览器 / PWA"]
+        Kernel["Fixed Kernel Bar"]
+        AppFrame["Sandboxed Space App\nDefault Chat UI or custom UI"]
+        SDK["Space SDK Bridge"]
+        ChatAdapter["Trusted Chat Capability Adapter"]
+        Kernel <-->|"validated control"| SDK
+        SDK <--> AppFrame
+        SDK <--> ChatAdapter
+    end
+
+    subgraph Product["产品平面"]
+        Backend["apps/backend\nAuth / Space API / ACL / Billing"]
+        ChatCore["Chat Core\nMention / Agent dispatch / message actions"]
+        ProductDB["Product DB\nSpace / Market / Project"]
+        Outbox["Outbox / Durable Queue"]
+        Backend <--> ChatCore
+        Backend <--> ProductDB
+        Backend <--> Outbox
+    end
+
+    subgraph Runtime["Space Runtime 平面"]
+        InstanceServer["SpaceInstanceServer\nper-Space logical actor"]
+        Scheduler["Turn Scheduler\nserial per Space"]
+        Adapter["Agent Adapter\nPi / other providers"]
+        ProjectStore["SpaceProjectStore"]
+        DevManager["SpaceDevPreviewManager\nagentOS Apps"]
+        ReleaseRuntime["Immutable agentOS Release"]
+        InstanceServer --> Scheduler
+        Scheduler <--> Adapter
+        Scheduler <--> ProjectStore
+        Scheduler --> DevManager
+        Scheduler --> ReleaseRuntime
+    end
+
+    subgraph Matrix["Matrix 平面"]
+        Synapse["Synapse"]
+    end
+
+    subgraph Storage["对象与状态"]
+        ObjectStore["Source / Artifact Store"]
+    end
+
+    ChatAdapter <--> ChatCore
+    ChatCore <--> Synapse
+    Kernel --> Backend
+    Synapse -->|"Appservice events"| Backend
+    Outbox --> InstanceServer
+    InstanceServer <--> Backend
+    ProjectStore <--> ObjectStore
+    AppFrame --> ReleaseRuntime
 ```
 
-自动扫描：
+### 5.3 应用与 package 边界
 
-- 文件数量、包大小和压缩炸弹。
-- 路径穿越和危险文件。
-- 依赖漏洞和恶意包特征。
-- 内联远程脚本。
-- CSP 与实际请求域名差异。
-- manifest、配置和迁移 schema。
-- 已知 token、密钥和 source map 泄密。
-- 基础无障碍、加载性能和崩溃测试。
+| 位置 | 责任 |
+| --- | --- |
+| `apps/web-app` | Space 路由与列表、固定 Kernel Bar、可信 App/Chat capability bridge、Matrix 浏览器同步和市场 UI；不在 App 之外渲染固定 Chat 面板 |
+| `apps/backend` | Better Auth、Space/Template ACL、市场 API、数据库事务、积分、Matrix appservice 和 outbox |
+| `apps/space-runtime` | 与 `chat-app-server` 同构的 Node 22 + TypeScript + Hono runtime；Space Instance Server、SSE、Turn scheduler、Agent Adapter、Project Store、agentOS Apps Dev/Release |
+| `apps/admin-app` | Space/Template/Agent/Release 治理、审核、撤销和审计 |
+| `packages/space-app-contracts` | Space SDK、Chat/Mention/Agent capability、runtime session、事件、错误码和 schema |
+| `packages/space-app-sdk` | App 使用的浏览器能力 SDK，封装完整 Chat Core 调用，不依赖 React、Matrix token 或宿主路由 |
+| `packages/space-app-client` | Web/Desktop Kernel 可复用 bridge 与 runtime client |
+| `libs/space-apps` | Backend 单宿主 Project、Revision、Release、State、ACL 和 repository |
+| `libs/space-agents` | Agent Registry、计费/outbox 领域规则，不承载 provider SDK 或 VM |
+| 现有 `libs/rooms` | Matrix Room 生命周期和兼容 API；不定义用户可见产品术语 |
 
-人工审核：
+`apps/space-runtime` 独立部署，因为现有 Cloudflare Backend 不应启动 Agent 子进程、长期 VM 或 Release build。Runtime 只接受 Backend 签发的短期任务和成员作用域 session，不直接信任浏览器 Cookie。
 
-- 空间行为与描述是否一致。
-- 权限是否最小化。
-- 外部联网和隐私政策是否合理。
-- 是否伪造宿主系统界面。
-- 是否包含欺诈、恶意内容或不可退出体验。
-- 降级文本和恢复能力是否可用。
+### 5.4 技术方案定案：生产化 `chat-app-server`
 
-### 7.4 内部审核后台
+Space 技术方案不再保持 Runtime 实现中立。第一版必须沿用 demo 的对象分解与执行链，并在本仓库中使用 Space 命名：
 
-- 按风险和提交时间排序的审核队列。
-- manifest、权限和域名 diff。
-- 自动扫描报告。
-- 虚拟用户沙箱预览。
-- 网络请求日志。
-- 版本历史。
-- 批准、拒绝、要求修改。
-- 紧急撤销和撤销原因。
-- 所有管理员操作审计。
+| `chat-app-server` | VibeChat 正式组件 | 保持不变的语义 | 生产化替换 |
+| --- | --- | --- | --- |
+| `src/server.ts` Hono server | `apps/space-runtime` Hono Node 服务 | HTTP command、SSE event、调度、Dev、Publish 组合 | Backend 签名、ACL、credits、trace |
+| `LocalRoomServer` | `SpaceInstanceServer` | 一实例一状态机、snapshot、presence、App State、queue、progress、broadcast、恢复 | `appId` 改为 `spaceInstanceId`；JSON 改为 Repository/lease |
+| `rooms` Map | `SpaceInstanceRegistry` | 按实例 ID 惰性加载并复用活动实例 | 多副本以 DB lease 选主，不依赖进程内唯一性 |
+| `scheduleRoom/drainTurnQueue` | `SpaceTurnScheduler` | 同实例单写、跨实例有限并行、短批次、Publish 屏障 | durable queue、attempt、heartbeat、reconciler |
+| `processTurn` | `SpaceTurnProcessor` | Conversation/Revision、自动修复、Draft、失败保护 | Agent Adapter、credits、审计 |
+| `project-store.ts` | `SpaceProjectStore` | 受限多文件项目树、Draft/Live 指针、原子保存 | Product DB 元数据 + Object Store source/artifact |
+| `DevPreviewManager` | `SpaceDevPreviewManager` | candidate 同步、隔离 build、ready/error、版本复用 | agentOS Apps 正式环境与配额 |
+| `deployApp/appsRouter` | `SpaceReleaseManager` | 不可变 build、release ID、正式 serving | SBOM、provenance、签名、撤销 |
+| `room-app-sdk.js` | `space-app-sdk` | snapshot、members/messages/presence/state/event/chat/agent/theme | Better Auth/Matrix 身份和严格 bridge schema |
+| Pi generator | `PiAgentAdapter` | 首个 Conversation/Revision 与文件工具实现 | 通过通用 Agent Adapter 接口，可替换其他 Agent |
 
----
+实现技术栈确定为：
 
-## 8. 后端服务设计（候选方案，待重新评审）
+- Node.js 22、TypeScript ESM、Hono 与 `@hono/node-server`。
+- `@rivet-dev/agentos` 与 `@rivet-dev/agentos-apps` 作为 App Dev/Release 技术底座；具体版本在实现 spike 后由 lockfile 固定。
+- MVP Generated Project 采用 demo 已验证的 TypeScript build 约束与受限项目树：必需入口固定，但 `src/` 可按职责新增模块；路径、文件数、单文件/总大小、依赖与构建输出受平台校验。扩大文件类型、依赖或资源上限需独立评审。
+- Kernel realtime 与 demo 一致采用 SSE 下行；写操作使用认证 HTTP command。断线通过事件 sequence + snapshot 恢复。
+- App iframe 与 Kernel 之间继续采用版本化 `postMessage` bridge；App 不直接连接 Matrix、Backend privileged API 或 Agent provider。
 
-本章记录此前的产品 API 候选设计，用于保留领域边界和接口需求；在后端选型完成前，不作为当前脚手架的实现要求。
+Agent 仍保持 provider-neutral：确定的是 Space Instance/Project/Dev/Release 技术链，不是把 Pi 固定为唯一 Agent。Agent Adapter 与 agentOS Apps Runtime 是两个接口层。
 
-### 8.1 产品 API 架构原则
+### 5.5 现有房间与多人 Space 的统一实例模型
 
-- 每个业务域注册为独立模块。
-- 产品 route 只处理 HTTP、Better Auth session guard、schema 和错误映射。
-- service 承担业务规则和事务边界。
-- repository 封装 SQL，不跨域直接查询其他模块表。
-- adapter 封装 Synapse、邮件、对象存储、扫描和 Web Push。
-- 依赖通过显式 composition root 注入，不使用全局容器或反射装饰器。
-- 产品业务请求和响应由 Zod 定义；Better Auth 路由使用其官方 handler 与客户端类型，不重复包装 schema。
-- 产品 OpenAPI、前端客户端和 CLI 客户端从同一 contract 生成；认证客户端由 Better Auth 生成。
+不新增第二套 `MultiplayerSpaceInstance`、`RoomInstance` 或平行 Runtime。统一关系为：
 
-### 8.2 领域模块
+```text
+SpaceInstance
+  1 ── 1 room_index row（当前物理表，逐步扩展）
+  1 ── 1 Matrix Room（成员与 Chat 权威）
+  1 ── 1 SpaceInstanceServer（逻辑 actor，可重建）
+  1 ── 1 App Project（首次迁移时幂等 bootstrap）
+  1 ── 0..1 Space Template lineage
+  1 ── N members / Agent sessions / Revisions / Releases
+```
 
-| 模块          | 责任                                                                                |
-| ------------- | ----------------------------------------------------------------------------------- |
-| `auth`        | Better Auth 配置、handler、session guard、Email OTP plugin 和生命周期 hooks         |
-| `identity`    | Better Auth 用户/session 到 Matrix 用户/设备的幂等 provision 与撤销                 |
-| `profiles`    | 昵称、用户名、头像和账号状态                                                        |
-| `social`      | 好友请求、联系人、备注和屏蔽                                                        |
-| `rooms`       | 房间创建、氛围空间实例、成员邀请、bootstrap 和克隆迁移                              |
-| `catalog`     | 氛围空间市场、分类、精选、搜索和收藏                                                |
-| `developer`   | 开发者账号、CLI token、氛围空间与版本上传                                           |
-| `review`      | 扫描、审核、签名、发布和撤销                                                        |
-| `space-state` | 用户私有氛围空间状态和迁移 payload                                                  |
-| `push`        | Web Push 订阅、Matrix pusher 和通知策略                                             |
-| `moderation`  | 用户/氛围空间/房间举报、处置和审计                                                  |
-| `admin`       | 内部角色、审核后台和运维操作                                                        |
+- 当前私聊或群聊只要已经出现在 `room_index`，它就已经是一个 SpaceInstance，不克隆 Matrix Room，不迁移消息，不重新邀请成员。
+- “多人 Space”不是新实体，只是同一 SpaceInstance 中存在多个 Matrix member 和多个 Runtime connection。
+- `spaceInstanceId` 是新增长期稳定产品 ID；`matrixRoomId` 保持唯一映射和底层路由 ID。Runtime、Project 和 App State 统一以 `spaceInstanceId` 分区。
+- 当前 `spaceId/spaceVersionId` 表示 Space Template lineage，不作为运行实例 ID；空白 Space 允许二者为空。
+- Matrix membership 是成员权威；`participant_user_ids_json` 只作创建/ACL 投影缓存，必须由 Matrix event 修复，不能形成第二份成员事实。
+- Chat timeline 继续只以 Matrix 为权威。demo `LocalRoomServer.messages` 在正式实现中映射为最近消息投影/Agent 上下文引用，不建立第二套消息数据库。
+- 可信 Host 同时组合 Matrix Chat stream 与 Space Runtime SSE，并通过 Space SDK 投影给当前 App；对用户仍是一个 Space，不暴露两个后端实例或固定 Chat 面板。
 
-### 8.3 API 约定
+### 5.6 统一实例生命周期
 
-产品 API 与 Better Auth 的统一基础路径：`/v1`
+#### 打开现有聊天实例
 
-产品业务 API 错误格式：
+1. Kernel 从兼容 `matrixRoomId` 查询 `SpaceInstanceRepository`。
+2. 如果历史行没有 `spaceInstanceId`，Backend 在事务中生成并持久化一次；重复请求读取同一值。
+3. 如果没有 `projectId`，以现有 `spaceId/spaceVersionId` 模板 lineage 幂等 bootstrap Project；模板已失效则使用 Default Chat App seed。
+4. Backend 签发绑定 user、Matrix membership、`spaceInstanceId` 和 Project 的短期 Runtime session。
+5. `SpaceInstanceRegistry.get(spaceInstanceId)` 惰性加载与 demo `#getReadyRoom()` 同构的 Instance Server，并从 Repository 恢复 App State、queued/active Turns 和 sequence。
+6. Host 从 Matrix SDK 恢复 Chat Core 投影、从 Runtime SSE 恢复 App/Agent snapshot，并通过 Space SDK 交给同一个当前 App；Kernel Bar 只显示可信状态和恢复操作。
 
-```json
-{
-  "error": {
-    "code": "ROOM_SPACE_VERSION_REVOKED",
-    "message": "This space version is no longer available.",
-    "details": {},
-    "requestId": "01J..."
+#### 创建空白或模板 Space
+
+1. Backend 先生成 `spaceInstanceId` 和 `clientRequestId` 幂等键，校验成员和可选 Template Version。
+2. 创建唯一 Matrix Room；成功后在同一 Saga 中写一条 `room_index` 记录，而不是分别写 Room 与 Space。
+3. 空白模式 bootstrap Default Chat App Project；模板模式复制固定 Template Version 为初始 Revision。两者都必须产生可立即运行的 ready Revision。
+4. outbox 写入 v2 Matrix state，并允许现有客户端继续读取 v1 模板字段。
+5. Instance Server 在首次进入 Space 时惰性启动，以提供 Default Chat App、Space SDK 与实时更新；Chat Core 的 Matrix 消息链路不依赖 Agent/Build lease。
+
+#### 从一对一变为多人
+
+- 增加成员只产生标准 Matrix membership 事件和 ACL 投影更新。
+- `spaceInstanceId`、Matrix Room、Project、Instance Server、ready/Published 指针、App State 和队列全部保持不变。
+- Instance Server 更新 members/presence snapshot 并广播，不运行“转换为多人 Space”的迁移任务。
+
+#### 多副本接管
+
+- 每个 `spaceInstanceId` 同时只有一个写 lease owner；非 owner 可以代理/重定向 SSE 和 command，但不能 claim Turn。
+- lease、active attempt、queued request 和 snapshot 均持久化。owner 失联后，新副本恢复 interrupted Turns 到队首，与 demo 把 `activeTurns` 放回 `queuedTurns` 的规则一致。
+- Chat 不经过该 lease，Space Runtime 接管期间 Matrix 消息仍正常工作。
+
+## 6. Space Kernel 与 Agent 编排
+
+### 6.1 Kernel 职责
+
+Space Kernel 负责：
+
+- 校验 Better Auth 用户、Matrix membership 和 Space 权限。
+- 将 Chat Core 的消息、Mention、成员、关系事件、已读、typing、媒体和连接状态通过版本化 SDK 投影给 App。
+- 管理 Space Template 应用、lineage 和市场来源展示。
+- 保存并广播持久 App State、presence 和瞬时事件。
+- 维护 Agent 请求队列、批次、心跳、取消、失败、重试和恢复。
+- 维护 App Project、Candidate、当前 ready Revision 和 Published Release 指针。
+- 执行积分预留/结算、发布权限、审计和配额。
+- 向 App 暴露经过 ACL 校验的 Space SDK snapshot、完整 Chat capability 与实时事件。
+
+Kernel Bar 与 Host capability adapter 是浏览器中的可信层；`SpaceInstanceServer` 是它在 Runtime 中的同实例状态机。三者通过 `spaceInstanceId` 和短期 Runtime session 绑定。Backend 负责身份、Matrix、Chat Core、ACL、账务和持久事务，Instance Server 负责与 demo `LocalRoomServer` 一致的活动连接、sequence、snapshot、App realtime、Turn 状态和广播；不能把它们实现成不同产品实例。
+
+### 6.2 消息到实时 Revision 的执行流
+
+```mermaid
+sequenceDiagram
+    participant U as Member through Space App
+    participant M as Matrix/Synapse
+    participant B as Backend
+    participant S as SpaceInstanceServer
+    participant A as Agent Adapter
+    participant D as Space Dev
+    participant H as Host SDK / Kernel Bar
+
+    U->>M: message(txnId, optional agent mention)
+    M-->>U: eventId / local echo confirmed
+    M->>B: appservice event
+    alt human-only chat
+        B-->>H: Chat Core event projection
+    else explicit Agent request
+        B->>B: membership + ACL + credits + dedupe
+        B->>S: beginTurn(eventId, agentId)
+        S->>S: persist + enqueue + broadcast
+        S-->>H: queue_updated over SSE
+        S->>A: claim serial batch + bounded context
+        alt Conversation
+            A-->>B: Agent reply only
+            B->>M: Agent message
+        else Revision
+            A-->>D: bounded project files
+            D->>D: validate / transpile / health check
+            alt ready
+                D-->>B: immutable ready revision
+                B-->>H: ready_revision_changed
+            else failed
+                D-->>B: stable diagnostics
+                B-->>H: turn_failed; current App unchanged
+            end
+        end
+    end
+```
+
+Matrix appservice 事件以 `eventId` 幂等投影。App 提交的 Agent Mention 必须是结构化 mention metadata；服务端不信任 App 对纯文本 `@name` 的自行判断。`beginTurn → persist → broadcast → schedule → claim → process → complete/fail` 的顺序与 demo 保持一致，只把本地 JSON 保存替换为持久 Repository。浏览器重复同步、Backend 重试或 Runtime 重连不能产生第二个 Agent 请求。Chat 接受成功与 Agent 请求成功是两个独立结果：Agent 拒绝不能撤回已经确认的人类消息。
+
+### 6.3 排队、批次与屏障
+
+- 队列键为 `spaceInstanceId`；同一键最多一个 active write batch。
+- 不同 Space 由全局、租户、用户、Agent provider 和 Runtime provider 配额限制后并行。
+- 短窗口只合并相邻的 Agent 定制请求，不合并普通人类聊天。
+- 批次保留每条请求的作者、Matrix event ID、Agent ID、时间和积分 reservation。
+- `publish` 每次只处理固定 ready Revision，并作为顺序屏障。
+- Agent/Runtime 定期发送心跳；lease 超时回到可恢复状态，不能直接重复扣费或发消息。
+
+### 6.4 Agent 上下文与工具
+
+- 每个 Space/Agent 组合有隔离 session；不得读取其他 Space 或其他 Agent 的隐藏上下文。
+- Agent 只接收完成请求所需的成员显示名、显式授权消息窗口、Project snapshot、模板 lineage 和预算。
+- 不发送邮箱、token、账单详情、完整账号资料或未授权私聊历史。
+- 工具限定在项目文件 allowlist、单文件/总大小、依赖 allowlist 和受限读写动作。
+- 安装依赖、任意 shell、宿主文件、凭据、网络和发布动作默认不可用。
+- 平台校验 Agent 输出；Agent 不能自行扩大 SDK、Runtime 或网络权限。
+
+### 6.5 Provider Adapter 合约
+
+每个 Agent Adapter 至少实现：
+
+```ts
+interface SpaceAgentAdapter {
+  beginSession(input: BeginSessionInput): Promise<AgentSessionRef>
+  runTurn(input: AgentTurnInput, signal: AbortSignal): AsyncIterable<AgentEvent>
+  summarize(input: AgentSummaryInput): Promise<AgentSummary>
+  cancel(input: CancelAgentTurnInput): Promise<void>
+  restore(input: RestoreAgentSessionInput): Promise<AgentSessionRef>
+}
+```
+
+统一 `AgentEvent` 只允许标准化的 `status`、`text_delta`、`tool_activity`、`project_patch`、`usage`、`completed` 和 `failed`。Provider 原始事件留在受限诊断中，不直接暴露给浏览器。
+
+Pi Adapter 可以将 demo 的 conversation/revision 分类、文件工具和 session 恢复映射到该合约；其他 Agent 使用相同入口。
+
+### 6.6 重启恢复
+
+- 接收 Agent 请求时先持久化请求、reservation 和顺序，再确认入队。
+- active batch 使用 lease/attempt；Runtime 重启后过期任务回到队首或进入人工恢复。
+- Project snapshot、Agent session ref、ready/Published 指针、模板 lineage 和 App State 持久化。
+- 重试必须复用 Matrix event ID、request ID 和 reservation，不重复回复、Revision、Release 或扣费。
+- Agent session 无法恢复时允许从平台摘要重建，但必须记录上下文截断和 provenance。
+
+### 6.7 权限模型
+
+| 权限 | 说明 |
+| --- | --- |
+| `space.chat` | 使用完整 Chat |
+| `space.invite` | 邀请成员 |
+| `template.apply` | 将模板应用为 Candidate，并在验证成功后更新 ready Revision |
+| `agent.invoke` | 调用已允许 Agent |
+| `agent.manage` | 选择默认 Agent、允许列表和策略 |
+| `app.interact` | 使用 App SDK 互动 |
+| `app.edit` | 查看当前 Revision、源码摘要和生成诊断 |
+| `app.publish` | 发布固定 Revision |
+| `space.manage` | 管理成员、权限和 Space 生命周期 |
+
+权限变化由 Kernel/Backend 校验，不由 App、模板或 Agent 决定。被移出 Matrix Room 的用户立即失去 Runtime session。
+
+### 6.8 积分与结算
+
+- 普通人类 Chat 不产生 Agent 费用。
+- 每个显式 Agent 请求单独预留积分，批次执行后按可审计规则分摊 usage。
+- Provider 返回模型、token、工具和构建 usage；平台映射到规范交易代码。
+- 无权限或余额不足时消息仍可进入 Chat，但该 Agent 请求不入队，并给作者明确反馈。
+- 超时、取消、失败、重试和恢复必须执行恰好一次结算或退款。
+- Template 应用本身默认不产生 Agent 费用；需要 Agent 迁移/修复时先再次确认预算。
+
+## 7. Space Template、Project、Dev 与 Release
+
+### 7.1 Space 市场
+
+市场保留并继续承担：
+
+- 浏览官方和用户发布并通过当前治理策略的 Space Template。
+- 分类、搜索、详情、预览、收藏、版本、作者、权限和兼容性说明。
+- 从模板详情创建 Space，或向空白/已有 Space 应用模板。
+- 展示模板版本更新，但不自动覆盖 Space 的定制 Project。
+
+当前 `/v1/spaces` 与 `spaceId/spaceVersionId` 是已实现目录契约。迁移期将其解释为模板引用并保持兼容；新契约可逐步增加 `spaceTemplateId/spaceTemplateVersionId`，不能先删除现有消费者。
+
+官方 Template 与用户 Template 必须遵循同一发布协议和市场数据结构，不建立 `BuiltInTemplate`、`OfficialTemplateVersion` 或用户专用平行模型：
+
+| 契约 | 统一职责 |
+| --- | --- |
+| `SpaceTemplate` | identity、slug、Publisher、展示元数据和当前版本指针 |
+| `SpaceTemplateVersion` | 不可变 artifact 引用、格式、capabilities、SDK/Runtime compatibility、hash、integrity 和 provenance；不内联工作源码 |
+| `SpaceTemplateArtifact` | 按 source hash 寻址的不可变 App Project source/build artifact；由 Registry/Object Store 保存和解析 |
+| `SpaceTemplateMarketEntry` | 市场目录读取快照；官方与用户条目的字段完全相同 |
+| `publisher.verification` | `official / verified / unverified`；官方只是 Publisher 的验证状态，不是 Template 类型 |
+| `provenance.origin` | `repository / app`；表示创作入口，不改变版本或市场协议 |
+
+每个官方 Template 在仓库只维护一个持续演进的普通多文件 `app/` 工作项目和一份扁平 release 索引，历史版本不得复制成多套源码目录。`src/index.ts` 只负责 Runtime 启动和 handler 装配；页面、样式、浏览器行为、Template 业务与默认 Chat UI 按职责拆分。Artifact 对完整项目树按规范化相对路径寻址，Runtime、Dev Preview、Agent Revision 和发布器都不得退化成只识别固定入口文件。官方发布从固定 Git revision 构建按 hash 寻址的不可变 artifact；用户 Template 从某个 Space 的固定 ready Revision 通过 App 内发布入口提交，经隐私清理、能力/兼容性校验和审核后生成同一种 artifact 并写入 Product DB/Object Store。Template Version 只引用 artifact，不把工作源码内联到市场目录。两者进入市场后使用同一收藏、搜索、版本、应用、撤销和 Runtime bootstrap 链路。任何消费者都不得用目录位置或 `builtin` 字段分支，只能按 Publisher verification 展示认证标记，按 provenance 执行供应链审计。
+
+Template Version 使用独立的 SemVer 序列，不能跟随实现阶段、协议 schema、SDK/Runtime、Space Revision 或 Release 数量随意增长。新 Template 从 `0.1.0` 开始；每次发布只能依据不可变 Template 内容的兼容性变化单步提升 patch、minor 或 major，不能跳号，也不能为无内容变化的重建、文档、排序或运行时修复升版。正式规则与判定表以 [Space Template 版本规则](../references/space-template-versioning.md) 为准。
+
+### 7.2 模板应用规则
+
+- 创建时选择模板：复制固定 Template Version 为 Project 初始 Revision。
+- 创建空白：复制 Default Chat App Project 并生成第一个 ready Revision，Space 立即可用。
+- 仍使用 Default Chat App：可直接选择模板，模板 Candidate 验证成功后实时切换为新 ready Revision。
+- 已定制：应用模板必须创建 Candidate、展示差异/风险并保留当前 ready Revision 与 Published Release；验证成功后才实时切换。
+- 模板升级：只提示新版本；成员明确选择后才创建合并或替换 Candidate。
+- 模板卸载不是删除 Space；可以恢复为空白 App，但 Chat、成员和版本历史继续存在。
+
+### 7.3 Project 与 Revision
+
+Project 只允许平台支持的文件类型、入口和依赖。它保存：
+
+- `spaceInstanceId`
+- 模板与版本 lineage
+- 当前 source manifest/hash
+- 当前 ready Revision 指针（迁移期可映射现有 Draft 字段）
+- Published Release 指针（迁移期可映射现有 Live 字段）
+- Agent session refs 与摘要
+- Runtime provider 和兼容版本
+
+每个 Revision 保存 source hash/object key、父 Revision、来源类型（blank/template/agent/restore）、作者、Agent/Template 引用、摘要、校验状态和 provenance。
+
+### 7.4 持续更新通道
+
+- Candidate source 在隔离、短生命周期环境验证。
+- 校验入口、依赖、类型、构建、启动、health、SDK 版本和基本资源上限。
+- 验证成功才写不可变 Revision、更新当前 ready 指针并向在线成员广播；成员无需进入单独 Workspace 或试验模式。
+- 验证失败返回截断诊断；不会覆盖最后 ready Revision 或 Published Release。
+- Candidate 与每个已 ready Revision 使用彼此隔离、可按固定 Revision ID 寻址的运行实例。启动 Candidate 不得停止当前 ready 实例；页面刷新、iframe 重载和短暂 Runtime 重连都必须继续请求同一个最后 ready Revision，直到新的 ready 指针原子切换。
+- App 文档代理必须保留 Runtime 的真实非 2xx 状态，不得在 Template Project 之外合成 Default Chat UI。恢复 Default Chat 是 Kernel 的显式受管操作，会产生新的已验证 Revision，而不是网络错误兜底。
+- 自动修复由当前 Agent Adapter 在预算与次数上限内完成，不绑定 Pi。
+
+内部仍可以使用 `dev` channel、Dev Preview Manager 或 Draft 字段承载这条链路，但它们属于实现术语。产品语义始终是“当前 Space 实时更新”，而不是让成员在开发环境和真实 Space 之间来回切换。
+
+### 7.5 发布
+
+发布输入固定 `revisionId`、`clientRequestId` 和发布者身份：
+
+1. 校验 membership、`app.publish`、Revision/Space 归属、ready 状态和 Chat capability smoke 结果。
+2. 对相同 source/runtime 输入复用已有安全 artifact。
+3. 在隔离 build 环境生成不可变 artifact、SBOM 和 provenance。
+4. 通过 health/SDK compatibility/security checks。
+5. 创建 Release 并原子更新 Published Release 指针；当前 Space 的 ready Revision 在发布前已经可用。
+6. 用 outbox 同步 Matrix state 和在线成员。
+
+任何失败都保留当前 ready Revision 和旧 Published Release。Release 撤销或回滚只移动 Published 指针，不改写历史；恢复当前 Space App 则移动 ready 指针到一个已验证 Revision。
+
+## 8. Space SDK 与 App Runtime
+
+### 8.1 信任边界
+
+App 按不可信代码处理。它只能获得短期、Space/成员/Release 绑定的 Runtime session，以及最小 SDK snapshot。
+
+| 能力 | App 可用 | Kernel/服务端专属 |
+| --- | --- | --- |
+| 读取最小成员资料 | 是 | 完整账号、邮箱、权限变更 |
+| 读取授权 Chat timeline 与实时事件 | 是，通过 SDK 分页/订阅 | Matrix token、绕过 retention 的完整导出 |
+| Presence | 是 | 成员身份伪造 |
+| 持久 App State | 是，受 CAS/配额限制 | DB 直写、跨 Space 访问 |
+| 瞬时事件 | 是，受限流限制 | 任意广播或跨 Space topic |
+| Chat 完整操作 | 是，由当前成员身份代理，覆盖发送、回复、编辑、删除、Reaction、已读、typing 和媒体 | 指定他人/Agent/系统身份或绕过 ACL |
+| Mention | 是，使用平台返回的结构化 member/agent target | 自行伪造 target、改变解析或调度语义 |
+| 调用 Agent | 是，通过带结构化 Agent Mention 的 Chat command 发起受权限/计费控制的请求 | 直接调用 provider、选择隐藏工具、注入 provider key |
+| Theme token | 是，受 allowlist 限制 | 替换或伪造 Kernel Bar |
+| Source/build/publish | 否 | Kernel、Backend、Runtime |
+
+### 8.2 SDK API
+
+```ts
+interface VibeChatSpaceSDK {
+  ready(): Promise<SpaceSnapshot>
+  members: {
+    list(): readonly SpaceMember[]
+    subscribe(handler: (members: readonly SpaceMember[]) => void): Unsubscribe
+  }
+  chat: {
+    recent(options?: { limit?: number; before?: string }): Promise<MessagePage>
+    subscribe(handler: (event: MessageEvent) => void): Unsubscribe
+    send(input: {
+      body: string
+      mentions?: readonly MentionTarget[]
+      replyToEventId?: string
+      clientRequestId: string
+    }): Promise<{ eventId: string; agentRequestIds: readonly string[] }>
+    edit(input: { eventId: string; body: string; mentions?: readonly MentionTarget[]; clientRequestId: string }): Promise<void>
+    redact(input: { eventId: string; clientRequestId: string }): Promise<void>
+    react(input: { eventId: string; key: string; clientRequestId: string }): Promise<void>
+    markRead(eventId: string): Promise<void>
+    setTyping(value: boolean): Promise<void>
+    upload(input: ChatUploadInput): Promise<ChatAttachment>
+  }
+  mentions: {
+    search(input: { query: string; kinds?: readonly ('member' | 'agent')[] }): Promise<readonly MentionTarget[]>
+    resolve(targetId: string): Promise<MentionTarget | null>
+  }
+  agents: {
+    list(): readonly SpaceAgentSummary[]
+    status(): ReadonlyAgentStatus
+    subscribe(handler: (status: ReadonlyAgentStatus) => void): Unsubscribe
+  }
+  presence: {
+    get(): PresenceSnapshot
+    set(value: JsonValue): Promise<void>
+    subscribe(handler: (event: PresenceEvent) => void): Unsubscribe
+  }
+  state: {
+    get<T extends JsonValue>(key: string): Promise<StateValue<T> | null>
+    set<T extends JsonValue>(key: string, value: T, expectedRevision?: number): Promise<StateValue<T>>
+    subscribe(handler: (event: StateEvent) => void): Unsubscribe
+  }
+  events: {
+    emit(name: string, payload: JsonValue): Promise<void>
+    subscribe(name: string, handler: (event: AppEvent) => void): Unsubscribe
+  }
+  theme: {
+    request(tokens: Partial<ThemeTokens>): Promise<AppliedThemeTokens>
   }
 }
 ```
 
-约定：
+Agent 调度没有可由 App 绕过聊天语义的 provider 直连入口。App 先通过 `mentions.search()` 获得平台签发的 Agent target，再把它放入 `chat.send()`；Chat Core 在 Matrix event 确认后执行 Agent allowlist、权限、预算、计费、`eventId` 去重和排队。即使 App 把这一动作表现为按钮、游戏动作或表单，它仍与用户在默认 Chat UI 中输入 `@agent` 使用同一平台命令。App 不能指定工具、隐藏 session、模型密钥或发布意图。
 
-- `/v1/auth/*` 保留 Better Auth 原生契约和错误响应，由 `better-auth/client` 消费；不强行转换成产品错误格式。
-- 列表使用 opaque cursor 分页。
-- 创建、发布、克隆和敏感写操作接受 `Idempotency-Key`。
-- 时间使用 UTC ISO 8601。
-- ID 使用 UUIDv7 或 ULID，Matrix ID 保留原格式。
-- 浏览器身份统一来自 Better Auth Cookie session；产品 API 不签发第二套 session。
-- Better Auth 显式配置 `baseURL`、`basePath: "/v1/auth"`、`trustedOrigins`、生产 Cookie 属性和可信代理 IP 头。
-- 产品 API CORS 只允许宿主 origin 并启用 credentials；认证路由直接透传 Better Auth 的状态码、响应头和 `Set-Cookie`。
-- API access token 只用于 CLI，不用于用户浏览器 session。
+上述接口是目标能力面，具体 TypeScript 类型在 `packages/space-app-contracts` 中版本化。现有简化的 `messages`、`chat.send({ text })` 与 `agent.request()` 只能作为迁移适配器，不能成为两套消息或 Agent 调度语义。
 
-### 8.4 Better Auth 与 Matrix 身份桥接
+### 8.3 Bridge 与 iframe
 
-| Method     | Path                                    | 用途                                               |
-| ---------- | --------------------------------------- | -------------------------------------------------- |
-| `GET/POST` | `/auth/*`                               | 产品 API 透传给 Better Auth handler                |
-| `POST`     | `/auth/email-otp/send-verification-otp` | Better Auth Email OTP plugin 发送登录验证码        |
-| `POST`     | `/auth/sign-in/email-otp`               | Better Auth 验证 OTP，自动注册或登录并创建 session |
-| `GET`      | `/auth/get-session`                     | Better Auth 获取当前用户和 session                 |
-| `POST`     | `/auth/sign-out`                        | Better Auth 退出当前 session                       |
-| `GET`      | `/auth/list-sessions`                   | Better Auth 获取当前账号的活动会话                 |
-| `POST`     | `/auth/revoke-session`                  | Better Auth 撤销指定会话                           |
-| `GET`      | `/session/bootstrap`                    | 已认证后获取产品资料与 Matrix session bootstrap    |
+- App 与 Host 使用不同 origin；Host 校验准确 `contentWindow`、session nonce、schema、sequence、action 和 payload。
+- iframe 默认只允许 scripts/forms/modals/downloads，不授予顶层导航、摄像头、麦克风、宿主 Cookie 或存储。
+- Generated Runtime 不注入平台 secret，出站网络默认拒绝。
+- 未知 action、旧 iframe、错误 nonce、超配额、原型污染 key 和伪造身份全部拒绝。
+- App 身份由 Host 注入；payload 中的 user/space/release 声明不可信。
+- 未来外部网络 capability 需要独立的域名 allowlist、用户同意、egress proxy 和审计设计。
 
-登录流程：
+### 8.4 数据限制
 
-1. React 宿主使用 Better Auth client 请求 `sign-in` 类型的 Email OTP。
-2. Better Auth 负责邮箱规范化、验证码生成与哈希保存、有效期、尝试次数、重发策略和认证限流；平台只通过 `sendVerificationOTP()` 把邮件任务交给发送服务。
-3. Better Auth 校验 OTP；邮箱首次出现时自动创建 Better Auth user，随后创建 Cookie session。
-4. 宿主调用 `/v1/session/bootstrap`；产品 API 使用 `auth.api.getSession()` 验证当前身份，不解析或复制 session token。
-5. identity service 以 Better Auth `user.id` 幂等创建产品资料和 Matrix 用户映射。
-6. identity service 以 Better Auth `session.id` 幂等建立 Matrix device/access token，并写入 session binding。
-7. bootstrap 返回产品资料、homeserver、Matrix user ID、device ID 和 Matrix session 数据。
-8. 宿主将 Matrix token 保存在专用 IndexedDB，不使用 `localStorage`，并永不传入微 App。
-9. Better Auth session 被退出或撤销后，session lifecycle hook 写入 outbox，由 worker 撤销对应 Matrix device；定时 reconciler 修复遗漏任务。
+初始上限：
 
-认证实现边界：
+- Presence：单成员 8 KiB，客户端合并到约 10 次/秒。
+- 瞬时事件：16 KiB，按 Space/成员限流。
+- 持久 App State：总计 128 KiB、最多 128 个 key、最大 12 层 JSON。
+- key/事件名：1–64 位安全字符，拒绝原型污染键。
+- 有限消息 snapshot：默认最近 50 条，受 membership、隐私和 retention 控制。
+- App 发起 Chat/Agent 写入必须有幂等 request ID。
 
-- `/v1/auth/*` 下不创建任何自定义认证端点，只挂载 Better Auth handler。
-- 不自建用户密码、OTP、session、Cookie 签名、CSRF token 或认证限流逻辑。
-- 不直接修改 Better Auth 的 `user`、`session`、`account`、`verification` 表；schema 变更通过 Better Auth CLI 生成和迁移。
-- 产品 route 只信任 `auth.api.getSession()` 的结果，并以 `session.user.id` 作为业务用户 ID。
-- Matrix access token 与 Better Auth session 分开保存；任何一方的 token 都不能暴露给氛围空间。
+服务端必须再次校验，不能信任 SDK 客户端节流。
 
-### 8.5 社交 API
+## 9. Matrix、数据模型与迁移
 
-| Method   | Path                          | 用途                   |
-| -------- | ----------------------------- | ---------------------- |
-| `GET`    | `/contacts`                   | 联系人列表             |
-| `GET`    | `/users/search`               | 按用户名或完整邮箱搜索 |
-| `POST`   | `/friend-requests`            | 发送好友请求           |
-| `GET`    | `/friend-requests`            | 请求收件箱/发件箱      |
-| `POST`   | `/friend-requests/:id/accept` | 接受                   |
-| `POST`   | `/friend-requests/:id/reject` | 拒绝                   |
-| `PATCH`  | `/contacts/:userId`           | 修改备注               |
-| `DELETE` | `/contacts/:userId`           | 删除联系人             |
-| `POST`   | `/blocks`                     | 屏蔽用户               |
-| `DELETE` | `/blocks/:userId`             | 解除屏蔽               |
+### 9.1 数据权威
 
-业务规则：
+| 数据 | 权威来源 |
+| --- | --- |
+| 用户、Cookie session | Better Auth |
+| 资料、联系人、屏蔽 | Product DB |
+| Matrix identity/device | Product DB 映射 + Synapse |
+| Space membership、邀请、Chat、媒体、已读、typing | Matrix/Synapse |
+| Space 实例索引、ACL、模板 lineage | Product DB，membership 以 Matrix 复核 |
+| 市场目录、收藏、模板版本与审核 | Product DB/Object Store |
+| Project、Revision、Draft、Release | Product DB/Object Store |
+| Agent Registry、请求、lease、reservation、审计 | Product DB/Durable Queue |
+| 持久 App State | Product DB |
+| Presence、瞬时事件、构建进度 | Realtime/Runtime，可由 snapshot 重建 |
 
-- 好友关系由产品数据库管理。
-- 屏蔽优先级高于好友关系和邀请。
-- 被屏蔽用户不能发送好友请求或新房间邀请。
-- 删除联系人不自动退出既有房间。
+### 9.2 Matrix 映射
 
-### 8.6 氛围空间市场与开发者 API
+继续使用标准事件：
 
-| Method   | Path                                  | 用途                         |
-| -------- | ------------------------------------- | ---------------------------- |
-| `GET`    | `/spaces`                             | 氛围空间市场列表、搜索和分类 |
-| `GET`    | `/spaces/:spaceId`                    | 氛围空间详情                 |
-| `GET`    | `/spaces/:spaceId/versions`           | 公开版本记录                 |
-| `POST`   | `/spaces/:spaceId/favorite`           | 收藏                         |
-| `DELETE` | `/spaces/:spaceId/favorite`           | 取消收藏                     |
-| `POST`   | `/developer/tokens`                   | 创建 CLI token               |
-| `DELETE` | `/developer/tokens/:id`               | 撤销 CLI token               |
-| `POST`   | `/developer/spaces`                   | 创建氛围空间身份             |
-| `POST`   | `/developer/spaces/:spaceId/versions` | 创建上传会话                 |
-| `PUT`    | `/developer/uploads/:uploadId`        | 上传包或完成分片上传         |
-| `POST`   | `/developer/versions/:id/submit`      | 提交审核                     |
-| `GET`    | `/developer/versions/:id/status`      | 查询状态                     |
-| `GET`    | `/developer/versions/:id/logs`        | 扫描与审核反馈               |
+- `m.room.member`：成员与邀请。
+- `m.room.message`：人类和 Agent 的文字/媒体消息。
+- `m.reaction`、reply、replace、redaction：回应、回复、编辑和删除。
+- receipt、typing：已读和正在输入。
 
-上传流程使用短期签名对象存储 URL，API 不代理大型包内容。
-
-### 8.7 房间 API
-
-| Method | Path                               | 用途                                          |
-| ------ | ---------------------------------- | --------------------------------------------- |
-| `POST` | `/rooms`                           | 创建氛围空间房间                              |
-| `GET`  | `/rooms/:roomId/bootstrap`         | 获取氛围空间、版本、权限、资源 URL 和恢复状态 |
-| `POST` | `/rooms/:roomId/clone`             | 克隆迁移到新氛围空间                          |
-| `POST` | `/rooms/:roomId/upgrade-proposals` | 提议升级同一氛围空间版本                      |
-| `POST` | `/rooms/:roomId/upgrade-consents`  | 成员同意权限变化                              |
-| `POST` | `/rooms/:roomId/reports`           | 举报房间/氛围空间                             |
-
-创建请求：
+新增 `io.vibechat.space.instance.v2` 只保存公开、可恢复指针：
 
 ```json
 {
-  "spaceVersionId": "01J...",
+  "schemaVersion": 2,
+  "spaceInstanceId": "01J...",
+  "spaceTemplateId": "space-garden",
+  "spaceTemplateVersionId": "tplv-space-garden-1-0-0",
+  "projectId": "01J...",
+  "liveReleaseId": "01J...",
+  "runtimeVersion": "1",
+  "updatedAt": "2026-08-22T00:00:00Z"
+}
+```
+
+Matrix state 不保存源码、Agent session、token 或私有构建日志。Product DB 是指针业务权威；跨系统不一致由 outbox 幂等修复。
+
+### 9.3 核心数据模型
+
+`room_index`（统一 SpaceInstance 的现有物理表，不再新建 `space_instances` 平行表）
+
+- `matrix_room_id`：现有主键，继续唯一。
+- `space_instance_id`：新增稳定 ULID，唯一、非空；历史行回填，新逻辑 actor/Project/SDK 统一使用。
+- `creator_user_id` / `participant_user_ids_json`：保留；后者降级为 Matrix membership 投影缓存。
+- `space_id` / `space_version_id`：保留兼容，语义明确为 Template lineage；空白 Space 改为 nullable。
+- `project_id`：新增唯一外键；迁移期间允许 nullable 并幂等 bootstrap。
+- `default_agent_id`：nullable，指向 Agent Registry。
+- `client_request_id`、`instance_config_json`、`status`、`created_at`、`updated_at`。
+
+领域层立即改名为 `SpaceInstanceRecord`、`SpaceInstanceRepository` 和 `SpaceInstanceService`。物理表暂时保留 `room_index` 名称是为了 PostgreSQL/SQLite/D1 安全迁移，不代表存在 Room 产品实体；禁止再创建一张承载同一 Matrix Room 的 Space 表。
+
+`space_instance_runtime_state` / `space_instance_leases`
+
+- `space_instance_id`（主键/外键）、`sequence`、`snapshot_version`、`lease_owner`、`lease_expires_at`、`updated_at`。
+- Instance Server 可以丢弃并重建；持久状态、Turn 和 lease 不能只存在 Node 进程内。
+- lease 只约束 Space App/Agent 写状态机，不阻塞 Matrix Chat。
+
+`space_templates` / `space_template_versions`
+
+- 官方与用户共用的市场 identity、Publisher、作者、分类、状态、收藏/展示元数据；不按来源拆表。
+- 版本 source/artifact hash、SDK/runtime compatibility、capabilities、provenance 和审核状态；`publisher_id` 与所有者/组织关联。
+- `provenance.origin=repository` 记录官方仓库路径/提交/build，`origin=app` 记录源 Space ready Revision/build；两种来源签发同一种不可变版本。
+- 官方仓库目录是创作源，不是第二个运行时市场；部署时由发布器同步为相同 Product DB/Object Store 记录。
+
+`space_app_projects`
+
+- `id`、`space_instance_id`、`draft_revision_id`、`live_release_id`
+- `runtime_provider`、`created_at`、`updated_at`
+
+`space_app_revisions`
+
+- `id`、`project_id`、`parent_revision_id`
+- `source_hash`、`source_object_key`、`summary`
+- `source_kind`、`source_template_version_id`、`source_agent_id`、`source_turn_id`
+- `created_by`、`validation_status`、`created_at`
+
+`space_app_releases`
+
+- `id`、`project_id`、`revision_id`、`runtime_release_id`
+- `artifact_hash`、`provenance_json`、`published_by`、`published_at`、`revoked_at`
+
+`space_agents` / `space_agent_sessions`
+
+- Registry 配置与 Space/Agent 隔离 session ref、版本、摘要和恢复信息。
+
+`space_agent_requests` / `space_agent_batches`
+
+- Space、Matrix event、作者、Agent、顺序、kind、状态、lease、attempt、reservation 和结果。
+- 唯一约束覆盖 Matrix `event_id` 与业务幂等键。
+
+`space_app_state`
+
+- `space_instance_id`、`revision`、`values_json`、`updated_at`。
+- 写入使用 `expectedRevision` CAS；冲突返回最新 revision。
+
+### 9.4 兼容迁移
+
+- 现有每条 `room_index` 记录原地升级为唯一 SpaceInstance；新增并回填 `space_instance_id`，不复制记录、不创建新 Matrix Room、不移动 timeline。
+- `SpaceInstanceRepository` 是唯一实例 Repository；旧 `RoomRepository/RoomService` 在迁移期只作为同一服务的命名适配器，不能拥有独立表、缓存或创建事务。
+- 现有 `/v1/rooms` 和 `matrixRoomId` 兼容 transport 继续服务，通过唯一映射解析同一 `spaceInstanceId`；前端 `/rooms/:roomId` 只重定向到 `/spaces/:spaceId`，迁移不能中断 Chat。
+- 现有 `spaceId`、`spaceVersionId` 继续表示创建时选择的模板/版本，逐步别名为 `spaceTemplateId`、`spaceTemplateVersionId`。
+- 现有 `/v1/spaces`、Discover、分类、详情和收藏继续保留；不得按上一版方案删除。
+- `io.vibechat.space.instance.v1` 继续双读；新能力写 v2，并保留回滚读取。
+- 历史 Space 在 backfill job 或首次进入新 Kernel 时幂等创建同一实例的 Project，模板 lineage 来自当前行/v1 state；找不到模板时创建空白 Project，但 Chat 不受影响。
+- `SpaceInstanceRegistry` 首次收到 Runtime session、App command 或 Agent Turn 时按 `spaceInstanceId` 惰性恢复一个逻辑 Instance Server；多副本同时恢复时只允许持有 lease 的副本消费写队列。
+- 一对一与多人实例执行完全相同的 bootstrap、subscribe、state、queue、Dev 和 Release 路径；测试不得用参与人数选择另一套 service/runtime。
+- 不把现有市场收藏迁移为运行实例收藏；它继续关联 Space Template。
+
+## 10. API 与实时契约
+
+### 10.1 市场与创建兼容
+
+现有市场 API 保持可用。目标契约可增加更清晰的 Template 路径，但不能删除旧路径后再迁移客户端。
+
+| Method | Path | 用途 |
+| --- | --- | --- |
+| `GET` | `/v1/spaces` | 现有 Space Template 市场目录兼容入口 |
+| `GET` | `/v1/spaces/:templateId` | 模板详情与当前可用版本 |
+| `PUT` | `/v1/preferences/favorite-spaces/:templateId` | 收藏模板 |
+| `GET` | `/v1/space-templates` | 目标别名，可在客户端迁移后启用 |
+| `POST` | `/v1/space-templates` | 目标用户发布入口；从调用者有权发布的固定 Space ready Revision 创建待审核 Template Version |
+| `POST` | `/v1/rooms` | 现有创建入口；内部创建 Matrix Room 与 Space 实例 |
+
+兼容创建请求：
+
+```json
+{
   "participantUserIds": ["01J..."],
-  "instanceConfig": {},
+  "spaceId": "space-garden",
+  "spaceVersionId": "tplv-space-garden-1-0-0",
   "clientRequestId": "01J..."
 }
 ```
 
-创建事务：
-
-1. 验证调用人、联系人、屏蔽状态和成员数量。
-2. 验证空间版本已发布、未撤销且配置符合 schema。
-3. 固化权限、联网域名、内容哈希和配置快照。
-4. 调用 Synapse/Matrix 创建私有 room。
-5. 写入 `io.vibechat.space.instance.v1` 状态。
-6. 邀请参与人。
-7. 写入产品 `room_index`。
-8. 返回 room ID 和 bootstrap 数据。
-
-如果 Matrix room 创建成功但产品索引提交失败，补偿任务通过幂等键重建索引；不会删除已创建房间。
-
-### 8.8 克隆迁移 API
-
-克隆请求包含：
-
-- 源 room ID。
-- 目标空间版本。
-- 目标实例配置。
-- 用户确认的迁移字段。
-- 源氛围空间导出状态的短期 migration token。
-
-流程：
-
-1. 验证当前用户是源房间成员。
-2. 验证源/目标 migration schema 兼容。
-3. 校验迁移 payload 大小和 schema。
-4. 创建新房间。
-5. 邀请源房间当前成员。
-6. 写入双向 migration reference。
-7. 不复制消息历史。
-
-### 8.9 推送 API
-
-| Method   | Path                      | 用途                       |
-| -------- | ------------------------- | -------------------------- |
-| `POST`   | `/push/subscriptions`     | 注册 Web Push subscription |
-| `DELETE` | `/push/subscriptions/:id` | 删除订阅                   |
-| `PATCH`  | `/push/preferences`       | 通知偏好                   |
-| `POST`   | `/internal/matrix/push`   | Matrix HTTP pusher 入口    |
-
-Push Gateway 根据 Matrix push rule、房间静音、用户在线状态和氛围空间事件通知摘要决定是否发送。
-
----
-
-## 9. 数据模型与 Matrix 映射
-
-### 9.1 Product PostgreSQL
-
-#### Better Auth 管理的认证数据
-
-以下核心表由 Better Auth 创建、迁移和读写，字段名称以锁定版本生成的 schema 为准：
-
-`user`
-
-- `id`
-- `name`
-- `email`
-- `emailVerified`
-- `image`
-- `createdAt`
-- `updatedAt`
-
-`session`
-
-- `id`
-- `token`
-- `userId`
-- `expiresAt`
-- `ipAddress`
-- `userAgent`
-- `createdAt`
-- `updatedAt`
-
-`account`
-
-- Better Auth 的认证账号关联数据；MVP 不由产品代码直接读写。
-
-`verification`
-
-- Better Auth 核心 verification schema；MVP 配置 secondary storage 后，Email OTP 的短期验证值存入 Redis，并在写入前通过 `storeOTP` 哈希。
-
-MVP 显式配置 `session.storeSessionInDatabase: true`，因此活动 session 的权威存储仍为 PostgreSQL；Redis 仅作为 Better Auth 短期 verification 与 rate-limit 存储。产品 migration 不复制 Better Auth 表，也不把 Redis 用于任何耐久产品资料。
-
-#### 产品用户资料与 Matrix 映射
-
-`user_profiles`
-
-- `user_id`，引用 Better Auth `user.id`
-- `username`
-- `display_name`
-- `avatar_url`
-- `status`
-- `created_at`
-- `updated_at`
-
-`matrix_identities`
-
-- `user_id`
-- `matrix_user_id`
-- `status`
-- `provisioned_at`
-
-`matrix_session_bindings`
-
-- `auth_session_id`，保存 Better Auth `session.id`，不设置硬外键，以允许 Better Auth 删除过期 session 后保留撤销审计
-- `user_id`
-- `matrix_user_id`
-- `matrix_device_id`
-- `matrix_access_token_ciphertext`
-- `created_at`
-- `revoked_at`
-
-`integration_outbox`
-
-- `id`
-- `event_type`
-- `aggregate_id`
-- `payload_json`
-- `attempts`
-- `available_at`
-- `processed_at`
-
-Better Auth user 是认证身份权威；`user_profiles` 是昵称、用户名和头像等产品资料权威。所有业务表中的 `user_id` 均引用 Better Auth `user.id`。
-
-#### 社交关系
-
-`friend_requests`
-
-- `id`
-- `sender_id`
-- `recipient_id`
-- `status`
-- `created_at`
-
-`contacts`
-
-- `user_id`
-- `contact_user_id`
-- `remark`
-- `created_at`
-
-联系人采用双向两行或对称关系表，但 service 必须保证事务一致性。
-
-`blocks`
-
-- `blocker_id`
-- `blocked_user_id`
-- `created_at`
-
-#### 氛围空间与审核
-
-`spaces`
-
-- `id`
-- `slug/space_id`
-- `developer_id`
-- `name`
-- `description`
-- `status`
-- `category_id`
-- `created_at`
-
-`space_versions`
-
-- `id`
-- `space_id`
-- `semantic_version`
-- `manifest_json`
-- `bundle_hash`
-- `signature`
-- `status`
-- `published_at`
-- `revoked_at`
-
-`space_reviews`
-
-- `id`
-- `space_version_id`
-- `reviewer_id`
-- `decision`
-- `findings_json`
-- `created_at`
-
-`space_favorites`
-
-- `user_id`
-- `space_id`
-
-`developer_tokens`
-
-- `id`
-- `developer_id`
-- `token_hash`
-- `scopes`
-- `expires_at`
-- `revoked_at`
-
-#### 房间索引
-
-`room_index`
-
-- `matrix_room_id`
-- `space_id`
-- `space_version_id`
-- `creator_user_id`
-- `instance_config_json`
-- `status`
-- `created_at`
-
-`room_migrations`
-
-- `id`
-- `source_room_id`
-- `target_room_id`
-- `source_space_version_id`
-- `target_space_version_id`
-- `created_by`
-- `migration_summary_json`
-- `created_at`
-
-`user_space_state`
-
-- `user_id`
-- `matrix_room_id`
-- `space_id`
-- `state_key`
-- `value_json`
-- `version`
-- `updated_at`
-
-#### 推送和治理
-
-`push_subscriptions`
-
-- `id`
-- `user_id`
-- `device_id`
-- `endpoint`
-- `keys_encrypted`
-- `created_at`
-
-`reports`
-
-- `id`
-- `reporter_id`
-- `target_type`
-- `target_id`
-- `reason`
-- `status`
-- `created_at`
-
-`audit_logs`
-
-- `id`
-- `actor_type`
-- `actor_id`
-- `action`
-- `target_type`
-- `target_id`
-- `metadata_json`
-- `request_id`
-- `created_at`
-
-### 9.2 Matrix 标准事件
-
-使用 Matrix 标准事件表达：
-
-- `m.room.member`：成员与邀请。
-- `m.room.message`：文字和媒体消息。
-- `m.reaction`：回应。
-- `m.replace` relation：编辑。
-- `m.reference` / reply relation：回复。
-- redaction：删除。
-- receipt：已读。
-- typing：正在输入。
-
-### 9.3 Vibe Chat 自定义事件
-
-#### 氛围空间实例状态
-
-事件类型：`io.vibechat.space.instance.v1`
-
-```json
-{
-  "spaceId": "com.example.campfire",
-  "version": "1.2.0",
-  "integrity": "sha256-...",
-  "instanceConfig": {},
-  "createdBy": "@alice:example.com",
-  "permissions": ["messages.read", "messages.send"],
-  "networkDomains": ["api.example.com"]
-}
-```
-
-#### 氛围空间共享状态
-
-事件类型：`io.vibechat.space.shared_state.v1`
-state key：`<spaceId>:<key>`
-
-```json
-{
-  "version": 7,
-  "value": {},
-  "updatedBy": "@alice:example.com"
-}
-```
-
-#### 自定义互动
-
-事件类型：`io.vibechat.space.interaction.v1`
-
-```json
-{
-  "spaceId": "com.example.campfire",
-  "schemaVersion": 1,
-  "type": "add-log-to-fire",
-  "payload": {},
-  "fallbackText": "Alice added a log to the fire.",
-  "notificationSummary": "Alice added a log"
-}
-```
-
-#### 房间迁移引用
-
-事件类型：`io.vibechat.room.migration.v1`
-
-```json
-{
-  "direction": "outbound",
-  "relatedRoomId": "!...",
-  "targetSpaceId": "com.example.other",
-  "createdAt": "2026-08-10T00:00:00Z"
-}
-```
-
-### 9.4 数据权威来源
-
-| 数据                                | 权威来源                                 |
-| ----------------------------------- | ---------------------------------------- |
-| 用户认证身份、邮箱和 Cookie session | Better Auth 管理的 Product PostgreSQL 表 |
-| 用户产品资料                        | Product PostgreSQL `user_profiles`       |
-| Matrix 用户和设备绑定               | Product PostgreSQL 映射表 + Synapse      |
-| 好友、备注、屏蔽                    | Product PostgreSQL                       |
-| 氛围空间、版本、审核、收藏          | Product PostgreSQL                       |
-| 房间成员和邀请                      | Matrix                                   |
-| 消息、回应、编辑、已读              | Matrix                                   |
-| 氛围空间实例快照                    | Matrix room state，Product DB 建索引     |
-| 氛围空间共享实时状态                | Matrix                                   |
-| 当前用户私有氛围空间状态            | Product PostgreSQL                       |
-| 氛围空间包和海报                    | S3 + CDN                                 |
-| Web Push subscription               | Product PostgreSQL                       |
-
----
-
-## 10. 消息、媒体、搜索与推送
-
-### 10.1 标准消息发送
-
-```mermaid
-sequenceDiagram
-    participant Space as 氛围空间（微 App）
-    participant Host as 宿主 Runtime
-    participant SDK as matrix-js-sdk
-    participant HS as Synapse
-    participant Peer as 对端宿主
-
-    Space->>Host: messages.sendText(params)
-    Host->>Host: 校验 capability/schema/rate limit
-    Host->>SDK: sendEvent(transactionId)
-    SDK-->>Host: local echo
-    Host-->>Space: timeline appended(sending)
-    SDK->>HS: Matrix send event
-    HS-->>SDK: eventId
-    Host-->>Space: message status(sent)
-    HS-->>Peer: /sync event
-    Peer-->>Peer: 校验并投影给对端氛围空间
-```
-
-发送失败时：
-
-- Matrix SDK 维护 local echo 和失败状态。
-- 宿主向氛围空间发送 `sending`、`sent`、`failed` 状态。
-- 氛围空间可以请求重试，但 transaction ID 保持幂等。
-- 房间切换不会创建第二个 Matrix client。
-
-### 10.2 自定义互动
-
-- 互动通过宿主发送 `io.vibechat.space.interaction.v1`。
-- payload 必须符合空间版本注册的 event schema。
-- 必须带 `fallbackText`。
-- payload 大小设上限；大型数据写入对象存储或开发者后端。
-- 宿主可以在恢复视图中显示 fallback，而不执行氛围空间代码。
-
-### 10.3 媒体
-
-- 文件选择必须来自用户手势。
-- 微 App 只获得 opaque file/media handle，不获得宿主文件系统路径。
-- 宿主校验 MIME、扩展名、文件头和大小。
-- 图片生成受控缩略图。
-- 上传通过 Matrix media API。
-- 下载使用认证媒体 URL 或宿主代理句柄。
-- 高风险文件在服务端扫描完成前不能自动打开。
-- MVP 默认限制：图片 20MB，普通文件 100MB；管理员可配置。
-
-### 10.4 搜索
-
-- MVP 无 E2EE，使用 Matrix room search 作为消息搜索基础。
-- 产品 API 搜索联系人、房间索引和氛围空间市场。
-- 宿主聚合结果并按类型分组。
-- 微 App 可通过 `messages.search` 获取当前房间的权限内结果。
-- 氛围空间自定义互动只索引 `fallbackText`，不索引任意 payload。
-
-### 10.5 Web Push
-
-1. Service Worker 创建 Web Push subscription。
-2. 产品 API 保存加密后的 subscription key。
-3. 宿主为 Matrix device 注册 HTTP pusher。
-4. Synapse 向 Push Gateway 发送 push payload。
-5. Gateway 应用用户偏好、房间静音和在线抑制。
-6. 通知使用标准消息摘要或氛围空间的 `notificationSummary`。
-7. 点击通知打开对应房间；氛围空间不可用时进入恢复视图。
-
----
-
-## 11. 安全、隐私与合规
-
-### 11.1 威胁模型
-
-主要威胁：
-
-- 恶意氛围空间读取或外传聊天数据。
-- 氛围空间伪造宿主确认、登录或支付界面。
-- iframe 逃逸或读取 Matrix token。
-- 氛围空间发布后供应链替换。
-- 恶意 manifest、schema 或压缩包攻击扫描服务。
-- 验证码暴力尝试和邮件轰炸。
-- 消息/媒体 XSS、恶意文件和 URL 欺诈。
-- 开发者 token 泄漏。
-- 管理员误操作或越权撤销。
-
-### 11.2 宿主安全
-
-- 宿主不加载未经固定哈希的第三方脚本。
-- 严格 CSP，避免 `unsafe-eval`。
-- Matrix token 不使用 `localStorage`。
-- iframe 不使用 `allow-same-origin`。
-- 所有系统确认和错误 UI 位于 iframe 外。
-- 验证 `postMessage` source、session nonce、schema 和 sequence。
-- URL 打开、剪贴板、下载和成员操作需要明确用户手势或确认。
-- 富文本消息经过 allowlist sanitizer。
-
-### 11.3 氛围空间隐私同意
-
-- 创建人与受邀成员都能看到氛围空间权限和联网域名。
-- 接受邀请即接受当前空间版本的权限。
-- 权限扩大、新增域名或迁移到其他氛围空间必须重新确认。
-- 宿主记录同意的 version、权限哈希和时间。
-- 被撤销的 consent 会停止氛围空间加载，但不自动退出房间。
-
-### 11.4 API 与账号安全
-
-- Email OTP 由 Better Auth plugin 生成和校验，MVP 配置为 6 位、5 分钟有效、最多 3 次尝试、重发时轮换，并使用 `storeOTP` 哈希存储。
-- Better Auth 认证限流在生产环境强制开启，使用 Redis secondary storage；只信任 Ingress 清洗后的真实客户端 IP 头。
-- `baseURL`、`trustedOrigins`、Cookie 前缀、`HttpOnly`、`Secure` 和 `SameSite` 由 Better Auth 配置统一管理。
-- 邮件供应商和边缘网关只补充投递配额与滥用防护，不复制 OTP 校验逻辑。
-- CLI token 只显示一次，数据库只存哈希。
-- 管理员通过 Better Auth 2FA plugin 强制 MFA，并使用最小角色权限。
-- 高风险后台操作要求 Better Auth fresh session；过期时重新认证。
-- 审计日志不可由普通管理员修改。
-
-### 11.5 内容和治理
-
-- 支持举报用户、消息、房间和氛围空间。
-- 屏蔽用户停止新邀请和好友请求。
-- 氛围空间紧急撤销后立即停止 CDN bootstrap 授权。
-- 恢复视图仍允许用户导出和迁移自己的消息入口。
-- 日志默认不记录消息正文、验证码、token 和氛围空间私有 payload。
-
-### 11.6 许可证边界
-
-- `matrix-js-sdk`：Apache-2.0，保留许可证和版权声明。
-- Better Auth：MIT，保留许可证和版权声明。
-- Synapse：独立运行 AGPL 版本，提供对应源码入口和许可证声明。
-- Element Web：不复制其 AGPL UI 代码。
-- `@vibechat/sdk`、protocol 和 CLI：计划采用 MIT 许可公开。
-- 商业发布前进行依赖 SBOM、许可证扫描和法律复核。
-
----
-
-## 12. 部署、扩展与可观测性
-
-### 12.1 本地开发
-
-Docker Compose 启动：
-
-- Synapse。
-- Matrix PostgreSQL。
-- Product PostgreSQL。
-- Redis。
-- S3 兼容对象存储。
-- Mail catcher。
-- 挂载 Better Auth 的产品 API。
-- Workers。
-- Web host。
-- 空间 CDN 模拟服务。
-
-提供固定测试账号、示例房间和仅用于开发测试的 fixture 空间；fixture 不作为产品默认空间发布。
-
-### 12.2 生产拓扑
-
-- CDN 分发宿主和氛围空间静态资源，使用不同域名。
-- Ingress 分离 `/v1` 产品 API 和 `/_matrix` Matrix 流量。
-- 产品 API 至少 2 个无状态实例。
-- BullMQ workers 独立部署，可按邮件、扫描、推送拆队列。
-- Synapse 采用适合当前版本的 worker 拓扑，并使用独立 PostgreSQL。
-- Product PostgreSQL 与 Matrix PostgreSQL 使用不同数据库和权限账号。
-- Redis 启用持久化和高可用方案，并作为 Better Auth secondary storage。
-- 氛围空间包、海报和扫描产物进入版本化对象存储。
-
-### 12.3 容量基线
-
-MVP 目标：
-
-- 10,000 DAU。
-- 1,000 峰值同步连接。
-- 100 条消息/秒短时突发。
-- 10GB/日新增媒体的初始容量假设。
-- 100 个已发布氛围空间、1,000 个审核版本的初始规模。
-
-所有数值通过压测校准，不作为硬编码限制。
-
-### 12.4 可观测性
-
-#### 产品 API 指标
-
-- 请求量、状态码和延迟。
-- 按 route 和 error code 分组。
-- PostgreSQL query latency 和连接池。
-- Redis 和 BullMQ 队列深度。
-- Better Auth 登录成功率、认证错误码、限流命中和 session 创建/撤销量。
-- Email OTP 请求量、投递成功率和投递延迟；不记录邮箱、OTP 或 session token。
-- Matrix session bootstrap、设备创建、撤销和 reconciler 修复量。
-- 氛围空间上传、扫描和发布耗时。
-
-#### Matrix 指标
-
-- `/sync` 延迟和错误率。
-- 事件发送延迟。
-- worker backlog。
-- federation 关闭状态检查。
-- PostgreSQL replication 和锁等待。
-- media upload/download 错误。
-
-#### 氛围空间 Runtime 指标
-
-- manifest/bootstrap 延迟。
-- iframe ready 时间。
-- 崩溃率和超时率。
-- capability 拒绝和限流。
-- 按空间版本统计的 p50/p95 启动时间。
-
-日志统一包含：
-
-- `requestId`
-- `traceId`
-- 脱敏后的 `userId`
-- `roomId`
-- `spaceId`
-- `spaceVersion`
-
-### 12.5 告警
-
-- Better Auth 登录成功率或认证错误率异常。
-- Email OTP 投递失败率或延迟异常。
-- Better Auth session 与 Matrix device 撤销积压。
-- Matrix 事件发送或 `/sync` 错误率超阈值。
-- 消息端到端延迟 p95 超标。
-- API 5xx、数据库连接池和队列积压。
-- 空间 CDN 哈希不匹配。
-- 某空间版本崩溃率突增。
-- Push 失败率异常。
-- 数据库备份失败。
-
-### 12.6 备份与恢复
-
-- PostgreSQL 持续归档和每日完整备份。
-- 对象存储版本化和生命周期策略。
-- Redis 不作为唯一权威数据源。
-- 每季度执行恢复演练。
-- 目标 RPO：15 分钟。
-- 目标 RTO：2 小时。
-
-### 12.7 发布策略
-
-- 宿主和 API 使用滚动发布。
-- 数据库 migration 采用 expand/contract，避免新旧实例不兼容。
-- Better Auth 运行库与 CLI 锁定同一精确版本；升级时先生成并评审 schema migration，再通过测试和灰度发布。
-- SDK protocol 保持向后兼容；宿主至少支持最近两个稳定 protocol 版本。
-- 空间版本不可变；修复通过发布新版本完成。
-- 高风险新功能使用 feature flag 和小比例灰度。
-
----
-
-## 13. 测试与验收
-
-### 13.1 单元测试
-
-- 产品 API service、repository 和错误映射。
-- Better Auth 配置、邮件投递适配器、session guard 和生命周期 hook；不重复测试 Better Auth 内部算法。
-- Matrix identity bootstrap、session binding、撤销 outbox 和 reconciler 的幂等性。
-- Zod schema 和推导类型。
-- Matrix event 到 SDK model 的转换。
-- capability 决策和敏感操作确认。
-- 房间创建、版本升级和克隆迁移规则。
-- fallbackText 和通知摘要生成。
-- 前端状态机、控制岛和错误恢复。
-
-### 13.2 API 合约测试
-
-- 产品 OpenAPI 与 Zod route schema 一致。
-- `/v1/auth/*` 使用 Better Auth 官方客户端做黑盒合约测试，不复制其 schema 到产品 OpenAPI。
-- Web、CLI 和 SDK 生成客户端通过编译。
-- 错误码和幂等语义稳定。
-- 产品 API 使用进程内请求测试，不依赖真实监听端口。
-
-### 13.3 集成测试
-
-使用真实 Better Auth、Synapse、PostgreSQL、Redis 和对象存储覆盖：
-
-- Email OTP 请求、首次邮箱自动注册、再次登录、Cookie session 和错误/过期 OTP。
-- Better Auth session 建立后的 Matrix 用户/设备 provision。
-- 退出、单 session 撤销、其他 session 撤销及对应 Matrix device 撤销。
-- 好友请求、联系人和屏蔽。
-- 私聊、小群和成员邀请。
-- 消息、媒体、回复、回应、编辑、删除、已读和输入状态。
-- 氛围空间 room state 和自定义互动。
-- 氛围空间发布、撤销和 bootstrap。
-- Web Push。
-- 克隆迁移。
-
-### 13.4 端到端测试
-
-Playwright 使用至少三个账号测试：
-
-- Better Auth 邮箱 OTP 登录、首次自动注册、onboarding 和退出。
-- “我的”页面查看并撤销其他活动会话。
-- 先选人、再设置氛围、创建房间。
-- 从发现页预选氛围空间后选择参与人。
-- 使用 fixture 空间验证文字、媒体、回复、回应、编辑、删除、已读和搜索等 headless SDK 能力。
-- 第三方空白画布氛围空间。
-- 邀请权限确认。
-- 自动收起控制岛和键盘唤回。
-- 敏感操作确认不可被 iframe 绕过。
-- 断网重连和发送队列。
-- 氛围空间崩溃、撤销和恢复视图。
-- 克隆迁移后源房间不变。
-
-### 13.5 安全测试
-
-- iframe 无法读取宿主 DOM、Cookie、IndexedDB 和 Matrix token。
-- 伪造 `postMessage` source、nonce、schema 和 request ID 被拒绝。
-- 未声明域名受 CSP 阻止。
-- 压缩炸弹、路径穿越和恶意 manifest 被拒绝。
-- 富文本 XSS、恶意 URL 和危险附件。
-- Better Auth OTP 尝试次数、认证限流、trusted origins、Cookie 属性和 session fixation 测试。
-- CLI token 滥用。
-- 管理员权限和审计日志。
-
-### 13.6 前端与无障碍
-
-- Storybook/截图视觉回归。
-- 桌面三栏、平板双栏、移动单页。
-- 长昵称、长房间名、多语言和 RTL 基础检查。
-- 200% 字体缩放。
-- 键盘完整操作。
-- 屏幕阅读器语义。
-- 高对比和减少动态效果。
-- axe 自动检查与人工无障碍验收。
-
-### 13.7 性能与恢复
-
-- 1,000 并发 Matrix 同步连接。
-- 100 消息/秒突发。
-- 产品 API 实例滚动重启。
-- Synapse worker 重启。
-- PostgreSQL 主从切换或短时不可用。
-- Redis 重启和 BullMQ 重试。
-- 空间 CDN 缓存失效。
-- 备份恢复演练。
-
-### 13.8 发布验收门槛
-
-- 无 P0/P1 缺陷。
-- 所有权限绕过测试通过。
-- 已确认消息零丢失。
-- p95 性能目标通过。
-- 宿主导航、控制岛、权限确认和恢复视图达到 WCAG 2.2 AA。
-- 氛围空间撤销可在目标时间内阻止新加载。
-- 数据库备份和恢复演练通过。
-- 许可证清单和 SBOM 完成。
-
----
+空白创建允许模板字段为空。新客户端可同时发送命名更明确的 `spaceTemplateId/spaceTemplateVersionId`，服务端拒绝两组字段互相冲突。
+
+### 10.2 Space App API
+
+| Method | Path | 用途 |
+| --- | --- | --- |
+| `POST` | `/v1/rooms/metadata` | 兼容批量读取可访问 Space 摘要 |
+| `GET` | `/v1/rooms/:roomId/app` | 通过 Matrix Room 兼容 ID 读取 Project/Draft/Live |
+| `POST` | `/v1/rooms/:roomId/apply-template` | 将固定模板版本应用为 Draft |
+| `POST` | `/v1/rooms/:roomId/runtime-session` | 签发短期成员作用域 Runtime session |
+| `GET` | `/v1/rooms/:roomId/revisions` | 读取 Revision 摘要 |
+| `POST` | `/v1/rooms/:roomId/agent-requests` | 显式调用允许的 Agent |
+| `POST` | `/v1/rooms/:roomId/publish` | 发布固定 Revision |
+| `GET` | `/v1/rooms/:roomId/releases` | Release 历史和撤销状态 |
+| `PUT` | `/v1/rooms/:roomId/permissions/:userId` | 管理协作权限 |
+
+目标 `/v1/space-instances/:spaceInstanceId/*` 可以在拥有稳定 Space 实例 ID 后作为新别名提供；迁移期间两组 API 共享同一领域服务，不能复制业务逻辑。
+
+Chat 继续由 Matrix SDK 发送，不另造聊天 API。
+
+`POST /v1/rooms` 与未来 `POST /v1/space-instances` 都只能调用 `SpaceInstanceService.create()`；前者是兼容 transport adapter。`GET /v1/rooms/metadata` 同样读取 `SpaceInstanceRepository`，不存在另一份 Room 元数据模型。
+
+### 10.3 Backend、Runtime 与 Agent Adapter
+
+- Backend 通过签名任务投递 Agent batch、Project snapshot、预算和权限快照。
+- Runtime 选择 Agent Adapter，并标准化 progress、candidate Revision、diagnostics、usage 和 completion。
+- Runtime 不能直接改积分账本、ACL、市场或 Matrix membership。
+- 内部调用包含短期 audience、task/attempt/trace ID 和幂等键，不复用用户 Cookie。
+- Runtime transport 与 demo 保持同构：Kernel 用短期 session 建立 `GET /runtime/spaces/:spaceInstanceId/events` SSE；写命令进入 `POST /runtime/spaces/:spaceInstanceId/commands`。Backend/网关校验后覆盖 user、Space、Agent 和 Release identity。
+- SSE snapshot 包含 Instance Server 的 `sequence`、members projection、App State、presence、Agent build/queue 与 Project 指针；Chat 消息正文仍由 Matrix timeline 提供，snapshot 只包含授权的有限投影。
+- `SpaceInstanceRegistry` 对相同 `spaceInstanceId` 返回同一逻辑实例；HTTP、Matrix appservice、SDK bridge 和恢复 worker 不能各自创建状态机。
+
+### 10.4 实时事件
+
+至少定义：
+
+- `snapshot`
+- `members_changed`
+- `message_appended`
+- `presence_changed`
+- `app_state_changed`
+- `app_event`
+- `agent_queue_updated`
+- `agent_turn_started`
+- `agent_delta`
+- `agent_activity`
+- `heartbeat`
+- `draft_ready`
+- `dev_failed`
+- `deployed`
+- `agent_completed`
+- `agent_failed`
+
+断线后重新获取 snapshot 并按 cursor 接续；业务正确性不能依赖浏览器收齐全部 progress event。
+
+### 10.5 错误与幂等
+
+新增稳定错误码至少区分：
+
+- `SPACE_NOT_FOUND`
+- `SPACE_PERMISSION_DENIED`
+- `SPACE_TEMPLATE_NOT_FOUND`
+- `SPACE_TEMPLATE_VERSION_UNAVAILABLE`
+- `SPACE_AGENT_NOT_AVAILABLE`
+- `SPACE_AGENT_CREDITS_REQUIRED`
+- `SPACE_AGENT_QUEUE_FULL`
+- `SPACE_DEV_PREVIEW_FAILED`
+- `SPACE_REVISION_STALE`
+- `SPACE_RELEASE_BUILD_FAILED`
+- `SPACE_RUNTIME_UNAVAILABLE`
+- `SPACE_APP_STATE_CONFLICT`
+
+创建 Space、应用模板、Agent 入队、state mutation、publish 和 Release activation 都使用业务幂等键；HTTP/队列重试不得重复扣费、发消息、生成 Revision 或发布。
+
+## 11. 安全、隐私与治理
+
+### 11.1 主要威胁
+
+- 模板或 Generated App 读取、伪造或外传 Chat/成员/状态数据。
+- App 伪造 Kernel Bar、平台确认状态、Agent/系统身份、登录、支付、发布或权限结果；App 自己实现 Chat UI 不视为伪造。
+- iframe 逃逸、旧 session 重放或伪造成员身份。
+- prompt injection 让 Agent 读取宿主文件、凭据或其他 Space。
+- 恶意源码导致构建逃逸、资源耗尽、供应链替换或 SSRF。
+- 成员滥用他人积分、覆盖当前 ready Revision 或未经授权发布。
+- Matrix、Agent queue、账务和 ready/Published 指针跨系统不一致。
+
+### 11.2 强制控制
+
+- Kernel Bar、Chat Core 与 Space App 使用明确不同的信任边界；Generated Runtime 使用隔离 origin，Chat UI 虽在 App 内但所有能力调用仍越过受校验 bridge。
+- SDK bridge 校验 `contentWindow`、nonce、schema、action、payload、sequence 和速率。
+- App 身份由 Kernel 注入；user/space/release/agent 声明由服务端覆盖。
+- Agent session 与项目执行目录按 Space/Agent 隔离，仅开放 allowlist 工具和路径；该技术目录不构成用户可见 Workspace。
+- 构建无平台 secret，并限制 CPU、内存、时间、磁盘和网络。
+- Template Version、source、artifact、SBOM 和 provenance 与 hash 绑定。
+- 市场发布需要审核、兼容性与权限说明；收藏和安装量不能赋予模板额外能力。
+- 积分 reservation、结算、退款和 publish 幂等且可审计。
+- 日志不记录消息正文、完整 prompt、源码全文、OTP、token、Cookie 或 App State 私有值。
+
+### 11.3 隐私与治理
+
+- Space 创建/邀请说明 Agent 是否启用、消息何时会提交给 Agent、费用由谁承担。
+- 默认只有显式 Agent 请求进入 provider；普通人类 Chat 不自动发送给 Agent。
+- App 只能获得当前成员获准访问的成员资料、分页 Chat timeline、实时事件和 App State，默认不能联网；授权范围不因 UI 可定制而扩大。
+- Admin 可以审核 Template、撤销 Release、冻结 Agent、限制权限和查看 provenance，不能绕过审计改源码。
+- 被撤销 Release 不再加载；Kernel Bar 回退到最后 ready Revision 或 Default Chat App，Chat Core 不受影响。
+- 支持举报 Space、消息、Template、App、Agent 回复和 Release。
+
+## 12. 部署、容量与可观测性
+
+### 12.1 部署单元
+
+- `web-app`、`backend`、`admin-app` 延续现有独立构建和同源产品 API。
+- `space-runtime` 部署在支持 Node、长连接、Agent Adapter、VM/client 和构建任务的环境。
+- Synapse、Product DB、对象存储、Agent provider 和 Runtime provider 使用独立凭据与最小网络权限。
+- Dev VM、build VM 和 serving replica 隔离；Live Release 可按并发扩缩容。
+- Runtime session、内部任务签名和 Agent provider credential 使用不同 audience/key。
+
+### 12.2 容量基线
+
+- 10,000 DAU、1,000 峰值 Matrix 同步连接。
+- 100 条 Matrix 消息/秒短时突发；Chat 容量不与 Agent 并发绑定。
+- 初始最多 2 个不同 Space 并行 Agent write batch，配置范围 1–8。
+- 同一 Space App 始终单写；默认批次窗口约 350ms，配置范围 0–2s。
+- 每个 Release 初始 `minReplicas=0`，按 provider 能力设置上限。
+- Template source、Project、Revision、Release 和日志具有用户/Space 配额和生命周期策略。
+
+### 12.3 指标与告警
+
+至少记录：
+
+- Space/Matrix Room 创建、模板复制、补偿和 state 修复。
+- Chat 消息延迟、失败和 Agent 不可用时的独立可用率。
+- 市场目录、详情、收藏、模板应用和版本失败率。
+- Agent queue depth、Agent/provider 分布、wait、batch、lease、turn 和失败码。
+- Conversation/Revision 分类和自动修复次数。
+- Space Dev 冷启动、编译、health 和失败率。
+- Release build、activation、rollback/revoke 和 ready 时间。
+- SDK action 量、延迟、拒绝、冲突和限流。
+- 积分 reservation、settlement、refund 和 reconciliation。
+
+告警覆盖 Space lease 过期、Dev/Release 失败率、无效 Live 指针、Matrix event 投影积压、Agent provider 故障、账务不一致和 artifact hash 校验失败。恢复演练必须证明 Chat、Space/Template、Project、Live、App State、队列和账务一致恢复。
+
+## 13. 测试与发布验收
+
+### 13.1 单元与合约
+
+- `room_index` 历史行映射唯一 `spaceInstanceId`，不创建第二条实例记录或 Matrix Room。
+- 一对一与多人参与者调用同一 `SpaceInstanceService/Repository/Server`，不存在人数分支的替代实现。
+- 空白与模板两种 Space 创建模式保持 Matrix/Space/Project/outbox 幂等。
+- 现有 Space 市场、收藏、详情和模板版本兼容。
+- Agent Adapter 的通用事件、usage、取消、超时、恢复和 provider 切换。
+- 同 Space 单写、跨 Space 并发、批次和 publish barrier。
+- Conversation/Revision、Revision hash、ready/Published 指针和发布幂等。
+- SDK snapshot、presence、state CAS、event、完整 Chat 操作、Mention、Agent target 和 theme schema。
+- App 只能用平台返回的结构化 member/agent Mention；同一 `eventId` 最多创建一个 Agent Turn，普通消息不触发 Agent。
+- Default Chat App 与定制 App 都通过同一 Chat Core contract suite，覆盖发送、接收、回复、编辑、删除、Reaction、媒体、已读、typing、Mention 和 `@agent`。
+- bridge source/nonce/action/size/rate limit。
+- ACL、积分预留/结算/退款和失败补偿。
+
+### 13.2 集成
+
+- 对同一历史 Matrix Room 分别从兼容 `/v1/rooms`、Space Kernel、App SDK 和 Matrix appservice 进入，全部解析为同一 SpaceInstanceServer、Project、queue 和 App State。
+- 两个 Runtime replica 并发恢复同一实例时，只有 lease owner 执行 Turn；断开后新 owner 从 snapshot/queue 恢复。
+- Better Auth + Matrix + Product DB 创建空白/模板 Space，均得到 ready App；Default Chat App 与模板 App 都能通过 SDK 使用完整 Chat Core。
+- 普通人类消息不入 Agent 队列；显式 Agent 请求仅投影一次。
+- Pi Adapter 与至少一个 fake Agent Adapter 通过同一合约测试，证明公共契约不绑定 Pi。
+- 隔离 Runtime 验证 Candidate；成功实时切换 ready Revision，失败保留最后 ready Revision 和 Published Release。
+- Template 应用创建独立 Revision，不修改市场版本或 Chat 历史。
+- 两个浏览器通过 SDK 同步成员、presence、state 和瞬时事件。
+- Runtime/Backend 重启与重复回调不重复扣费、回复或发布。
+
+### 13.3 E2E 核心场景
+
+正式实现以 [TEST-CATALOG #40](../../../tests/e2e/TEST-CATALOG.md) 为验收主目录，至少覆盖：
+
+1. 空白 Space 与模板 Space 都能创建并立即聊天。
+2. 现有私聊和新增多人 Space 都解析为唯一 SpaceInstance，使用同一 Instance Server/Project/SDK/queue。
+3. Discover、分类、详情、收藏和模板创建入口保持工作。
+4. Kernel Bar 是唯一固定宿主界面；其下所有像素来自 Space App，Default Chat UI 也能被模板或 Agent 完全改写。
+5. Default Chat App 与至少一个完全不同布局的定制 App 均能通过同一 Chat Core 完成人类聊天、Mention 和 `@agent`；App 不能伪造 Kernel Bar 或平台身份。
+6. 人类普通聊天不调用 Agent；带平台结构化 Agent Mention 的消息才按 Matrix `eventId` 幂等进入 Agent 队列。
+7. 切换 Agent Adapter 不改变 Project、权限、计费和发布契约。
+8. 空白 Space 应用模板、已有 App 再应用模板都可恢复。
+9. Candidate 失败保留最后 ready Revision 和 Published Release；Chat Core 始终可用，Kernel Bar 可以恢复 Default Chat App。
+10. 显式发布、SDK、iframe、ACL、积分、重启和迁移符合安全与幂等语义。
+
+### 13.4 发布门槛
+
+- 现有认证、联系人、邀请、Chat 和 Space 市场回归全绿。
+- 新增 unit、contract、integration 和 TanStack E2E 全绿。
+- 无 P0/P1 权限、凭据、计费、市场供应链、发布一致性或 sandbox 缺陷。
+- 通过真实 Synapse、真实 Runtime provider、至少一个 Agent Adapter 和双 Chromium 走查。
+- docs、packages、Web、Backend、Admin 和 Space Runtime 构建通过。
+- 备份恢复、lease 恢复、Release 撤销和积分 reconciliation 有证据。
 
 ## 14. 实施阶段
 
-### 阶段 0：工程与基础设施
+### 阶段 0：设计校正与兼容护栏
 
-- Monorepo、CI、代码规范和环境配置。
-- Docker Compose 本地栈。
-- Synapse、PostgreSQL、Redis 和对象存储。
-- 产品 API 基础框架、Zod、OpenAPI、日志和追踪。
-- Better Auth、Email OTP plugin、官方 schema migration、Redis secondary storage 和邮件适配器。
-- React 宿主、设计 token 和响应式壳。
+- 将用户语义统一为 Space，Matrix Room 保持底层实现术语。
+- 保留 `/v1/spaces`、Discover、收藏、模板选择、`spaceId/spaceVersionId` 和现有 Chat。
+- 确定采用与 `chat-app-server` 同构的 Node/Hono、Instance Server、SSE、Turn scheduler、ProjectStore、agentOS Apps 和 SDK 技术链。
+- 定义 `room_index` 原地升级的唯一 SpaceInstance、Template、Project、Agent Adapter 和 v1/v2 state 双读。
 
-交付标准：开发者可以一条命令启动完整本地环境。
+交付标准：不存在删除市场或降低聊天能力的迁移任务；旧客户端与旧 Space 继续工作。
 
-### 阶段 1：Better Auth、社交与 Matrix 消息底座
+### 阶段 1：Space Kernel 与 Project 基础
 
-- Better Auth 邮箱验证码自动注册与登录，不开发自定义认证端点。
-- 用户资料、联系人、好友请求和屏蔽。
-- Better Auth session 到 Matrix device 的 bootstrap、撤销 hook、outbox 和 reconciler。
-- 会话列表和房间索引。
-- Matrix adapter 的文字、媒体、回复、回应、编辑、删除、已读和输入状态能力。
-- 搜索、已读、输入状态和离线队列。
+- 在现有 `room_index` 原地增加 `space_instance_id/project_id/default_agent_id`，历史行幂等回填，不创建平行实例表。
+- 将 `RoomService/Repository` 迁移为统一 `SpaceInstanceService/Repository`，`/v1/rooms` 只保留同服务适配器。
+- 在现有创建链路中补充空白/模板模式；一对一与多人 Space 走同一事务。
+- 新增 Space App contracts、ACL、Project/Revision/Release/State schema。
+- 建立 Matrix event projection、durable queue、lease、outbox 和 credits reservation。
+- 保持现有 Chat、社交、资料、市场和 session 回归全绿。
 
-交付标准：账号、社交关系、Matrix 消息能力和房间外入口稳定，并可通过 test harness 完整验证；此阶段不提供宿主内置房间聊天 UI。
+交付标准：空白和模板 Space 都能创建，Chat Core 不依赖 App Project/Agent，历史 Space 可读。
 
-### 阶段 2：氛围空间 Runtime
+### 阶段 2：Kernel Bar、Chat Core、Space App 与 SDK
 
-- manifest、签名和氛围空间 bootstrap。
-- iframe sandbox 和 capability 协议。
-- SDK、模拟宿主和协议 fixture 空间；fixture 只能使用公开 SDK。
-- 控制岛、权限确认和恢复视图。
-- 氛围空间 shared/private state 和 interaction events。
-- 克隆迁移。
+- 新增 Node 22 + TypeScript + Hono 的 `apps/space-runtime`，实现 `SpaceInstanceRegistry/Server`、SSE、认证 command 和 lease 恢复。
+- 接入 `@rivet-dev/agentos`、`@rivet-dev/agentos-apps`、`SpaceProjectStore` 与 `SpaceDevPreviewManager`。
+- 实现 Space SDK members/chat/mentions/agents/presence/state/event/theme，完整 Chat 操作不能由 Project 代码重写。
+- 只固定顶部 Kernel Bar；将其下全部界面迁入 Space App Project，Default Chat UI 也作为模板代码交付。
+- 实现 Candidate 校验、ready Revision 实时切换、错误恢复和双浏览器实时链路。
+- 支持空白 Space 应用市场模板并保留历史。
 
-交付标准：第三方空白画布氛围空间可以完整承载房间 UI，并且无法越过宿主安全边界。
+交付标准：Default Chat App 与完全不同布局的模板 App 都通过同一 Chat Core contract；成员始终进入可用 Space，App 故障可从 Kernel Bar 恢复最后 ready Revision。
 
-### 阶段 3：市场、CLI 与审核
+### 阶段 3：Agent Adapter、持续更新与 ready Revision
 
-- 发现页、氛围空间详情和沙箱预览。
-- 收藏和市场排序。
-- CLI init/dev/validate/pack/publish/status/logs。
-- 上传、扫描、审核、签名和 CDN 发布。
-- 内部审核后台和撤销流程。
+- 建立 Agent Registry 与 provider-neutral Adapter；先接 Pi Adapter 和 fake Adapter。
+- 实现结构化 Agent Mention、串行批次、Conversation/Revision 和受限项目执行目录。
+- 实现 Candidate 验证、诊断修复、ready Revision 实时更新、积分和恢复。
 
-交付标准：外部开发者可以独立开发并完成受控发布。
+交付标准：成员可选择 Agent 进行问答和 App 定制，替换 Agent 不改变平台契约。
 
-### 阶段 4：生产就绪
+### 阶段 4：不可变发布与治理
 
-- Web Push。
-- 扩容拓扑、压测和故障恢复。
-- 安全审计、许可证复核和 SBOM。
-- 可观测性、告警和运维手册。
-- 灰度发布和恢复演练。
+- 实现 publish barrier、不可变 Release、原子激活、恢复和撤销。
+- 接入 Template/Agent/Release Admin 治理、审计、SBOM 和 provenance。
+- 完成历史 Space 的 v1/v2 state 双读和 Project bootstrap。
 
-交付标准：达到 10,000 DAU 目标容量和 99.9% 可用性目标。
+交付标准：模板与 Agent 修改可安全发布，任何失败都保留 Chat 和旧 Live。
 
----
+### 阶段 5：生产就绪与市场演进
 
-## 15. 风险与缓解措施
+- 完成压测、可观测性、备份恢复、安全审计和灰度。
+- 完成从 Space ready Revision 发起的用户 Template 发布、审核、签名、更新和撤销；它与仓库官方 Template 使用同一协议、表和市场查询，分成策略单独评审。
+- 只有在兼容消费者迁移完成后，才考虑新增清晰的 Template API 别名；不删除市场能力。
 
-| 风险                                                | 影响                                   | 缓解措施                                                                          |
-| --------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------- |
-| Matrix 客户端复杂度                                 | 同步、设备和媒体边界难以正确处理       | 封装 Matrix adapter；基于真实 Synapse 做合约测试                                  |
-| Better Auth 版本或 schema 漂移                      | 登录中断或认证数据不兼容               | 锁定精确版本；官方 CLI 生成 migration；评审、备份、灰度和回滚演练                 |
-| Better Auth session 与 Matrix device 生命周期不一致 | 已退出设备仍保留 Matrix token          | session binding、撤销 outbox、幂等 worker 和定时 reconciler                       |
-| Synapse AGPL                                        | 商业闭源边界存在法律要求               | 不修改 Synapse；独立部署；提供源码；上线前法律复核                                |
-| 完全自定义画布                                      | 氛围空间可能不可用、不可退出或无障碍差 | iframe 外控制岛、恢复视图、审核和强制撤销                                         |
-| 氛围空间数据外传                                    | 聊天隐私和平台信任受损                 | 域名声明、CSP、权限展示、审核和版本不可变                                         |
-| 空间版本更新破坏房间                                | 历史状态无法解释                       | 房间固定版本；显式升级；permission diff；恢复视图                                 |
-| 氛围空间自定义事件不可读                            | 会话列表、Push 和恢复失效              | 强制 `fallbackText` 和通知摘要 schema                                             |
-| MVP 无 E2EE                                         | 用户对隐私能力预期不一致               | 明确产品说明；数据最小化；将 E2EE 作为独立后续架构项目                            |
-| Web PWA 平台限制                                    | iOS 推送、后台和存储行为差异           | 明确支持矩阵；真实设备测试；不把关键状态只放浏览器缓存                            |
-| CLI-only 开发体验                                   | 新开发者上手门槛较高                   | 高质量脚手架、模拟宿主、示例空间和可操作错误信息                                  |
-| 完整客户端不直接 fork                               | 初期宿主和 SDK 适配工作量增加          | 复用 Matrix SDK、Radix primitives、统一设计系统、test harness 和协议 fixture 空间 |
+交付标准：核心回归与 #40 全绿，Space 市场、Chat、Agent 和 App 达到生产门槛。
 
----
+## 15. 风险、确定决策与后续范围
 
-## 16. 已确定决策与后续范围
+### 15.1 主要风险
 
-### 16.1 已确定
+| 风险 | 影响 | 缓解 |
+| --- | --- | --- |
+| Space/Template 语义混淆 | API 和 UI 概念冲突 | 明确实例与模板，兼容字段记录 lineage |
+| 现有房间与多人 Space 双实例化 | 消息、成员、App State 和权限分裂 | `room_index` 原地升级、Matrix Room 唯一映射、单一 SpaceInstanceRepository/Server |
+| 单机 `LocalRoomServer` 水平扩展 | 同一 Space 被多副本同时消费 | Space lease、sticky SSE、durable queue、snapshot 和接管测试 |
+| 可定制 UI 侵蚀 Chat Core | 定制 App 无法正常聊天或错误调度 Agent | 版本化 SDK、结构化 Mention、Default/Custom App contract suite、Kernel 恢复 |
+| 自然语言误触发修改 | 意外扣费或改 App | 结构化 Agent Mention、Conversation/Revision、Candidate 校验 |
+| Agent provider 锁定 | 难以替换或多 Agent | Registry + Adapter + 标准事件/usage/恢复合约 |
+| 多成员连续修改冲突 | 后请求覆盖前请求 | 同 Space 单写、顺序批次、澄清、Revision 历史 |
+| 模板覆盖定制 | 丢失成员作品 | 模板先生成 Candidate，保留 lineage/ready/Published 恢复点 |
+| Generated code 不可信 | 泄漏、伪造、资源耗尽 | 隔离 origin/VM、无 secret、SDK allowlist、配额 |
+| 实时版本与发布版本混淆 | 把 Space 误认为试验环境，或误认为已经发布 | Kernel Bar 明示 ready/Published 双指针，Dev 只作内部通道名 |
+| Matrix/队列/账务不一致 | 丢请求、重复扣费 | eventId、outbox、lease、reservation、reconciler |
+| 市场供应链风险 | 恶意或失效模板 | 版本不可变、审核、签名、SBOM、撤销 |
 
-- Web/PWA 首发。
-- 熟人私聊和小群。
-- Better Auth + Email OTP plugin 提供邮箱验证码自动注册与登录；不自建认证系统。
-- 消息、联系人、发现、我的四项主导航。
-- 先选参与人，再设置氛围。
-- 发现页只做氛围空间市场，不做公开房间。
-- 会话列表采用统一传统布局。
-- 房间会话区域是氛围空间的完整画布；技术上由微 App 实现。
-- 宿主使用自动收起控制岛。
-- 敏感操作每次由宿主确认。
-- 氛围空间可以访问审核通过的声明域名。
-- 每个房间只有一个氛围空间实例。
-- 更换氛围空间通过克隆迁移。
-- 开发者 MVP 使用 CLI，不制作 Studio。
-- MVP 无 E2EE、音视频和联邦。
-- Matrix + `matrix-js-sdk` + Synapse。
-- Better Auth 管理用户身份、OTP、Cookie session 和会话撤销。
-- 账户中心、订单、订阅、积分账本、推荐与 KYC 提现作为产品服务能力进入 Web/PWA。
-- Stripe、PayPal、Creem、Dodo、微信支付和支付宝通过共享 Backend 统一结账与幂等履约。
-- AI 对话、图片和视频生成通过积分预留/结算、持久化任务与失败退款提供。
-- 产品后端选型待定；API schema 统一使用 Zod 4。
-- 闭源宿主和产品服务；公开 SDK、protocol、CLI 和文档。
+### 15.2 已确定决策
 
-### 16.2 后续独立设计项目
+- 产品实体和用户语义为 Space；Matrix Room 仅是底层聊天容器。
+- 现有聊天房间与多人 Space 是同一个 SpaceInstance 模型；每个 Matrix Room 只能映射一个 `spaceInstanceId`、Instance Server 和 Project。
+- 物理 `room_index` 原地升级为统一实例记录，不新建承载相同对象的 `space_instances` 表；`/v1/rooms` 只作为兼容 API。
+- Space 不是 Workspace 或试验场；它始终运行最后一个 ready Revision，并在新 Revision ready 后实时更新。
+- 每个 Space 保留不可修改的完整 Chat Core；Chat UI 是 Default Chat App 代码，可以由模板或 Agent 任意定制。
+- Space 市场、发现、分类、详情、收藏、版本和模板创建继续存在。
+- 官方和用户 Template 使用同一 `SpaceTemplate` / `SpaceTemplateVersion` / `SpaceTemplateArtifact` / `SpaceTemplateMarketEntry` 协议；官方身份只通过 Publisher verification 标记。每个官方 Template 在仓库只维护一份 `app/` 工作源码，用户从 Space App 的固定 ready Revision 发布；两者的 Version 都引用统一 Registry/Object Store 中按 hash 寻址的不可变 artifact。
+- Space 可以空白创建，也可以选择模板创建；空白 Space 可以后续应用模板。
+- Kernel Bar、Chat Core、Space App 是仅有的三个逻辑边界；只有顶部 Kernel Bar 是固定宿主 UI，创作和发布能力属于 Kernel。
+- Kernel Bar 以下全部由 App Project 渲染；App 可以替换 Chat UI，但不能替换 Chat Core、Mention/Agent 调度、成员权威或 Matrix timeline。
+- Agent 使用可插拔 Adapter；Pi 是首个候选示例，不是平台固定 Agent。
+- 普通人类 Chat 不自动调用 Agent；显式 Agent 请求才进入权限与计费链路。
+- Candidate 验证成功后实时更新当前 ready Revision；显式发布将固定 Revision 固化为不可变 Release。
+- Matrix 继续作为成员与 Chat 权威；Product DB 管理市场、Space、Project、Agent、Release 和 App State。
+- Space Runtime 明确采用 `chat-app-server` 同构的 Node/Hono + SpaceInstanceServer + SSE/command + 串行 Turn + ProjectStore + agentOS Apps Dev/Release + Space SDK 技术方案。
+- Agent 仍通过通用 Adapter 接入，Pi 不因 Runtime 技术定案而成为固定 Agent。
+- MVP 仍是 Web/PWA、熟人私聊/小群、无 E2EE、音视频和联邦。
 
-- E2EE 与氛围空间数据授权模型。
-- iOS/Android 原生客户端和 WebView Runtime。
-- 音视频 capability。
-- 普通用户无代码氛围搭建器。
-- 氛围空间商业化、付费和分成。
-- 开发者 Studio。
-- 公共房间与社区治理。
-- 跨氛围空间标准化迁移协议。
+### 15.3 后续独立设计
 
-### 16.3 仓库前提
+- 用户 Template 的审核队列、签名、排名、评论、举报、作者分成和组织 Publisher 治理；这些策略不得改变已经确定的统一协议。
+- Agent 市场、用户选择模型、组织 Agent、多 Agent 协作和自带 provider key。
+- 公共 Space、分享可见性和社区治理。
+- 从已有 Space 创建模板、分叉 lineage 与隐私清理。
+- 外部网络 capability、用户同意和 egress 审计。
+- E2EE 下 Agent 与 App State 授权。
+- 原生端 Runtime、音视频和大型多人状态。
 
-本文件最初在工程基线建立前创建，作为第一份产品与技术基线。当时环境曾引用 `RTK.md`，但仓库中不存在该文件；如果后续补充，开始实施前必须重新检查其中约束并更新本文档。
+### 15.4 当前仓库前提
 
-当前工程实现：官网位于 `apps/site-app`，产品 Web/PWA 位于 `apps/web-app`，共享 backend 位于 `apps/backend`，内部运营位于 `apps/admin-app`；四者均使用 TanStack Start、TanStack Router 和 Vite 并可独立构建。Web 与 Admin 通过各自同源网关访问 backend，保持 Better Auth Cookie 与公开 `/api`、`/v1` 路径稳定。Web 当前覆盖聊天、账户、服务定价、上传、支付结果与 AI；Backend 持有数据库、认证、支付/AI provider、积分、推荐和提现领域；Admin 覆盖用户/KYC、订阅、订单、积分、定价、Blog、佣金与提现。A4 空间审核作为 Admin 的新模块加入。Desktop 尚未创建，必须等待 Desktop spike。
+当前活动实现位于 `apps/web-app`、`apps/backend`、`apps/admin-app`、`apps/space-runtime` 和 workspace packages；A1/A2 已有真实 Matrix、完整 Chat、Space 目录和产品状态证据。Space App contracts/SDK、通用 Agent Adapter、ready Revision/Release、固定 Kernel Bar 与全尺寸 App Surface 已形成首版纵向切片；Default Chat UI 和四个差异化模板均由 App Project 渲染，Host 只通过受信 bridge 提供 Chat Core。结构化 Agent Mention 已随人类消息写入 Matrix，Backend 会复读精确 event 完成 ACL、积分和幂等入队；新账号欢迎积分、Host Pi 真实回复和 token usage 结算已有单浏览器真实服务证据。五个官方 Template 已拆为独立、逐版本锁定的仓库项目并生成统一 Market entry；同一协议已验证 App 来源的用户 Template，但用户发布 API、审核队列和生产 Product DB/Object Store 尚未实现。完整双浏览器 Chat/Agent contract、rollback/恢复、生产存储、多副本 lease 和 Matrix Agent 回写仍在 Active 实施。任何实现说明必须引用 Active 文档和实际测试，不得把首版切片写成完整交付。

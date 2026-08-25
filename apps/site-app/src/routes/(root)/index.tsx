@@ -8,7 +8,7 @@ export const Route = createFileRoute('/(root)/')({
 })
 
 function HomePage() {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
   const year = new Date().getFullYear().toString()
 
   return (
@@ -41,7 +41,7 @@ function HomePage() {
               {t.home.intro.description}
             </p>
             <a
-              href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/${locale}/messages`}
+              href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/spaces`}
               className="mt-9 inline-flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
             >
               {t.home.intro.openChat}

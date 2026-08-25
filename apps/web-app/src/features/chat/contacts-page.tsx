@@ -15,7 +15,7 @@ import { useTranslation } from '@/hooks/use-translation'
 import type { SocialPerson } from '@vibechat/api-contracts'
 import { useChat } from './chat-store'
 import { PersonAvatar, SpaceGlyph } from './chat-primitives'
-import { NewChatDialog } from './new-chat-dialog'
+import { NewSpaceDialog } from './new-space-dialog'
 
 export function ContactsPage() {
   const { t } = useTranslation()
@@ -86,7 +86,7 @@ export function ContactsPage() {
       ))
     : []
 
-  const startChat = (personId: string) => {
+  const startSpace = (personId: string) => {
     setCreatePersonId(personId)
     setCreateOpen(true)
   }
@@ -317,19 +317,19 @@ export function ContactsPage() {
                 <button
                   type="button"
                   className="vc-button vc-button-primary"
-                  data-testid="start-chat-with-contact"
-                  onClick={() => startChat(selectedPerson.id)}
+                  data-testid="start-space-with-contact"
+                  onClick={() => startSpace(selectedPerson.id)}
                 >
                   <MessageCircleMore size={16} />
-                  {t.chatApp.contacts.startChat}
+                  {t.chatApp.contacts.startSpace}
                 </button>
                 <button
                   type="button"
                   className="vc-button vc-button-ghost"
-                  onClick={() => startChat(selectedPerson.id)}
+                  onClick={() => startSpace(selectedPerson.id)}
                 >
                   <UserPlus size={16} />
-                  {t.chatApp.contacts.addToGroup}
+                  {t.chatApp.contacts.addToSpace}
                 </button>
                 <button
                   type="button"
@@ -350,7 +350,7 @@ export function ContactsPage() {
               <header>
                 <span>
                   <UsersRound size={15} />
-                  {t.chatApp.contacts.sharedRooms}
+                  {t.chatApp.contacts.sharedSpaces}
                 </span>
                 <i>{selectedRooms.length}</i>
               </header>
@@ -372,7 +372,7 @@ export function ContactsPage() {
         ) : null}
       </section>
 
-      <NewChatDialog
+      <NewSpaceDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         initialParticipantIds={createPersonId ? [createPersonId] : undefined}

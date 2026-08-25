@@ -5,6 +5,7 @@ import {
   type ProductStateSnapshotResponse,
   type RoomBootstrap,
   type SocialPerson,
+  type SpaceAgentMention,
 } from '@vibechat/api-contracts'
 import {
   appendMessageToState,
@@ -45,7 +46,18 @@ interface ChatContextValue {
   markRoomRead: (roomId: string) => void
   toggleRoomPinned: (roomId: string) => Promise<void>
   toggleRoomMuted: (roomId: string) => Promise<void>
-  sendMessage: (roomId: string, text: string, replyToId?: string) => Promise<string>
+  sendMessage: (
+    roomId: string,
+    text: string,
+    replyToId?: string,
+    agentMentions?: SpaceAgentMention[],
+  ) => Promise<string>
+  requestSpaceAgent: (
+    roomId: string,
+    matrixEventId: string,
+    text: string,
+    agentMention?: SpaceAgentMention,
+  ) => Promise<boolean>
   sendAttachment: (roomId: string, file: File) => Promise<string>
   editMessage: (messageId: string, text: string) => Promise<void>
   deleteMessage: (messageId: string) => Promise<void>
@@ -283,7 +295,18 @@ export function ChatProvider({
         nextBaseState.currentUserId = bootstrap.user.id
         nextBaseState.people = [profileToChatPerson(bootstrap.user)]
         nextBaseState.spaces = directory.spaces.map((space) => ({
+          schemaVersion: space.schemaVersion,
           id: space.id,
+          versionId: space.versionId,
+          semanticVersion: space.semanticVersion,
+          integrity: space.integrity,
+          sourceHash: space.sourceHash,
+          manifestHash: space.manifestHash,
+          artifact: space.artifact,
+          projectFormat: space.projectFormat,
+          compatibility: space.compatibility,
+          provenance: space.provenance,
+          publisher: space.publisher,
           name: space.name,
           author: space.author,
           summary: space.summary,
@@ -293,7 +316,6 @@ export function ChatProvider({
           canvas: space.canvas,
           permissions: space.permissions,
           networkDomains: space.networkDomains,
-          official: space.official,
           favoriteCount: space.favoriteCount,
         }))
         nextBaseState.favoriteSpaceIds = productState.favoriteSpaceIds
@@ -463,6 +485,7 @@ export function ChatProvider({
           message.text,
           transactionId,
           message.replyToId,
+          message.agentMentions,
         )
         pendingTransactionIdsRef.current.delete(transactionId)
         optimisticMessagesRef.current.delete(transactionId)
@@ -501,7 +524,12 @@ export function ChatProvider({
   )
 
   const sendMessage = useCallback(
-    async (roomId: string, text: string, replyToId?: string) => {
+    async (
+      roomId: string,
+      text: string,
+      replyToId?: string,
+      agentMentions: SpaceAgentMention[] = [],
+    ) => {
       const client = matrixClientRef.current
       const matrixRuntime = runtimeModuleRef.current
       if (!client || !matrixRuntime) throw new Error('MATRIX_NOT_READY')
@@ -516,6 +544,7 @@ export function ChatProvider({
         createdAt: new Date().toISOString(),
         status: 'sending',
         replyToId,
+        ...(agentMentions.length > 0 ? { agentMentions } : {}),
         reactions: [],
       }
       optimisticMessagesRef.current.set(transactionId, optimisticMessage)
@@ -524,6 +553,21 @@ export function ChatProvider({
     },
     [deliverOptimisticMessage, state.currentUserId],
   )
+
+  const requestSpaceAgent = useCallback(async (
+    roomId: string,
+    matrixEventId: string,
+    text: string,
+    agentMention?: SpaceAgentMention,
+  ) => {
+    if (!agentMention) return false
+    await productApi.createSpaceAgentTurn(roomId, {
+      matrixEventId,
+      message: text,
+      agentMention,
+    })
+    return true
+  }, [])
 
   const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
     const client = matrixClientRef.current
@@ -734,6 +778,7 @@ export function ChatProvider({
     toggleRoomPinned: (roomId) => updateRoomPreference(roomId, 'pinned'),
     toggleRoomMuted: (roomId) => updateRoomPreference(roomId, 'muted'),
     sendMessage,
+    requestSpaceAgent,
     sendAttachment,
     editMessage,
     deleteMessage,
@@ -768,6 +813,7 @@ export function ChatProvider({
     rejectRoomInvite,
     retryConnection,
     sendMessage,
+    requestSpaceAgent,
     sendAttachment,
     editMessage,
     deleteMessage,

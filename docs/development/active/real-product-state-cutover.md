@@ -3,13 +3,15 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-12
+> 更新日期：2026-08-22
 > 维护范围：TanStack 聊天宿主、产品状态 API、用户偏好、官方空间目录与 E2E
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+
+> 演进说明：官方 Space 目录、收藏和 `favoriteSpaceIds` 是本切片已经验证的 2026-08-12 基线，也是 2026-08-22 [Space App 设计演进](./space-app-design-transition.md)必须保留的市场能力。2026-08-23 目录已从 `source=builtin` 迁移为官方/用户共用的 `SpaceTemplateMarketEntry`；当前仍只装载官方 Publisher，不删除本切片的目录与收藏行为。
 
 ## 目标
 
-登录后的 `/messages`、`/contacts`、`/discover`、`/me` 与 `/rooms/:roomId` 只呈现当前 Better Auth 用户、产品数据库和 Matrix/Synapse 的真实状态。认证、bootstrap 或 Matrix 不可用时必须失败关闭并显示明确的可恢复状态，不能再加载演示用户、演示联系人、演示房间或浏览器模拟 mutation。
+登录后的 `/spaces`、`/contacts`、`/discover`、`/me` 与 `/spaces/:spaceId` 只呈现当前 Better Auth 用户、产品数据库和 Matrix/Synapse 的真实状态。认证、bootstrap 或 Matrix 不可用时必须失败关闭并显示明确的可恢复状态，不能再加载演示用户、演示联系人、演示 Space 或浏览器模拟 mutation。`/messages` 与 `/rooms/:roomId` 只允许兼容重定向。
 
 ## 切换前差距
 
@@ -24,7 +26,7 @@
 1. 聊天路由统一要求 Better Auth session；session 丢失后返回本地化登录页。
 2. 客户端状态只有 `connecting/ready/unavailable/error`，删除登录后 fixture fallback 和本地模拟 action。
 3. 产品数据库保存用户偏好、每房间置顶/静音和官方空间收藏；共享 service/repository 是唯一写入口。
-4. 官方内置空间以服务端目录 API 返回，目录明确标识 `builtin` 与当前可用版本，不把未实现的第三方市场伪装成线上数据。
+4. 已发布 Template 以服务端目录 API 返回，目录通过 `publisher.verification` 和 `provenance` 标识来源并暴露当前不可变版本；当前默认目录只装载官方 Publisher，不把尚未开放的用户上架伪装成线上数据。
 5. Matrix 房间、成员、timeline、read receipt、typing、媒体和关系事件继续以 Synapse 为权威。
 6. 加载失败、Matrix 未配置和同步失败提供重试/退出入口；错误态不得暴露 token 或复用旧用户数据。
 7. localStorage 只保留 Matrix SDK 允许的缓存和非权威界面缓存；产品偏好不以它为权威。

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "vibechat.space-template/v1",
+  "id": "space-campfire",
+  "slug": "campfire",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "category": "daily",
+  "name": {
+    "en": "Afterglow Radio",
+    "zh-CN": "夜航电台"
+  },
+  "summary": {
+    "en": "A slow-moving late-night radio Space for the last thoughts of the day.",
+    "zh-CN": "像深夜电台一样缓慢流动的 Space，适合分享一天最后的心事。"
+  },
+  "author": "Vibe Chat Studio",
+  "icon": "◐",
+  "accent": "#ff6b42",
+  "canvas": "#171b20",
+  "currentVersionId": "tplv-space-campfire-0-1-2"
+}

@@ -2,40 +2,60 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-14
-> 事实来源：仓库根目录 `README.md` 与长期稳定设计
+> 更新日期：2026-08-25
+> 维护范围：当前实现事实、近期主线和跨应用工程约束
+> 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 当前阶段
 
-仓库已经完成 Vibe Chat 产品 Web 前端宿主、A2 聊天基础闭环，以及账户、定价、积分、推荐、提现、支付和 AI 能力迁移。当前活动源码只保留单一 Web/Backend/Admin 实现，完整浏览器回归已在真实 SQLite + Synapse 环境通过，主线重新进入 A3“氛围空间 Runtime”。
+仓库已完成 VibeChat 产品 Web 宿主、A2 真实聊天闭环，以及账户、定价、积分、推荐、提现、支付和 AI 能力迁移。Email OTP、产品 profile、Matrix identity/device、session revoke、真实 Matrix room/timeline、社交邀请、完整消息操作、Space 市场基础、产品状态和多应用/package 边界均有测试或浏览器证据。
 
-Email OTP、[Matrix Identity 生命周期](./active/matrix-identity-lifecycle.md)、[Synapse Appservice Adapter](./active/synapse-appservice-adapter.md)、session 撤销 worker、[真实 Matrix 房间与 Timeline](./active/matrix-room-timeline.md)、[社交关系与 Matrix 邀请](./active/social-matrix-invitations.md)、[完整消息操作与资料基础](./active/matrix-message-profile-foundation.md)以及[登录后产品状态真实化](./active/real-product-state-cutover.md)均已完成。账户/商业化/AI 的完成证据见[产品能力迁移完成记录](../archive/legacy-capability-migration.md)与[2026-08-14 发布说明](../stable/release-notes/2026-08-14-product-capability-migration.md)。外部支付、AI 与对象存储沙盒仍需各自凭据进行上线前验收；这不再阻止 A3 本地产品开发。
+2026-08-23 产品设计进一步确认：**Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场**。顶部 Kernel Bar 是唯一固定宿主界面；其下全部由 Space App Project 渲染，默认 Chat UI 也只是可定制的 Default Chat App 代码。不可修改的是平台 Chat Core：Matrix timeline、成员、消息操作、Mention 与 `@agent` 调度始终通过 Space SDK 正常调用。Space 保留市场与模板创建，Pi 只是首个候选 Agent Adapter。Space Runtime 继续采用与 `chat-app-server` 同构的 Node/Hono、实例服务器、SSE/command、串行 Turn、ProjectStore、agentOS Apps 持续更新/Release 和 SDK 技术链。设计依据、demo 核验和差距见 [Space App 设计演进与实施记录](./active/space-app-design-transition.md)。
 
-工程边界已采纳并实施[Apps 边界与 Desktop 架构 RFC](./app-boundaries-and-desktop-architecture-rfc.md)：官网、产品 Web、Admin 与共享 Backend 已成为独立构建单元。旧通用 Admin 中仍有价值的运营能力已恢复到 `apps/admin-app`，其服务端 API 归属共享 Backend；账户、服务定价、支付结果与 AI 页面进入唯一产品 Web shell，数据库、支付/AI provider、积分、推荐和提现写入只存在于 Backend。后续 A4 空间审核也进入这一唯一 Admin 宿主。A3 可以继续设计，但新增宿主能力必须通过共享 contract/platform port 表达，不再把产品逻辑直接固化到 TanStack route、相对 `fetch` 或浏览器全局对象中。
+当前主线是 A3/A4 首版切片验证和生产化：
 
-跨宿主 workspace packages 已建立并接入：`api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client`、`platform-contracts`、`i18n`、`validators`、`ui` 与 `react-shared`。这些边界有独立 manifests、exports、依赖和构建门槛；`libs/*` 只保存 Backend 单宿主领域实现，不再承担跨应用共享源码。
+1. 保留 `/v1/spaces`、Discover、分类、收藏、模板版本和现有 `spaceId/spaceVersionId` 创建链路。
+2. 在已原地升级的 `room_index` 和统一 SpaceInstance 上补齐 Product DB/Object Store、v2 state、outbox 与多副本 lease。
+3. 加固已接通的独立 `apps/space-runtime`、短期内部认证、Runtime/Agent provider 和网络边界。
+4. 在保持真实 Matrix Chat/社交/市场回归的前提下增加空白 Space 创建与模板后应用。
+5. 以 TEST-CATALOG #40 推进 Kernel Bar + 全尺寸 App Surface、Default Chat App、完整 Chat/Mention SDK、结构化 Agent Mention、ready Revision 实时更新和 publish barrier。
+6. 以统一 `SpaceTemplate` / `SpaceTemplateVersion` / `SpaceTemplateMarketEntry` 协议补齐用户从固定 ready Revision 发布到市场的 Product DB/Object Store、审核和撤销链路；不得为官方和用户建立平行类型或市场表。
 
-当前正在按[多应用无前缀本地化集成记录](./active/locale-neutral-routing.md)收口 Site、产品 Web 与 Admin 的本地化契约：业务资源 URL 不携带语言段，SSR 从共享 Cookie 解析语言，旧语言前缀只承担兼容跳转。Docs App 的内容型语言 URL 不在这次迁移范围内。
+## 当前实现事实
+
+- `apps/site-app` 是公开官网，`apps/web-app` 是产品 Web/PWA，`apps/backend` 是共享产品 API，`apps/admin-app` 是独立运营宿主，`apps/docs-app` 是文档站。
+- Web 与 Admin 通过各自同源网关访问 Backend；业务 handler、数据库、支付/AI provider、积分和存储仍只属于 Backend。
+- 跨宿主能力已按稳定 exports 拆为实际 workspace packages；Better Auth 仍是浏览器身份权威。
+- Matrix 是当前 Space membership 和 Chat timeline 权威；底层实现和兼容 API 仍使用 Matrix Room/`roomId`。
+- 当前 `room_index` 的每条记录已经是统一 SpaceInstance 的物理基础；`POST /v1/rooms`、Discover、官方 Space 目录、收藏、`spaceId/spaceVersionId` 和 `io.vibechat.space.instance.v1` 都是必须保持的活动行为。
+- `apps/space-runtime`、Space App contracts/SDK、Backend membership gateway、通用 Agent Adapter、ready Revision/Release 与 Web Kernel/App 已形成可运行的首版纵向切片。`/spaces/:spaceId` 只固定顶部 Kernel Bar，其下单一 iframe 包含 Default Chat 或定制 App；Host 不再渲染 Chat timeline/composer。
+- 官方目录现有 Default Chat 与四个差异化模板，共五个 `agentos-app-v1` Project；每个 Template 在仓库只维护一份普通的多文件 `app/` 工作项目和一个扁平 `releases.json`。当前有序序列为 `0.1.0 → 0.1.1 → 0.1.2`：`0.1.1` 修正 AgentOS 不可变 Release 的 `registry` 入口，`0.1.2` 修正全屏 Chat Header/Composer 并把浏览器 SDK 视图、消息渲染、Composer、启动订阅、Template controller 和 CSS 分区拆成可类型检查的职责模块；两者都不改变 SDK、权限、App State 或 Chat Core 语义。`src/index.ts` 仍只负责 Runtime/handler 装配；Artifact/Space Revision/Dev Preview/Agent 编辑均识别并校验完整项目树。Version 只引用按 hash 寻址的不可变 artifact，历史源码不按版本复制；独立发布/部署从统一 Registry/Object Store 取 artifact。共享协议与 codegen 强制首版、相邻 SemVer、最高 current、非空升版和最新源码 hash 一致；旧 `builtin` v1–v5 与误用的 `5.0.0` ID 仅作开发数据读取 alias。
+- Alice 的现有定制 Space 已按同一 Project 协议迁移到 `space-default@0.1.2` 的模块化 Chat 基线；迁移保留其 App 自有深蓝动态视觉和 Published Release，只在 Runtime Candidate ready 后切换当前 ready Revision。
+- 官方与用户 Template 的版本和市场协议已经统一：官方标记来自 `publisher.verification=official`，来源为 `repository`；App 来源用户样本使用同一结构和 `origin=app`。`/v1/spaces`、创建、收藏、Matrix snapshot、Runtime 与 Discover 不再依赖 `builtin` 类型。用户发布 API、审核与生产存储仍待实现。
+- Backend 会向 opaque iframe 注入受信任 Space SDK shim，App 不需要网络脚本权限；真实成员 ID、共享 App state 和刷新恢复已在本地 Synapse 浏览器流程中验证。
+- Space App SDK 首版已代理发送、附件、回复、编辑、删除、Reaction、重试、typing、已读与 member/agent Mention。Backend 不再把 Runtime 非 2xx 改写为包级 Default Chat HTML；Dev Preview 按 ready Revision 隔离并保留最近三个可寻址实例，候选构建/启动失败时 Web 继续挂载 Project 记录的最后 ready Revision。Kernel 的 Default Chat 恢复已实现：Backend 校验成员身份，Runtime 串行验证官方 Template Candidate 后才切换新的 ready Revision，并保持 Published Release、Matrix timeline 和 App State；该链路不调用 Agent 或 AI credits。
+- AgentOS Apps 本地 Build VM 已通过显式 DNS 配置解决包安装解析失败，官方 `0.1.1` 入口同时导出 `registry`，Alice 的现有 Space 已从 `space-default@0.1.1` ready Revision 成功固化为 64 位内容寻址 Release。显式发布归属 Kernel；Host 只把真实 Agent 回复投影给可定制 App，不再把恢复、发布或 Runtime error 伪装成 Pi/成员对话。
+- Host Pi 已真实生成共享计数器 Draft，Dev 与发布后的不可变 Live 均成功读取；定向 unit、TypeScript 和 Backend Node 构建已通过。
+- 默认 `pnpm dev` 已可自动准备 SQLite、初始化/启动本地 Synapse，并启动 Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
+- 默认开发启动器现同时拥有本地 Rivet Engine 生命周期：先用仓库固定的 filesystem 数据库启动并等待健康，再启动应用；整栈退出时只停止 Engine 进程并保留 Actor/Release 数据。Runtime boot 代次会清理已持久化但已死亡的 AgentOS replica/admission 租约，再从原不可变 Release 启动新副本。Alice 的同一 `0.1.1` Release 在完整停止/重启后继续返回 HTTP 200，replica 从旧 `/0` 重建为 `/1`；这只证明本地单 Runtime 恢复，生产多副本 lease 仍未完成。
+- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi` Matrix event 核验、默认 100 欢迎积分、Host Pi 回复、实际 token usage 结算，以及 Pi 修改 App 后 ready Revision 从 `2d68a0defce3aac1` 实时切换到 `46f337b6b99d8f27` 且 Published Release 不变。双 Chromium Context 的确定性 Candidate 失败保护已自动化通过：测试专用 Fake Adapter 经真实 Matrix Mention、ACL、credits、turn/repair/Dev Preview 失败后，旧 ready App、Chat 和 Published Release 在两端及刷新后保持可用；快照 bootstrap 不再覆盖 `building/failed` 状态。真实 Pi 双浏览器 Revision 切换用例已经实现，但本轮未获准向外部 DeepSeek 发送测试 Project/Prompt，尚未执行。publish barrier、生产持久化与跨副本接管仍未完成，因此 A3/A4 保持 Active。
 
 ## 当前约束
 
-- 产品 Web/PWA 只以 `apps/web-app` 的 TanStack Start 实现为准；活动路由包含认证、onboarding、聊天、账户、服务/上传、支付结果与 AI 产品面。
-- 官网位于 `apps/site-app`，本地端口 `8003`；只承载公开首页、Blog 与产品入口。
-- 共享 backend 位于 `apps/backend`，本地端口 `8002`；承载 Better Auth、产品 `/v1`、上传、账户/计费、推荐提现、支付、AI、健康检查和官网 Blog 读取。
-- 文档站位于 `apps/docs-app`。
-- 独立 Admin App 位于 `apps/admin-app`，本地端口 `8005`；只消费 Backend API，不直接导入数据库或 Backend 内部领域实现。
-- Admin 页面固定在 `/admin/*`，`/api/*` 总是进入同源 Backend 网关；运营 E2E 必须禁用接口重定向并校验 JSON 响应及页面实际数据请求，不能只用最终 `200` 或标题可见作为通过证据。
-- 经评审保留的旧能力已经迁入活动 app/package/lib 边界；不再保留第二份 `legacy` 源码或历史 E2E 快照，历史决策只由 `docs/archive` 保存。
-- `scripts/check-app-boundaries.mjs` 阻止 app-to-app 导入，以及 Site/Web 对数据库、支付、AI、存储和服务端 Auth 的直接导入。
-- 跨宿主且需要稳定导出的能力进入 `packages/*`；单一 Backend 内部领域实现继续放在 `libs/*`，是否升级为 package 依据第二个真实消费者、独立发布或隔离依赖的证据评审。
-- backend 的首轮 runtime 继续使用 TanStack Start server routes，核心合约和 service 放入 `libs/*`；Web 只保留同源网关，不保留业务 handler。
-- Better Auth 是浏览器身份权威，产品 API 不签发第二套 session；Matrix 尚未配置时必须显式返回 unavailable，不得生成 fixture token。
-- 产品 profile/identity mapping 已明确属于产品库，Matrix device/room/timeline 属于 Synapse；device token 使用标准 appservice scoped login，Synapse 生产拓扑仍需在部署前完成评审。
+- 不得把 demo 的 guest identity、本地 JSON、无认证 bridge、固定 Pi 或 provider 补丁直接复制为生产实现。
+- 不得删除或冻结 Space 市场；官方与用户 Template 必须使用同一协议、表和市场查询。用户发布的审核、签名、撤销和分成可以独立治理，但不得建立用户专用 Template 类型。
+- 不得让 App/Agent 改造降低联系人、邀请、消息、媒体、关系事件、已读、typing、Mention、`@agent` 或错误恢复能力；UI 可任意变化，平台能力与语义不可变化。
+- 不得为多人 Space 新建平行实例表、成员权威、消息 timeline 或 Runtime 类型；一对一与多人必须共用 `SpaceInstanceService/Repository/Server`。
+- Space App 必须复用 Better Auth、Matrix、权限、积分和同源 API，不能建立第二套身份、消息或账本权威。
+- Node/VM/Agent/长连接 Runtime 与 Cloudflare Backend 分离；`apps/space-runtime` 固定采用 demo 同构的 Node 22 + TypeScript + Hono、SSE/command、Instance Server、ProjectStore 和 agentOS Apps 技术链，公共契约进入 workspace packages。
+- 用户可见文本统一使用 Space 语义和 i18n key；Matrix Room 只在技术与兼容语境出现。
+- Agent 请求覆盖权限、显式寻址、积分预留、结算、失败退款和对账；公共契约不得绑定 Pi。
+- Generated App 按不可信代码处理，不能获得 Cookie、Matrix token、Agent 凭据、源码管理、发布或默认外部网络；Chat 与 Agent 只能通过版本化 SDK 和结构化 Mention 调用。
+- 每个切片必须在真实 TanStack Host、真实 Synapse 和目标 Runtime provider 中走查，不用 fixture 掩盖不可用状态。
 
-## 当前文档治理工作
+## 文档治理
 
-- 新增内容先进入“开发中”，避免未经核验就成为稳定承诺。
-- 原脚手架文档正在按 Vibe Chat 名称、多应用边界和正确文档类型重整。
-- 操作型用户文档统一作为 Runbook 维护，不再使用含义过宽的 `user-guide` 类型。
-
-完成阶段性工作后，应更新本页或用新的开发计划替代本页，并把本页归档。
+- 稳定设计只描述目标与不变量；当前实现、Space App 差距和 demo 证据写入开发中文档。
+- 未有代码、测试或运行证据的 Space App/Agent 能力不得标记 Complete，也不得写成发布说明。
+- 用户可见行为实际切换时，同步更新公开文档、TEST-CATALOG、API 参考和 Runbook。
+- 现有市场与 Chat 文档继续维护；只有真实被替代的技术兼容入口才按生命周期归档。

@@ -3,6 +3,8 @@
  * Token-based consumption model for AI and other features
  */
 
+import { getEnv } from './utils';
+
 /**
  * Fixed consumption config type
  * Can be a simple number or an object with default and model-specific costs
@@ -13,6 +15,19 @@ export type FixedConsumptionConfig = number | {
 };
 
 export const creditsConfig = {
+  /**
+   * Welcome credits granted once when an account is created.
+   * A value of 0 disables the grant without changing the signup flow.
+   */
+  get newUserGrant() {
+    const configured = getEnv('CREDITS_NEW_USER_GRANT');
+    if (configured) {
+      const amount = Number(configured);
+      if (Number.isFinite(amount) && amount >= 0) return amount;
+    }
+    return 100;
+  },
+
   /**
    * Consumption mode: 'fixed' or 'dynamic'
    * - fixed: Each operation consumes a fixed amount of credits

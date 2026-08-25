@@ -24,6 +24,7 @@ const activeRoots = [
   'apps/backend/src',
   'apps/admin-app/src',
   'apps/site-app/src',
+  'apps/space-runtime/src',
   'apps/web-app/src',
   'packages/api-contracts/src',
   'packages/auth-client/src',
@@ -35,6 +36,8 @@ const activeRoots = [
   'packages/validators/src',
   'packages/product-client/src',
   'packages/product-core/src',
+  'packages/space-app-contracts/src',
+  'packages/space-app-sdk/src',
 ]
 const files = (await Promise.all(activeRoots.map(sourceFiles))).flat()
 const failures = []
@@ -54,10 +57,12 @@ const serverOnlyClientImports = [
   '@libs/pricing',
 ]
 const packageDependencyPolicy = {
-  '@vibechat/api-contracts': new Set(),
+  '@vibechat/api-contracts': new Set(['@vibechat/space-app-contracts']),
   '@vibechat/auth-client': new Set(),
   '@vibechat/i18n': new Set(),
   '@vibechat/product-core': new Set(),
+  '@vibechat/space-app-contracts': new Set(),
+  '@vibechat/space-app-sdk': new Set(['@vibechat/space-app-contracts']),
   '@vibechat/platform-contracts': new Set(),
   '@vibechat/ui': new Set(),
   '@vibechat/validators': new Set([

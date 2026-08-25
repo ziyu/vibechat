@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as V1SpaceAppSdkRouteImport } from './routes/v1/space-app-sdk'
 import { Route as V1ProfileRouteImport } from './routes/v1/profile'
 import { Route as V1ProductStateRouteImport } from './routes/v1/product-state'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
@@ -27,6 +28,8 @@ import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
+import { Route as V1InternalSpaceAgentCompletionRouteImport } from './routes/v1/internal/space-agent-completion'
+import { Route as V1InternalSpaceAgentBillingRouteImport } from './routes/v1/internal/space-agent-billing'
 import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
 import { Route as V1BlocksUserIdRouteImport } from './routes/v1/blocks/$userId'
 import { Route as ApiWithdrawalRequestRouteImport } from './routes/api/withdrawal/request'
@@ -56,6 +59,7 @@ import { Route as ApiAdminStatsIndexRouteImport } from './routes/api/admin/stats
 import { Route as ApiAdminPricingPlansIndexRouteImport } from './routes/api/admin/pricing-plans/index'
 import { Route as ApiAdminOrdersIndexRouteImport } from './routes/api/admin/orders/index'
 import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/index'
+import { Route as V1SpacesInstancesRoomIdRouteImport } from './routes/v1/spaces/instances/$roomId'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
 import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
@@ -77,10 +81,21 @@ import { Route as ApiAdminBlogIdRouteImport } from './routes/api/admin/blog/$id'
 import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin/users/update/index'
 import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
 import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
+import { Route as V1SpacesInstancesRoomIdTurnsRouteImport } from './routes/v1/spaces/instances/$roomId/turns'
+import { Route as V1SpacesInstancesRoomIdRestoreRouteImport } from './routes/v1/spaces/instances/$roomId/restore'
+import { Route as V1SpacesInstancesRoomIdPublishRouteImport } from './routes/v1/spaces/instances/$roomId/publish'
+import { Route as V1SpacesInstancesRoomIdEventsRouteImport } from './routes/v1/spaces/instances/$roomId/events'
+import { Route as V1SpacesInstancesRoomIdBridgeRouteImport } from './routes/v1/spaces/instances/$roomId/bridge'
+import { Route as V1SpacesInstancesRoomIdAppRouteImport } from './routes/v1/spaces/instances/$roomId/app'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const V1SpaceAppSdkRoute = V1SpaceAppSdkRouteImport.update({
+  id: '/v1/space-app-sdk',
+  path: '/v1/space-app-sdk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const V1ProfileRoute = V1ProfileRouteImport.update({
@@ -168,6 +183,18 @@ const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
   path: '/v1/rooms/metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1InternalSpaceAgentCompletionRoute =
+  V1InternalSpaceAgentCompletionRouteImport.update({
+    id: '/v1/internal/space-agent-completion',
+    path: '/v1/internal/space-agent-completion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const V1InternalSpaceAgentBillingRoute =
+  V1InternalSpaceAgentBillingRouteImport.update({
+    id: '/v1/internal/space-agent-billing',
+    path: '/v1/internal/space-agent-billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1ContactsUserIdRoute = V1ContactsUserIdRouteImport.update({
   id: '/v1/contacts/$userId',
   path: '/v1/contacts/$userId',
@@ -316,6 +343,11 @@ const ApiAdminBlogIndexRoute = ApiAdminBlogIndexRouteImport.update({
   path: '/api/admin/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1SpacesInstancesRoomIdRoute = V1SpacesInstancesRoomIdRouteImport.update({
+  id: '/v1/spaces/instances/$roomId',
+  path: '/v1/spaces/instances/$roomId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const V1SpacesSpaceIdFavoriteRoute = V1SpacesSpaceIdFavoriteRouteImport.update({
   id: '/v1/spaces/$spaceId/favorite',
   path: '/v1/spaces/$spaceId/favorite',
@@ -429,6 +461,42 @@ const ApiAdminCreditsTransactionsIndexRoute =
     path: '/api/admin/credits/transactions/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const V1SpacesInstancesRoomIdTurnsRoute =
+  V1SpacesInstancesRoomIdTurnsRouteImport.update({
+    id: '/turns',
+    path: '/turns',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const V1SpacesInstancesRoomIdRestoreRoute =
+  V1SpacesInstancesRoomIdRestoreRouteImport.update({
+    id: '/restore',
+    path: '/restore',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const V1SpacesInstancesRoomIdPublishRoute =
+  V1SpacesInstancesRoomIdPublishRouteImport.update({
+    id: '/publish',
+    path: '/publish',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const V1SpacesInstancesRoomIdEventsRoute =
+  V1SpacesInstancesRoomIdEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const V1SpacesInstancesRoomIdBridgeRoute =
+  V1SpacesInstancesRoomIdBridgeRouteImport.update({
+    id: '/bridge',
+    path: '/bridge',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const V1SpacesInstancesRoomIdAppRoute =
+  V1SpacesInstancesRoomIdAppRouteImport.update({
+    id: '/app',
+    path: '/app',
+    getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -439,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/v1/space-app-sdk': typeof V1SpaceAppSdkRoute
   '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
   '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
@@ -461,6 +530,8 @@ export interface FileRoutesByFullPath {
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
+  '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -489,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
@@ -496,6 +568,12 @@ export interface FileRoutesByFullPath {
   '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users/': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/v1/spaces/instances/$roomId/app': typeof V1SpacesInstancesRoomIdAppRoute
+  '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
+  '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
+  '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
+  '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
@@ -509,6 +587,7 @@ export interface FileRoutesByTo {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/v1/space-app-sdk': typeof V1SpaceAppSdkRoute
   '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
   '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
@@ -531,6 +610,8 @@ export interface FileRoutesByTo {
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
+  '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -559,6 +640,7 @@ export interface FileRoutesByTo {
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/blog': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans': typeof ApiAdminPricingPlansIndexRoute
@@ -566,6 +648,12 @@ export interface FileRoutesByTo {
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals': typeof ApiAdminWithdrawalsIndexRoute
+  '/v1/spaces/instances/$roomId/app': typeof V1SpacesInstancesRoomIdAppRoute
+  '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
+  '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
+  '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
+  '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update': typeof ApiAdminUsersUpdateIndexRoute
@@ -580,6 +668,7 @@ export interface FileRoutesById {
   '/api/upload': typeof ApiUploadRoute
   '/v1/product-state': typeof V1ProductStateRoute
   '/v1/profile': typeof V1ProfileRoute
+  '/v1/space-app-sdk': typeof V1SpaceAppSdkRoute
   '/api/admin/commissions': typeof ApiAdminCommissionsRoute
   '/api/affiliate/claim': typeof ApiAffiliateClaimRoute
   '/api/affiliate/commissions': typeof ApiAffiliateCommissionsRoute
@@ -602,6 +691,8 @@ export interface FileRoutesById {
   '/api/withdrawal/request': typeof ApiWithdrawalRequestRoute
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
+  '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -630,6 +721,7 @@ export interface FileRoutesById {
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
+  '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
@@ -637,6 +729,12 @@ export interface FileRoutesById {
   '/api/admin/subscriptions/': typeof ApiAdminSubscriptionsIndexRoute
   '/api/admin/users/': typeof ApiAdminUsersIndexRoute
   '/api/admin/withdrawals/': typeof ApiAdminWithdrawalsIndexRoute
+  '/v1/spaces/instances/$roomId/app': typeof V1SpacesInstancesRoomIdAppRoute
+  '/v1/spaces/instances/$roomId/bridge': typeof V1SpacesInstancesRoomIdBridgeRoute
+  '/v1/spaces/instances/$roomId/events': typeof V1SpacesInstancesRoomIdEventsRoute
+  '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
+  '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
+  '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
@@ -652,6 +750,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/v1/space-app-sdk'
     | '/api/admin/commissions'
     | '/api/affiliate/claim'
     | '/api/affiliate/commissions'
@@ -674,6 +773,8 @@ export interface FileRouteTypes {
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
+    | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -702,6 +803,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/v1/spaces/instances/$roomId'
     | '/api/admin/blog/'
     | '/api/admin/orders/'
     | '/api/admin/pricing-plans/'
@@ -709,6 +811,12 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions/'
     | '/api/admin/users/'
     | '/api/admin/withdrawals/'
+    | '/v1/spaces/instances/$roomId/app'
+    | '/v1/spaces/instances/$roomId/bridge'
+    | '/v1/spaces/instances/$roomId/events'
+    | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
+    | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
     | '/api/admin/users/update/'
@@ -722,6 +830,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/v1/space-app-sdk'
     | '/api/admin/commissions'
     | '/api/affiliate/claim'
     | '/api/affiliate/commissions'
@@ -744,6 +853,8 @@ export interface FileRouteTypes {
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
+    | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -772,6 +883,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/v1/spaces/instances/$roomId'
     | '/api/admin/blog'
     | '/api/admin/orders'
     | '/api/admin/pricing-plans'
@@ -779,6 +891,12 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions'
     | '/api/admin/users'
     | '/api/admin/withdrawals'
+    | '/v1/spaces/instances/$roomId/app'
+    | '/v1/spaces/instances/$roomId/bridge'
+    | '/v1/spaces/instances/$roomId/events'
+    | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
+    | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions'
     | '/api/admin/users/delete'
     | '/api/admin/users/update'
@@ -792,6 +910,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/v1/product-state'
     | '/v1/profile'
+    | '/v1/space-app-sdk'
     | '/api/admin/commissions'
     | '/api/affiliate/claim'
     | '/api/affiliate/commissions'
@@ -814,6 +933,8 @@ export interface FileRouteTypes {
     | '/api/withdrawal/request'
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
+    | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -842,6 +963,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/reject'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
+    | '/v1/spaces/instances/$roomId'
     | '/api/admin/blog/'
     | '/api/admin/orders/'
     | '/api/admin/pricing-plans/'
@@ -849,6 +971,12 @@ export interface FileRouteTypes {
     | '/api/admin/subscriptions/'
     | '/api/admin/users/'
     | '/api/admin/withdrawals/'
+    | '/v1/spaces/instances/$roomId/app'
+    | '/v1/spaces/instances/$roomId/bridge'
+    | '/v1/spaces/instances/$roomId/events'
+    | '/v1/spaces/instances/$roomId/publish'
+    | '/v1/spaces/instances/$roomId/restore'
+    | '/v1/spaces/instances/$roomId/turns'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
     | '/api/admin/users/update/'
@@ -863,6 +991,7 @@ export interface RootRouteChildren {
   ApiUploadRoute: typeof ApiUploadRoute
   V1ProductStateRoute: typeof V1ProductStateRoute
   V1ProfileRoute: typeof V1ProfileRoute
+  V1SpaceAppSdkRoute: typeof V1SpaceAppSdkRoute
   ApiAdminCommissionsRoute: typeof ApiAdminCommissionsRoute
   ApiAffiliateClaimRoute: typeof ApiAffiliateClaimRoute
   ApiAffiliateCommissionsRoute: typeof ApiAffiliateCommissionsRoute
@@ -885,6 +1014,8 @@ export interface RootRouteChildren {
   ApiWithdrawalRequestRoute: typeof ApiWithdrawalRequestRoute
   V1BlocksUserIdRoute: typeof V1BlocksUserIdRoute
   V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
+  V1InternalSpaceAgentBillingRoute: typeof V1InternalSpaceAgentBillingRoute
+  V1InternalSpaceAgentCompletionRoute: typeof V1InternalSpaceAgentCompletionRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   V1UsersSearchRoute: typeof V1UsersSearchRoute
@@ -913,6 +1044,7 @@ export interface RootRouteChildren {
   V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
+  V1SpacesInstancesRoomIdRoute: typeof V1SpacesInstancesRoomIdRouteWithChildren
   ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
   ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
   ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
@@ -932,6 +1064,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/space-app-sdk': {
+      id: '/v1/space-app-sdk'
+      path: '/v1/space-app-sdk'
+      fullPath: '/v1/space-app-sdk'
+      preLoaderRoute: typeof V1SpaceAppSdkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/profile': {
@@ -1051,6 +1190,20 @@ declare module '@tanstack/react-router' {
       path: '/v1/rooms/metadata'
       fullPath: '/v1/rooms/metadata'
       preLoaderRoute: typeof V1RoomsMetadataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/internal/space-agent-completion': {
+      id: '/v1/internal/space-agent-completion'
+      path: '/v1/internal/space-agent-completion'
+      fullPath: '/v1/internal/space-agent-completion'
+      preLoaderRoute: typeof V1InternalSpaceAgentCompletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/internal/space-agent-billing': {
+      id: '/v1/internal/space-agent-billing'
+      path: '/v1/internal/space-agent-billing'
+      fullPath: '/v1/internal/space-agent-billing'
+      preLoaderRoute: typeof V1InternalSpaceAgentBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/contacts/$userId': {
@@ -1256,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminBlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/spaces/instances/$roomId': {
+      id: '/v1/spaces/instances/$roomId'
+      path: '/v1/spaces/instances/$roomId'
+      fullPath: '/v1/spaces/instances/$roomId'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/spaces/$spaceId/favorite': {
       id: '/v1/spaces/$spaceId/favorite'
       path: '/v1/spaces/$spaceId/favorite'
@@ -1403,8 +1563,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminCreditsTransactionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/spaces/instances/$roomId/turns': {
+      id: '/v1/spaces/instances/$roomId/turns'
+      path: '/turns'
+      fullPath: '/v1/spaces/instances/$roomId/turns'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdTurnsRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/v1/spaces/instances/$roomId/restore': {
+      id: '/v1/spaces/instances/$roomId/restore'
+      path: '/restore'
+      fullPath: '/v1/spaces/instances/$roomId/restore'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdRestoreRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/v1/spaces/instances/$roomId/publish': {
+      id: '/v1/spaces/instances/$roomId/publish'
+      path: '/publish'
+      fullPath: '/v1/spaces/instances/$roomId/publish'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdPublishRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/v1/spaces/instances/$roomId/events': {
+      id: '/v1/spaces/instances/$roomId/events'
+      path: '/events'
+      fullPath: '/v1/spaces/instances/$roomId/events'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdEventsRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/v1/spaces/instances/$roomId/bridge': {
+      id: '/v1/spaces/instances/$roomId/bridge'
+      path: '/bridge'
+      fullPath: '/v1/spaces/instances/$roomId/bridge'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdBridgeRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/v1/spaces/instances/$roomId/app': {
+      id: '/v1/spaces/instances/$roomId/app'
+      path: '/app'
+      fullPath: '/v1/spaces/instances/$roomId/app'
+      preLoaderRoute: typeof V1SpacesInstancesRoomIdAppRouteImport
+      parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
   }
 }
+
+interface V1SpacesInstancesRoomIdRouteChildren {
+  V1SpacesInstancesRoomIdAppRoute: typeof V1SpacesInstancesRoomIdAppRoute
+  V1SpacesInstancesRoomIdBridgeRoute: typeof V1SpacesInstancesRoomIdBridgeRoute
+  V1SpacesInstancesRoomIdEventsRoute: typeof V1SpacesInstancesRoomIdEventsRoute
+  V1SpacesInstancesRoomIdPublishRoute: typeof V1SpacesInstancesRoomIdPublishRoute
+  V1SpacesInstancesRoomIdRestoreRoute: typeof V1SpacesInstancesRoomIdRestoreRoute
+  V1SpacesInstancesRoomIdTurnsRoute: typeof V1SpacesInstancesRoomIdTurnsRoute
+}
+
+const V1SpacesInstancesRoomIdRouteChildren: V1SpacesInstancesRoomIdRouteChildren =
+  {
+    V1SpacesInstancesRoomIdAppRoute: V1SpacesInstancesRoomIdAppRoute,
+    V1SpacesInstancesRoomIdBridgeRoute: V1SpacesInstancesRoomIdBridgeRoute,
+    V1SpacesInstancesRoomIdEventsRoute: V1SpacesInstancesRoomIdEventsRoute,
+    V1SpacesInstancesRoomIdPublishRoute: V1SpacesInstancesRoomIdPublishRoute,
+    V1SpacesInstancesRoomIdRestoreRoute: V1SpacesInstancesRoomIdRestoreRoute,
+    V1SpacesInstancesRoomIdTurnsRoute: V1SpacesInstancesRoomIdTurnsRoute,
+  }
+
+const V1SpacesInstancesRoomIdRouteWithChildren =
+  V1SpacesInstancesRoomIdRoute._addFileChildren(
+    V1SpacesInstancesRoomIdRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1415,6 +1641,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadRoute: ApiUploadRoute,
   V1ProductStateRoute: V1ProductStateRoute,
   V1ProfileRoute: V1ProfileRoute,
+  V1SpaceAppSdkRoute: V1SpaceAppSdkRoute,
   ApiAdminCommissionsRoute: ApiAdminCommissionsRoute,
   ApiAffiliateClaimRoute: ApiAffiliateClaimRoute,
   ApiAffiliateCommissionsRoute: ApiAffiliateCommissionsRoute,
@@ -1437,6 +1664,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWithdrawalRequestRoute: ApiWithdrawalRequestRoute,
   V1BlocksUserIdRoute: V1BlocksUserIdRoute,
   V1ContactsUserIdRoute: V1ContactsUserIdRoute,
+  V1InternalSpaceAgentBillingRoute: V1InternalSpaceAgentBillingRoute,
+  V1InternalSpaceAgentCompletionRoute: V1InternalSpaceAgentCompletionRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   V1UsersSearchRoute: V1UsersSearchRoute,
@@ -1465,6 +1694,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
+  V1SpacesInstancesRoomIdRoute: V1SpacesInstancesRoomIdRouteWithChildren,
   ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
   ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
   ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,

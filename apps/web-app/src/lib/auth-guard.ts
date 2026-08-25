@@ -60,7 +60,7 @@ const getSubscriptionAccess = createServerFn({ method: 'GET' }).handler(async ()
 export async function redirectIfAuthenticated() {
   const result = await getAuthSession()
   if (result?.user) {
-    throw redirect({ to: '/messages' })
+    throw redirect({ to: '/spaces' })
   }
 }
 

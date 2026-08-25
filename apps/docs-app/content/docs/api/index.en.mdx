@@ -5,7 +5,7 @@ description: Current Vibe Chat browser product APIs and data authorities
 
 # Product API Reference
 
-The Vibe Chat web app composes Better Auth, the product database, and Matrix/Synapse through same-origin product APIs. This page documents the browser contracts that are implemented today. The third-party atmosphere marketplace, Runtime capabilities, and Web Push are not yet public.
+The Vibe Chat web app composes Better Auth, the product database, Matrix/Synapse, and the standalone Space Runtime through same-origin product APIs. This page documents the browser contracts implemented today. Third-party Space Template submission and Web Push are not yet public.
 
 ## Authentication
 
@@ -20,6 +20,12 @@ const response = await fetch('/v1/product-state', {
 
 Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access token is returned only by `/v1/session/bootstrap` to the in-memory Matrix client for the current browser. It must not be stored in localStorage, logs, or another product API.
 
+## Product routes
+
+`/spaces` is the authenticated product home. Every item is a running Space Instance with members, the full Chat Core, Kernel state, and an App Project. `/spaces/:spaceId` fixes only the top Kernel Bar; one Space App renders everything below it, including the default or customized Chat UI, and calls the immutable Chat Core through the SDK. During the first migration slice, `:spaceId` may contain the encoded Matrix Room ID used to resolve the same SpaceInstance.
+
+`/messages` and `/rooms/:roomId` are compatibility redirects only. New integrations, callbacks, tests, and links must use the Space routes.
+
 ## Current endpoints
 
 | Method | Path | Purpose |
@@ -33,12 +39,19 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `POST` | `/v1/friend-requests/:id/reject` | Reject a friend request |
 | `PATCH` | `/v1/contacts/:userId` | Update the current user's private contact remark |
 | `POST/DELETE` | `/v1/blocks`, `/v1/blocks/:userId` | Block or unblock a user |
-| `POST` | `/v1/rooms` | Validate participants and a built-in atmosphere, then idempotently create a Matrix room |
+| `POST` | `/v1/rooms` | Validate members and a fixed Space Template version, then idempotently create one Matrix-backed Space instance |
 | `POST` | `/v1/rooms/metadata` | Batch-read product room indexes accessible to the current user |
 | `GET/PATCH` | `/v1/product-state` | User notification/theme/locale settings, room preferences, and favorite spaces |
 | `PUT` | `/v1/rooms/:roomId/preferences` | Persist the current user's pin/mute state for a real Matrix room |
-| `GET` | `/v1/spaces?locale=en` | Read the server-owned built-in atmosphere directory and version/capability metadata |
-| `PUT` | `/v1/spaces/:spaceId/favorite` | Persist the current account's built-in space favorite |
+| `GET` | `/v1/spaces?locale=en` | Read the unified Space Template Market directory with publisher, immutable version, `integrity`, `projectFormat`, and capabilities; only official entries are currently published |
+| `PUT` | `/v1/spaces/:spaceId/favorite` | Persist the current account's favorite for a published Space Template |
+| `GET` | `/v1/spaces/instances/:roomId` | Read the unified SpaceInstance, Template lineage, Dev/Live pointers, and Agent state after Matrix membership authorization |
+| `GET` | `/v1/spaces/instances/:roomId/events` | Subscribe to member, App state, Agent, and build events for the Space |
+| `GET` | `/v1/spaces/instances/:roomId/app?channel=dev\|live&version=<readyRevision>` | Load a fixed ready Revision or immutable Live App in an opaque iframe; Runtime non-2xx responses stay intact and never synthesize a Default Chat page |
+| `POST` | `/v1/spaces/instances/:roomId/bridge` | Proxy SDK commands allowed by the presence/state/event allowlist |
+| `POST` | `/v1/spaces/instances/:roomId/turns` | Submit an explicit request with a Matrix event ID and structured Agent mention; the Backend re-reads the event and verifies its sender and target before billing and enqueueing it |
+| `POST` | `/v1/spaces/instances/:roomId/publish` | Explicitly publish a fixed Dev draft as an immutable Live release |
+| `POST` | `/v1/spaces/instances/:roomId/restore` | Atomically restore the Space through Kernel to a new ready Revision built from the official Default Chat artifact; the request carries an idempotency key and expected ready Revision and preserves the published Release, Matrix timeline, and App State |
 | `GET` | `/api/credits/status`, `/api/credits/transactions` | Current user's balance and ledger |
 | `GET` | `/api/orders`, `/api/subscription/status` | Current user's purchases and entitlement |
 | `GET/POST` | `/api/affiliate/*`, `/api/withdrawal/*` | Referral attribution, commissions and KYC-gated withdrawal |
@@ -46,7 +59,7 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `POST` | `/api/chat`, `/api/image-generate`, `/api/video-generate` | Billable AI generation with failure refunds |
 | `POST` | `/api/upload` | Authenticated image upload with type and size limits |
 
-Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry.
+Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry. New accounts receive 100 welcome credits through an idempotent ledger transaction by default, so they can start an Agent conversation in a Space immediately. Deployments can change or disable the grant with `CREDITS_NEW_USER_GRANT`. Agent requests reserve credits first, settle against the Runtime's actual token usage, and use a stable transaction ID for failure refunds.
 
 ## Product state example
 
@@ -68,7 +81,35 @@ Payment success/cancel pages are presentation only. Payment fulfillment comes fr
 }
 ```
 
-The space directory currently returns `source: builtin`. This means the version is bundled by the product service; it does not imply that a third-party marketplace is live.
+Space Template Market entries use the common `vibechat.space-template-market-entry/v1` shape:
+
+```json
+{
+  "schemaVersion": "vibechat.space-template-market-entry/v1",
+  "id": "space-campfire",
+  "versionId": "tplv-space-campfire-0-1-2",
+  "semanticVersion": "0.1.2",
+  "artifact": {
+    "schemaVersion": "vibechat.space-template-artifact/v1",
+    "id": "tpla-<source-sha256>",
+    "format": "agentos-app-v1",
+    "sourceHash": "sha256:<source-sha256>"
+  },
+  "projectFormat": "agentos-app-v1",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "provenance": {
+    "origin": "repository",
+    "publisherId": "publisher-vibechat",
+    "sourcePath": "packages/space-templates/official/space-campfire/app"
+  }
+}
+```
+
+Official and user Templates do not use different data types. The official mark comes from `publisher.verification`; repository sources use `provenance.origin=repository`, while a future user publication from a Space App uses the same fields with `origin=app`. User submission APIs, review, and production storage are not open yet. A Template artifact contains the complete multi-file App Project under normalized, hashed paths. Applying it copies that tree into the Space's independent Project, where later Agent revisions may split or add source modules without mutating the Market version.
 
 ## Error shape
 

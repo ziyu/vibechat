@@ -161,24 +161,24 @@ test.describe('Authentication Flow', () => {
       expect(signInRes.ok()).toBeTruthy();
 
       // Verify we CAN access the product first
-      await page.goto(`${PAGES.home}/messages`, {
+      await page.goto(`${PAGES.home}/spaces`, {
         timeout: TIMEOUTS.navigation,
         waitUntil: 'commit',
       });
-      await expect(page).toHaveURL(/\/(messages|onboarding)$/);
+      await expect(page).toHaveURL(/\/(spaces|onboarding)$/);
 
       // Sign out (clears cookies)
       await signOutViaAPI(page);
 
       // After signing out, visiting the product should redirect to signin
-      await page.goto(`${PAGES.home}/messages`, {
+      await page.goto(`${PAGES.home}/spaces`, {
         timeout: TIMEOUTS.navigation,
         waitUntil: 'commit',
       }).catch(() => null);
       await expect(page).toHaveURL(/\/signin/);
     });
 
-    test('logged-in user visiting /signin is redirected to /messages', async ({ page }) => {
+    test('logged-in user visiting /signin is redirected to /spaces', async ({ page }) => {
       // Sign in
       const signInRes = await signInViaAPI(page, {
         email: sharedEmail,
@@ -190,10 +190,10 @@ test.describe('Authentication Flow', () => {
       await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
 
       // Should be redirected to the chat product
-      await expect(page).toHaveURL(/\/messages/);
+      await expect(page).toHaveURL(/\/spaces/);
     });
 
-    test('logged-in user visiting /signup is redirected to /messages', async ({ page }) => {
+    test('logged-in user visiting /signup is redirected to /spaces', async ({ page }) => {
       // Sign in
       const signInRes = await signInViaAPI(page, {
         email: sharedEmail,
@@ -205,7 +205,7 @@ test.describe('Authentication Flow', () => {
       await page.goto(PAGES.signup, { timeout: TIMEOUTS.navigation });
 
       // Should be redirected to the chat product
-      await expect(page).toHaveURL(/\/messages/);
+      await expect(page).toHaveURL(/\/spaces/);
     });
   });
 });

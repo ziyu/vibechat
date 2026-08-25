@@ -3,109 +3,134 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-12
+> 更新日期：2026-08-24
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 当前变更：[Space App 设计演进与实施记录](./space-app-design-transition.md)
 
 ## 1. 文档职责
 
-稳定设计定义目标状态和长期约束；本文件记录从当前仓库到目标状态的实际开发进展。设计是否写完与功能是否实现是两件事，任何“已完成”都必须附代码、测试或运行证据。
+稳定设计定义目标状态和长期约束；本文件记录从当前仓库到目标状态的实际进展。设计完成与功能实现是两件事，任何 Complete 都必须附代码、测试和运行证据。
 
-本文件不复制稳定设计正文。目标或约束发生变化时，先在开发中形成变更提案，评审后更新稳定设计；这里只同步实施影响。
+2026-08-22 设计确认：产品实体为 Space；每个 Space 保留完整 Chat、市场模板与收藏，并增加独立 App Project 和可插拔 Agent。现有代码已经实现 Chat 与官方 Space 目录，并已落地 Kernel/Chat/App、通用 Agent Adapter、Draft/Release 的首版纵向切片；空白 Space 后选模板、生产存储与完整 E2E 仍未完成。
 
 ## 2. 当前结论
 
-> **产品实现状态：A1、A2 已完成，下一主线为 A3。**
+> **产品实现状态：A1、A2 已完成；Space App 新设计已生效，A3、A4 首版切片 Active。**
 
-仓库已有 TanStack Start 工程骨架、共享 SaaS 能力、Vibe Chat 品牌和文档基线，但这些不能证明产品与技术设计中的核心能力已经实现。
+已经形成的实现证据：
 
-截至 2026-08-12，已经形成以下实现证据：
+- Better Auth Email OTP、产品 profile、Matrix identity/session binding、session revoke 和 Synapse Appservice adapter 已实现。
+- Matrix Room/timeline、IndexedDB sync、local echo、消息关系、媒体、编辑、删除、typing、搜索和离线幂等重发已通过真实 Synapse/Chromium。
+- 好友请求、联系人、备注、屏蔽、participant ACL、Matrix 邀请和多浏览器 session 已通过真实链路。
+- `/discover`、官方 Space 目录、分类、收藏、版本和模板建 Space 是活动产品行为。
+- 十个 workspace package 边界，以及 Web/Backend/Site/Admin/Workers/Docs 的构建与 E2E 基线已经形成。
 
-- `/messages`、`/contacts`、`/discover`、`/me`、`/rooms/:roomId` 目标信息架构已在 TanStack Start 中实现。
-- `packages/api-contracts`、`auth-client`、`product-core`、`product-client`、`matrix-client` 与 `platform-contracts` 提供有独立 exports、依赖声明和构建门槛的跨宿主边界；未配置环境显式失败关闭。
-- `tests/e2e/specs/chat-real-product-state.spec.ts` 覆盖产品路由守卫、空账号、服务端目录、收藏、偏好和账号隔离。
-- [聊天宿主与产品状态参考](../../stable/references/chat-host-foundation.md)记录了当前实现边界与数据权威。
-- Better Auth Email OTP、持久化产品 profile、Matrix identity/session binding、session revoke worker、Synapse Appservice adapter、room index 和 integration outbox 已形成可执行实现。
-- 浏览器 `matrix-js-sdk` 已接管 room/timeline，同步缓存、local echo、消息、回复、回应和 transaction ID 幂等均通过本地 Synapse/Chromium 验证。
-- 产品好友请求、双向联系人、屏蔽、房间参与者 ACL、Matrix 邀请确认与双浏览器会话管理已经通过真实链路验证。
-- Matrix 媒体、编辑、删除、typing、历史搜索和离线 pending event 幂等重发已经通过双用户真实链路验证。
-- 新用户首次资料设置、资料热更新、唯一用户名和私有联系人备注已接入产品 profile 与社交投影。
-- identity/rooms/social/product-state 与新 product packages 相关单测 45/45；活动产品 Chromium 全量回归 36/36；六个 package 与 Backend/Web/Site 根级 typecheck/build、Workers build/health 和文档构建通过。
+首版新增证据：
 
-尚未实现的产品专属范围包括氛围空间 iframe Runtime、CLI/审核链路和生产恢复体系；它们分别进入 A3、A4 和 A5，不再属于聊天基础闭环。
+- `room_index` 已原地增加 `spaceInstanceId/projectId/defaultAgentId`，历史与新房间继续使用同一记录、repository 和 Matrix Room。
+- `apps/space-runtime`、Space contracts/SDK、Backend membership gateway 与 Web Kernel/Chat/App 已接通。
+- Host Pi 已真实生成可交互 App；Dev draft 与不可变 publish/live 均返回 HTTP 200。
+- Default Chat App 已把结构化 Agent Mention 写入 Matrix event content；Backend 按精确事件核验后预留积分并入队，Host Pi 真实回复和 token usage 结算已通过本地 Synapse 浏览器走查。
+- 新账号默认获得 100 个幂等欢迎积分，可直接发起首轮 Agent 对话；配置可调整或关闭。
+- 4 个定向测试文件、10 个单元测试，以及新增 package/app 的定向 TypeScript 和 Backend Node 构建通过。
+
+尚未完成：
+
+- 空白 Space 创建，以及空白/已有 Space 后续应用模板。
+- 空白/已有 Space 后续应用模板。
+- Product DB/Object Store Project、跨副本 lease、v2 Matrix state 和 outbox reconciliation。
+- fake/第二 Agent Adapter、Matrix virtual-user 回复、生产恢复和真实 Synapse 双浏览器 #40 E2E。
 
 ## 3. 状态定义
 
 | 状态 | 含义 | 证据要求 |
 | --- | --- | --- |
-| 未开始 | 尚未形成可执行 spec 或代码 | 无 |
-| Active | 已有验收场景并正在实现 | TEST-CATALOG 条目、开发分支或变更集 |
-| Blocked | 有明确外部决策或依赖阻塞 | 阻塞原因、责任边界、解除条件 |
-| Complete | 稳定设计中的该范围已实现 | 代码入口、测试结果、浏览器/运行证据 |
-
-不得使用“基本完成”“差不多”等不可验证状态。
+| 未开始 | 已有设计/计划，但没有可执行实现切片 | 可有设计与 TEST-CATALOG，不可声称交付 |
+| Active | 已有验收场景并正在实现 | 变更集、代码入口和定向验证 |
+| Blocked | 有明确外部决策或依赖阻塞 | 阻塞原因、解除条件和 owner |
+| Complete | 稳定设计中的该范围已实现 | 代码、自动化、浏览器/运行和文档闭环 |
 
 ## 4. 工作流与设计追踪
 
-| ID | 工作流 | 对应稳定设计 | 当前状态 | 当前证据 | 下一出口 |
+| ID | 工作流 | 稳定设计 | 当前状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
-| A0 | 工程基线与差距盘点 | §4、§12、§13、§14 阶段 0 | Active | TanStack 应用、文档分类、构建基线已存在 | 完成目标路由、依赖和旧脚手架保留/删除清单 |
-| A1 | 产品壳与信息架构 | §5 | Complete | `packages/product-core`、`packages/product-client`、`packages/matrix-client`、`apps/web-app/src/features/chat` 与目标路由 | 保持宿主契约稳定；继续把 router-bound screens 迁入 `product-react` |
-| A2 | 身份、社交与 Matrix 消息底座 | §8、§9、§10、§14 阶段 1 | Complete | Email OTP、identity/device、session revoke、Matrix timeline、社交、资料与[登录后产品状态真实化](./real-product-state-cutover.md)均通过本地 Synapse；19/19 聊天 E2E | 维持真实服务边界与回归，转入 A3 |
-| A3 | 氛围空间 Runtime | §6、§14 阶段 2 | 未开始 | 无 | manifest、协议、capability 与沙箱 spec 可执行 |
-| A4 | 开发、发布、市场与审核 | §7、§8.6、§14 阶段 3 | 未开始 | 无 | CLI、模拟宿主、版本与审核流程验收通过 |
-| A5 | 安全、生产与恢复 | §11、§12、§13、§14 阶段 4 | 未开始 | 只有通用构建能力 | 威胁模型、监控、备份、恢复和发布门槛通过 |
+| A0 | 兼容护栏与语义校正 | §1、§2、§9.4、§14 阶段 0 | Active | [Space App 演进记录](./space-app-design-transition.md)、TEST-CATALOG #40 | 市场/Chat 保留，形成 v1/v2 双读和空白创建 spec |
+| A1 | 产品壳与信息架构 | §4 | Complete（现有 IA） | `apps/web-app/src/features/chat` 与真实路由/E2E | 保留 Discover；新增 Kernel/Chat/App 与 Space 用户语义 |
+| A2 | 身份、社交、Chat 与市场底座 | §3.1、§5.1、§9 | Complete | identity/social/rooms/timeline/product-state 测试与真实 Synapse/Chromium | 保持全回归，不用本地 demo 替代 Matrix/市场 |
+| A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、`room_index` migration、Runtime、Backend gateway、Web 三边界、10 个定向 unit | 空白/后选模板、生产存储和双浏览器 App |
+| A4 | Agent Adapter、Space Dev 与发布 | §6、§7、§10、§14 阶段 3–4 | Active | 通用 Adapter、Pi、结构化 Matrix Mention、queue、credits reservation/真实 usage settlement/refund、真实生成 Dev/Release smoke | fake/第二 Adapter、Matrix 回写和恢复 E2E |
+| A5 | 生产恢复与市场演进 | §11–§14 阶段 5 | 未开始 | 当前通用 Auth/Matrix/市场/账务/部署能力 | 治理、压测、安全、备份恢复和第三方市场独立评审 |
 
-## 5. 并行治理切片：A0 工程基线与差距盘点
-
-### 目标
-
-把稳定设计转化为能够开始编码的验收边界，明确哪些旧 SaaS 能力保留、替换或删除，并避免在后端复审前提前固化错误架构。
+## 5. A0 当前任务：兼容护栏
 
 ### 任务
 
-- [ ] 建立稳定设计章节到代码目录、API、数据模型和测试的追踪矩阵。
-- [x] 已在[Apps 边界与 Desktop 架构 RFC](../app-boundaries-and-desktop-architecture-rfc.md)盘点当前路由与目标路由差距，并提出旧 `/ai`、`/pricing`、`/dashboard` 等页面的评审/隔离原则。
-- [ ] 在 `tests/e2e/TEST-CATALOG.md` 写 A1 产品壳验收场景，不先写 Playwright selector。
-- [ ] 明确 MVP 设计系统、响应式断点、主导航和房间画布的实现边界。
-- [ ] 为后端、数据库、认证、Matrix/Synapse 和部署拓扑分别建立待评审决策项。
-- [x] 已在 Apps RFC 列出 app、API、路由、Cookie、浏览器全局对象和旧 SaaS 的隔离边界；首批六个 workspace packages 已实际接入 Web/Backend。
+- [x] 基于 demo 重写稳定产品与技术设计。
+- [x] 根据产品校正恢复 Space 市场、模板创建和 Chat-first 基线。
+- [x] 将边界收敛为 Kernel、Chat、App，并把 Agent 契约改为 provider-neutral。
+- [x] 确定 Space Runtime 采用与 `chat-app-server` 同构的技术方案，并确定现有房间/多人 Space 使用统一 SpaceInstance。
+- [x] 更新 TEST-CATALOG #40 为 Space App 计划验收。
+- [x] `room_index` 原地升级稳定 `spaceInstanceId/projectId/defaultAgentId`，并保留 Template lineage；v2 Matrix state 和回滚工具仍待后续。
+- [ ] 设计 `/v1/rooms` 空白/模板兼容创建与后续 `apply-template` 契约。
+- [x] 完成 `apps/space-runtime` 独立部署单元、内部 token、Backend membership gateway 和 Agent/Runtime provider 首版边界。
+- [x] Space App contracts/package、Host bridge 与 Runtime 切片进入 A3 Active。
 
 ### 完成条件
 
-- 追踪矩阵不存在“设计章节无 owner/工作流”的空白。
-- A1 的页面、URL、状态和交互验收已进入 E2E 目录。
-- 后端相关内容保持候选状态，没有把现有 Better Auth、数据库和支付实现误写成产品最终决策。
-- `pnpm docs:check`、`pnpm typecheck`、`pnpm build` 通过。
+- 现有 Chat、市场和模板创建有明确的禁止回归门槛。
+- 历史私聊、群聊和新增多人 Space 不产生平行实例、成员或消息模型。
+- 新旧字段、API、Matrix state、UI 和 E2E 的兼容顺序没有空白 owner。
+- A3 第一切片拥有 package/schema/migration spec 和可执行测试。
+- 文档检查、文档站构建和适用代码门禁通过。
 
-## 6. 最近完成工作流：A2 身份、社交与 Matrix 消息底座
+## 6. A2 保留基线
 
-A2 从[身份与 Session Bootstrap 实现参考](../../stable/references/identity-session-bootstrap.md)开始，以下阶段完成条件已全部满足：
+A2 的完成结论不因 Space App 增量设计而撤销：
 
-1. Better Auth 官方 Email OTP plugin 提供验证码生成、哈希存储、尝试次数与自动注册登录。
-2. 产品 profile、Matrix identity、每 session device binding 与撤销 outbox 形成可恢复生命周期。
-3. 好友、联系人、备注、屏蔽、房间 ACL、Matrix 邀请和浏览器会话管理形成完整产品链路。
-4. Matrix 标准事件覆盖文字、回复、回应、媒体、编辑、删除和 typing；SDK 缓存、失败状态与幂等重发通过刷新/离线验证。
-5. 新用户必须完成资料设置；用户名唯一，资料变更同步当前 Matrix 展示，联系人备注保持方向性私有。
-6. TEST-CATALOG #26–#37、45 项相关单测和 36 项活动产品 E2E 全部通过；`pnpm typecheck`、`pnpm build` 与真实 Synapse 走查通过。
+1. Better Auth user/session 是认证权威；Matrix identity/device lifecycle 已形成幂等映射与撤销。
+2. Matrix 继续是 Space membership、邀请、Chat timeline、媒体和关系事件权威。
+3. 产品 profile、好友、备注、屏蔽和 ACL 继续由 Product DB 管理。
+4. Discover、官方 Space 目录、收藏、模板版本和模板建 Space 继续是活动产品能力。
+5. Browser 不保存 token 或权威 fixture；服务不可用时失败关闭。
+6. Space App 必须接在这些真实边界上，不能复制 demo 的 guest identity、本地 JSON 或未认证 bridge。
 
-## 7. 待决策清单
+[真实 Matrix 房间与 Timeline](./matrix-room-timeline.md) 与 [登录后产品状态真实化](./real-product-state-cutover.md)继续记录当前实现事实；新增能力以增量方式连接，不删除其完成证据。
 
-| 决策 | 当前状态 | 必须在何时解决 |
+## 7. 已确定与待验证
+
+### 已确定
+
+- 用户语义为 Space；Matrix Room 只在技术/兼容说明中使用。
+- 现有 `room_index` 记录原地升级为唯一 SpaceInstance；一对一和多人共用同一 Repository、Instance Server、Project、SDK 和 queue。
+- Space 市场、分类、详情、收藏、版本和模板创建保持不变。
+- 空白 Space 可以创建，之后仍可选择模板。
+- 每个 Space 保留完整 Chat，App/Agent 故障不影响人类沟通。
+- Kernel、Chat、App 是仅有的三个边界；发布、历史和生成状态属于 Kernel。
+- Agent Adapter 可插拔，Pi 只是第一候选示例。
+- 普通 Chat 不自动调用 Agent；显式 Agent 请求才进入 ACL/credits/queue。
+- 同 Space App 写入串行，修改先成为 Draft，显式发布不可变 Release。
+- Runtime 从 Cloudflare Backend 分离为独立 Node 部署单元。
+- Space Runtime 的对象与执行链采用 demo 同构方案：Hono、SpaceInstanceServer、SSE/command、Turn scheduler、ProjectStore、agentOS Apps Dev/Release 和 Space SDK。
+
+### 后续仍需验证
+
+| 项目 | 当前约束 | 最晚出口 |
 | --- | --- | --- |
-| 产品后端框架与部署目标 | 首轮采用 TanStack Start server routes + Cloudflare Workers；worker/reconciler 前复审 | A2 outbox worker 实现前 |
-| Product PostgreSQL 与 Matrix 数据权威边界 | 产品 profile/identity mapping 属于产品库；Matrix device/room/timeline 属于 Synapse | 真实 adapter 联调时复核 |
-| Better Auth 用户与 Matrix user/device 映射 | 一个 Better Auth user 对应一个 Matrix identity；每个 auth session 对应独立 binding | 已落 schema 与 service，注销链路接入时复核 |
-| Synapse device access token 正式签发方式 | 已决定使用标准 `m.login.application_service` scoped device login | 已通过固定版本 Synapse 合约测试 |
-| Synapse 本地与生产拓扑 | 本地固定 Synapse 1.157.0 + appservice profile；生产拓扑待设计 | A2 生产部署前 |
-| 氛围空间包格式、签名与版本不可变 | 待设计 | A3 实现前 |
-| iframe sandbox、CSP 与外部联网授权 | 待设计 | A3 安全实现前 |
-| SDK/CLI 包边界与公开仓库策略 | 待设计 | A4 开始前 |
-| 官网、Web 产品、API 与未来 Desktop 的 app/package 边界 | [Apps 边界与 Desktop 架构 RFC](../app-boundaries-and-desktop-architecture-rfc.md)评审中；建议共享产品 packages、独立部署入口、禁止 app-to-app import | A3 宿主实现扩张前完成 Phase 0 评审 |
+| Agent Adapter 最小合约 | Pi 与 fake/第二 Adapter 必须共享事件、usage、取消和恢复 | A3 Runtime spike |
+| agentOS Apps 版本兼容 | 技术路线已经确定；先复现 demo `0.2.15` 基线，再由仓库 lockfile 固定兼容版本 | A3 Runtime spike |
+| Runtime 内部认证与网络 | 不复用 Cookie/secret；短期 audience token | A3 contract 评审 |
+| Instance Server 多副本所有权 | 同一 `spaceInstanceId` 只允许一个 lease owner 执行写 Turn，SSE 可接管 | A3 Runtime spike |
+| `room_index` 原地升级 | 不新建平行实例表；PG/SQLite/D1 回填、唯一约束和回滚均需验证 | A3 schema migration |
+| 普通 Chat 与 Agent 寻址 | 人类消息默认不入付费队列 | A3 queue 实现前 |
+| 积分批次分摊 | 逐请求 reservation 与稳定 usage 分摊 | A4 计费实现前 |
+| 模板应用策略 | 空白/已有 Project 都保留 Chat、Live 和恢复点 | A3 Project 实现前 |
+| Runtime 故障恢复 | Project/Draft/Live/任务不能只存在 provider 内 | A4 发布前 |
+| 第三方模板市场 | 提交、审核、签名和分成独立评审 | A5 市场演进前 |
 
 ## 8. 进度更新规则
 
-- 每次实现变更只更新受影响工作流，不用主观百分比表示进度。
-- 进入 Active 时附验收目录或开发变更；进入 Complete 时附代码入口、自动化测试和人工验证结果。
-- 发现稳定设计不可实现或需要调整时，不在本文件悄悄改目标，必须创建变更提案并反向更新稳定设计。
-- 当前 Active 切片完成后，把下一工作流改为 Active，并更新[当前开发重点](../current-focus.md)。
+- 只记录实际代码、测试和运行结果，不用文档或外部 demo 代替实现证据。
+- 进入 Active 时附具体切片与验证；进入 Complete 时附全链路、失败路径和文档闭环。
+- 每次 A3/A4 变更检查 Matrix、Chat、市场、权限、积分、Agent、Runtime、SDK、Kernel 和 E2E 影响。
+- 完成阶段后更新[当前开发重点](../current-focus.md)，并按生命周期规范归档真正被替代的记录。

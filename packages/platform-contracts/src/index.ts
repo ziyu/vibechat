@@ -1,5 +1,5 @@
 export interface ProductNavigation {
-  openMessages(locale: string): void
+  openSpaces(locale: string): void
   openOnboarding(locale: string): void
   openSignIn(locale: string): void
   reload(): void

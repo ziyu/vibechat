@@ -232,7 +232,7 @@ export function MePage() {
           <div className="vc-profile-stats">
             <span>
               <strong>{state.rooms.length}</strong>
-              <small>{t.chatApp.me.rooms}</small>
+              <small>{t.chatApp.me.spaces}</small>
             </span>
             <span>
               <strong>{state.contactIds.length}</strong>

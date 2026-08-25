@@ -44,6 +44,13 @@ import {
   videoTaskStatusResponseSchema,
   type ImageGenerationInput,
   type VideoGenerationInput,
+  spaceRuntimeSnapshotSchema,
+  spaceAppBridgeResponseSchema,
+  spaceTurnAcceptedSchema,
+  type SpaceAppBridgeRequest,
+  type CreateSpaceAgentTurnRequest,
+  type PublishSpaceAppRequest,
+  type RestoreSpaceAppRequest,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -218,6 +225,62 @@ export class ProductApiClient {
       'ROOM_PREFERENCE_UPDATE_FAILED',
       this.jsonInit('PUT', input),
     )
+  }
+
+  getSpaceRuntime(matrixRoomId: string) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}`,
+      spaceRuntimeSnapshotSchema,
+      'SPACE_RUNTIME_LOAD_FAILED',
+    )
+  }
+
+  createSpaceAgentTurn(matrixRoomId: string, input: CreateSpaceAgentTurnRequest) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/turns`,
+      spaceTurnAcceptedSchema,
+      'SPACE_AGENT_TURN_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  publishSpaceApp(matrixRoomId: string, input: PublishSpaceAppRequest) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/publish`,
+      spaceTurnAcceptedSchema,
+      'SPACE_APP_PUBLISH_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  restoreSpaceApp(matrixRoomId: string, input: RestoreSpaceAppRequest) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/restore`,
+      spaceTurnAcceptedSchema,
+      'SPACE_APP_RESTORE_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  sendSpaceAppCommand(matrixRoomId: string, input: SpaceAppBridgeRequest) {
+    return this.request(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/bridge`,
+      spaceAppBridgeResponseSchema,
+      'SPACE_APP_COMMAND_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  spaceEventsUrl(matrixRoomId: string) {
+    return this.resolve(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/events`,
+    ).toString()
+  }
+
+  spaceAppUrl(matrixRoomId: string, channel: 'dev' | 'live' = 'dev') {
+    return this.resolve(
+      `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/app?channel=${channel}`,
+    ).toString()
   }
 
   async uploadImage(file: File, provider?: 'oss' | 's3' | 'r2' | 'cos') {

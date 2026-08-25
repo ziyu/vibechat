@@ -66,4 +66,77 @@ describe('ProductApiClient', () => {
 
     await expect(client.bootstrapSession()).rejects.toMatchObject({ name: 'ZodError' })
   })
+
+  it('sends Space App bridge commands through the authenticated product boundary', async () => {
+    const http = transport(Response.json({ ok: true, revision: 2 }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.sendSpaceAppCommand('!space:localhost', {
+      action: 'state.set',
+      payload: { key: 'score', value: 3 },
+    })).resolves.toMatchObject({ ok: true, revision: 2 })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/bridge',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('submits an exact ready Revision for Kernel Default Chat recovery', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'restore-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.restoreSpaceApp('!space:localhost', {
+      requestId: 'restore-request-1',
+      target: 'default-chat',
+      expectedReadyRevisionId: '0123456789abcdef',
+    })).resolves.toMatchObject({ accepted: true, turnId: 'restore-turn-1' })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/restore',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          requestId: 'restore-request-1',
+          target: 'default-chat',
+          expectedReadyRevisionId: '0123456789abcdef',
+        }),
+      }),
+    )
+  })
+
+  it('submits a structured Agent mention with the confirmed Matrix event', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'agent-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await client.createSpaceAgentTurn('!space:localhost', {
+      matrixEventId: '$event-1',
+      message: '@pi hello',
+      agentMention: { type: 'agent', id: 'pi' },
+    })
+
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/turns',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          matrixEventId: '$event-1',
+          message: '@pi hello',
+          agentMention: { type: 'agent', id: 'pi' },
+        }),
+      }),
+    )
+  })
 })

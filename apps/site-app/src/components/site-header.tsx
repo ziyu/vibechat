@@ -34,7 +34,7 @@ export default function SiteHeader() {
             {t.header.navigation.blog}
           </Link>
           <a
-            href={`${webOrigin}/messages`}
+            href={`${webOrigin}/spaces`}
             className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5"
           >
             {t.home.intro.openChat}

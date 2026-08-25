@@ -111,7 +111,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <div className="admin-sidebar-footer">
-        <a href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/messages`}>
+        <a href={`${import.meta.env.VITE_WEB_APP_ORIGIN || 'http://localhost:8001'}/spaces`}>
           <span>{t.adminApp.openProduct}</span><ArrowUpRight className="h-4 w-4" />
         </a>
       </div>

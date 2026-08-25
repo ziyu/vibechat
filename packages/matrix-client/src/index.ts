@@ -26,7 +26,17 @@ import type {
   ChatRoom,
   FriendRequest,
 } from '@vibechat/product-core'
-import type { RoomBootstrap, SessionBootstrap } from '@vibechat/api-contracts'
+import {
+  type RoomBootstrap,
+  type SessionBootstrap,
+  type SpaceAgentMention,
+} from '@vibechat/api-contracts'
+import {
+  matrixAgentMemberMetadata,
+  matrixAgentReplyMetadata,
+} from './agent-identity'
+import { createMatrixTextContent } from './message-content'
+import { spaceIdFromStateContent } from './space-state'
 
 export const VIBE_SPACE_STATE_EVENT = 'io.vibechat.space.instance.v1'
 
@@ -85,6 +95,7 @@ export function sendMatrixText(
   text: string,
   transactionId: string,
   replyToId?: string,
+  agentMentions: SpaceAgentMention[] = [],
 ) {
   const room = client.getRoom(roomId)
   const pendingEvent = room?.getPendingEvents().find(
@@ -92,16 +103,7 @@ export function sendMatrixText(
   )
   if (room && pendingEvent) return client.resendEvent(pendingEvent, room)
 
-  const content = (replyToId ? {
-    msgtype: MsgType.Text,
-    body: text,
-    'm.relates_to': {
-      'm.in_reply_to': { event_id: replyToId },
-    },
-  } : {
-    msgtype: MsgType.Text,
-    body: text,
-  }) as RoomMessageEventContent
+  const content = createMatrixTextContent(text, replyToId, agentMentions)
   return client.sendEvent(
     roomId,
     EventType.RoomMessage,
@@ -317,6 +319,33 @@ function replyEventId(event: MatrixEvent) {
   return typeof eventId === 'string' ? eventId : undefined
 }
 
+function roomAgentMatrixUsers(room: Room) {
+  const identities = new Map<string, string>()
+  for (const member of room.getJoinedMembers()) {
+    const memberEvent = room.currentState.getStateEvents(
+      EventType.RoomMember,
+      member.userId,
+    )
+    const metadata = matrixAgentMemberMetadata(
+      memberEvent?.getContent<Record<string, unknown>>(),
+    )
+    if (metadata) identities.set(member.userId, metadata.agentId)
+  }
+
+  // Backward compatibility for Agent users that joined before membership
+  // metadata was introduced. Agent reply events are already authoritative and
+  // bound to their authenticated Matrix sender by the homeserver.
+  for (const event of room.getLiveTimeline().getEvents()) {
+    if (event.getType() !== EventType.RoomMessage) continue
+    const sender = event.getSender()
+    const metadata = matrixAgentReplyMetadata(
+      event.getContent<Record<string, unknown>>(),
+    )
+    if (sender && metadata) identities.set(sender, metadata.agentId)
+  }
+  return identities
+}
+
 function projectRoomMessages(
   client: MatrixClient,
   room: Room,
@@ -389,6 +418,7 @@ function projectRoomMessages(
       ? content.info as Record<string, unknown>
       : {}
     const matrixContentUri = typeof content.url === 'string' ? content.url : undefined
+    const agentMetadata = matrixAgentReplyMetadata(content)
     const attachment = !deleted
       && (messageType === MsgType.Image || messageType === MsgType.File)
       && matrixContentUri
@@ -408,11 +438,17 @@ function projectRoomMessages(
       id,
       transactionId: event.getTxnId(),
       roomId: room.roomId,
-      senderId: sender,
+      senderId: agentMetadata?.agentId || sender,
       text: deleted ? '' : replacement?.text || content.body as string,
       createdAt: new Date(event.getTs()).toISOString(),
       status: messageStatus(event, pendingTransactionIds),
       replyToId: replyEventId(event),
+      ...(agentMetadata ? {
+        agent: true,
+        agentId: agentMetadata.agentId,
+        agentTurnId: agentMetadata.turnId,
+        agentSourceEventIds: agentMetadata.sourceEventIds,
+      } : {}),
       edited: !!replacement,
       deleted,
       attachment,
@@ -423,8 +459,7 @@ function projectRoomMessages(
 
 function roomSpaceId(room: Room) {
   const event = room.currentState.getStateEvents(VIBE_SPACE_STATE_EVENT, '')
-  const spaceId = event?.getContent<Record<string, unknown>>().spaceId
-  return typeof spaceId === 'string' ? spaceId : null
+  return spaceIdFromStateContent(event?.getContent<Record<string, unknown>>())
 }
 
 export function projectMatrixChatState(
@@ -475,7 +510,13 @@ export function projectMatrixChatState(
     const spaceId = roomSpaceId(room) || roomMetadata[room.roomId]?.spaceId || null
     if (!spaceId || !baseState.spaces.some((space) => space.id === spaceId)) continue
 
-    for (const member of room.getJoinedMembers()) {
+    const joinedMembers = room.getJoinedMembers()
+    const agentMatrixUsers = roomAgentMatrixUsers(room)
+    const humanMembers = joinedMembers.filter(
+      (member) => !agentMatrixUsers.has(member.userId),
+    )
+    for (const matrixUserId of agentMatrixUsers.keys()) people.delete(matrixUserId)
+    for (const member of humanMembers) {
       if (!people.has(member.userId)) {
         people.set(member.userId, projectPerson(client, member.userId, member.name))
       }
@@ -483,7 +524,7 @@ export function projectMatrixChatState(
     const roomMessages = membership === 'join'
       ? projectRoomMessages(client, room, pendingTransactionIds)
       : []
-    typingUserIdsByRoom[room.roomId] = room.getJoinedMembers()
+    typingUserIdsByRoom[room.roomId] = humanMembers
       .filter((member) => member.typing && member.userId !== client.getUserId())
       .map((member) => member.userId)
     messages.push(...roomMessages)
@@ -493,7 +534,7 @@ export function projectMatrixChatState(
       id: room.roomId,
       name: room.name,
       memberIds: Array.from(new Set([
-        ...room.getJoinedMembers().map((member) => member.userId),
+        ...humanMembers.map((member) => member.userId),
         client.getUserId()!,
       ])),
       spaceId,

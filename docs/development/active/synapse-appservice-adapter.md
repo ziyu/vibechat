@@ -3,9 +3,9 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Complete（本切片）
-> 更新日期：2026-08-11
+> 更新日期：2026-08-22
 > 维护范围：Application Service 用户注册、device login、token 撤销、本地 Synapse 合约测试
-> 稳定来源：[VibeChat MVP 版本产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
+> 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
 ## 决策
 

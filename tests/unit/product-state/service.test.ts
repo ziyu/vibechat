@@ -6,6 +6,7 @@ import type {
   ProductUserPreferences,
 } from '@libs/product-state'
 import { ProductStateError, ProductStateService } from '@libs/product-state'
+import { publishedSpaceTemplateCatalog, type PublishedSpaceTemplateCatalogEntry } from '@config'
 
 class MemoryProductStateRepository implements ProductStateRepository {
   snapshots = new Map<string, ProductStateSnapshot>()
@@ -55,7 +56,10 @@ class MemoryProductStateRepository implements ProductStateRepository {
   }
 }
 
-function createService(accessibleRooms: Record<string, string[]> = {}) {
+function createService(
+  accessibleRooms: Record<string, string[]> = {},
+  templates?: readonly PublishedSpaceTemplateCatalogEntry[],
+) {
   const repository = new MemoryProductStateRepository()
   const service = new ProductStateService({
     repository,
@@ -64,29 +68,78 @@ function createService(accessibleRooms: Record<string, string[]> = {}) {
         .filter((roomId) => accessibleRooms[userId]?.includes(roomId))
         .map((matrixRoomId) => ({ matrixRoomId })),
     },
+    templates,
     now: () => new Date('2026-08-12T08:00:00.000Z'),
   })
   return { repository, service }
 }
 
 describe('ProductStateService', () => {
-  it('localizes the server-owned built-in directory and reports real favorite counts', async () => {
+  it('localizes the published Template directory and marks official publishers', async () => {
     const { repository, service } = createService()
     await service.setSpaceFavorite('user-a', 'space-campfire', true)
     await service.setSpaceFavorite('user-b', 'space-campfire', true)
 
     const directory = await service.getSpaceDirectory('zh-CN')
-    expect(directory).toHaveLength(4)
-    expect(directory[0]).toMatchObject({
+    expect(directory).toHaveLength(5)
+    expect(directory.find((space) => space.id === 'space-campfire')).toMatchObject({
+      schemaVersion: 'vibechat.space-template-market-entry/v1',
       id: 'space-campfire',
       name: '夜航电台',
-      source: 'builtin',
-      official: true,
+      versionId: 'tplv-space-campfire-0-1-2',
+      semanticVersion: '0.1.2',
+      sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      manifestHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      artifact: {
+        schemaVersion: 'vibechat.space-template-artifact/v1',
+        id: expect.stringMatching(/^tpla-[a-f0-9]{64}$/),
+        format: 'agentos-app-v1',
+        sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
+      projectFormat: 'agentos-app-v1',
+      compatibility: {
+        spaceAppSdk: 'v1',
+        runtime: 'agentos-apps-0.2',
+      },
+      provenance: {
+        origin: 'repository',
+        publisherId: 'publisher-vibechat',
+      },
+      publisher: {
+        id: 'publisher-vibechat',
+        verification: 'official',
+      },
       favoriteCount: 2,
     })
     expect(await repository.getSnapshot('user-a')).toMatchObject({
       favoriteSpaceIds: ['space-campfire'],
     })
+  })
+
+  it('accepts an App-published user Template through the identical catalog shape', async () => {
+    const communityTemplate: PublishedSpaceTemplateCatalogEntry = {
+      ...publishedSpaceTemplateCatalog[0],
+      id: 'template-user-garden',
+      versionId: 'tplv-user-garden-1-0-0',
+      publisher: {
+        id: 'user-alice',
+        displayName: 'Alice',
+        verification: 'unverified',
+      },
+      provenance: {
+        origin: 'app',
+        publisherId: 'user-alice',
+        sourceSpaceRevisionId: 'revision-space-alice-42',
+      },
+    }
+    const { service } = createService({}, [communityTemplate])
+
+    await service.setSpaceFavorite('user-a', communityTemplate.id, true)
+    await expect(service.getSpaceDirectory('en')).resolves.toMatchObject([{
+      id: communityTemplate.id,
+      publisher: communityTemplate.publisher,
+      provenance: communityTemplate.provenance,
+    }])
   })
 
   it('persists user-scoped preferences and only accepts accessible rooms', async () => {
@@ -120,7 +173,7 @@ describe('ProductStateService', () => {
     }))
   })
 
-  it('rejects favorites outside the built-in catalog', async () => {
+  it('rejects favorites outside the published catalog', async () => {
     const { service } = createService()
     await expect(service.setSpaceFavorite('user-a', 'market-space-not-published', true))
       .rejects.toEqual(expect.objectContaining<Partial<ProductStateError>>({

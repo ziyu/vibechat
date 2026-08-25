@@ -4,23 +4,24 @@
   "private": true,
   "description": "Vibe Chat - atmosphere-first chat and creative community platform",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.0.0 <26.0.0"
   },
   "packageManager": "pnpm@9.4.0",
   "scripts": {
-    "dev": "turbo run dev --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app",
-    "dev:web": "turbo run dev --filter=@vibechat/backend --filter=@vibechat/web-app",
+    "dev": "node scripts/dev.mjs all",
+    "dev:web": "node scripts/dev.mjs web",
+    "dev:space-runtime": "turbo run dev --filter=@vibechat/space-runtime",
     "dev:backend": "turbo run dev --filter=@vibechat/backend",
     "dev:site": "turbo run dev --filter=@vibechat/site-app",
     "dev:admin": "turbo run dev --filter=@vibechat/backend --filter=@vibechat/admin-app",
     "dev:docs": "turbo run dev --filter=docs-app",
-    "build": "turbo run build --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app",
+    "build": "turbo run build --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app --filter=@vibechat/space-runtime",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:backend": "turbo run build --filter=@vibechat/backend",
     "build:site": "turbo run build --filter=@vibechat/site-app",
     "build:admin": "turbo run build --filter=@vibechat/admin-app",
     "build:docs": "turbo run build --filter=docs-app",
-    "start": "turbo run start --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app",
+    "start": "turbo run start --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app --filter=@vibechat/space-runtime",
     "start:backend": "turbo run start --filter=@vibechat/backend",
     "start:site": "turbo run start --filter=@vibechat/site-app",
     "start:admin": "turbo run start --filter=@vibechat/admin-app",
@@ -48,11 +49,11 @@
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.ts",
+    "test:e2e": "node scripts/test-e2e.mjs",
     "test:e2e:cf": "E2E_DB_DIALECT=d1 npx playwright test --config=tests/e2e/playwright.config.ts",
-    "test:e2e:ui": "npx playwright test --config=tests/e2e/playwright.config.ts --ui",
+    "test:e2e:ui": "node scripts/test-e2e.mjs --ui",
     "test:matrix:integration": "RUN_SYNAPSE_INTEGRATION=1 vitest run tests/integration/synapse-appservice.integration.test.ts",
-    "typecheck": "node scripts/check-app-boundaries.mjs && turbo run typecheck --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app",
+    "typecheck": "node scripts/check-app-boundaries.mjs && turbo run typecheck --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app --filter=@vibechat/space-runtime",
     "typecheck:packages": "turbo run typecheck --filter='./packages/*'",
     "email:compile": "tsx libs/email/templates/compile.ts",
     "email:test": "tsx libs/email/scripts.ts"
@@ -67,6 +68,7 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "1.58.2",
+    "@rivetkit/engine-cli": "2.3.9",
     "@types/ali-oss": "^6.16.11",
     "@types/better-sqlite3": "7.6.13",
     "@types/mjml": "4.7.4",
@@ -84,6 +86,7 @@
     "@vibechat/api-contracts": "workspace:*",
     "@vibechat/i18n": "workspace:*",
     "@vibechat/product-core": "workspace:*",
+    "@vibechat/space-templates": "workspace:*",
     "@vibechat/validators": "workspace:*",
     "@ai-sdk/deepseek": "1.0.23",
     "@ai-sdk/fal": "2.0.20",
@@ -123,5 +126,11 @@
     "twilio": "5.5.2",
     "validation-better-auth": "1.1.1",
     "zod": "4.2.1"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@rivet-dev/agentos-apps@0.2.15": "patches/@rivet-dev__agentos-apps@0.2.15.patch",
+      "@rivet-dev/agentos-core@0.2.15": "patches/@rivet-dev__agentos-core@0.2.15.patch"
+    }
   }
 }

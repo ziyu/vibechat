@@ -24,6 +24,23 @@ async function expectMatrixReady(page: Page) {
   await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-mode', 'matrix')
 }
 
+function chatFrame(page: Page) {
+  return page.frameLocator('[data-testid="space-app-surface"] iframe')
+}
+
+async function openAppChat(page: Page) {
+  const frame = chatFrame(page)
+  const input = frame.getByTestId('message-input')
+  const root = frame.locator('#vcc-root')
+  await input.waitFor({ state: 'attached' })
+  if (await root.getAttribute('data-open') !== 'true') {
+    await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
+  }
+  await expect(root).toHaveAttribute('data-open', 'true')
+  await expect(input).toBeInViewport()
+  return frame
+}
+
 test.describe('Vibe Chat social trust and Matrix invitation', () => {
   test.setTimeout(120_000)
 
@@ -32,7 +49,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
     'Requires the local Synapse Matrix-ready profile',
   )
 
-  test('completes friend request, room invitation, join, and bidirectional messages', async ({ browser }) => {
+  test('completes friend request, Space invitation, join, and bidirectional Chat', async ({ browser }) => {
     const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
     const aliceContext = await browser.newContext()
     const bobContext = await browser.newContext()
@@ -116,21 +133,26 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       const bobContact = alice.page.getByTestId('contact-row').filter({ hasText: 'Bob Social E2E' })
       await expect(bobContact).toBeVisible()
       await bobContact.click()
-      await alice.page.getByTestId('start-chat-with-contact').click()
-      const dialog = alice.page.getByTestId('new-chat-dialog')
+      await alice.page.getByTestId('start-space-with-contact').click()
+      const dialog = alice.page.getByTestId('new-space-dialog')
       await expect(dialog).toContainText('Bob Social E2E')
+      const dialogBackground = await dialog.evaluate(
+        (element) => window.getComputedStyle(element).backgroundColor,
+      )
+      expect(dialogBackground).not.toBe('transparent')
+      expect(dialogBackground).not.toBe('rgba(0, 0, 0, 0)')
       await dialog.getByRole('button', { name: '下一页' }).click()
       await dialog.getByRole('button', { name: /夜航电台/ }).click()
       await dialog.getByRole('button', { name: '下一页' }).click()
-      await dialog.getByRole('button', { name: '创建房间' }).click()
-      await expect(alice.page).toHaveURL(/\/rooms\/!/)
+      await dialog.getByRole('button', { name: '创建 Space' }).click()
+      await expect(alice.page).toHaveURL(/\/spaces\/!/)
       await expectMatrixReady(alice.page)
       const roomId = decodeURIComponent(new URL(alice.page.url()).pathname.split('/').at(-1)!)
 
-      await bob.page.goto('/messages')
+      await bob.page.goto('/spaces')
       await expectMatrixReady(bob.page)
       const invitedRoom = bob.page.locator(
-        '[data-testid="conversation-row"][data-membership="invite"]',
+        '[data-testid="space-row"][data-membership="invite"]',
       )
       // Matrix invitations arrive through the recipient's long-polling /sync.
       // Give the live sync cycle room to complete under a loaded local Synapse.
@@ -138,31 +160,35 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
       await invitedRoom.getByTestId('accept-room-invite').click()
       await expect(invitedRoom).toHaveCount(0)
       const joinedRoom = bob.page.locator(
-        '[data-testid="conversation-row"][data-membership="join"]',
+        '[data-testid="space-row"][data-membership="join"]',
       )
       await expect(joinedRoom).toHaveCount(1)
       await joinedRoom.getByRole('link').click()
-      await expect(bob.page).toHaveURL(new RegExp(`/rooms/${encodeURIComponent(roomId)}`))
+      await expect(bob.page).toHaveURL(new RegExp(`/spaces/${encodeURIComponent(roomId)}`))
+      const [aliceChat, bobChat] = await Promise.all([
+        openAppChat(alice.page),
+        openAppChat(bob.page),
+      ])
 
       const aliceText = `Alice 到达房间 ${suffix}`
-      await alice.page.getByTestId('message-input').fill(aliceText)
-      await alice.page.getByTestId('send-message').click()
+      await aliceChat.getByTestId('message-input').fill(aliceText)
+      await aliceChat.getByTestId('send-message').click()
       await expect(
-        alice.page.getByTestId('message-body').filter({ hasText: aliceText }),
+        aliceChat.getByTestId('message-body').filter({ hasText: aliceText }),
       ).toHaveCount(1)
       await expect(
-        bob.page.getByTestId('message-body').filter({ hasText: aliceText }),
+        bobChat.getByTestId('message-body').filter({ hasText: aliceText }),
       ).toHaveCount(1)
 
-      const aliceMessage = bob.page.getByTestId('message-body')
+      const aliceMessage = bobChat.getByTestId('message-body')
         .filter({ hasText: aliceText })
         .locator('xpath=ancestor::article')
       await aliceMessage.getByRole('button', { name: '回复' }).click()
       const bobText = `Bob 已收到 ${suffix}`
-      await bob.page.getByTestId('message-input').fill(bobText)
-      await bob.page.getByTestId('send-message').click()
+      await bobChat.getByTestId('message-input').fill(bobText)
+      await bobChat.getByTestId('send-message').click()
       await expect(
-        alice.page.getByTestId('message-body')
+        aliceChat.getByTestId('message-body')
           .filter({ hasText: bobText })
           .locator('xpath=ancestor::article'),
       ).toContainText(aliceText)

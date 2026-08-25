@@ -49,6 +49,7 @@ function SigninPage() {
             type="button"
             variant="ghost"
             className="w-full"
+            data-testid="signin-method-toggle"
             disabled={!hydrated}
             onClick={() => setMethod((current) => current === 'otp' ? 'password' : 'otp')}
           >

@@ -1,7 +1,7 @@
 'use client'
 
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Compass, ContactRound, MessageCircleMore, Shapes, UserRound } from 'lucide-react'
+import { Compass, ContactRound, Orbit, Shapes, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
 import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
@@ -12,8 +12,8 @@ import { authClientReact } from '@vibechat/auth-client'
 import { browserProductPlatform } from '@/lib/product-platform'
 
 interface NavItem {
-  id: 'messages' | 'contacts' | 'discover' | 'services' | 'me'
-  to: '/messages' | '/contacts' | '/discover' | '/services' | '/me'
+  id: 'spaces' | 'contacts' | 'discover' | 'services' | 'me'
+  to: '/spaces' | '/contacts' | '/discover' | '/services' | '/me'
   icon: LucideIcon
   label: string
 }
@@ -31,8 +31,8 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   } = useChat()
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
   const currentUser = state.people.find((person) => person.id === state.currentUserId)
-  const inRoom = pathname.includes('/rooms/')
-  const section = pathname.split('/')[2]
+  const inSpace = pathname.startsWith('/spaces/')
+  const section = pathname.split('/').filter(Boolean)[0]
 
   const leaveProduct = async () => {
     await clearLocalChatData().catch(() => undefined)
@@ -55,10 +55,10 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
 
   const items: NavItem[] = [
     {
-      id: 'messages',
-      to: '/messages',
-      icon: MessageCircleMore,
-      label: t.chatApp.nav.messages,
+      id: 'spaces',
+      to: '/spaces',
+      icon: Orbit,
+      label: t.chatApp.nav.spaces,
     },
     {
       id: 'contacts',
@@ -87,14 +87,14 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   ]
 
   const isActive = (item: NavItem) => {
-    if (item.id === 'messages') return section === 'messages' || section === 'rooms'
+    if (item.id === 'spaces') return section === 'spaces'
     return section === item.id
   }
 
   return (
     <div
       className="vc-app"
-      data-room-open={inRoom || undefined}
+      data-space-open={inSpace || undefined}
       data-ready={ready ? 'true' : 'false'}
       data-mode="matrix"
       data-sync-state={connectionState}
@@ -102,7 +102,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
     >
       <aside className="vc-primary-rail" data-testid="chat-primary-nav">
         <Link
-          to="/messages"
+          to="/spaces"
           className="vc-brand-mark"
           aria-label={t.common.siteName}
         >
@@ -121,7 +121,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon size={20} strokeWidth={1.8} />
                 <span>{item.label}</span>
-                {item.id === 'messages' && state.rooms.some((room) => room.unreadCount > 0) ? (
+                {item.id === 'spaces' && state.rooms.some((room) => room.unreadCount > 0) ? (
                   <i aria-hidden="true" />
                 ) : null}
               </Link>

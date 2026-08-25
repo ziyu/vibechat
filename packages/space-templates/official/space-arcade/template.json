@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "vibechat.space-template/v1",
+  "id": "space-arcade",
+  "slug": "arcade",
+  "publisher": {
+    "id": "publisher-vibechat",
+    "displayName": "VibeChat",
+    "verification": "official"
+  },
+  "category": "play",
+  "name": {
+    "en": "Pixel Saturday",
+    "zh-CN": "像素星期六"
+  },
+  "summary": {
+    "en": "A handheld-console hangout where reactions become collectible pixel badges.",
+    "zh-CN": "带一点掌机颗粒感的朋友 Space，互动会变成可以收集的像素徽章。"
+  },
+  "author": "8-Bit Picnic",
+  "icon": "✦",
+  "accent": "#ffd84d",
+  "canvas": "#34274f",
+  "currentVersionId": "tplv-space-arcade-0-1-2"
+}

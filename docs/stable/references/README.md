@@ -4,3 +4,4 @@
 
 - [聊天宿主基础实现](./chat-host-foundation.md)
 - [Email OTP 与产品 Session Bootstrap](./identity-session-bootstrap.md)
+- [Space Template 版本规则](./space-template-versioning.md)

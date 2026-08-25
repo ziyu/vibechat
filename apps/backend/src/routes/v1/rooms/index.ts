@@ -86,10 +86,14 @@ export const Route = createFileRoute('/v1/rooms/')({
           })
           const response = roomBootstrapSchema.parse({
             matrixRoomId: room.matrixRoomId,
+            spaceInstanceId: room.spaceInstanceId,
+            projectId: room.projectId,
+            defaultAgentId: room.defaultAgentId,
             spaceId: room.spaceId,
             spaceVersionId: room.spaceVersionId,
             status: room.status,
             createdAt: room.createdAt.toISOString(),
+            updatedAt: room.updatedAt.toISOString(),
           })
 
           return Response.json(response, {

@@ -1,0 +1,387 @@
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { delimiter, dirname, join, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import dotenv from 'dotenv'
+import {
+  environmentForNode,
+  isSupportedNode,
+  resolveCompatibleNode,
+} from './node-runtime.mjs'
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const scriptPath = fileURLToPath(import.meta.url)
+const require = createRequire(import.meta.url)
+
+if (!isSupportedNode(process.execPath)) {
+  const compatibleNode = resolveCompatibleNode()
+  console.log(`[dev] Re-launching with compatible Node at ${compatibleNode}`)
+  const result = spawnSync(compatibleNode, [scriptPath, ...process.argv.slice(2)], {
+    cwd: repositoryRoot,
+    env: environmentForNode(compatibleNode),
+    stdio: 'inherit',
+  })
+  if (result.error) throw result.error
+  process.exit(result.status ?? 1)
+}
+
+for (const filename of ['.env.local', '.env']) {
+  const path = join(repositoryRoot, filename)
+  if (existsSync(path)) dotenv.config({ path })
+}
+
+const mode = process.argv[2] || 'all'
+const filters = {
+  all: [
+    '@vibechat/backend',
+    '@vibechat/web-app',
+    '@vibechat/site-app',
+    '@vibechat/admin-app',
+    '@vibechat/space-runtime',
+  ],
+  web: ['@vibechat/backend', '@vibechat/web-app', '@vibechat/space-runtime'],
+}[mode]
+
+if (!filters) {
+  throw new Error(`Unknown development mode: ${mode}`)
+}
+
+const configuredRivetEndpoint =
+  process.env.RIVET_ENDPOINT || process.env.AGENTOS_ENDPOINT
+const localRivetEndpoint = 'http://127.0.0.1:6420'
+const managesLocalRivetEngine = !configuredRivetEndpoint
+const rivetkitStoragePath =
+  process.env.RIVETKIT_STORAGE_PATH ||
+  join(repositoryRoot, 'apps', 'space-runtime', '.data', 'rivetkit-storage')
+const rivetEngineDatabasePath = join(
+  rivetkitStoragePath,
+  'managed-engine',
+  'db',
+)
+const rivetEngineConfigPath = join(
+  rivetkitStoragePath,
+  'managed-engine',
+  'config.json',
+)
+const packageManagerShimDirectory = join(
+  repositoryRoot,
+  'apps',
+  'space-runtime',
+  '.data',
+  'corepack-bin',
+)
+
+function resolveHostPiBinary() {
+  if (process.env.PI_BIN) return process.env.PI_BIN
+
+  const repositoryPrefix = `${repositoryRoot}${sep}`
+  const externalPath = (process.env.PATH || '')
+    .split(delimiter)
+    .filter((entry) => entry && !entry.startsWith(repositoryPrefix))
+    .join(delimiter)
+  const result = spawnSync('which', ['pi'], {
+    env: { ...process.env, PATH: externalPath },
+    encoding: 'utf8',
+  })
+  const binary = result.status === 0 ? result.stdout.trim() : ''
+  return binary || undefined
+}
+
+const hostPiBinary = resolveHostPiBinary()
+
+const developmentEnvironment = environmentForNode(process.execPath, {
+  ...process.env,
+  PATH: `${packageManagerShimDirectory}${delimiter}${process.env.PATH || ''}`,
+  APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:8001',
+  BACKEND_ORIGIN: process.env.BACKEND_ORIGIN || 'http://localhost:8002',
+  BETTER_AUTH_SECRET:
+    process.env.BETTER_AUTH_SECRET ||
+    'vibechat-local-dev-secret-32-characters-minimum',
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || 'http://localhost:8001',
+  DB_DIALECT: process.env.DB_DIALECT || 'sqlite',
+  MATRIX_APPSERVICE_TOKEN:
+    process.env.MATRIX_APPSERVICE_TOKEN || 'vibechat-local-appservice-token',
+  MATRIX_HOMESERVER_URL:
+    process.env.MATRIX_HOMESERVER_URL || 'http://127.0.0.1:8008',
+  MATRIX_PUBLIC_HOMESERVER_URL:
+    process.env.MATRIX_PUBLIC_HOMESERVER_URL || 'http://localhost:8008',
+  MATRIX_SERVER_NAME: process.env.MATRIX_SERVER_NAME || 'localhost',
+  MATRIX_TOKEN_ENCRYPTION_KEY:
+    process.env.MATRIX_TOKEN_ENCRYPTION_KEY ||
+    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+  MATRIX_USER_PREFIX: process.env.MATRIX_USER_PREFIX || 'vibe_',
+  ...(hostPiBinary ? { PI_BIN: hostPiBinary } : {}),
+  SPACE_AGENT_DEFAULT_ID: process.env.SPACE_AGENT_DEFAULT_ID || 'pi',
+  AGENTOS_APPS_DNS_SERVERS:
+    process.env.AGENTOS_APPS_DNS_SERVERS || '1.1.1.1,8.8.8.8',
+  AGENTOS_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+  RIVET_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+  ...(managesLocalRivetEngine
+    ? { RIVET_RUN_ENGINE: '0' }
+    : process.env.RIVET_RUN_ENGINE
+      ? { RIVET_RUN_ENGINE: process.env.RIVET_RUN_ENGINE }
+      : {}),
+  RIVETKIT_STORAGE_PATH: rivetkitStoragePath,
+  RIVET_ENGINE_DATABASE_PATH: rivetEngineDatabasePath,
+  SPACE_RUNTIME_CALLBACK_ORIGIN:
+    process.env.SPACE_RUNTIME_CALLBACK_ORIGIN || 'http://localhost:8002',
+  SPACE_RUNTIME_INTERNAL_TOKEN:
+    process.env.SPACE_RUNTIME_INTERNAL_TOKEN ||
+    'vibechat-local-space-runtime-token',
+  SPACE_RUNTIME_ORIGIN:
+    process.env.SPACE_RUNTIME_ORIGIN || 'http://127.0.0.1:8007',
+  SPACE_RUNTIME_PORT: process.env.SPACE_RUNTIME_PORT || '8007',
+  SQLITE_DB_PATH:
+    process.env.SQLITE_DB_PATH || join(repositoryRoot, 'data', 'local.sqlite'),
+})
+
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: repositoryRoot,
+    env: developmentEnvironment,
+    stdio: 'inherit',
+    ...options,
+  })
+
+  if (result.error) throw result.error
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} exited with status ${result.status}`)
+  }
+}
+
+function runPnpm(args) {
+  if (process.env.npm_execpath) {
+    run(process.execPath, [process.env.npm_execpath, ...args])
+    return
+  }
+  run('pnpm', args)
+}
+
+async function ensurePackageManagerShim() {
+  await mkdir(packageManagerShimDirectory, { recursive: true })
+  const result = spawnSync(
+    'corepack',
+    ['enable', '--install-directory', packageManagerShimDirectory],
+    { cwd: repositoryRoot, env: process.env, stdio: 'inherit' },
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) {
+    throw new Error(
+      `Corepack could not prepare the repository pnpm shim (status ${result.status})`,
+    )
+  }
+}
+
+async function ensureLocalDatabase() {
+  if (developmentEnvironment.DB_DIALECT !== 'sqlite') return
+
+  const databasePath = resolve(repositoryRoot, developmentEnvironment.SQLITE_DB_PATH)
+  developmentEnvironment.SQLITE_DB_PATH = databasePath
+  if (existsSync(databasePath)) return
+
+  console.log(`[dev] Initializing local SQLite database at ${databasePath}`)
+  await mkdir(dirname(databasePath), { recursive: true })
+  runPnpm(['db:push:sqlite'])
+  runPnpm(['db:seed:sqlite'])
+}
+
+async function ensureLocalSynapse() {
+  if (process.env.VIBECHAT_DEV_SKIP_SYNAPSE === '1') {
+    console.log('[dev] Skipping local Synapse because VIBECHAT_DEV_SKIP_SYNAPSE=1')
+    return
+  }
+
+  const docker = spawnSync('docker', ['info'], { stdio: 'ignore' })
+  if (docker.error || docker.status !== 0) {
+    throw new Error(
+      'Local Synapse requires a running Docker-compatible engine. Start Docker or OrbStack, then run pnpm dev again.',
+    )
+  }
+
+  const signingKey = join(
+    repositoryRoot,
+    'docker-volumes',
+    'synapse',
+    'localhost.signing.key',
+  )
+  if (!existsSync(signingKey)) {
+    console.log('[dev] Initializing local Synapse')
+    run('docker', [
+      'compose',
+      '--profile',
+      'matrix-init',
+      'run',
+      '--rm',
+      'synapse-init',
+    ])
+  }
+
+  console.log('[dev] Starting local Synapse')
+  run('docker', ['compose', '--profile', 'matrix', 'up', '-d', 'synapse'])
+
+  const versionsUrl = 'http://127.0.0.1:8008/_matrix/client/versions'
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    try {
+      const response = await fetch(versionsUrl, {
+        signal: AbortSignal.timeout(2_000),
+      })
+      if (response.ok) {
+        console.log('[dev] Synapse is ready at http://localhost:8008')
+        return
+      }
+    } catch {
+      // Synapse normally needs a few seconds after the container starts.
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 500))
+  }
+
+  run('docker', ['compose', '--profile', 'matrix', 'logs', '--tail', '80', 'synapse'])
+  throw new Error('Synapse did not become ready within 30 seconds')
+}
+
+async function localRivetEngineIsReady() {
+  try {
+    const response = await fetch(`${localRivetEndpoint}/health`, {
+      signal: AbortSignal.timeout(750),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+async function startManagedRivetEngine() {
+  if (!managesLocalRivetEngine) {
+    console.log(`[dev] Using configured Rivet Engine at ${configuredRivetEndpoint}`)
+    return null
+  }
+  if (await localRivetEngineIsReady()) {
+    throw new Error(
+      `A Rivet Engine is already listening at ${localRivetEndpoint}. Stop the stale local Engine, then run pnpm dev again.`,
+    )
+  }
+
+  const { getEnginePath } = require('@rivetkit/engine-cli')
+  await mkdir(rivetEngineDatabasePath, { recursive: true })
+  await writeFile(
+    rivetEngineConfigPath,
+    `${JSON.stringify(
+      {
+        file_system: { path: rivetEngineDatabasePath },
+        telemetry: { enabled: false },
+      },
+      null,
+      2,
+    )}\n`,
+    'utf8',
+  )
+  console.log(`[dev] Starting managed Rivet Engine at ${localRivetEndpoint}`)
+  const engine = spawn(
+    getEnginePath(),
+    ['--config', rivetEngineConfigPath, 'start'],
+    {
+      cwd: join(repositoryRoot, 'apps', 'space-runtime'),
+      env: developmentEnvironment,
+      stdio: 'inherit',
+    },
+  )
+  let spawnError = null
+  engine.once('error', (error) => {
+    spawnError = error
+  })
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (spawnError) {
+      throw new Error(`Failed to start Rivet Engine: ${spawnError.message}`, {
+        cause: spawnError,
+      })
+    }
+    if (engine.exitCode !== null || engine.signalCode !== null) {
+      throw new Error(
+        `Rivet Engine exited before readiness (${engine.signalCode || engine.exitCode})`,
+      )
+    }
+    if (await localRivetEngineIsReady()) {
+      console.log(`[dev] Rivet Engine is ready at ${localRivetEndpoint}`)
+      return engine
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 250))
+  }
+
+  engine.kill('SIGTERM')
+  throw new Error('Rivet Engine did not become ready within 30 seconds')
+}
+
+async function stopManagedRivetEngine(engine) {
+  if (!engine || engine.exitCode !== null || engine.signalCode !== null) return
+  engine.kill('SIGTERM')
+  await Promise.race([
+    new Promise((resolveExit) => engine.once('exit', resolveExit)),
+    new Promise((resolveDelay) => setTimeout(resolveDelay, 5_000)),
+  ])
+  if (engine.exitCode === null && engine.signalCode === null) {
+    engine.kill('SIGKILL')
+  }
+}
+
+await ensurePackageManagerShim()
+await ensureLocalDatabase()
+await ensureLocalSynapse()
+if (hostPiBinary) console.log(`[dev] Host Pi binary: ${hostPiBinary}`)
+const managedRivetEngine = await startManagedRivetEngine()
+
+console.log(
+  '[dev] Starting VibeChat: Web 8001, Backend 8002, Site 8003, Admin 8005, Space Runtime 8007',
+)
+
+const turboPath = join(repositoryRoot, 'node_modules', '.bin', 'turbo')
+const child = spawn(
+  turboPath,
+  [
+    'run',
+    'dev',
+    '--env-mode=loose',
+    ...filters.map((filter) => `--filter=${filter}`),
+  ],
+  {
+    cwd: repositoryRoot,
+    env: developmentEnvironment,
+    stdio: 'inherit',
+  },
+)
+
+let terminating = false
+let managedEngineFailed = false
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    terminating = true
+    child.kill(signal)
+  })
+}
+
+child.once('error', (error) => {
+  console.error('[dev] Failed to start application processes', error)
+  void stopManagedRivetEngine(managedRivetEngine)
+  process.exitCode = 1
+})
+
+managedRivetEngine?.once('exit', (code, signal) => {
+  if (terminating) return
+  console.error(
+    `[dev] Managed Rivet Engine exited unexpectedly (${signal || code || 'unknown'})`,
+  )
+  managedEngineFailed = true
+  terminating = true
+  child.kill('SIGTERM')
+})
+
+child.once('close', async (code) => {
+  const expectedStop = terminating
+  terminating = true
+  await stopManagedRivetEngine(managedRivetEngine)
+  process.exitCode =
+    code ?? (expectedStop && !managedEngineFailed ? 0 : 1)
+})

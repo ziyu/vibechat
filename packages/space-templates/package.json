@@ -1,0 +1,24 @@
+{
+  "name": "@vibechat/space-templates",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-official-catalog.mjs",
+    "lock:new": "node scripts/generate-official-catalog.mjs --write-locks",
+    "lock:development": "node scripts/generate-official-catalog.mjs --rewrite-development-locks",
+    "check:generated": "node scripts/generate-official-catalog.mjs --check",
+    "build": "node scripts/generate-official-catalog.mjs --check && tsc -p tsconfig.build.json",
+    "typecheck": "node scripts/generate-official-catalog.mjs --check && tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

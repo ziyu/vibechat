@@ -1,4 +1,4 @@
-import { builtInChatSpaces } from "@config";
+import { publishedSpaceTemplateCatalog } from "@config";
 import { DatabaseIdentityRepository, readMatrixRuntimeConfig } from "@libs/identity";
 import { createDefaultSocialService } from "@libs/social";
 import { DatabaseRoomRepository } from "./database-repository";
@@ -16,6 +16,6 @@ export function createDefaultRoomService() {
     identities: new DatabaseIdentityRepository(),
     participantPolicy: createDefaultSocialService(),
     matrix: new SynapseMatrixRoomAdapter({ homeserverUrl: config.homeserverUrl }),
-    spaces: builtInChatSpaces,
+    spaces: publishedSpaceTemplateCatalog,
   });
 }

@@ -25,10 +25,10 @@ Without these, `pnpm test:e2e` will fail with "Executable doesn't exist" errors.
 
 ## Running Tests
 
-> `pnpm dev` starts Backend on 8002, product Web on 8001, the public Site on 8003, and Admin on 8005.
+> `pnpm dev` first prepares local SQLite and Synapse on 8008, then starts Backend on 8002, product Web on 8001, the public Site on 8003, Admin on 8005, and Space Runtime on 8007.
 
 ```bash
-# 1) Start the four active TanStack applications
+# 1) Start the active applications and local Synapse
 pnpm dev
 
 # 2) Run all active E2E tests
