@@ -14,9 +14,13 @@ import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { registry } from "./actors.js";
 import {
   addAgentUsage,
-  splitAgentUsage,
   type AgentUsage,
 } from "./agent-usage.js";
+import {
+  createFakeAgentAdapter,
+  createPiAgentAdapter,
+  SpaceAgentRegistry,
+} from "./agent-adapter.js";
 import {
   DevPreviewError,
   DevPreviewManager,
@@ -37,12 +41,19 @@ import {
   projectDirectory,
   saveProject,
 } from "./project-store.js";
+import { checkRivetEngineHealth } from "./rivet-health.js";
 import {
   type ClaimedSpaceTurn,
   SpaceInstanceServer,
   type SpaceBuildProgress,
   type SpaceMember,
 } from "./space-instance-server.js";
+import {
+  parseBilling,
+  reportTurnBilling,
+  reportTurnCompletion,
+  type SpaceTurnReply,
+} from "./turn-callbacks.js";
 
 const maximumPromptLength = 4_000;
 const maximumRepairs = 3;
@@ -64,13 +75,15 @@ const spaces = new SpaceInstanceServer(scheduleSpace);
 const devPreviews = new DevPreviewManager();
 const internalToken = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim() ?? "";
 const defaultAgentId = process.env.SPACE_AGENT_DEFAULT_ID?.trim() || "pi";
-const agentAdapters = new Map([
-  ["pi", {
-    id: "pi",
-    name: "Pi",
+const agentAdapters = new SpaceAgentRegistry([
+  createPiAgentAdapter({
+    isAvailable: hasModelCredentials,
     runProjectTurn,
     reviseProject,
-  }],
+  }),
+  ...(process.env.SPACE_AGENT_FAKE_ENABLED === "1"
+    ? [createFakeAgentAdapter()]
+    : []),
 ]);
 const scheduledSpaceIds = new Set<string>();
 const activeSpaceIds = new Set<string>();
@@ -133,12 +146,13 @@ app.use("/runtime/*", async (context, next) => {
   await next();
 });
 
-app.get("/api/health", (context) =>
-  context.json({
-    ok: true,
+app.get("/api/health", async (context) => {
+  const rivetEngine = await checkRivetEngineHealth(process.env.RIVET_ENDPOINT!);
+  return context.json({
+    ok: rivetEngine.ok,
     modelConfigured: hasModelCredentials(),
     defaultAgentId,
-    availableAgents: [...agentAdapters.values()],
+    availableAgents: agentAdapters.list(),
     piMode: piMode(),
     provider: configuredProvider(),
     piConcurrency: maximumConcurrentTurns,
@@ -146,9 +160,10 @@ app.get("/api/health", (context) =>
     rivetEngineDataDirectory,
     spaceInstanceServer: "local-first",
     internalAuthConfigured: Boolean(internalToken),
+    dependencies: { rivetEngine },
     urls: localUrls(port),
-  }),
-);
+  }, rivetEngine.ok ? 200 : 503);
+});
 
 app.get("/api/apps/:appId", async (context) => {
   try {
@@ -159,11 +174,7 @@ app.get("/api/apps/:appId", async (context) => {
       appId,
       exists: Boolean(project),
       defaultAgentId,
-      availableAgents: [...agentAdapters.values()].map((agent) => ({
-        id: agent.id,
-        name: agent.name,
-        available: agent.id === "pi" ? hasModelCredentials() : true,
-      })),
+      availableAgents: agentAdapters.list(),
       project,
       space: await spaces.snapshot(appId),
       devPreview: devPreviews.status(appId),
@@ -566,6 +577,7 @@ async function drainTurnQueue() {
 async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
   let succeeded = false;
   let usage: AgentUsage | undefined;
+  let reply: SpaceTurnReply | undefined;
   try {
     if (turn.kind === "publish") {
       succeeded = await publishCurrentProject(appId, turn.turnId);
@@ -583,6 +595,7 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
       );
       succeeded = outcome.succeeded;
       usage = outcome.usage;
+      reply = outcome.reply;
     }
   } catch (error) {
     console.error("Queued turn failed", boundedLogError(error));
@@ -593,9 +606,21 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
       spaceErrorCode(error),
     );
   } finally {
-    await reportTurnBilling(turn, succeeded ? "completed" : "failed", usage).catch((error) => {
-      console.error("Space turn billing callback failed", boundedLogError(error));
-    });
+    await Promise.all([
+      reportTurnBilling({
+        turn,
+        status: succeeded ? "completed" : "failed",
+        usage,
+        internalToken,
+      }).catch((error) => {
+        console.error("Space turn billing callback failed", boundedLogError(error));
+      }),
+      ...(succeeded && reply
+        ? [reportTurnCompletion({ turn, reply, internalToken }).catch((error) => {
+            console.error("Space turn completion callback failed", boundedLogError(error));
+          })]
+        : []),
+    ]);
   }
 }
 
@@ -730,7 +755,11 @@ async function processTurn(
     usage = addAgentUsage(usage, turn.usage);
     if (turn.kind === "chat") {
       await spaces.completeChat(appId, turnId, turn.message);
-      return { succeeded: true, usage };
+      return {
+        succeeded: true,
+        usage,
+        reply: { agentId: agent.id, agentName: agent.name, text: turn.message },
+      };
     }
     let revision = { files: turn.files, summary: turn.summary };
 
@@ -803,7 +832,15 @@ async function processTurn(
             updatedAt: publishedAt,
             deployment,
           });
-          return { succeeded: true, usage };
+          return {
+            succeeded: true,
+            usage,
+            reply: {
+              agentId: agent.id,
+              agentName: agent.name,
+              text: revision.summary,
+            },
+          };
         }
 
         await spaces.complete(appId, turnId, revision.summary, {
@@ -816,7 +853,15 @@ async function processTurn(
           updatedAt,
           publishedReleaseId: existing?.releaseId ?? null,
         });
-        return { succeeded: true, usage };
+        return {
+          succeeded: true,
+          usage,
+          reply: {
+            agentId: agent.id,
+            agentName: agent.name,
+            text: revision.summary,
+          },
+        };
       } catch (error) {
         if (!isRepairableRevisionError(error) || attempt === maximumRepairs) {
           throw error;
@@ -865,6 +910,21 @@ async function bootstrapTemplateProject(
     templateVersionId,
   );
   let project = initialized.project;
+
+  // Snapshot polling also calls bootstrap. Once this Runtime process already
+  // owns preview state for the App, bootstrap must be observational: rebuilding
+  // the stored ready Project here would erase an in-flight or failed Candidate
+  // status. An idle status means a real cold start and still rebuilds the
+  // persisted Draft so its ready preview becomes locally available again.
+  const currentPreview = devPreviews.status(appId);
+  if (!initialized.created && currentPreview.state !== "idle") {
+    return {
+      created: false,
+      project,
+      devPreview: currentPreview,
+    };
+  }
+
   let preview = await devPreviews.prepare(appId, project.files);
 
   // An Agent revision may have landed while a first template preview was
@@ -1126,60 +1186,6 @@ function parseMember(clientId: unknown, name: unknown): SpaceMember {
     clientId: normalizedClientId,
     name: normalizedName || `访客 ${normalizedClientId.slice(-4)}`,
   };
-}
-
-function parseBilling(value: unknown) {
-  if (!value || typeof value !== "object") return null;
-  const billing = value as Record<string, unknown>;
-  if (
-    typeof billing.callbackUrl !== "string" ||
-    typeof billing.userId !== "string" ||
-    typeof billing.requestId !== "string" ||
-    typeof billing.provider !== "string" ||
-    typeof billing.model !== "string" ||
-    typeof billing.reservedCredits !== "number" ||
-    !Number.isSafeInteger(billing.reservedCredits) ||
-    billing.reservedCredits <= 0 ||
-    typeof billing.transactionId !== "string"
-  ) return null;
-  const callbackUrl = new URL(billing.callbackUrl);
-  if (callbackUrl.protocol !== "http:" && callbackUrl.protocol !== "https:") return null;
-  return {
-    callbackUrl: callbackUrl.href,
-    userId: billing.userId,
-    requestId: billing.requestId,
-    provider: billing.provider,
-    model: billing.model,
-    reservedCredits: billing.reservedCredits,
-    transactionId: billing.transactionId,
-  };
-}
-
-async function reportTurnBilling(
-  turn: ClaimedSpaceTurn,
-  status: "completed" | "failed",
-  usage?: AgentUsage,
-) {
-  if (!internalToken) return;
-  const billableRequests = turn.requests.filter((request) => request.billing);
-  const allocatedUsage = splitAgentUsage(usage, billableRequests.length);
-  await Promise.all(billableRequests.flatMap((request, index) => request.billing ? [fetch(
-    request.billing.callbackUrl,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${internalToken}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        ...request.billing,
-        status,
-        ...(status === "completed" ? { usage: allocatedUsage[index] ?? {} } : {}),
-      }),
-    },
-  ).then((response) => {
-    if (!response.ok) throw new Error(`billing callback returned ${response.status}`);
-  })] : []));
 }
 
 function localUrls(activePort: number) {

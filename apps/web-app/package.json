@@ -61,7 +61,8 @@
     "streamdown": "1.4.0",
     "tailwind-merge": "3.0.2",
     "tw-animate-css": "1.2.4",
-    "use-stick-to-bottom": "1.1.1"
+    "use-stick-to-bottom": "1.1.1",
+    "vscode-languageserver-types": "3.17.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",

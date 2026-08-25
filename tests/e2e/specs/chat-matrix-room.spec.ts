@@ -7,10 +7,14 @@ function chatFrame(page: Page) {
 
 async function openAppChat(page: Page) {
   const frame = chatFrame(page)
-  await frame.getByTestId('message-input').waitFor({ state: 'attached' })
-  const launcher = frame.getByRole('button', { name: 'Open Space Chat' })
-  if (await launcher.isVisible()) await launcher.click()
-  await expect(frame.getByTestId('message-input')).toBeVisible()
+  const input = frame.getByTestId('message-input')
+  const root = frame.locator('#vcc-root')
+  await input.waitFor({ state: 'attached' })
+  if (await root.getAttribute('data-open') !== 'true') {
+    await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
+  }
+  await expect(root).toHaveAttribute('data-open', 'true')
+  await expect(input).toBeInViewport()
   return frame
 }
 

@@ -127,14 +127,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9",
+          "id": "tpla-ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9"
+          "sourceHash": "sha256:ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:932644bd513a78cb52a6801a1fa9ba8903cd1bf44ba410feb009dc561a7026c9",
-          "manifestHash": "sha256:bfa866c02c49b8089ab0ecd496b37bc8c15d99a883490ff2c83a36d1f8ea78ad"
+          "sourceHash": "sha256:ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627",
+          "manifestHash": "sha256:04e9d65ed6151280c7c941c8118620f524fdc7b0cca83cf8dadb35d3f9655ef4"
         }
       }
     ]
@@ -266,14 +266,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-2b65dd7ccf94c6e832da33fc143f60516e4a44840bc9d3a3a15e3b6f6baba3a8",
+          "id": "tpla-b52a93a0a95f265a9210433a699efdae8289fd8beae04d45e0d39eaf1eb07786",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:2b65dd7ccf94c6e832da33fc143f60516e4a44840bc9d3a3a15e3b6f6baba3a8"
+          "sourceHash": "sha256:b52a93a0a95f265a9210433a699efdae8289fd8beae04d45e0d39eaf1eb07786"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:2b65dd7ccf94c6e832da33fc143f60516e4a44840bc9d3a3a15e3b6f6baba3a8",
-          "manifestHash": "sha256:151746ba8cd1fd6e263f9fcbb2d12d7510b5f185064195dcec3a828e77b8b40c"
+          "sourceHash": "sha256:b52a93a0a95f265a9210433a699efdae8289fd8beae04d45e0d39eaf1eb07786",
+          "manifestHash": "sha256:7bdc63aa4889468447d30c2b0b07fad353cf51e24d8298022903024317bcca3d"
         }
       }
     ]
@@ -411,14 +411,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-2c3e0a568ad26145702f3c14175e23799806db2331eebc53f529278f72235f6a",
+          "id": "tpla-d16c43c9bc2b859306f266affd3f3baf8fda435d948f663efd5caa1b7037a22d",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:2c3e0a568ad26145702f3c14175e23799806db2331eebc53f529278f72235f6a"
+          "sourceHash": "sha256:d16c43c9bc2b859306f266affd3f3baf8fda435d948f663efd5caa1b7037a22d"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:2c3e0a568ad26145702f3c14175e23799806db2331eebc53f529278f72235f6a",
-          "manifestHash": "sha256:f395e36ee849ab9056675b1bed34cfe4e85058e995a39a4ee83c60ac58caaa87"
+          "sourceHash": "sha256:d16c43c9bc2b859306f266affd3f3baf8fda435d948f663efd5caa1b7037a22d",
+          "manifestHash": "sha256:63776099424104dca62b6097d0710cdde2eaab9c661959820d1dd8722448ec38"
         }
       }
     ]
@@ -550,14 +550,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79",
+          "id": "tpla-7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79"
+          "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79",
-          "manifestHash": "sha256:1bab68122581b6b600ed9a08aa800b4c394b11bfc9cc95d08654c606473e7d6a"
+          "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
+          "manifestHash": "sha256:b60df96e08f669f04846c0c05f24bd421f80e57736c6b0e82a9a1e4bb91bec55"
         }
       }
     ]
@@ -689,14 +689,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-356373d22d141bb5f66d44fde7e04471be74ee3ae2cb8bcd916fbd54da4460d0",
+          "id": "tpla-16ed93f878e3acc0b455ee78495c74edf423605d7276b2684b6e56b1d01b7e97",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:356373d22d141bb5f66d44fde7e04471be74ee3ae2cb8bcd916fbd54da4460d0"
+          "sourceHash": "sha256:16ed93f878e3acc0b455ee78495c74edf423605d7276b2684b6e56b1d01b7e97"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:356373d22d141bb5f66d44fde7e04471be74ee3ae2cb8bcd916fbd54da4460d0",
-          "manifestHash": "sha256:7622dd6bc618bfa7ee9baf01bb1730c23b5094d778150331df14a8a20a9d51e6"
+          "sourceHash": "sha256:16ed93f878e3acc0b455ee78495c74edf423605d7276b2684b6e56b1d01b7e97",
+          "manifestHash": "sha256:448fc8da2a9802ef6cdc617f3d1b05d74df525a55b3517c7442a7457aea73c47"
         }
       }
     ]

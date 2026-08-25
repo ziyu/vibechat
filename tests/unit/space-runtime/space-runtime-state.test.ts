@@ -1,7 +1,6 @@
 import type { SpaceRuntimeSnapshot } from '@vibechat/space-app-contracts'
 import { describe, expect, it } from 'vitest'
 import {
-  selectAgentConversationMessages,
   selectReadySpaceAppTarget,
   shouldProjectRuntimeEventToApp,
   type ReadySpaceAppTarget,
@@ -43,7 +42,7 @@ const previous: ReadySpaceAppTarget = {
 }
 
 describe('Space Runtime ready App selection', () => {
-  it('projects only real Agent replies into customizable App chat', () => {
+  it('keeps Runtime-private messages out of the Matrix-backed App chat', () => {
     const current = snapshot('!space:localhost', 'ready')
     current.messages = [
       {
@@ -84,13 +83,10 @@ describe('Space Runtime ready App selection', () => {
       },
     ]
 
-    expect(selectAgentConversationMessages(current)).toEqual([
-      expect.objectContaining({ id: 'agent-1', authorId: 'pi' }),
-    ])
     expect(shouldProjectRuntimeEventToApp({
       type: 'message',
       message: current.messages[1],
-    })).toBe(true)
+    })).toBe(false)
     expect(shouldProjectRuntimeEventToApp({
       type: 'message',
       message: current.messages[2],

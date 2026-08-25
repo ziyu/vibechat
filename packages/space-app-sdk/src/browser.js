@@ -156,11 +156,6 @@ function acceptEvent(event) {
     }
     dispatch("members", currentSnapshot.members);
     dispatch("presence", presenceRecord());
-  } else if (event.type === "message" && event.message) {
-    if (!currentSnapshot.agent.messages.some((message) => message.id === event.message.id)) {
-      currentSnapshot.agent.messages.push(clone(event.message));
-    }
-    dispatch("agent", currentSnapshot.agent);
   } else if (event.type === "app_state") {
     currentSnapshot.app.revision = Number(event.revision) || 0;
     if (event.deleted) delete currentSnapshot.app.state[event.key];

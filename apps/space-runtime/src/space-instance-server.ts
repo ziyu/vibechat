@@ -119,6 +119,12 @@ export interface SpaceTurnRequest {
 
 export interface SpaceTurnBilling {
   callbackUrl: string;
+  completion?: {
+    callbackUrl: string;
+    spaceInstanceId: string;
+    matrixRoomId: string;
+    matrixEventId: string;
+  };
   userId: string;
   requestId: string;
   provider: string;

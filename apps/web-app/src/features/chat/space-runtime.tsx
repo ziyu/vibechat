@@ -11,7 +11,6 @@ import type { ChatMessage } from '@vibechat/product-core'
 import { ProductApiClient } from '@vibechat/product-client'
 import { useTranslation } from '@/hooks/use-translation'
 import {
-  selectAgentConversationMessages,
   selectReadySpaceAppTarget,
   shouldProjectRuntimeEventToApp,
   type ReadySpaceAppTarget,
@@ -229,7 +228,7 @@ export function SpaceAppSurface({
       agent: {
         id: activeAgentId,
         name: activeAgentName,
-        messages: selectAgentConversationMessages(snapshot),
+        messages: [],
         build: snapshot?.build || null,
         queue: snapshot?.queue || { activeCount: 0, pendingCount: 0 },
       },

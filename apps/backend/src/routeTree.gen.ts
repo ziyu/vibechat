@@ -28,6 +28,7 @@ import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
+import { Route as V1InternalSpaceAgentCompletionRouteImport } from './routes/v1/internal/space-agent-completion'
 import { Route as V1InternalSpaceAgentBillingRouteImport } from './routes/v1/internal/space-agent-billing'
 import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
 import { Route as V1BlocksUserIdRouteImport } from './routes/v1/blocks/$userId'
@@ -182,6 +183,12 @@ const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
   path: '/v1/rooms/metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1InternalSpaceAgentCompletionRoute =
+  V1InternalSpaceAgentCompletionRouteImport.update({
+    id: '/v1/internal/space-agent-completion',
+    path: '/v1/internal/space-agent-completion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1InternalSpaceAgentBillingRoute =
   V1InternalSpaceAgentBillingRouteImport.update({
     id: '/v1/internal/space-agent-billing',
@@ -524,6 +531,7 @@ export interface FileRoutesByFullPath {
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -603,6 +611,7 @@ export interface FileRoutesByTo {
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -683,6 +692,7 @@ export interface FileRoutesById {
   '/v1/blocks/$userId': typeof V1BlocksUserIdRoute
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
+  '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -764,6 +774,7 @@ export interface FileRouteTypes {
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -843,6 +854,7 @@ export interface FileRouteTypes {
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -922,6 +934,7 @@ export interface FileRouteTypes {
     | '/v1/blocks/$userId'
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
+    | '/v1/internal/space-agent-completion'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -1002,6 +1015,7 @@ export interface RootRouteChildren {
   V1BlocksUserIdRoute: typeof V1BlocksUserIdRoute
   V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
   V1InternalSpaceAgentBillingRoute: typeof V1InternalSpaceAgentBillingRoute
+  V1InternalSpaceAgentCompletionRoute: typeof V1InternalSpaceAgentCompletionRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   V1UsersSearchRoute: typeof V1UsersSearchRoute
@@ -1176,6 +1190,13 @@ declare module '@tanstack/react-router' {
       path: '/v1/rooms/metadata'
       fullPath: '/v1/rooms/metadata'
       preLoaderRoute: typeof V1RoomsMetadataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/internal/space-agent-completion': {
+      id: '/v1/internal/space-agent-completion'
+      path: '/v1/internal/space-agent-completion'
+      fullPath: '/v1/internal/space-agent-completion'
+      preLoaderRoute: typeof V1InternalSpaceAgentCompletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/internal/space-agent-billing': {
@@ -1644,6 +1665,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1BlocksUserIdRoute: V1BlocksUserIdRoute,
   V1ContactsUserIdRoute: V1ContactsUserIdRoute,
   V1InternalSpaceAgentBillingRoute: V1InternalSpaceAgentBillingRoute,
+  V1InternalSpaceAgentCompletionRoute: V1InternalSpaceAgentCompletionRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   V1UsersSearchRoute: V1UsersSearchRoute,

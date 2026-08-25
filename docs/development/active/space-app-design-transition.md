@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算和通用 Agent 契约。生产持久化、多副本接管和 Matrix Agent 回写仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。生产持久化、多副本接管、outbox reconciliation 和完整 #40 仍是后续门槛。
 
 本次产品校正确认：
 
@@ -167,14 +167,14 @@ Space route
 | 范围 | 当前实现事实 | 新目标 |
 | --- | --- | --- |
 | 产品语义 | UI/代码同时存在 Space 与 Room 词汇 | UI/公开文档统一 Space；Matrix Room 只保留技术语境 |
-| Chat | A2 真实 Matrix timeline 和完整消息操作继续作为 Chat Core；Host 已通过受信 bridge 向 App 提供发送、回复、编辑、删除、Reaction、附件、重试、typing、已读与 Mention | 补齐分页、双浏览器完整 contract suite 和 Matrix Agent 回写 |
+| Chat | A2 真实 Matrix timeline 和完整消息操作继续作为 Chat Core；Host 已通过受信 bridge 向 App 提供发送、回复、编辑、删除、Reaction、附件、重试、typing、已读与 Mention；Agent 回复也只经 Matrix timeline 投影 | 补齐分页、member Mention 与双浏览器完整 contract suite |
 | 创建 | 官方目录包含 Default Chat App 与四个差异化模板；新建允许零联系人，默认选择 Default Chat | 补齐已有 Space 后选模板与 Candidate 回退 |
 | 市场 | 五个官方条目已拆为独立 `agentos-app-v1` Project，当前版本为有序 patch `0.1.2`，并以官方/用户共用协议和 SemVer 门禁提供分类、详情、收藏和历史 lineage | 后续迁移数据库/对象存储并完成用户发布与审核上架 |
 | Space state | `room_index` 已原地增加稳定 instance/project/default-agent ID；Matrix 仍为 v1 | 增加 v2 Project/Release/Agent state 双读与修复 |
 | App | `/spaces/:spaceId` Host 已只保留顶部 Kernel Bar 与单一 iframe；Default Chat UI 和四个模板的 Chat 入口均属于 App Project 代码；Kernel 可显式恢复官方 Default Chat App | 补齐历史 rollback、可访问性与双浏览器 contract suite |
 | Runtime | Node/Hono Runtime 已实现本地 Project、queue、SSE、Dev/Release | 迁移生产 DB/Object Store 和多副本 lease |
-| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作和结构化 member/agent Mention；Backend 会按精确 Matrix event 核验 Agent target | 补齐分页、双浏览器 contract suite 和 Matrix Agent 回写 |
-| Agent | 通用 `agentId`/Adapter/queue 已实现，默认 Pi；Host Pi 真实回复与 token usage 结算已验证 | 增加 fake/第二 Adapter、取消、恢复与 Matrix 回写 |
+| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作和结构化 member/agent Mention；Backend 会按精确 Matrix event 核验 Agent target，Runtime 私有 message 不进入 App Chat | 补齐分页、member Mention 与双浏览器完整 contract suite |
+| Agent | provider-neutral Registry/Adapter/queue 已实现，默认 Pi，fake Adapter 提供确定性合约证据；Host Pi、token usage 结算和 Matrix virtual-user 回写已验证 | 增加取消、生产恢复、outbox 与第二真实 provider |
 | 版本 | 当前 Space 始终加载内部 dev/ready channel，Kernel 显示实时版本并可固化发布；不再提供 Dev/Live 画布切换；Default Chat 恢复走新的 ready Revision | 增加历史 rollback 与双浏览器实时切换证据 |
 | 治理 | Admin 无 App/Agent 模块 | 新增 Template/Agent/Release 审核、冻结、撤销和审计 |
 
@@ -224,7 +224,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 最终 `pnpm docs:check`、`pnpm build:docs`、全仓 `pnpm typecheck` 和包含 17 个 package/app 的 `pnpm build` 通过。全量 `pnpm test` 为 137 通过、1 跳过、3 个已知基线失败；失败仍是 `validators/user.test.ts` 1 个与 `email/cloudflare.test.ts` 2 个，与本切片无关。
 - 2026-08-23 默认 `pnpm dev` 已自动启动 Synapse 与五个应用，真实 Bootstrap 返回 `matrix.status=ready`；Synapse Appservice integration 1/1 通过，Chromium Bootstrap 与 Matrix Room/持久消息定向 E2E 5/5 通过。
 
-当前已经形成真实本地 Synapse 的单 Chromium Chat 基线证据，但尚未形成双 Chromium 的 #40 Agent/App 协作证据，因此本切片和 A3/A4 都保持 Active。Agent 回复当前通过 Runtime SSE 合并到 Chat UI，而不是 Matrix virtual-user event；这满足首版可见对话，但尚未达到“Matrix 是唯一消息 timeline”的最终不变量。
+当前已经形成真实本地 Synapse 的双 Chromium Chat 与 Agent 回写基线证据；Agent 回复由受管 Matrix virtual user 写入唯一 timeline，Runtime SSE 不再作为第二条 Chat 消息来源。本切片和 A3/A4 仍保持 Active，因为空白 Space、Candidate 失败浏览器保护、历史 rollback、生产 outbox/lease 和完整 #40 尚未完成。
 
 ### 5.0.1 2026-08-23 官方 Space Template 迁移（已验证切片）
 
@@ -274,9 +274,31 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-24 fallback 边界修正定向 unit 32/32 通过：App 代理保留 Runtime 503 且不注入包级 Default Chat，Dev Preview 成功/失败 Candidate 使用不同版本实例，失败后旧 ready Revision 仍可读取，刷新状态选择 Project 记录的固定 `draftId`。全仓非缓存 typecheck/build 均为 18/18，文档链接、Docs production build、Cloudflare production bundle 与真实 Synapse `chat-matrix-room.spec.ts` 2/2 通过；Alice 浏览器直接加载 `/spaces/!WGY…` 的精确 revision `95d93d0de00c212b`，Host DOM 只有 Kernel Bar 与单一 iframe，iframe 内完整 Matrix Chat 可用且没有宿主 Default Chat 闪屏。
 - 2026-08-24 新账号欢迎积分与真实 Agent 链路完成首个运行切片：注册账号通过幂等 `signup:welcome:<userId>` 交易获得默认 100 credits；Alice 的 Default Chat App 把结构化 `@pi` metadata 与人类消息写入真实 Synapse，Backend 复读精确 event 后完成 ACL/credits/queue，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 回复“积分与 Agent 对话都已打通。”。该 chat-only turn 上报 4,839 tokens，账本先预留 4 credits、再补扣 1 credit，余额从 100 变为 95；失败 turn 各自只退款一次。完整 App 修改走查进一步让 Pi 把背景改为 `#07162b` 并保留 Chat Core，ready Revision 从 `2d68a0defce3aac1` 实时切到 `46f337b6b99d8f27`，`publishedDraftId` 与 Release 保持不变；该 turn 上报 29,856 tokens并结算 30 credits。定向 unit 覆盖欢迎积分幂等、Matrix event content、产品 turn contract、Pi session UUID 和批次 usage 分摊。
 
-尚未完成：双 Chromium 的完整消息操作/typing/媒体/Mention contract、双 Chromium 结构化 `@agent` 自动化、Candidate 失败保护的浏览器覆盖、历史 rollback、Matrix Agent 回写、生产存储与多副本 lease。因此 A3/A4 与本文继续保持 Active。
+尚未完成：双 Chromium member Mention 与分页 contract、空白 Space 后选模板、Candidate 失败保护的浏览器覆盖、历史 rollback、生产 outbox/存储与多副本 lease。双 Chromium 的完整 Matrix 消息操作和结构化 `@agent` Matrix 回写已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
+
+### 5.0.4 2026-08-25 Matrix Agent 回写与 Runtime 韧性（P0 切片已验证）
+
+本轮 P0 已收口以下开发中边界；生产 outbox/lease 仍未完成，因此不提升为稳定运行承诺或发布说明：
+
+1. Agent Adapter 从 Runtime 入口文件拆为 provider-neutral Registry/Adapter 合约；Pi 作为第一实现，fake Adapter 只用于确定性合约测试，公共 request/result/progress/usage 不出现 Pi 专属字段。
+2. 人类结构化 `@agent` 消息仍先写入 Matrix 并以事件 ID 幂等入队；一个 Runtime 合并 turn 只生成一个 Agent 回复。Runtime 通过内部完成回调把回复写成受管 Agent Matrix virtual-user 的 `m.room.message`，事务 ID 由 turn ID 稳定派生，重复回调不得产生第二条 timeline 事件。
+3. Matrix Agent 事件携带 `io.vibechat.agent` metadata、原始事件 ID 列表与 `m.in_reply_to`；受管 Matrix 账号的 `m.room.member` state 同时携带 `io.vibechat.agent_member`，把传输身份显式映射到逻辑 `agentId`。Matrix SDK 将回复投影成 Chat Core 的逻辑 Agent 消息，并把该 virtual user 从真人成员、typing、成员计数和 Mention target 中排除；历史房间可从已有 Agent 回复 metadata 兼容识别，不依赖用户名正则。Runtime SSE 继续承载 build/queue/revision 状态，但不再把 Runtime 私有 message 当作第二条 Chat timeline 投影给 App。
+4. Agent 回复回写与逐请求 credits 结算分别幂等执行；批次 usage 仍按请求分摊，Matrix 只回写一次。回写失败不得伪造浏览器成功消息，当前原型以有限重试和可重放稳定事务 ID 保证恢复，生产 outbox/lease 仍留在 S4/S5。
+5. `/api/health` 必须同时探测 Rivet Engine；Runtime 进程存活但 Engine 不可达时返回非 2xx，不再 false-green。已保存 Project 的 ready Revision仍由 bootstrap 路径重建 Dev Preview，浏览器重连不得先挂载默认 Chat 占位页。
+6. 新增专用双 Chromium collaboration E2E：两名成员进入同一 Space，人类消息双向同步，结构化 `@agent` 只调度一次，双方从 Matrix 看见同一个 Agent event，刷新后仍各只有一条；Mention 面板只显示一个逻辑 Agent，不暴露受管 Matrix 账号；ready Revision 变化时两端收敛，Chat Core 始终可用。
+7. Matrix v1 Space state 同时双读 `spaceId` 与 `templateId`。创建者的 `/sync` 即使早于 Product DB room index 落库，也可以直接从 Matrix state 投影同一 Space，不再因一次空 metadata 查询把创建者错误地送入“没有找到这个 Space”。
+
+本轮验证证据：
+
+- Adapter、callback、Runtime health、Host timeline 隔离与 Matrix v1 state 双读共 6 个定向测试文件、17 个单元测试通过。
+- 本地 `pnpm dev` 同时启动 Synapse、Rivet Engine、Space Runtime、Backend、Web、Site 与 Admin；Runtime `/api/health` 实际探测 Engine 并返回 200。异常 Engine 状态已可恢复备份，干净重建后 Project 源码与 Product DB 未被删除。
+- `chat-matrix-room.spec.ts`、`chat-matrix-operations.spec.ts`、`chat-social-invite.spec.ts`、`chat-space-agent-collaboration.spec.ts` 合并运行 5/5 通过。真实 Pi 使用 `deepseek` provider；两个独立 Chromium Context 在同一 Matrix Space 中完成人类消息、结构化 `@pi`、唯一 Agent event、`m.in_reply_to`/metadata、刷新持久化，且 chat-only turn 不改写 Draft/Release。增加 Agent membership identity 后，专用 collaboration E2E 再次单独运行 1/1 通过，同时断言 state marker 存在、`@pi` target 恰好一个且不存在 `vibe_agent_*` Mention。
+- Matrix 创建竞态修复后，好友建立、Template Space 邀请/加入、双向聊天、回复、屏蔽与解除的完整社交 E2E 1/1 通过；Alice 原有本地账号重新 provision 后 `/spaces` 显示 Synapse 已连接，账号、好友和 credits 保持不变。
+- 全仓 18/18 `pnpm typecheck` 与 `pnpm build`、Backend Node/Cloudflare build、`pnpm docs:check` 与 Docs production build 已通过；本轮文档更新后再次执行适用门禁。
+
+若真实模型凭据缺失，只能把 fake 合约与 Matrix 回写标为通过，不能声称真实 Agent provider 全链路通过。本轮环境存在真实 provider 凭据并已完成上述真实 Pi E2E；这仍不替代生产多副本、outbox 和故障注入证据。
 
 ### S0：兼容护栏与命名校正
 

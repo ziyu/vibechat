@@ -66,6 +66,13 @@ const rivetEngineConfigPath = join(
   'managed-engine',
   'config.json',
 )
+const packageManagerShimDirectory = join(
+  repositoryRoot,
+  'apps',
+  'space-runtime',
+  '.data',
+  'corepack-bin',
+)
 
 function resolveHostPiBinary() {
   if (process.env.PI_BIN) return process.env.PI_BIN
@@ -87,6 +94,7 @@ const hostPiBinary = resolveHostPiBinary()
 
 const developmentEnvironment = environmentForNode(process.execPath, {
   ...process.env,
+  PATH: `${packageManagerShimDirectory}${delimiter}${process.env.PATH || ''}`,
   APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:8001',
   BACKEND_ORIGIN: process.env.BACKEND_ORIGIN || 'http://localhost:8002',
   BETTER_AUTH_SECRET:
@@ -150,6 +158,21 @@ function runPnpm(args) {
     return
   }
   run('pnpm', args)
+}
+
+async function ensurePackageManagerShim() {
+  await mkdir(packageManagerShimDirectory, { recursive: true })
+  const result = spawnSync(
+    'corepack',
+    ['enable', '--install-directory', packageManagerShimDirectory],
+    { cwd: repositoryRoot, env: process.env, stdio: 'inherit' },
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) {
+    throw new Error(
+      `Corepack could not prepare the repository pnpm shim (status ${result.status})`,
+    )
+  }
 }
 
 async function ensureLocalDatabase() {
@@ -304,6 +327,7 @@ async function stopManagedRivetEngine(engine) {
   }
 }
 
+await ensurePackageManagerShim()
 await ensureLocalDatabase()
 await ensureLocalSynapse()
 if (hostPiBinary) console.log(`[dev] Host Pi binary: ${hostPiBinary}`)

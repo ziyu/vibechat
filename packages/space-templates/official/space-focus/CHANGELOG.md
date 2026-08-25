@@ -4,6 +4,8 @@
 
 - Refactor the App and default Chat UI into type-checked, responsibility-focused modules.
 - Keep the full Space identity in the Kernel Bar, move attachment controls into the Composer, and fix its responsive layout without changing Chat Core capabilities.
+- Describe Agent work neutrally because a turn may answer in Chat without changing the Space App.
+- Resolve Agent message authors from logical Mention targets instead of exposing managed Matrix users as members.
 
 ## 0.1.1
 

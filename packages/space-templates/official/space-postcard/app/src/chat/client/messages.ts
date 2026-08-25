@@ -8,7 +8,11 @@ import type { ChatCopy } from "./copy.js";
 import { formatMessageTime } from "./dom.js";
 
 export function findMember(space: SpaceSdk, id: string): SpaceMember {
-  return [space.self, ...space.members].find((item) => item?.id === id) || {
+  const member = [space.self, ...space.members].find((item) => item?.id === id);
+  if (member) return member;
+  const agent = space.mentions.find((item) => item.type === "agent" && item.id === id);
+  if (agent) return agent;
+  return {
     id,
     name: id === space.agent.id ? space.agent.name || "Agent" : "Member",
     initials: "?",
@@ -30,6 +34,7 @@ export function getAllMessages(space: SpaceSdk): SpaceMessage[] {
         status: "sent",
         reactions: [],
         agent: true,
+        agentId: item.authorId || space.agent.id,
       } satisfies SpaceMessage))
     : [];
 
@@ -43,10 +48,12 @@ export function renderMessageHtml(
   messages: SpaceMessage[],
   copy: ChatCopy,
 ) {
-  const sender = findMember(space, message.senderId);
+  const sender = findMember(space, message.agentId || message.senderId);
   const own = message.senderId === space.self?.id && !message.agent;
   const replied = messages.find((item) => item.id === message.replyToId);
-  const repliedBy = replied ? findMember(space, replied.senderId) : null;
+  const repliedBy = replied
+    ? findMember(space, replied.agentId || replied.senderId)
+    : null;
   const attachment = message.attachment;
   const safe = escapeHtml;
 

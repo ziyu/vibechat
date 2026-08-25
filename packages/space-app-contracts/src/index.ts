@@ -7,6 +7,33 @@ export const spaceAgentMentionSchema = z.object({
   id: spaceAgentIdSchema,
 })
 export const spaceAgentMentionsEventContentKey = 'io.vibechat.agent_mentions' as const
+export const spaceAgentReplyEventContentKey = 'io.vibechat.agent' as const
+export const spaceAgentMemberEventContentKey = 'io.vibechat.agent_member' as const
+
+export const spaceAgentMemberMetadataSchema = z.object({
+  schemaVersion: z.literal('vibechat.space-agent-member/v1'),
+  agentId: spaceAgentIdSchema,
+})
+
+export const spaceAgentReplyMetadataSchema = z.object({
+  schemaVersion: z.literal('vibechat.space-agent-message/v1'),
+  agentId: spaceAgentIdSchema,
+  turnId: z.string().min(1).max(255),
+  sourceEventIds: z.array(z.string().min(1).max(255)).min(1).max(32),
+})
+
+export const spaceAgentCompletionCallbackSchema = z.object({
+  userId: z.string().min(1),
+  spaceInstanceId: z.string().min(1).max(255),
+  matrixRoomId: z.string().min(1).max(255),
+  turnId: z.string().min(1).max(255),
+  agentId: spaceAgentIdSchema,
+  agentName: z.string().trim().min(1).max(128),
+  sourceEventIds: z.array(z.string().min(1).max(255)).min(1).max(32),
+  reply: z.object({
+    text: z.string().trim().min(1).max(64_000),
+  }),
+})
 
 export const spaceRuntimeMessageSchema = z.object({
   id: z.string().min(1),
@@ -118,6 +145,9 @@ export const spaceAppBridgeResponseSchema = z.object({
 
 export type SpaceAppChannel = z.infer<typeof spaceAppChannelSchema>
 export type SpaceAgentMention = z.infer<typeof spaceAgentMentionSchema>
+export type SpaceAgentMemberMetadata = z.infer<typeof spaceAgentMemberMetadataSchema>
+export type SpaceAgentReplyMetadata = z.infer<typeof spaceAgentReplyMetadataSchema>
+export type SpaceAgentCompletionCallback = z.infer<typeof spaceAgentCompletionCallbackSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>

@@ -27,6 +27,10 @@ export interface SpaceChatMessage {
   createdAt: string
   status: 'sending' | 'sent' | 'failed'
   replyToId?: string
+  agent?: boolean
+  agentId?: string
+  agentTurnId?: string
+  agentSourceEventIds?: string[]
   edited?: boolean
   deleted?: boolean
   attachment?: Record<string, unknown>

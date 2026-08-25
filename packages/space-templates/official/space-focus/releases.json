@@ -2,7 +2,7 @@
   "schemaVersion": "vibechat.space-template-releases/v1",
   "releases": [
     {
-      "status": "development",
+      "status": "published",
       "manifest": {
         "schemaVersion": "vibechat.space-template-version/v1",
         "id": "tplv-space-focus-0-1-0",
@@ -40,7 +40,7 @@
       }
     },
     {
-      "status": "development",
+      "status": "published",
       "manifest": {
         "schemaVersion": "vibechat.space-template-version/v1",
         "id": "tplv-space-focus-0-1-1",
@@ -105,14 +105,14 @@
       },
       "lock": {
         "schemaVersion": "vibechat.space-template-version-lock/v1",
-        "sourceHash": "sha256:5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79",
-        "manifestHash": "sha256:1bab68122581b6b600ed9a08aa800b4c394b11bfc9cc95d08654c606473e7d6a"
+        "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
+        "manifestHash": "sha256:b60df96e08f669f04846c0c05f24bd421f80e57736c6b0e82a9a1e4bb91bec55"
       },
       "artifact": {
         "schemaVersion": "vibechat.space-template-artifact/v1",
-        "id": "tpla-5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79",
+        "id": "tpla-7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
         "format": "agentos-app-v1",
-        "sourceHash": "sha256:5f8c6ab654a939d0a2b4f746d89d8024ba31d421877e862ad3afa7a2f9ad3e79"
+        "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5"
       }
     }
   ]

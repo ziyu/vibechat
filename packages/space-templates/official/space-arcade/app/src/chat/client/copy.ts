@@ -45,7 +45,7 @@ export function getChatCopy(space: SpaceSdk): ChatCopy {
       person: "Member",
       typing: "is typing…",
       hint: "Enter to send · type @ to mention a member or Agent",
-      working: "is updating this Space",
+      working: "is handling your request",
     },
     zh: {
       connected: "实时连接",
@@ -67,7 +67,7 @@ export function getChatCopy(space: SpaceSdk): ChatCopy {
       person: "成员",
       typing: "正在输入…",
       hint: "Enter 发送 · 输入 @ 提及成员或 Agent",
-      working: "正在更新这个 Space",
+      working: "正在处理你的请求",
     },
   };
 

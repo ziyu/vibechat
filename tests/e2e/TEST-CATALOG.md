@@ -1321,8 +1321,8 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] 官方目录的 Default Chat 与四个差异化 Space Template 都声明不可变版本与 `agentos-app-v1` Project 源码，源码彼此独立且不再共享 Runtime 通用 seed。
 - [x] 选择固定模板版本创建 Space 后，Runtime 幂等复制为该 `spaceInstanceId` 的独立 Project，并在首次 Agent 对话前提供 ready Dev App；重复 bootstrap 不覆盖 Agent 后续修改。
 - [x] 带 v1 模板 lineage 的历史房间原地 lazy bootstrap 到兼容 Project，不创建新 Matrix Room、Space Instance 或聊天记录。
-- [ ] 新建模板 Space 后进入同一 Matrix 会话，两个已登录用户通过 Template App 的 Chat SDK 仍能发送、接收、回复、编辑、删除和 reaction。
-- [ ] 在同一 Space 发送普通文本不会创建 Agent turn；App 提交平台结构化 `@agent` Mention 后，人类消息先进入 Matrix timeline，随后 Kernel 显示唯一 Agent turn。
+- [x] 新建模板 Space 后进入同一 Matrix 会话，两个已登录用户通过 Template App 的 Chat SDK 仍能发送、接收、回复、编辑、删除和 reaction。
+- [x] 在同一 Space 发送普通文本不会创建 Agent turn；App 提交平台结构化 `@agent` Mention 后，人类消息先进入 Matrix timeline，随后 Kernel 显示唯一 Agent turn。
 - [ ] 对同一 Matrix `event_id` 重试 Agent command 只接受一次；相邻 Agent 请求按接收顺序执行，publish 作为单独屏障。
 - [ ] Agent 修改 Project 后 Candidate 通过校验并实时切换为当前 ready Revision；另一位成员看到相同 App 与 App state。
 - [ ] Publish 将固定 ready Revision 固化为不可变 Release；后续实时更新不改写该 Release。
@@ -1358,7 +1358,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
 - [ ] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
 - [ ] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
-- [ ] App 通过 SDK 查询平台结构化 member/agent Mention；普通消息不调度 Agent，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue。
+- [x] App 通过 SDK 查询平台结构化 agent Mention；普通消息不调度 Agent，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue。member Mention 的完整双浏览器覆盖仍待补齐。
 - [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
 - [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
 - [ ] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
@@ -1445,7 +1445,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - Alice 的定制 Project 以 `space-default@0.1.2` 为基线保留原有深蓝动态 App 代码，经 Runtime Candidate 构建成功后将 ready Revision 从 `644b173f6420e62d` 切换为 `b942d96a821f9542`；Published Revision `2d68a0defce3aac1` 和 Release 均未变化。
 - 定向 unit 13/13、五个 App Project 严格 TypeScript、Catalog codegen、全仓 typecheck/build 18/18、Docs production build、文档链接、应用边界和 `git diff --check` 通过。浏览器视觉走查被本地 URL 安全策略拒绝，场景 3/4 的最终视觉确认不据此标为自动化通过。
 
-**文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts` 与对应 unit/contract suites；后续补充专用 collaboration spec ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
+**文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts`、`specs/chat-space-agent-collaboration.spec.ts` 与对应 unit/contract suites ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
 本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。
 
@@ -1457,7 +1457,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 | 2 | 空白 Space 与后选模板 | A 选择空白创建 → 复制 Default Chat App 并立即可聊天 → 之后从 Kernel/Discover 选择模板 → Candidate 验证成功后实时切换 ready Revision，成员、消息和历史不变 |
 | 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Default Chat UI 位于 App 源码 → 全屏 Default Chat 不再渲染一条重复 Space 身份/连接状态的 App Header，抽屉式 Chat 只保留抽屉自身必要控制 → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
 | 4 | 不可修改 Chat Core | 分别在 Default Chat App 和不同布局 Template App 中 → 双方完成文字/媒体/回复/编辑/删除/Reaction/已读/typing/历史 → Composer 在桌面与移动端都按“附件、可伸缩输入、发送”稳定布局且不遮挡 timeline → 两个 App 使用同一 SDK/Matrix timeline/ACL，UI 变化不改变能力语义 |
-| 5 | Mention 与 Agent 调度 | App 查询结构化 member/agent target → 普通讨论只进入 Matrix、不调用 Agent → 带 Agent Mention 的消息先获得 Matrix event ID → 仅该事件完成 ACL/credits 和幂等入队 → Agent 回复以明确平台身份进入 Chat Core |
+| 5 | Mention 与 Agent 调度 | App 查询结构化 member/agent target → 每个逻辑 Agent 只出现一个可调用 target，受管 Matrix virtual user 不再作为普通成员、第二个 Mention 或成员计数暴露 → 普通讨论只进入 Matrix、不调用 Agent → 带 Agent Mention 的消息先获得 Matrix event ID → 仅该事件完成 ACL/credits 和幂等入队 → 一个合并 turn 只由受管 Agent virtual user 向 Matrix 幂等写入一个 `m.room.message` → 双方与刷新后的 Chat Core 都只显示该 Matrix Agent event，不投影 Runtime 私有 message |
 | 6 | Agent provider-neutral | 相同合约分别接 Pi Adapter 与 fake/第二 Adapter → Agent ID/provider 可切换 → Project、queue、usage、错误、权限和 UI 不出现 Pi 专属字段或行为依赖 |
 | 7 | Conversation 与 Revision | A 向 Agent 提问只得到回复，Project 指针不变 → 再请求改变 App → Agent 生成 Candidate → Runtime 验证成功 → 双方实时看到相同 ready Revision → Published Release 不被改写 |
 | 8 | 多成员批次与单写 | A/B 连续提交兼容定制 → 保留作者、Agent 和顺序并合并一批 → 同一 Space 只有一个 active write batch → 不同 Space 在配额内并行 → 普通 Chat 不被批处理阻塞 |
@@ -1471,6 +1471,24 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 | 16 | 基础能力无回归 | #26–#39 与 #40 一起运行 → 认证、资料、联系人、邀请、Chat、Discover、分类、详情、收藏、模板版本、账户和 Admin 全绿 → 不删除 `/v1/spaces` 或模板创建 |
 | 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责导出/启动 Runtime registry 与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，Chat 浏览器状态机、消息渲染、Composer 交互与样式分区必须是可单独阅读和类型检查的模块，不能以压缩后的巨型字符串或单文件状态机代替项目结构，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
 | 18 | Template 有序版本治理 | 新 Template 必须从 `0.1.0` 开始 → 仅不可变 Project/能力/兼容契约变化允许按 SemVer 单步升 patch/minor/major → 跳号、倒序、重复版本、空内容升级和非规范版本被拒绝 → `currentVersionId` 始终指向最高版本 → Template schema、SDK/Runtime、Space Revision/Release 版本不与 Template 版本联动 |
+
+`chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
+
+Agent Revision 用例必须由当前配置的真实 Pi/provider 修改完整 Project，并在两个 iframe 中观察相同的可见 marker；不能通过测试进程直接改 Project JSON。Candidate 失败用例使用仅在显式测试配置下启用的 provider-neutral fake Adapter 生成确定性的 TypeScript 语法错误，经正常 Matrix Mention、ACL、credits、Space turn、自动修复和 Dev Preview 链路失败；不得要求真实模型“故意写坏代码”，也不得直接覆盖 ready Project。失败后两个浏览器继续加载失败前的固定 revision、能够互发 Matrix Chat，刷新后 Draft/Release 仍不变。
+
+2026-08-25 Matrix Agent P0 运行证据：
+
+- 本地 `pnpm dev` 同时运行 Web 8001、Backend 8002、Space Runtime 8007、Synapse 8008 与受管 Rivet Engine 6420；Runtime health 对 Engine 做真实探测并返回 200，Agent 为 Pi、provider 为 `deepseek`。
+- `chat-matrix-room.spec.ts`、`chat-matrix-operations.spec.ts`、`chat-social-invite.spec.ts`、`chat-space-agent-collaboration.spec.ts` 合并执行 5/5 通过（两个独立 Chromium Context）。覆盖真实人类双向消息/操作、Template Space 邀请、结构化 `@pi`、双方只见同一个受管 virtual-user Matrix event、原事件 reply/Agent metadata、刷新唯一恢复，以及 chat-only turn 不改写 Draft/Release。加入 `io.vibechat.agent_member` identity 与逻辑 Agent 投影后，collaboration spec 再次单独执行 1/1 通过：成员 state marker 正确，Mention 面板恰好一个 `@pi`，没有 `vibe_agent_*` target。
+- v1 Matrix state `templateId`/`spaceId` 双读修复了创建者 `/sync` 早于 Product DB metadata 落库时的 Space 消失竞态；`chat-social-invite.spec.ts` 修复后单独 1/1、合并回归再次通过。
+- Agent Adapter、完成回调、Runtime health、Host timeline 隔离和 v1 state 兼容共 6 个定向测试文件、17/17 unit 通过。空白 Space 后选模板、member Mention、Candidate 双浏览器切换/失败保护、publish 屏障与多副本接管仍保持未完成。
+
+2026-08-25 Candidate 隔离自动化证据：
+
+- `chat-space-agent-collaboration.spec.ts` 新增两个独立 Chromium Context 的 Revision 成功与失败用例。成功用例只在 `E2E_SPACE_AGENT_EXPECT_READY=1` 下调用真实 Pi/provider；失败用例只在 Runtime 显式启用 `SPACE_AGENT_FAKE_ENABLED=1` 且测试设置 `E2E_SPACE_FAKE_AGENT_READY=1` 时开放，不把 Fake Adapter 暴露为默认 Agent。
+- Fake Adapter 通过普通结构化 `@fake` Matrix event、membership/ACL、欢迎积分 reservation、Space turn、三次自动修复和 Dev Preview 提交无法转译的 Candidate。Google Chrome 实跑失败隔离 1/1 通过：失败状态可观测、active/pending queue 清零，Project Draft/summary 与 Published Release 均未改变；两个 App iframe 始终保留原 ready Revision，失败后仍可双向发送 Matrix Chat，双方刷新后 App 与消息继续可用。
+- 修正 Runtime bootstrap 的幂等边界：只有当前进程的 Preview 状态为 `idle` 时才从持久化 Draft 完成真实冷启动；快照轮询在 `building`、`ready` 或 `failed` 时只读取现状，不再用旧 Draft 的重复 `prepare` 抹掉 Candidate 失败状态。
+- Space Runtime 定向 unit 12/12、Google Chrome Candidate 失败隔离 E2E 1/1、全仓 18/18 package/app `typecheck` 与 `build`、`docs:check`、Docs production build 和 `git diff --check` 均通过。真实 Pi Revision 自动化代码已经就绪，但本轮没有获得把测试 Space Project 源码与 Prompt 发往外部 DeepSeek 的明确授权，因此没有执行，也没有把“双浏览器成功切换 ready Revision”标为完成。
 
 ---
 

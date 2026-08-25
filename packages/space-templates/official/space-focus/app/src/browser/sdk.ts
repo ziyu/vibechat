@@ -36,6 +36,7 @@ export interface SpaceMessage {
   edited?: boolean;
   deleted?: boolean;
   agent?: boolean;
+  agentId?: string;
 }
 
 export interface SpaceAgentMessage {
