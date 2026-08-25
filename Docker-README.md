@@ -45,6 +45,7 @@ Dockerfile 会自动复制这些必要的配置文件：
 - `config.ts` - 应用配置文件
 - `tsconfig.json` - TypeScript 路径别名
 - `libs/` - 共享库目录
+- `patches/` - `pnpm.patchedDependencies` 使用的依赖补丁
 
 ### 构建时环境变量
 - Dockerfile 中设置 `BUILD_TIME=true` 避免构建失败
