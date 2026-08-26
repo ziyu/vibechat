@@ -21,12 +21,17 @@
 
 Web、Site、Admin、Docs 和 Space Runtime 当前只有构建或容器契约，没有统一的生产托管平台发布命令。为这些目标选定平台并提交可验证的部署契约前，不把它们描述为自动部署。
 
-## 前置条件
+## CI 前置条件
 
 1. 在 CircleCI 中连接本仓库并使用仓库根目录的配置。
 2. 确认 CircleCI 使用的 Node 镜像版本与 `.node-version` 的 Node 24.19 基线一致。
-3. 创建名为 `vibechat-production` 的 CircleCI Context，并限制为生产发布维护者可使用。
-4. 在该 Context 配置以下变量：
+
+当前控制面使用 GitHub App 的 `only-build-prs` trigger，只监听已有开放 PR 的分支推送。这个阶段不配置生产 Context，也不监听 `main`，用于先独立验证 PR checks。
+
+## 生产发布额外前置条件
+
+1. 创建名为 `vibechat-production` 的 CircleCI Context，并限制为生产发布维护者可使用。
+2. 在该 Context 配置以下变量：
 
 | 变量 | 用途 |
 | --- | --- |
@@ -40,7 +45,7 @@ Better Auth、OAuth、支付、AI、邮件、短信和数据库敏感值继续�
 
 ## 启用 CI
 
-连接项目后推送普通分支，确认 `verify` 和 `docker-build` 同时运行。CI 使用 pnpm lockfile 与 Turbo cache；任何 job 失败都不得进入生产批准关卡。
+连接项目并创建 `only-build-prs` trigger 后，向已有开放 PR 的分支推送提交，确认 `verify` 和 `docker-build` 同时运行。CI 使用 pnpm lockfile 与 Turbo cache；任何 job 失败都不得进入生产批准关卡。
 
 在代码托管平台的 `main` 分支保护中：
 
@@ -50,12 +55,13 @@ Better Auth、OAuth、支付、AI、邮件、短信和数据库敏感值继续�
 
 ## 执行生产部署
 
-1. 将已验证变更合并到 `main`。
-2. 等待 `verify` 和 `docker-build` 成功。
-3. 如果变更包含数据库 schema，先按[数据库 Runbook](./database.md)和 [Cloudflare Workers Runbook](./deployment/cloudflare-workers.md)生成、审查并应用目标环境 migration。
-4. 在 CircleCI 中打开 `hold-production`，核对 commit SHA、变更范围、生产变量和回滚方案后批准。
-5. 等待 `deploy-backend-production` 完成。该 job 会重新冻结安装依赖、构建 Cloudflare 目标、通过 Wrangler 部署，并请求 `VIBECHAT_BACKEND_HEALTHCHECK_URL`。
-6. 继续验证登录、数据库读取和本次发布涉及的受保护流程。健康检查成功不能替代业务走查。
+1. 完成生产发布额外前置条件，并显式新增或切换为能够监听 `main` push 的 trigger；仅有 `only-build-prs` trigger 时不会启动生产工作流。
+2. 将已验证变更合并到 `main`。
+3. 等待 `verify` 和 `docker-build` 成功。
+4. 如果变更包含数据库 schema，先按[数据库 Runbook](./database.md)和 [Cloudflare Workers Runbook](./deployment/cloudflare-workers.md)生成、审查并应用目标环境 migration。
+5. 在 CircleCI 中打开 `hold-production`，核对 commit SHA、变更范围、生产变量和回滚方案后批准。
+6. 等待 `deploy-backend-production` 完成。该 job 会重新冻结安装依赖、构建 Cloudflare 目标、通过 Wrangler 部署，并请求 `VIBECHAT_BACKEND_HEALTHCHECK_URL`。
+7. 继续验证登录、数据库读取和本次发布涉及的受保护流程。健康检查成功不能替代业务走查。
 
 ## 验证配置
 

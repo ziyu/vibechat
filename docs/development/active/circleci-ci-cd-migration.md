@@ -16,15 +16,15 @@
 ## 状态定义
 
 - `Implemented`：仓库配置和文档已经迁移并通过本地验证。
-- `Active`：仍需在 CircleCI 控制面完成项目接入、生产 Context 配置和首次真实运行。
+- `Active`：CircleCI 控制面已接入，仍需取得首次云端 CI 结果，并在后续发布阶段配置生产 Context、main 触发器和真实部署。
 - `Complete`：`main` 的 CI、人工批准部署和生产健康检查均有 CircleCI 运行证据。
 
 ## 工作流与实施追踪
 
 | ID | 工作流 | 状态 | 证据 | 下一出口 |
 | --- | --- | --- | --- | --- |
-| CC-1 | 文档、类型、产品构建与文档站构建 | Implemented | 本地四项命令通过；`.circleci/config.yml` 的 `verify` job | CircleCI 首次绿色运行 |
-| CC-2 | Web Docker 镜像构建验证 | Implemented | 本地等价 `docker build` 通过；`.circleci/config.yml` 的 `docker-build` job | CircleCI remote Docker 首次绿色运行 |
+| CC-1 | 文档、类型、产品构建与文档站构建 | Active | 本地四项命令通过；CircleCI 项目、流水线与 PR trigger 已创建 | PR #8 的 `verify` 首次绿色运行 |
+| CC-2 | Web Docker 镜像构建验证 | Active | 本地等价 `docker build` 通过；CircleCI 项目、流水线与 PR trigger 已创建 | PR #8 的 `docker-build` 首次绿色运行 |
 | CC-3 | Backend Cloudflare Workers 生产部署 | Active | Wrangler dry-run 通过；`hold-production` 与 `deploy-backend-production` job | 配置生产 Context，批准并验证首次部署 |
 | CC-4 | GitHub Actions 退出 | Implemented | `.github/workflows/ci.yml` 已删除 | 确认仓库保护规则改用 CircleCI checks |
 
@@ -50,7 +50,21 @@
 
 ## 当前差距与下一步
 
-仓库内迁移完成后仍需要 CircleCI/代码托管平台管理员执行控制面配置。首次真实部署前必须确认 `APP_BASE_URL`、`BETTER_AUTH_URL` 和健康检查地址均为生产 HTTPS 地址，并根据本次 schema 差异决定是否先应用数据库 migration。
+CircleCI GitHub App 已获得 `ziyu/vibechat` 仓库访问权，项目、`vibechat-ci` 流水线定义和 `only-build-prs` trigger 已创建。当前 trigger 只监听已有开放 PR 的分支推送，不监听 `main`，因此生产 Context 尚未配置时不会进入生产审批或部署 job。
+
+首次真实部署前仍必须确认 `APP_BASE_URL`、`BETTER_AUTH_URL` 和健康检查地址均为生产 HTTPS 地址，根据 schema 差异决定是否先应用数据库 migration，并在完成生产前置条件后显式新增或切换 `main` push trigger。
+
+## 2026-08-26 CircleCI 控制面证据
+
+| 项目 | 值或结果 |
+| --- | --- |
+| CircleCI project ID | `bc28b629-7137-4284-81c0-42e954810e05` |
+| Pipeline definition | `vibechat-ci`（ID `2005936e-c87f-4df3-a5af-793b0f3ec214`） |
+| Config / checkout source | GitHub App 仓库 `ziyu/vibechat`（repository ID `1330504875`） |
+| Config path | `.circleci/config.yml` |
+| Trigger | `only-build-prs`（ID `53a78f9f-0590-4c93-9035-df50506071c9`），启用 |
+| 首次验证 PR | [#8](https://github.com/ziyu/vibechat/pull/8) |
+| 生产控制面 | 未配置 `vibechat-production` Context，未创建 `main` trigger，未执行部署 |
 
 ## 2026-08-26 本地验证证据
 
@@ -66,8 +80,9 @@
 | `wrangler deploy --dry-run ... --var APP_BASE_URL:... --var BETTER_AUTH_URL:...` | 通过，确认 D1、Hyperdrive、R2、`DB_DIALECT`、`VITE_STORAGE_PROVIDER` 和两个生产 URL binding 同时保留 |
 | YAML 解析与 `git diff --check` | 通过 |
 | GitNexus `detect-changes --scope all` | 低风险，0 个受影响程序流程；CI/CD YAML 和新增文档不属于业务符号 |
+| `circleci config validate .circleci/config.yml` | 通过，CircleCI CLI 版本 `1.0.48692` |
 
-本机未安装 CircleCI CLI，因此尚无 `circleci config validate` 结果；CircleCI 云端配置解析、项目 checks 和真实生产部署仍是外部未覆盖项，不能标记 Complete。
+CircleCI 云端 job 结果和真实生产部署仍是未覆盖项，不能标记 Complete。
 
 ## 进度更新规则
 
