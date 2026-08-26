@@ -23,8 +23,8 @@
 
 | ID | 工作流 | 状态 | 证据 | 下一出口 |
 | --- | --- | --- | --- | --- |
-| CC-1 | 文档、类型、产品构建与文档站构建 | Active | 本地四项命令通过；CircleCI 项目、流水线与 PR trigger 已创建 | PR #8 的 `verify` 首次绿色运行 |
-| CC-2 | Web Docker 镜像构建验证 | Active | 本地等价 `docker build` 通过；CircleCI 项目、流水线与 PR trigger 已创建 | PR #8 的 `docker-build` 首次绿色运行 |
+| CC-1 | 文档、类型、产品构建与文档站构建 | Complete | PR #8 的 CircleCI `verify` 已通过 | 合并前持续保持绿色 |
+| CC-2 | Web Docker 镜像构建验证 | Complete | PR #8 的 CircleCI `docker-build` 已通过 | 合并前持续保持绿色 |
 | CC-3 | Backend Cloudflare Workers 生产部署 | Active | Wrangler dry-run 通过；`hold-production` 与 `deploy-backend-production` job | 配置生产 Context，批准并验证首次部署 |
 | CC-4 | GitHub Actions 退出 | Implemented | `.github/workflows/ci.yml` 已删除 | 确认仓库保护规则改用 CircleCI checks |
 
@@ -64,7 +64,12 @@ CircleCI GitHub App 已获得 `ziyu/vibechat` 仓库访问权，项目、`vibech
 | Config path | `.circleci/config.yml` |
 | Trigger | `only-build-prs`（ID `53a78f9f-0590-4c93-9035-df50506071c9`），启用 |
 | 首次验证 PR | [#8](https://github.com/ziyu/vibechat/pull/8) |
+| 首次绿色 workflow | [CircleCI workflow `682137bb-1718-4672-8cef-5d7890dc058e`](https://app.circleci.com/pipelines/circleci/XEqjDXBwQRciX9D4BXHDjt/QEcTiWQP65XGMdTLBMxa3N/3/workflows/682137bb-1718-4672-8cef-5d7890dc058e) |
+| `verify` | [通过](https://app.circleci.com/workflow/682137bb-1718-4672-8cef-5d7890dc058e/job/afb69afa-d15a-4495-b747-5160c8d4dfb0)，完成文档检查、类型检查、产品构建、文档站构建和 whitespace 检查 |
+| `docker-build` | [通过](https://app.circleci.com/workflow/682137bb-1718-4672-8cef-5d7890dc058e/job/0b316943-7429-48c3-b75a-ee10f2b350b8)，完成 `linux/amd64` Web production image 构建 |
 | 生产控制面 | 未配置 `vibechat-production` Context，未创建 `main` trigger，未执行部署 |
+
+首次云端验证暴露并修复了两个 CircleCI 环境差异：当前套餐不支持 Docker `xlarge` resource class，因此 Node executor 使用已验证可用的 `large`；依赖安装阶段不能设置 `NODE_ENV=production`，否则 pnpm 会跳过包含 Turbo 在内的 devDependencies，因此生产环境变量只在构建步骤注入。
 
 ## 2026-08-26 本地验证证据
 
@@ -82,8 +87,8 @@ CircleCI GitHub App 已获得 `ziyu/vibechat` 仓库访问权，项目、`vibech
 | GitNexus `detect-changes --scope all` | 低风险，0 个受影响程序流程；CI/CD YAML 和新增文档不属于业务符号 |
 | `circleci config validate .circleci/config.yml` | 通过，CircleCI CLI 版本 `1.0.48692` |
 
-CircleCI 云端 job 结果和真实生产部署仍是未覆盖项，不能标记 Complete。
+CircleCI PR checks 已有云端绿色证据。真实生产部署仍是未覆盖项，因此整体迁移记录继续保持 Active。
 
 ## 进度更新规则
 
-只有 CircleCI 的实际运行 URL、job 结果和生产健康检查结果齐备后，CC-1 至 CC-3 才能标记 Complete；本地配置解析或构建成功不能替代云端部署证据。
+只有对应工作流的实际运行 URL 和 job 结果齐备后才能标记 Complete；CC-3 还必须具备生产健康检查结果。本地配置解析或构建成功不能替代云端证据。
