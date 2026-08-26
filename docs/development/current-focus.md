@@ -39,6 +39,7 @@
 - Host Pi 已真实生成共享计数器 Draft，Dev 与发布后的不可变 Live 均成功读取；定向 unit、TypeScript 和 Backend Node 构建已通过。
 - 默认 `pnpm dev` 以仓库 `.node-version` 声明 Node 24.19.0，并在当前 shell 不兼容时自动切换本机 Node，不要求开发者修改 `PATH`；启动前会自愈 `better-sqlite3` ABI 不一致，并按最新 SQLite snapshot 检查表与列、自动补齐 schema、仅对全新空库 seed。随后初始化/启动本地 Synapse、Rivet Engine、Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
 - 默认开发启动器现同时拥有本地 Rivet Engine 生命周期；Runtime 已删除本地 JSON Project/Instance/Turn adapter 和 `SPACE_RUNTIME_CONTROL_MODE` 开关，Project source 始终进入内容寻址 Object Store，pointer/snapshot/turn/lease/outbox 始终进入 Product DB，并由 Runtime 周期扫描、续租、接管和触发 reconciler。单元测试使用显式内存 adapter，不进入生产构建。Alice 的既有 Release 重启恢复仍是本地 Actor 证据；真实跨宿主 AgentOS artifact 恢复尚未验证。
+- 仓库级 CI/CD 配置已迁移到 CircleCI：所有构建分支执行文档、类型、产品构建、文档站和 Web Docker 验证；`main` 通过人工批准后可部署 Backend Cloudflare Workers。CircleCI 项目接入、生产 Context 和首次真实部署证据仍在 [Active 迁移记录](./active/circleci-ci-cd-migration.md)中跟踪。
 - 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi`、欢迎积分、Host Pi 回复、真实 usage 结算和 ready Revision 更新。双 Chromium Candidate 失败保护已通过；真实 Synapse 的 member kick/leave 安全 E2E 也已覆盖全部八类 Runtime Gateway，并确认 Product DB 成员投影陈旧时仍以 Matrix 为权威。Publish expected-revision 屏障、生产 control plane 和双 server takeover 已有代码与 unit 证据，但真实双进程/D1/R2/AgentOS 演练、空白 Space、历史 rollback 与完整 #40 未完成，因此 A3/A4 保持 Active。
 
 ## 当前约束

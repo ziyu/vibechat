@@ -1,0 +1,146 @@
+version: 2.1
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:24.19
+    resource_class: xlarge
+    environment:
+      BUILD_TIME: "true"
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=4096
+
+commands:
+  install_workspace:
+    description: Check out the repository and install the locked pnpm workspace
+    steps:
+      - checkout
+      - run:
+          name: Activate pnpm 9.4.0
+          command: |
+            sudo corepack enable
+            corepack prepare pnpm@9.4.0 --activate
+            pnpm --version
+      - restore_cache:
+          keys:
+            - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - pnpm-v1-{{ arch }}-
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+      - save_cache:
+          key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+
+jobs:
+  verify:
+    executor: node
+    steps:
+      - install_workspace
+      - restore_cache:
+          keys:
+            - turbo-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}-{{ checksum "turbo.json" }}
+            - turbo-v1-{{ arch }}-
+      - run:
+          name: Check documentation
+          command: pnpm docs:check
+      - run:
+          name: Check application boundaries and types
+          command: pnpm typecheck
+      - run:
+          name: Build product applications
+          command: pnpm build
+      - run:
+          name: Build documentation site
+          command: pnpm build:docs
+      - run:
+          name: Check whitespace errors
+          command: git diff --check
+      - save_cache:
+          key: turbo-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}-{{ checksum "turbo.json" }}
+          paths:
+            - .turbo
+
+  docker-build:
+    docker:
+      - image: cimg/base:stable
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Web production image
+          command: >-
+            docker build
+            --build-arg BUILD_TIME=true
+            --file apps/web-app/Dockerfile
+            --platform linux/amd64
+            --shm-size 2g
+            --tag vibechat-web:${CIRCLE_SHA1}
+            .
+
+  deploy-backend-production:
+    executor: node
+    steps:
+      - install_workspace
+      - run:
+          name: Validate production deployment variables
+          command: |
+            required_variables="CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID APP_BASE_URL BETTER_AUTH_URL VIBECHAT_BACKEND_HEALTHCHECK_URL"
+            for variable_name in ${required_variables}; do
+              variable_value="${!variable_name}"
+              if [ -z "${variable_value}" ]; then
+                echo "Missing required CircleCI context variable: ${variable_name}" >&2
+                exit 1
+              fi
+            done
+            for url_variable_name in APP_BASE_URL BETTER_AUTH_URL VIBECHAT_BACKEND_HEALTHCHECK_URL; do
+              url_variable_value="${!url_variable_name}"
+              case "${url_variable_value}" in
+                https://*) ;;
+                *)
+                  echo "CircleCI context variable ${url_variable_name} must use production HTTPS." >&2
+                  exit 1
+                  ;;
+              esac
+            done
+      - run:
+          name: Deploy Backend to Cloudflare Workers
+          command: |
+            pnpm --dir apps/backend run build:cf
+            pnpm --dir apps/backend exec wrangler deploy \
+              --var "APP_BASE_URL:${APP_BASE_URL}" \
+              --var "BETTER_AUTH_URL:${BETTER_AUTH_URL}"
+      - run:
+          name: Verify production health
+          command: >-
+            curl
+            --fail
+            --retry 5
+            --retry-all-errors
+            --retry-delay 5
+            --show-error
+            --silent
+            "${VIBECHAT_BACKEND_HEALTHCHECK_URL}"
+
+workflows:
+  ci-cd:
+    jobs:
+      - verify
+      - docker-build
+      - hold-production:
+          type: approval
+          requires:
+            - verify
+            - docker-build
+          filters:
+            branches:
+              only: main
+      - deploy-backend-production:
+          context: vibechat-production
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
