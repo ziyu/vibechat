@@ -1,4 +1,10 @@
-import { spaceAgentCompletionCallbackSchema } from "@vibechat/space-app-contracts";
+import {
+  spaceAgentCompletionCallbackSchema,
+} from "@vibechat/space-app-contracts";
+import {
+  signSpaceRuntimeCredential,
+  spaceBackendCallbackAudience,
+} from "@vibechat/space-runtime-auth";
 import { splitAgentUsage, type AgentUsage } from "./agent-usage.js";
 import type {
   ClaimedSpaceTurn,
@@ -16,6 +22,8 @@ export function parseBilling(value: unknown): SpaceTurnBilling | null {
   const billing = value as Record<string, unknown>;
   if (
     typeof billing.callbackUrl !== "string" ||
+    typeof billing.spaceInstanceId !== "string" ||
+    !billing.spaceInstanceId ||
     typeof billing.userId !== "string" ||
     typeof billing.requestId !== "string" ||
     typeof billing.provider !== "string" ||
@@ -31,6 +39,7 @@ export function parseBilling(value: unknown): SpaceTurnBilling | null {
   if (billing.completion && !completion) return null;
   return {
     callbackUrl,
+    spaceInstanceId: billing.spaceInstanceId,
     ...(completion ? { completion } : {}),
     userId: billing.userId,
     requestId: billing.requestId,
@@ -44,45 +53,50 @@ export function parseBilling(value: unknown): SpaceTurnBilling | null {
 export async function reportTurnBilling(input: {
   turn: ClaimedSpaceTurn;
   status: "completed" | "failed";
-  internalToken: string;
+  signingSecret: string;
   usage?: AgentUsage;
   fetch?: typeof globalThis.fetch;
 }) {
-  if (!input.internalToken) return;
+  if (!input.signingSecret) return;
   const fetchImpl = input.fetch || globalThis.fetch;
   const billableRequests = input.turn.requests.filter((request) => request.billing);
   const allocatedUsage = splitAgentUsage(input.usage, billableRequests.length);
-  await Promise.all(billableRequests.flatMap((request, index) => request.billing ? [fetchImpl(
-    request.billing.callbackUrl,
-    {
+  await Promise.all(billableRequests.map(async (request, index) => {
+    const billing = request.billing!;
+    const authorization = await createCallbackAuthorization(
+      billing.callbackUrl,
+      input.signingSecret,
+    );
+    const response = await fetchImpl(billing.callbackUrl, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${input.internalToken}`,
+        authorization,
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        userId: request.billing.userId,
-        requestId: request.billing.requestId,
-        provider: request.billing.provider,
-        model: request.billing.model,
-        reservedCredits: request.billing.reservedCredits,
-        transactionId: request.billing.transactionId,
+        spaceInstanceId: billing.spaceInstanceId,
+        turnId: input.turn.turnId,
+        userId: billing.userId,
+        requestId: billing.requestId,
+        provider: billing.provider,
+        model: billing.model,
+        reservedCredits: billing.reservedCredits,
+        transactionId: billing.transactionId,
         status: input.status,
         ...(input.status === "completed" ? { usage: allocatedUsage[index] ?? {} } : {}),
       }),
-    },
-  ).then((response) => {
+    });
     if (!response.ok) throw new Error(`billing callback returned ${response.status}`);
-  })] : []));
+  }));
 }
 
 export async function reportTurnCompletion(input: {
   turn: ClaimedSpaceTurn;
   reply: SpaceTurnReply;
-  internalToken: string;
+  signingSecret: string;
   fetch?: typeof globalThis.fetch;
 }) {
-  if (!input.internalToken) return;
+  if (!input.signingSecret) return;
   const request = input.turn.requests.find((candidate) => candidate.billing?.completion);
   const billing = request?.billing;
   const completion = billing?.completion;
@@ -100,7 +114,7 @@ export async function reportTurnCompletion(input: {
   await postCompletionWithRetry({
     callbackUrl: completion.callbackUrl,
     payload,
-    internalToken: input.internalToken,
+    signingSecret: input.signingSecret,
     fetch: input.fetch || globalThis.fetch,
   });
 }
@@ -139,16 +153,20 @@ function parseHttpUrl(value: string) {
 async function postCompletionWithRetry(input: {
   callbackUrl: string;
   payload: ReturnType<typeof spaceAgentCompletionCallbackSchema.parse>;
-  internalToken: string;
+  signingSecret: string;
   fetch: typeof globalThis.fetch;
 }) {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
+      const authorization = await createCallbackAuthorization(
+        input.callbackUrl,
+        input.signingSecret,
+      );
       const response = await input.fetch(input.callbackUrl, {
         method: "POST",
         headers: {
-          authorization: `Bearer ${input.internalToken}`,
+          authorization,
           "content-type": "application/json",
         },
         body: JSON.stringify(input.payload),
@@ -165,4 +183,17 @@ async function postCompletionWithRetry(input: {
     }
   }
   throw lastError instanceof Error ? lastError : new Error("completion callback failed");
+}
+
+async function createCallbackAuthorization(callbackUrl: string, signingSecret: string) {
+  const path = new URL(callbackUrl).pathname;
+  const credential = await signSpaceRuntimeCredential({
+    secret: signingSecret,
+    audience: spaceBackendCallbackAudience,
+    subject: "space-runtime",
+    method: "POST",
+    path,
+    ttlSeconds: 60,
+  });
+  return `Bearer ${credential}`;
 }

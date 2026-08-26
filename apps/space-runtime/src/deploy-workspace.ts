@@ -1,9 +1,6 @@
 import { deployApp } from "@rivet-dev/agentos-apps";
-import {
-  assertAppId,
-  loadProject,
-  saveProject,
-} from "./project-store.js";
+import { assertAppId } from "./app-id.js";
+import { loadProject, saveProject } from "./project-store.js";
 
 const sourceAppId = process.argv[2];
 const appId = process.argv[3] ?? sourceAppId;

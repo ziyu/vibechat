@@ -1,49 +1,40 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod'
+import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
+import { spaceAgentBillingCallbackSchema } from '@vibechat/api-contracts'
 import { withCfDb } from '@/lib/with-request-db'
-
-const callbackSchema = z.object({
-  userId: z.string().min(1),
-  requestId: z.string().min(1),
-  provider: z.string().min(1),
-  model: z.string().min(1),
-  reservedCredits: z.number().int().positive(),
-  transactionId: z.string().min(1),
-  status: z.enum(['completed', 'failed']),
-  usage: z.object({
-    inputTokens: z.number().int().nonnegative().optional(),
-    outputTokens: z.number().int().nonnegative().optional(),
-    totalTokens: z.number().int().nonnegative().optional(),
-  }).optional(),
-})
+import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
+import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'
 
 export const Route = createFileRoute('/v1/internal/space-agent-billing')({
   server: {
     handlers: {
       POST: withCfDb(async ({ request }) => {
-        const token = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim()
-        if (!token || request.headers.get('authorization') !== `Bearer ${token}`) {
+        if (!await authorizeSpaceRuntimeCallback(request)) {
           return Response.json({ error: 'unauthorized' }, { status: 401 })
         }
-        const parsed = callbackSchema.safeParse(await request.json().catch(() => null))
+        const parsed = spaceAgentBillingCallbackSchema.safeParse(await request.json().catch(() => null))
         if (!parsed.success) return Response.json({ error: 'invalid_callback' }, { status: 400 })
-        const ai = await import('@libs/ai')
-        const context = {
-          userId: parsed.data.userId,
-          requestId: parsed.data.requestId,
-          provider: parsed.data.provider,
-          model: parsed.data.model,
+        const control = new DatabaseSpaceRuntimeControlPlane()
+        const turn = await control.getTurn(parsed.data.turnId)
+        if (
+          !turn
+          || turn.spaceInstanceId !== parsed.data.spaceInstanceId
+          || turn.status !== parsed.data.status
+        ) {
+          return Response.json({ error: 'space_agent_callback_fenced' }, { status: 409 })
         }
-        const reservation = {
-          reservedCredits: parsed.data.reservedCredits,
-          transactionId: parsed.data.transactionId,
-        }
-        if (parsed.data.status === 'failed') {
-          await ai.refundChatCredits(context, reservation, 'space_agent_failed')
-        } else {
-          await ai.settleChatCredits(context, reservation, parsed.data.usage || {})
-        }
-        return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } })
+        const outbox = await control.enqueueOutbox({
+          eventId: `space-agent-credits:${parsed.data.transactionId}`,
+          spaceInstanceId: parsed.data.spaceInstanceId,
+          eventType: 'credits_callback',
+          dedupeKey: parsed.data.transactionId,
+          payload: parsed.data,
+        })
+        await reconcileSpaceRuntimeOutbox().catch(() => undefined)
+        return Response.json({ accepted: true, eventId: outbox.eventId }, {
+          status: 202,
+          headers: { 'cache-control': 'no-store' },
+        })
       }),
     },
   },

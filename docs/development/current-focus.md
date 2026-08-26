@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-25
+> 更新日期：2026-08-26
 > 维护范围：当前实现事实、近期主线和跨应用工程约束
 > 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -15,11 +15,12 @@
 当前主线是 A3/A4 首版切片验证和生产化：
 
 1. 保留 `/v1/spaces`、Discover、分类、收藏、模板版本和现有 `spaceId/spaceVersionId` 创建链路。
-2. 在已原地升级的 `room_index` 和统一 SpaceInstance 上补齐 Product DB/Object Store、v2 state、outbox 与多副本 lease。
-3. 加固已接通的独立 `apps/space-runtime`、短期内部认证、Runtime/Agent provider 和网络边界。
+2. Runtime P0 正确性与安全已收口：gateway 实时核验 Matrix membership；Publish 固定请求时的 ready Revision 且只接受 Kernel 命令；内部调用使用短期 audience/method/path scoped 凭证。真实 member kick/leave 全 gateway E2E 已 2/2 通过：即使 `participant_user_ids_json` 仍含旧成员，snapshot/bootstrap、live/dev App、events、messages/turns、publish、restore 和 bridge 也全部立即 fail closed，且不产生 Turn、Outbox 或 credits 副作用。
+3. 已在原地升级的 `room_index` 和统一 SpaceInstance 上抽取 Project/Instance/Turn/Lease/Outbox repositories，接入 Product DB/Object Store、v2 state、outbox reconciler、lease/fencing 与 interrupted-turn 恢复，没有新增 `space_instances`。下一步执行真实 D1/R2 migration/preview。
 4. 在保持真实 Matrix Chat/社交/市场回归的前提下增加空白 Space 创建与模板后应用。
 5. 以 TEST-CATALOG #40 推进 Kernel Bar + 全尺寸 App Surface、Default Chat App、完整 Chat/Mention SDK、结构化 Agent Mention、ready Revision 实时更新和 publish barrier。
 6. 以统一 `SpaceTemplate` / `SpaceTemplateVersion` / `SpaceTemplateMarketEntry` 协议补齐用户从固定 ready Revision 发布到市场的 Product DB/Object Store、审核和撤销链路；不得为官方和用户建立平行类型或市场表。
+7. 两个 `SpaceInstanceServer` 共用 SQLite control plane 的确定性故障注入已覆盖 M1→Publish→M2、active owner 超时接管、旧 owner fenced write 与 outbox ACK 丢失重放；下一步用两个独立 Runtime 进程和真实 Synapse/AgentOS/R2 重复相同场景。只有跨服务 Matrix reply、credits、Revision/Release 均无重复，才把生产接管标为完成。
 
 ## 当前实现事实
 
@@ -36,9 +37,9 @@
 - Space App SDK 首版已代理发送、附件、回复、编辑、删除、Reaction、重试、typing、已读与 member/agent Mention。Backend 不再把 Runtime 非 2xx 改写为包级 Default Chat HTML；Dev Preview 按 ready Revision 隔离并保留最近三个可寻址实例，候选构建/启动失败时 Web 继续挂载 Project 记录的最后 ready Revision。Kernel 的 Default Chat 恢复已实现：Backend 校验成员身份，Runtime 串行验证官方 Template Candidate 后才切换新的 ready Revision，并保持 Published Release、Matrix timeline 和 App State；该链路不调用 Agent 或 AI credits。
 - AgentOS Apps 本地 Build VM 已通过显式 DNS 配置解决包安装解析失败，官方 `0.1.1` 入口同时导出 `registry`，Alice 的现有 Space 已从 `space-default@0.1.1` ready Revision 成功固化为 64 位内容寻址 Release。显式发布归属 Kernel；Host 只把真实 Agent 回复投影给可定制 App，不再把恢复、发布或 Runtime error 伪装成 Pi/成员对话。
 - Host Pi 已真实生成共享计数器 Draft，Dev 与发布后的不可变 Live 均成功读取；定向 unit、TypeScript 和 Backend Node 构建已通过。
-- 默认 `pnpm dev` 已可自动准备 SQLite、初始化/启动本地 Synapse，并启动 Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
-- 默认开发启动器现同时拥有本地 Rivet Engine 生命周期：先用仓库固定的 filesystem 数据库启动并等待健康，再启动应用；整栈退出时只停止 Engine 进程并保留 Actor/Release 数据。Runtime boot 代次会清理已持久化但已死亡的 AgentOS replica/admission 租约，再从原不可变 Release 启动新副本。Alice 的同一 `0.1.1` Release 在完整停止/重启后继续返回 HTTP 200，replica 从旧 `/0` 重建为 `/1`；这只证明本地单 Runtime 恢复，生产多副本 lease 仍未完成。
-- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi` Matrix event 核验、默认 100 欢迎积分、Host Pi 回复、实际 token usage 结算，以及 Pi 修改 App 后 ready Revision 从 `2d68a0defce3aac1` 实时切换到 `46f337b6b99d8f27` 且 Published Release 不变。双 Chromium Context 的确定性 Candidate 失败保护已自动化通过：测试专用 Fake Adapter 经真实 Matrix Mention、ACL、credits、turn/repair/Dev Preview 失败后，旧 ready App、Chat 和 Published Release 在两端及刷新后保持可用；快照 bootstrap 不再覆盖 `building/failed` 状态。真实 Pi 双浏览器 Revision 切换用例已经实现，但本轮未获准向外部 DeepSeek 发送测试 Project/Prompt，尚未执行。publish barrier、生产持久化与跨副本接管仍未完成，因此 A3/A4 保持 Active。
+- 默认 `pnpm dev` 以仓库 `.node-version` 声明 Node 24.19.0，并在当前 shell 不兼容时自动切换本机 Node，不要求开发者修改 `PATH`；启动前会自愈 `better-sqlite3` ABI 不一致，并按最新 SQLite snapshot 检查表与列、自动补齐 schema、仅对全新空库 seed。随后初始化/启动本地 Synapse、Rivet Engine、Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
+- 默认开发启动器现同时拥有本地 Rivet Engine 生命周期；Runtime 已删除本地 JSON Project/Instance/Turn adapter 和 `SPACE_RUNTIME_CONTROL_MODE` 开关，Project source 始终进入内容寻址 Object Store，pointer/snapshot/turn/lease/outbox 始终进入 Product DB，并由 Runtime 周期扫描、续租、接管和触发 reconciler。单元测试使用显式内存 adapter，不进入生产构建。Alice 的既有 Release 重启恢复仍是本地 Actor 证据；真实跨宿主 AgentOS artifact 恢复尚未验证。
+- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi`、欢迎积分、Host Pi 回复、真实 usage 结算和 ready Revision 更新。双 Chromium Candidate 失败保护已通过；真实 Synapse 的 member kick/leave 安全 E2E 也已覆盖全部八类 Runtime Gateway，并确认 Product DB 成员投影陈旧时仍以 Matrix 为权威。Publish expected-revision 屏障、生产 control plane 和双 server takeover 已有代码与 unit 证据，但真实双进程/D1/R2/AgentOS 演练、空白 Space、历史 rollback 与完整 #40 未完成，因此 A3/A4 保持 Active。
 
 ## 当前约束
 

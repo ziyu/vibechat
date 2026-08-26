@@ -1,6 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, unlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import {
   createSpaceTemplate,
   createSpaceTemplateMarketEntry,
@@ -18,12 +16,27 @@ import {
   createProjectFromTemplate,
   initializeProjectFromTemplate,
   loadProject,
-  projectDirectory,
   saveProject,
   StoredProjectIntegrityError,
   validateFiles,
 } from "../../../apps/space-runtime/src/project-store";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const projectRecords = vi.hoisted(() => new Map<string, unknown>());
+
+vi.mock("../../../apps/space-runtime/src/remote-project-store.js", () => ({
+  createRemoteProjectStoreFromEnv: () => ({
+    async load(appId: string) {
+      const project = projectRecords.get(appId);
+      return project ? structuredClone(project) : null;
+    },
+    async save(project: { appId: string }) {
+      const stored = structuredClone(project);
+      projectRecords.set(project.appId, stored);
+      return structuredClone(stored);
+    },
+  }),
+}));
 
 describe("Space Template publication protocol", () => {
   it("loads five official App artifacts from one working source tree per Template", async () => {
@@ -375,7 +388,6 @@ describe("Space Template publication protocol", () => {
 
   it("normalizes a legacy built-in version request to the immutable official version", async () => {
     const appId = `template-${randomUUID()}`;
-    const path = join(projectDirectory(), `${appId}.json`);
     try {
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
@@ -397,13 +409,12 @@ describe("Space Template publication protocol", () => {
         projectFormat: "agentos-app-v1",
       });
     } finally {
-      await unlink(path).catch(() => undefined);
+      projectRecords.delete(appId);
     }
   });
 
   it("records source-addressed lineage and never overwrites an edited Space Project", async () => {
     const appId = `template-${randomUUID()}`;
-    const path = join(projectDirectory(), `${appId}.json`);
     try {
       const first = await initializeProjectFromTemplate(
         appId,
@@ -434,13 +445,12 @@ describe("Space Template publication protocol", () => {
         "// Agent revision",
       );
     } finally {
-      await unlink(path).catch(() => undefined);
+      projectRecords.delete(appId);
     }
   });
 
   it("materializes a recovery Candidate without replacing the current ready Project", async () => {
     const appId = `template-${randomUUID()}`;
-    const path = join(projectDirectory(), `${appId}.json`);
     try {
       const first = await initializeProjectFromTemplate(
         appId,
@@ -483,30 +493,29 @@ describe("Space Template publication protocol", () => {
       });
       expect(stillReady?.files["src/app/styles.ts"]).toContain("// current ready revision");
     } finally {
-      await unlink(path).catch(() => undefined);
+      projectRecords.delete(appId);
     }
   });
 
   it("rejects a stored Project whose files no longer match its source hash", async () => {
     const appId = `template-${randomUUID()}`;
-    const path = join(projectDirectory(), `${appId}.json`);
     try {
       await initializeProjectFromTemplate(
         appId,
         "space-default",
         "tplv-space-default-0-1-2",
       );
-      const stored = JSON.parse(await readFile(path, "utf8")) as {
+      const stored = structuredClone(projectRecords.get(appId)) as {
         files: Record<string, string>;
       };
       stored.files["src/chat/client.ts"] += "\n// untracked disk mutation\n";
-      await writeFile(path, `${JSON.stringify(stored, null, 2)}\n`, "utf8");
+      projectRecords.set(appId, stored);
 
       await expect(loadProject(appId)).rejects.toBeInstanceOf(
         StoredProjectIntegrityError,
       );
     } finally {
-      await unlink(path).catch(() => undefined);
+      projectRecords.delete(appId);
     }
   });
 });

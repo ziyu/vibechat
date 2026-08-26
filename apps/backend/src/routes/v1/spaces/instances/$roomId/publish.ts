@@ -28,6 +28,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/publish')({
             `/api/apps/${encodeURIComponent(access.instance.spaceInstanceId)}/publish`,
             runtimeJsonInit({
               requestId: parsed.data.requestId,
+              expectedReadyRevisionId: parsed.data.expectedReadyRevisionId,
               clientId: access.session.user.id,
               authorName: access.session.user.name || 'Member',
             }),

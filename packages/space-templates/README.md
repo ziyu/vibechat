@@ -64,7 +64,7 @@ packages/space-templates/
 3. 每个官方 Release 必须在 `releases.json` 保存 source/manifest lock。历史锁不一致意味着正在改写已发布记录，必须拒绝；当前 `app/` 只允许与最新 Release 一致，或正在准备下一个 Release。
 4. `createSpaceTemplateVersion()` 是官方与用户发布共用的版本签发原语：仓库来源必须有 `sourcePath`，App 来源必须有固定 `sourceSpaceRevisionId`。
 5. `createSpaceTemplateMarketEntry()` 对两种来源生成相同市场结构；消费者只能根据 Publisher verification 展示官方/认证标记。
-6. Space 创建后同时保存 Template lineage hash 与当前 Project hash；只有完全未修改的兼容快照可以迁移，任何 Agent/人工修改都不会被模板升级覆盖。
+6. Space 创建后同时保存 Template lineage hash 与当前 Project hash；Runtime 初始化不得隐式升级现有 Project。模板升级必须创建独立 Candidate，验证成功后由显式操作切换，任何 Agent/人工修改都不会被覆盖。
 7. Matrix 只保存 Template/Project/Release 指针和安全快照，不保存源码或构建产物。
 8. `agentos-app-v1` 的 `src/index.ts` 必须导出 RivetKit `registry`、调用 `registry.start()` 并默认导出 fetch handler；Dev Preview 与不可变 Release 使用同一入口契约。
 
@@ -83,6 +83,6 @@ packages/space-templates/
 - 官方 Template working source：Git 仓库中每个 `official/<template-id>/app/` 的唯一项目树。
 - Template release artifact：统一 Registry/Object Store 中按 hash 寻址的不可变快照；仓库不保存逐版本源码副本。
 - 当前官方 Market adapter：`officialSpaceTemplateMarketEntries`；`/v1/spaces` 已按统一 Market schema 返回它们。
-- 开发 Space Project：`apps/space-runtime/.data/projects/<spaceInstanceId>.json`。
-- 生产目标：Product DB 保存 Template/Version/Publisher/审核/Project/Revision/Release 元数据和指针；Object Store 保存按 hash 寻址的 source、artifact、SBOM 与 provenance。
+- Space Project：Product DB 保存 Project/Revision/Release 元数据和指针；Backend 私有 Object Store 保存按 hash 寻址的 source。开发环境使用 SQLite 和 Backend 忽略目录下的 Object Store adapter，但经过同一内部 HTTP 契约。
+- 后续生产边界：Product DB 继续扩展 Template/Version/Publisher/审核元数据；Object Store 扩展不可变 artifact、SBOM 与 provenance。
 - 用户发布目标：从固定 ready Revision 创建不可变 Template Version，完成隐私清理、权限/兼容性校验和审核后，与官方条目一起进入同一市场查询。

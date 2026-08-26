@@ -3,8 +3,8 @@ import { posix } from "node:path";
 import { createClient } from "@rivet-dev/agentos/client";
 import ts from "typescript";
 import type { registry } from "./actors.js";
+import { assertAppId } from "./app-id.js";
 import {
-  assertAppId,
   projectFilePaths,
   type ProjectFiles,
 } from "./project-store.js";

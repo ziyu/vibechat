@@ -11,6 +11,12 @@ import {
   isSupportedNode,
   resolveCompatibleNode,
 } from './node-runtime.mjs'
+import {
+  inspectSqliteSchema,
+  missingSqliteSchema,
+  readExpectedSqliteSchema,
+  verifyBetterSqlite3,
+} from './dev-prerequisites.mjs'
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const scriptPath = fileURLToPath(import.meta.url)
@@ -72,6 +78,13 @@ const packageManagerShimDirectory = join(
   'space-runtime',
   '.data',
   'corepack-bin',
+)
+const sqliteSnapshotDirectory = join(
+  repositoryRoot,
+  'libs',
+  'database',
+  'drizzle-sqlite',
+  'meta',
 )
 
 function resolveHostPiBinary() {
@@ -175,17 +188,63 @@ async function ensurePackageManagerShim() {
   }
 }
 
+function loadBetterSqlite3() {
+  return require('better-sqlite3')
+}
+
+function betterSqlite3Error() {
+  try {
+    verifyBetterSqlite3(loadBetterSqlite3())
+    return null
+  } catch (error) {
+    return error
+  }
+}
+
+async function ensureCompatibleNativeDependencies() {
+  const initialError = betterSqlite3Error()
+  if (!initialError) return
+
+  console.log(
+    `[dev] Rebuilding better-sqlite3 for Node ${process.versions.node}`,
+  )
+  runPnpm(['rebuild', 'better-sqlite3'])
+  const rebuiltError = betterSqlite3Error()
+  if (rebuiltError) {
+    throw new Error(
+      `better-sqlite3 is not compatible with Node ${process.versions.node} after rebuild`,
+      { cause: rebuiltError },
+    )
+  }
+}
+
 async function ensureLocalDatabase() {
   if (developmentEnvironment.DB_DIALECT !== 'sqlite') return
 
   const databasePath = resolve(repositoryRoot, developmentEnvironment.SQLITE_DB_PATH)
   developmentEnvironment.SQLITE_DB_PATH = databasePath
-  if (existsSync(databasePath)) return
-
-  console.log(`[dev] Initializing local SQLite database at ${databasePath}`)
   await mkdir(dirname(databasePath), { recursive: true })
+  const Database = loadBetterSqlite3()
+  const expected = await readExpectedSqliteSchema(sqliteSnapshotDirectory)
+  const before = inspectSqliteSchema(Database, databasePath, expected.tables)
+  const missingBefore = missingSqliteSchema(expected.tables, before)
+  if (missingBefore.length === 0) return
+
+  console.log(
+    `[dev] Synchronizing local SQLite database with ${expected.latestSnapshot} ` +
+      `(${missingBefore.length} missing table/column entries)`,
+  )
   runPnpm(['db:push:sqlite'])
-  runPnpm(['db:seed:sqlite'])
+  const after = inspectSqliteSchema(Database, databasePath, expected.tables)
+  const missingAfter = missingSqliteSchema(expected.tables, after)
+  if (missingAfter.length > 0) {
+    throw new Error(
+      `Local SQLite schema remains incomplete after push: ${missingAfter.join(', ')}`,
+    )
+  }
+  if (before.tableNames.size === 0) {
+    runPnpm(['db:seed:sqlite'])
+  }
 }
 
 async function ensureLocalSynapse() {
@@ -328,6 +387,7 @@ async function stopManagedRivetEngine(engine) {
 }
 
 await ensurePackageManagerShim()
+await ensureCompatibleNativeDependencies()
 await ensureLocalDatabase()
 await ensureLocalSynapse()
 if (hostPiBinary) console.log(`[dev] Host Pi binary: ${hostPiBinary}`)

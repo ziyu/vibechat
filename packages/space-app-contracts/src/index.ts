@@ -35,6 +35,126 @@ export const spaceAgentCompletionCallbackSchema = z.object({
   }),
 })
 
+export const spaceAgentBillingCallbackSchema = z.object({
+  spaceInstanceId: z.string().min(1).max(255),
+  turnId: z.string().min(1).max(255),
+  userId: z.string().min(1),
+  requestId: z.string().min(1),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  reservedCredits: z.number().int().positive(),
+  transactionId: z.string().min(1),
+  status: z.enum(['completed', 'failed']),
+  usage: z.object({
+    inputTokens: z.number().int().nonnegative().optional(),
+    outputTokens: z.number().int().nonnegative().optional(),
+    totalTokens: z.number().int().nonnegative().optional(),
+  }).optional(),
+})
+
+export const spaceRuntimeStateCallbackSchema = z.object({
+  spaceInstanceId: z.string().min(1).max(255),
+  readyRevisionId: z.string().min(1).max(255),
+  publishedRevisionId: z.string().min(1).max(255).nullable(),
+  releaseId: z.string().min(1).max(255).nullable(),
+  sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  sequence: z.number().int().nonnegative(),
+})
+
+export const spaceRuntimeLeaseSchema = z.object({
+  spaceInstanceId: z.string().min(1).max(255),
+  ownerId: z.string().min(1).max(255),
+  fencingToken: z.number().int().positive(),
+  expiresAt: z.string().datetime(),
+})
+
+export const spaceRuntimeProjectPointerSchema = z.object({
+  projectId: z.string().min(1).max(255),
+  spaceInstanceId: z.string().min(1).max(255),
+  sourceObjectKey: z.string().min(1).max(512).nullable(),
+  sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).nullable(),
+  artifactObjectKey: z.string().min(1).max(512).nullable(),
+  artifactHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).nullable(),
+  readyRevisionId: z.string().min(1).max(255).nullable(),
+  publishedRevisionId: z.string().min(1).max(255).nullable(),
+  releaseId: z.string().min(1).max(255).nullable(),
+  metadata: z.record(z.string(), z.unknown()),
+  fencingToken: z.number().int().nonnegative(),
+  updatedAt: z.string().datetime(),
+})
+
+export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('claim_lease'),
+    spaceInstanceId: z.string().min(1).max(255),
+    ownerId: z.string().min(1).max(255),
+    ttlMs: z.number().int().min(1_000).max(300_000),
+  }),
+  z.object({
+    action: z.literal('renew_lease'),
+    lease: spaceRuntimeLeaseSchema,
+    ttlMs: z.number().int().min(1_000).max(300_000),
+  }),
+  z.object({
+    action: z.literal('release_lease'),
+    lease: spaceRuntimeLeaseSchema,
+  }),
+  z.object({
+    action: z.literal('load_project'),
+    spaceInstanceId: z.string().min(1).max(255),
+  }),
+  z.object({
+    action: z.literal('save_project'),
+    lease: spaceRuntimeLeaseSchema,
+    project: spaceRuntimeProjectPointerSchema.omit({
+      fencingToken: true,
+      updatedAt: true,
+    }),
+  }),
+  z.object({
+    action: z.literal('load_instance'),
+    spaceInstanceId: z.string().min(1).max(255),
+  }),
+  z.object({
+    action: z.literal('save_instance'),
+    lease: spaceRuntimeLeaseSchema,
+    instance: z.object({
+      spaceInstanceId: z.string().min(1).max(255),
+      sequence: z.number().int().nonnegative(),
+      snapshot: z.record(z.string(), z.unknown()),
+    }),
+  }),
+  z.object({
+    action: z.literal('enqueue_turn'),
+    turn: z.object({
+      turnId: z.string().min(1).max(255),
+      spaceInstanceId: z.string().min(1).max(255),
+      externalRequestId: z.string().min(1).max(255),
+      kind: z.enum(['message', 'publish', 'restore']),
+      payload: z.record(z.string(), z.unknown()),
+    }),
+  }),
+  z.object({
+    action: z.literal('claim_turn'),
+    spaceInstanceId: z.string().min(1).max(255),
+    ownerId: z.string().min(1).max(255),
+    ttlMs: z.number().int().min(1_000).max(300_000),
+  }),
+  z.object({
+    action: z.literal('complete_turn'),
+    turnId: z.string().min(1).max(255),
+    lease: spaceRuntimeLeaseSchema,
+    status: z.enum(['completed', 'failed']),
+  }),
+  z.object({
+    action: z.literal('list_runnable_instances'),
+    limit: z.number().int().min(1).max(100).default(100),
+  }),
+  z.object({
+    action: z.literal('reconcile_outbox'),
+  }),
+])
+
 export const spaceRuntimeMessageSchema = z.object({
   id: z.string().min(1),
   turnId: z.string().min(1),
@@ -112,6 +232,7 @@ export const spaceTurnAcceptedSchema = z.object({
 
 export const publishSpaceAppRequestSchema = z.object({
   requestId: z.string().min(1).max(255),
+  expectedReadyRevisionId: z.string().regex(/^[a-f0-9]{16}$/),
 })
 
 export const restoreSpaceAppRequestSchema = z.object({
@@ -148,6 +269,11 @@ export type SpaceAgentMention = z.infer<typeof spaceAgentMentionSchema>
 export type SpaceAgentMemberMetadata = z.infer<typeof spaceAgentMemberMetadataSchema>
 export type SpaceAgentReplyMetadata = z.infer<typeof spaceAgentReplyMetadataSchema>
 export type SpaceAgentCompletionCallback = z.infer<typeof spaceAgentCompletionCallbackSchema>
+export type SpaceAgentBillingCallback = z.infer<typeof spaceAgentBillingCallbackSchema>
+export type SpaceRuntimeStateCallback = z.infer<typeof spaceRuntimeStateCallbackSchema>
+export type SpaceRuntimeLease = z.infer<typeof spaceRuntimeLeaseSchema>
+export type SpaceRuntimeProjectPointer = z.infer<typeof spaceRuntimeProjectPointerSchema>
+export type SpaceRuntimeControlRequest = z.infer<typeof spaceRuntimeControlRequestSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>

@@ -345,6 +345,9 @@ importers:
       '@vibechat/space-app-sdk':
         specifier: workspace:*
         version: link:../../packages/space-app-sdk
+      '@vibechat/space-runtime-auth':
+        specifier: workspace:*
+        version: link:../../packages/space-runtime-auth
       '@vibechat/space-templates':
         specifier: workspace:*
         version: link:../../packages/space-templates
@@ -555,6 +558,9 @@ importers:
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
+      '@vibechat/space-runtime-auth':
+        specifier: workspace:*
+        version: link:../../packages/space-runtime-auth
       '@vibechat/space-templates':
         specifier: workspace:*
         version: link:../../packages/space-templates
@@ -950,6 +956,12 @@ importers:
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../space-app-contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/space-runtime-auth:
     devDependencies:
       typescript:
         specifier: ^5.8.3

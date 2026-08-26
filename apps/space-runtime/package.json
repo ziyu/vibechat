@@ -19,6 +19,7 @@
     "@rivet-dev/agentos": "0.2.15",
     "@rivet-dev/agentos-apps": "0.2.15",
     "@vibechat/space-app-contracts": "workspace:*",
+    "@vibechat/space-runtime-auth": "workspace:*",
     "@vibechat/space-templates": "workspace:*",
     "hono": "4.12.9",
     "react": "19.2.1",

@@ -1,0 +1,216 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { DatabaseRoomRepository } from '@libs/rooms'
+import {
+  DatabaseSpaceRuntimeControlPlane,
+  RuntimeFencingError,
+  type RuntimeLease,
+} from '@libs/space-runtime-control'
+import {
+  spaceRuntimeControlRequestSchema,
+  spaceRuntimeStateCallbackSchema,
+} from '@vibechat/api-contracts'
+import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
+import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'
+import { withCfDb } from '@/lib/with-request-db'
+
+export const Route = createFileRoute('/v1/internal/space-runtime-control')({
+  server: {
+    handlers: {
+      POST: withCfDb(async ({ request }) => {
+        if (!await authorizeSpaceRuntimeCallback(request)) {
+          return Response.json({ error: 'unauthorized' }, { status: 401 })
+        }
+        const parsed = spaceRuntimeControlRequestSchema.safeParse(
+          await request.json().catch(() => null),
+        )
+        if (!parsed.success) {
+          return Response.json({ error: 'invalid_control_request' }, { status: 400 })
+        }
+        const control = new DatabaseSpaceRuntimeControlPlane()
+        try {
+          if (parsed.data.action === 'claim_lease') {
+            const instance = await runtimeInstance(parsed.data.spaceInstanceId)
+            if (!instance) return notAllowed()
+            const lease = await control.claimLease(
+              instance.spaceInstanceId,
+              parsed.data.ownerId,
+              parsed.data.ttlMs,
+            )
+            return Response.json({ lease: lease ? serializeLease(lease) : null })
+          }
+          if (parsed.data.action === 'renew_lease') {
+            if (!await runtimeInstance(parsed.data.lease.spaceInstanceId)) return notAllowed()
+            const lease = await control.renewLease(
+              parseLease(parsed.data.lease),
+              parsed.data.ttlMs,
+            )
+            return Response.json({ lease: lease ? serializeLease(lease) : null })
+          }
+          if (parsed.data.action === 'release_lease') {
+            if (!await runtimeInstance(parsed.data.lease.spaceInstanceId)) return notAllowed()
+            const released = await control.releaseLease(parseLease(parsed.data.lease))
+            return Response.json({ released })
+          }
+          if (parsed.data.action === 'load_project') {
+            const instance = await runtimeInstance(parsed.data.spaceInstanceId)
+            if (!instance) return notAllowed()
+            const project = await control.loadProject(parsed.data.spaceInstanceId)
+            return Response.json({
+              projectId: instance.projectId,
+              project: project ? { ...project, updatedAt: project.updatedAt.toISOString() } : null,
+            })
+          }
+          if (parsed.data.action === 'save_project') {
+            const instance = await runtimeInstance(parsed.data.project.spaceInstanceId)
+            if (!instance || instance.projectId !== parsed.data.project.projectId) {
+              return notAllowed()
+            }
+            const project = await control.saveProject(
+              parsed.data.project,
+              parseLease(parsed.data.lease),
+            )
+            if (project.readyRevisionId) {
+              const state = spaceRuntimeStateCallbackSchema.parse({
+                spaceInstanceId: project.spaceInstanceId,
+                readyRevisionId: project.readyRevisionId,
+                publishedRevisionId: project.publishedRevisionId,
+                releaseId: project.releaseId,
+                sourceHash: project.sourceHash,
+                sequence: Date.now(),
+              })
+              const dedupeKey = [
+                state.spaceInstanceId,
+                state.readyRevisionId,
+                state.publishedRevisionId || 'none',
+                state.releaseId || 'none',
+              ].join(':')
+              await control.enqueueOutbox({
+                eventId: `space-v2-state:${stableId(dedupeKey)}`,
+                spaceInstanceId: state.spaceInstanceId,
+                eventType: 'matrix_v2_state',
+                dedupeKey,
+                payload: state,
+              })
+              await reconcileSpaceRuntimeOutbox().catch(() => undefined)
+            }
+            return Response.json({
+              project: { ...project, updatedAt: project.updatedAt.toISOString() },
+            })
+          }
+          if (parsed.data.action === 'load_instance') {
+            if (!await runtimeInstance(parsed.data.spaceInstanceId)) return notAllowed()
+            const instance = await control.loadInstance(parsed.data.spaceInstanceId)
+            return Response.json({
+              instance: instance ? { ...instance, updatedAt: instance.updatedAt.toISOString() } : null,
+            })
+          }
+          if (parsed.data.action === 'save_instance') {
+            if (!await runtimeInstance(parsed.data.instance.spaceInstanceId)) return notAllowed()
+            const instance = await control.saveInstance(
+              parsed.data.instance,
+              parseLease(parsed.data.lease),
+            )
+            return Response.json({
+              instance: { ...instance, updatedAt: instance.updatedAt.toISOString() },
+            })
+          }
+          if (parsed.data.action === 'enqueue_turn') {
+            if (!await runtimeInstance(parsed.data.turn.spaceInstanceId)) return notAllowed()
+            const turn = await control.enqueueTurn(parsed.data.turn)
+            return Response.json({ turn: serializeTurn(turn) })
+          }
+          if (parsed.data.action === 'claim_turn') {
+            if (!await runtimeInstance(parsed.data.spaceInstanceId)) return notAllowed()
+            const lease = await control.claimLease(
+              parsed.data.spaceInstanceId,
+              parsed.data.ownerId,
+              parsed.data.ttlMs,
+            )
+            if (!lease) return Response.json({ lease: null, turn: null })
+            const turn = await control.claimNextTurn(parsed.data.spaceInstanceId, lease)
+            if (!turn) {
+              await control.releaseLease(lease)
+              return Response.json({ lease: null, turn: null })
+            }
+            return Response.json({
+              lease: serializeLease(lease),
+              turn: serializeTurn(turn),
+            })
+          }
+          if (parsed.data.action === 'complete_turn') {
+            if (!await runtimeInstance(parsed.data.lease.spaceInstanceId)) return notAllowed()
+            const completed = await control.completeTurn(
+              parsed.data.turnId,
+              parseLease(parsed.data.lease),
+              parsed.data.status,
+            )
+            return Response.json({ completed })
+          }
+          if (parsed.data.action === 'list_runnable_instances') {
+            const spaceInstanceIds = await control.listRunnableSpaceInstanceIds(
+              parsed.data.limit,
+            )
+            return Response.json({ spaceInstanceIds })
+          }
+          await reconcileSpaceRuntimeOutbox()
+          return Response.json({ reconciled: true })
+        } catch (error) {
+          if (error instanceof RuntimeFencingError) {
+            return Response.json({ error: error.code }, { status: 409 })
+          }
+          throw error
+        }
+      }),
+    },
+  },
+})
+
+async function runtimeInstance(spaceInstanceId: string) {
+  return new DatabaseRoomRepository().getBySpaceInstanceId(spaceInstanceId)
+}
+
+function parseLease(lease: {
+  spaceInstanceId: string
+  ownerId: string
+  fencingToken: number
+  expiresAt: string
+}): RuntimeLease {
+  return { ...lease, expiresAt: new Date(lease.expiresAt) }
+}
+
+function serializeLease(lease: RuntimeLease) {
+  return { ...lease, expiresAt: lease.expiresAt.toISOString() }
+}
+
+function serializeTurn(turn: {
+  turnId: string
+  spaceInstanceId: string
+  externalRequestId: string
+  kind: string
+  status: string
+  payload: Record<string, unknown>
+  attempt: number
+  ownerId: string | null
+  fencingToken: number
+  createdAt: Date
+  updatedAt: Date
+}) {
+  return {
+    ...turn,
+    createdAt: turn.createdAt.toISOString(),
+    updatedAt: turn.updatedAt.toISOString(),
+  }
+}
+
+function notAllowed() {
+  return Response.json({ error: 'space_runtime_control_not_allowed' }, { status: 403 })
+}
+
+function stableId(value: string) {
+  let hash = 2166136261
+  for (const character of value) {
+    hash ^= character.codePointAt(0) || 0
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
+}

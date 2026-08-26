@@ -4,6 +4,24 @@ import type { RoomRepository } from "./contracts";
 import type { RoomIndexRecord } from "./types";
 
 export class DatabaseRoomRepository implements RoomRepository {
+  async getByMatrixRoomId(matrixRoomId: string) {
+    const [stored] = await db
+      .select()
+      .from(roomIndex)
+      .where(eq(roomIndex.matrixRoomId, matrixRoomId))
+      .limit(1);
+    return stored ? this.toRecord(stored) : null;
+  }
+
+  async getBySpaceInstanceId(spaceInstanceId: string) {
+    const [stored] = await db
+      .select()
+      .from(roomIndex)
+      .where(eq(roomIndex.spaceInstanceId, spaceInstanceId))
+      .limit(1);
+    return stored ? this.toRecord(stored) : null;
+  }
+
   async getByClientRequestId(creatorUserId: string, clientRequestId: string) {
     const [stored] = await db
       .select()

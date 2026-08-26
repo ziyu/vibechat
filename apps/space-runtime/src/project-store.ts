@@ -1,13 +1,15 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import {
-  getOfficialSpaceTemplate,
   getOfficialSpaceTemplateVersion,
   hashSpaceTemplateProjectFiles,
   isSpaceTemplateProjectFilePath,
   spaceTemplateRequiredProjectPaths,
 } from "@vibechat/space-templates";
 import { loadOfficialSpaceTemplateArtifact } from "@vibechat/space-templates/node";
+import { assertAppId } from "./app-id.js";
+import {
+  createRemoteProjectStoreFromEnv,
+  type RemoteProjectStore,
+} from "./remote-project-store.js";
 
 export const requiredProjectPaths = spaceTemplateRequiredProjectPaths;
 
@@ -16,8 +18,7 @@ export type ProjectFiles = Record<string, string>;
 export interface StoredProject {
   appId: string;
   files: ProjectFiles;
-  /** Hash of the current editable Project files. Optional only for legacy JSON migration. */
-  sourceHash?: `sha256:${string}`;
+  sourceHash: `sha256:${string}`;
   summary: string;
   updatedAt: string;
   draftId?: string;
@@ -28,28 +29,21 @@ export interface StoredProject {
     versionId: string;
     integrity: string;
     /** Immutable source hash of the Template Version copied at creation time. */
-    sourceHash?: `sha256:${string}`;
+    sourceHash: `sha256:${string}`;
     /** Hash of source, capabilities, compatibility and provenance. */
-    manifestHash?: `sha256:${string}`;
+    manifestHash: `sha256:${string}`;
     projectFormat: "agentos-app-v1";
   };
 }
 
-const dataDirectory = join(process.cwd(), ".data", "projects");
 const maximumProjectFiles = 128;
 const maximumFileBytes = 256 * 1024;
 const maximumProjectBytes = 2 * 1024 * 1024;
+let remoteProjectStore: RemoteProjectStore | null = null;
 
-function projectPath(appId: string) {
-  return join(dataDirectory, `${appId}.json`);
-}
-
-export function assertAppId(appId: string) {
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(appId)) {
-    throw new TypeError(
-      "appId must contain 1-48 lowercase letters, numbers, or hyphens",
-    );
-  }
+function projectStore() {
+  remoteProjectStore ??= createRemoteProjectStoreFromEnv();
+  return remoteProjectStore;
 }
 
 export function validateFiles(value: unknown): ProjectFiles {
@@ -96,26 +90,23 @@ export function projectFilePaths(files: ProjectFiles) {
 
 export async function loadProject(appId: string): Promise<StoredProject | null> {
   assertAppId(appId);
-  try {
-    const contents = await readFile(projectPath(appId), "utf8");
-    const project = JSON.parse(contents) as StoredProject;
-    const files = validateFiles(project.files);
-    const sourceHash = hashSpaceTemplateProjectFiles(files);
-    if (project.sourceHash && project.sourceHash !== sourceHash) {
-      throw new StoredProjectIntegrityError(
-        appId,
-        project.sourceHash,
-        sourceHash,
-      );
-    }
-    return { ...project, files, sourceHash };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
+  const project = await projectStore().load(appId);
+  if (!project) return null;
+  const files = validateFiles(project.files);
+  const sourceHash = hashSpaceTemplateProjectFiles(files);
+  if (project.sourceHash !== sourceHash) {
+    throw new StoredProjectIntegrityError(
+      appId,
+      project.sourceHash,
+      sourceHash,
+    );
   }
+  return { ...project, files, sourceHash };
 }
 
-export async function saveProject(project: StoredProject) {
+export async function saveProject(
+  project: Omit<StoredProject, "sourceHash">,
+) {
   assertAppId(project.appId);
   const files = validateFiles(project.files);
   const normalized: StoredProject = {
@@ -123,16 +114,7 @@ export async function saveProject(project: StoredProject) {
     files,
     sourceHash: hashSpaceTemplateProjectFiles(files),
   };
-  await mkdir(dataDirectory, { recursive: true });
-  const path = projectPath(project.appId);
-  const temporaryPath = `${path}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(
-    temporaryPath,
-    `${JSON.stringify(normalized, null, 2)}\n`,
-    "utf8",
-  );
-  await rename(temporaryPath, path);
-  return normalized;
+  return projectStore().save(normalized);
 }
 
 export async function initializeProjectFromTemplate(
@@ -142,10 +124,7 @@ export async function initializeProjectFromTemplate(
 ) {
   assertAppId(appId);
   const existing = await loadProject(appId);
-  if (existing) {
-    const upgraded = await upgradeUnmodifiedTemplateProject(existing);
-    return { created: false, project: upgraded } as const;
-  }
+  if (existing) return { created: false, project: existing } as const;
 
   const project = await createProjectFromTemplate(
     appId,
@@ -199,85 +178,6 @@ export async function createProjectFromTemplate(
   return project;
 }
 
-async function upgradeUnmodifiedTemplateProject(existing: StoredProject) {
-  const existingTemplate = existing.template;
-  const templateId = existingTemplate?.id;
-  if (!templateId) return existing;
-  const template = getOfficialSpaceTemplate(templateId);
-  const lineage = existingTemplate?.versionId
-    ? getOfficialSpaceTemplateVersion(templateId, existingTemplate.versionId)
-    : null;
-  const current = template && getOfficialSpaceTemplateVersion(
-    template.id,
-    template.currentVersionId,
-  );
-  if (!current || !lineage) {
-    return existing;
-  }
-
-  const lineageSourceHash = existingTemplate.sourceHash ?? lineage.sourceHash;
-  const currentProjectSourceHash = hashSpaceTemplateProjectFiles(existing.files);
-  const lineageStillMatchesCatalog =
-    (!existingTemplate.sourceHash
-      || existingTemplate.sourceHash === lineage.sourceHash)
-    && (!existingTemplate.manifestHash
-      || existingTemplate.manifestHash === lineage.manifestHash)
-    && (!existingTemplate.manifestHash
-      || existingTemplate.integrity === lineage.integrity);
-  const projectIsUnmodified =
-    lineageStillMatchesCatalog
-    && currentProjectSourceHash === lineageSourceHash;
-
-  // Existing Space Projects are independent Revisions. Only the exact source
-  // copied from a known immutable Template Version is eligible for a compatibility
-  // upgrade; any source edit, however small, remains untouched.
-  if (!projectIsUnmodified) return existing;
-
-  if (existingTemplate.versionId === current.id) {
-    if (
-      existingTemplate.sourceHash
-      && existingTemplate.manifestHash
-      && existing.sourceHash
-    ) return existing;
-    const normalized: StoredProject = {
-      ...existing,
-      sourceHash: currentProjectSourceHash,
-      template: {
-        ...existingTemplate,
-        sourceHash: lineageSourceHash,
-        manifestHash: lineage.manifestHash,
-      },
-    };
-    await saveProject(normalized);
-    return normalized;
-  }
-
-  const currentArtifact = await loadOfficialSpaceTemplateArtifact(
-    template.id,
-    current.id,
-  );
-  if (!currentArtifact) return existing;
-
-  const upgraded: StoredProject = {
-    ...existing,
-    files: validateFiles(currentArtifact.files),
-    sourceHash: current.sourceHash,
-    summary: currentArtifact.summary,
-    updatedAt: new Date().toISOString(),
-    draftId: undefined,
-    template: {
-      id: template.id,
-      versionId: current.id,
-      integrity: current.integrity,
-      sourceHash: current.sourceHash,
-      manifestHash: current.manifestHash,
-      projectFormat: current.projectFormat,
-    },
-  };
-  await saveProject(upgraded);
-  return upgraded;
-}
-
 export class StoredProjectIntegrityError extends Error {
   constructor(
     appId: string,
@@ -296,8 +196,4 @@ export class SpaceTemplateVersionNotFoundError extends Error {
     super(`Unknown Space template version: ${templateId}/${templateVersionId}`);
     this.name = "SpaceTemplateVersionNotFoundError";
   }
-}
-
-export function projectDirectory() {
-  return dirname(projectPath("placeholder"));
 }

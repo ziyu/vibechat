@@ -29,7 +29,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     const status = await page.request.get('/api/credits/status')
     expect(status.ok()).toBeTruthy()
     expect((await status.json() as { credits: { balance: number; totalPurchased: number } }).credits)
-      .toMatchObject({ balance: 100, totalPurchased: 100 })
+      .toMatchObject({ balance: 1000, totalPurchased: 1000 })
 
     const ledger = await page.request.get('/api/credits/transactions?page=1&limit=20')
     const transactions = (await ledger.json() as {
@@ -39,7 +39,7 @@ test.describe('Account, services, AI and payment return surfaces', () => {
       transaction.type === 'bonus' && transaction.description === 'new_user_bonus'
     )
     expect(welcomeGrants).toHaveLength(1)
-    expect(welcomeGrants[0]).toMatchObject({ type: 'bonus', amount: '100', description: 'new_user_bonus' })
+    expect(welcomeGrants[0]).toMatchObject({ type: 'bonus', amount: '1000', description: 'new_user_bonus' })
   })
 
   test('loads pricing and all three real AI product surfaces', async ({ page }) => {
