@@ -7,7 +7,6 @@ executors:
     resource_class: large
     environment:
       BUILD_TIME: "true"
-      NODE_ENV: production
       NODE_OPTIONS: --max-old-space-size=4096
 
 commands:
@@ -50,9 +49,13 @@ jobs:
           command: pnpm typecheck
       - run:
           name: Build product applications
+          environment:
+            NODE_ENV: production
           command: pnpm build
       - run:
           name: Build documentation site
+          environment:
+            NODE_ENV: production
           command: pnpm build:docs
       - run:
           name: Check whitespace errors
@@ -107,6 +110,8 @@ jobs:
             done
       - run:
           name: Deploy Backend to Cloudflare Workers
+          environment:
+            NODE_ENV: production
           command: |
             pnpm --dir apps/backend run build:cf
             pnpm --dir apps/backend exec wrangler deploy \
