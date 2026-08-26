@@ -3,12 +3,12 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-25
+> 更新日期：2026-08-26
 > 维护范围：TanStack Start Node.js 构建目标的容器化
 
 ## 当前边界
 
-仓库通过 `apps/web-app/Dockerfile` 构建产品 Web 镜像，构建上下文必须是仓库根目录。本 Runbook 定义该镜像必须满足的契约，并以 CI 的 Docker Build Verification 和 Node.js 构建结果为验收依据。
+仓库通过 `apps/web-app/Dockerfile` 构建产品 Web 镜像，构建上下文必须是仓库根目录。本 Runbook 定义该镜像必须满足的契约，并以 CircleCI 的 `docker-build` job 和 Node.js 构建结果为验收依据。
 
 ## 镜像契约
 

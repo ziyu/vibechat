@@ -11,6 +11,7 @@ Vibe Chat 是一个以“氛围空间”为核心的新一代聊天产品。每�
 - 运营后台：独立 TanStack Start 应用，复用共享 Backend Admin API
 - 共享后端：独立 TanStack Start server runtime；Web 通过同源网关接入
 - 工程组织：pnpm workspace、Turborepo
+- CI/CD：CircleCI（仓库校验、Web Docker 构建验证、Backend Cloudflare Workers 审批部署）
 - 文档站：Fumadocs
 - 产品服务：TanStack Start server routes + 共享领域 service/repository
 - 浏览器认证：Better Auth Email OTP（密码入口仅作迁移兼容）
