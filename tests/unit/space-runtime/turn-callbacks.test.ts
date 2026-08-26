@@ -21,6 +21,7 @@ function claimedTurn(): ClaimedSpaceTurn {
       agentId: 'pi',
       billing: {
         callbackUrl: 'http://backend.test/v1/internal/space-agent-billing',
+        spaceInstanceId: 'space-instance-1',
         completion: {
           callbackUrl: 'http://backend.test/v1/internal/space-agent-completion',
           spaceInstanceId: 'space-instance-1',
@@ -43,6 +44,7 @@ describe('Space turn callbacks', () => {
     expect(parseBilling({ callbackUrl: 'not-a-url' })).toBeNull()
     expect(parseBilling({
       callbackUrl: 'http://backend.test/billing',
+      spaceInstanceId: 'space-instance-1',
       completion: {
         callbackUrl: 'file:///tmp/callback',
         spaceInstanceId: 'space-instance-1',
@@ -65,13 +67,18 @@ describe('Space turn callbacks', () => {
       turn,
       status: 'completed',
       usage: { inputTokens: 7, outputTokens: 5, totalTokens: 12 },
-      internalToken: 'internal-token',
+      signingSecret: 'test-space-runtime-signing-secret-32',
       fetch: billingFetch as unknown as typeof globalThis.fetch,
     })
 
     expect(billingFetch).toHaveBeenCalledTimes(2)
     for (const [, init] of billingFetch.mock.calls) {
-      expect(JSON.parse(String(init?.body))).not.toHaveProperty('completion')
+      const payload = JSON.parse(String(init?.body))
+      expect(payload).toMatchObject({
+        spaceInstanceId: 'space-instance-1',
+        turnId: 'turn-batch-1',
+      })
+      expect(payload).not.toHaveProperty('completion')
     }
 
     const completionFetch = vi.fn()
@@ -80,7 +87,7 @@ describe('Space turn callbacks', () => {
     await reportTurnCompletion({
       turn,
       reply: { agentId: 'pi', agentName: 'Pi', text: 'Batch complete.' },
-      internalToken: 'internal-token',
+      signingSecret: 'test-space-runtime-signing-secret-32',
       fetch: completionFetch as unknown as typeof globalThis.fetch,
     })
 

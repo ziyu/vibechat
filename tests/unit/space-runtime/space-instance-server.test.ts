@@ -1,24 +1,11 @@
-import { existsSync, rmSync } from 'node:fs'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-
-const dataDirectory = `/tmp/vibechat-space-runtime-${process.pid}-${Date.now()}`
-let SpaceInstanceServer: typeof import('../../../apps/space-runtime/src/space-instance-server').SpaceInstanceServer
-
-beforeAll(async () => {
-  process.env.SPACE_RUNTIME_DATA_DIR = dataDirectory
-  vi.resetModules()
-  ;({ SpaceInstanceServer } = await import('../../../apps/space-runtime/src/space-instance-server'))
-})
-
-afterAll(() => {
-  if (existsSync(dataDirectory)) rmSync(dataDirectory, { recursive: true, force: true })
-  delete process.env.SPACE_RUNTIME_DATA_DIR
-})
+import { describe, expect, it, vi } from 'vitest'
+import { SpaceInstanceServer } from '../../../apps/space-runtime/src/space-instance-server'
+import { createMemoryDurableSpaceControl } from './memory-durable-space-control'
 
 describe('SpaceInstanceServer', () => {
   it('deduplicates Matrix events and keeps source files out of public snapshots', async () => {
     const onTurnAvailable = vi.fn()
-    const server = new SpaceInstanceServer(onTurnAvailable)
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl(), onTurnAvailable)
     const first = await server.beginTurn('space-instance-1', {
       clientId: 'member-1',
       authorName: 'Member One',
@@ -58,7 +45,7 @@ describe('SpaceInstanceServer', () => {
   })
 
   it('persists shared App state independently from the Matrix chat timeline', async () => {
-    const server = new SpaceInstanceServer()
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
     await server.setAppState('space-instance-state', 'score', 4)
     await server.updateAppPresence(
       'space-instance-state',
@@ -75,7 +62,7 @@ describe('SpaceInstanceServer', () => {
   })
 
   it('deduplicates Kernel recovery and claims it as an exclusive ordered turn', async () => {
-    const server = new SpaceInstanceServer()
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
     const recovery = await server.beginTurn('space-instance-recovery', {
       clientId: 'member-1',
       authorName: 'Member One',
@@ -124,5 +111,22 @@ describe('SpaceInstanceServer', () => {
     await expect(server.claimTurn('space-instance-recovery')).resolves.toMatchObject({
       kind: 'message',
     })
+  })
+
+  it('treats natural-language publish requests as ordinary Agent messages', async () => {
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
+    const accepted = await server.beginTurn('space-instance-natural-publish', {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '请发布当前版本',
+      externalRequestId: '$matrix-natural-publish',
+      agentId: 'pi',
+    })
+    const claimed = await server.claimTurn('space-instance-natural-publish')
+    expect(claimed).toMatchObject({
+      turnId: accepted.turnId,
+      kind: 'message',
+    })
+    expect(claimed?.requests[0]).not.toHaveProperty('publication')
   })
 })

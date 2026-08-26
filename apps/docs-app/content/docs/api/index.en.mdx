@@ -59,7 +59,7 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `POST` | `/api/chat`, `/api/image-generate`, `/api/video-generate` | Billable AI generation with failure refunds |
 | `POST` | `/api/upload` | Authenticated image upload with type and size limits |
 
-Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry. New accounts receive 100 welcome credits through an idempotent ledger transaction by default, so they can start an Agent conversation in a Space immediately. Deployments can change or disable the grant with `CREDITS_NEW_USER_GRANT`. Agent requests reserve credits first, settle against the Runtime's actual token usage, and use a stable transaction ID for failure refunds.
+Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry. New accounts receive 1000 welcome credits through an idempotent ledger transaction by default, so they can start an Agent conversation in a Space immediately. Deployments can change or disable the grant with `CREDITS_NEW_USER_GRANT`. Agent requests reserve credits first, settle against the Runtime's actual token usage, and use a stable transaction ID for failure refunds.
 
 ## Product state example
 

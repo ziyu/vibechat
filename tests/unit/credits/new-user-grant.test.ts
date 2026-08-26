@@ -2,13 +2,14 @@ import { existsSync, rmSync } from 'node:fs'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 const databasePath = `/tmp/vibechat-new-user-grant-${process.pid}-${Date.now()}.sqlite`
+const previousNewUserGrant = process.env.CREDITS_NEW_USER_GRANT
 let database: typeof import('@libs/database')
 let grants: typeof import('@libs/credits/new-user-grant')
 
 beforeAll(async () => {
   process.env.DB_DIALECT = 'sqlite'
   process.env.SQLITE_DB_PATH = databasePath
-  process.env.CREDITS_NEW_USER_GRANT = '100'
+  delete process.env.CREDITS_NEW_USER_GRANT
   vi.resetModules()
   database = await import('@libs/database')
   const { migrate } = await import('drizzle-orm/better-sqlite3/migrator')
@@ -28,7 +29,11 @@ afterAll(() => {
     const path = `${databasePath}${suffix}`
     if (existsSync(path)) rmSync(path, { force: true })
   }
-  delete process.env.CREDITS_NEW_USER_GRANT
+  if (previousNewUserGrant === undefined) {
+    delete process.env.CREDITS_NEW_USER_GRANT
+  } else {
+    process.env.CREDITS_NEW_USER_GRANT = previousNewUserGrant
+  }
   delete process.env.SQLITE_DB_PATH
   delete process.env.DB_DIALECT
 })
@@ -42,14 +47,14 @@ describe('new user credit grant', () => {
     expect(repeated.id).toBe(first.id)
 
     const [storedUser] = await database.db.select().from(database.user)
-    expect(Number(storedUser.creditBalance)).toBe(100)
+    expect(Number(storedUser.creditBalance)).toBe(1000)
 
     const transactions = await database.db.select().from(database.creditTransaction)
     expect(transactions).toHaveLength(1)
     expect(transactions[0]).toMatchObject({
       id: 'signup:welcome:new-user',
       type: 'bonus',
-      amount: '100',
+      amount: '1000',
       description: 'new_user_bonus',
     })
   })

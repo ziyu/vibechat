@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import type { GenerationProgress } from "./generator.js";
-import { assertAppId, type ProjectFiles } from "./project-store.js";
+import { assertAppId } from "./app-id.js";
+import type { ProjectFiles } from "./project-store.js";
+import type { DurableSpaceControl } from "./durable-space-control.js";
 
 export type SpaceMessageType = "user" | "agent" | "error";
 
@@ -95,12 +95,17 @@ interface BeginTurnInput {
   agentId: string;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
+  publication?: SpaceTurnPublication;
 }
 
 export type SpaceTurnKind = "message" | "publish" | "restore";
 
 export interface SpaceTurnRecovery {
   target: "default-chat";
+  expectedReadyRevisionId: string;
+}
+
+export interface SpaceTurnPublication {
   expectedReadyRevisionId: string;
 }
 
@@ -115,10 +120,12 @@ export interface SpaceTurnRequest {
   agentId: string;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
+  publication?: SpaceTurnPublication;
 }
 
 export interface SpaceTurnBilling {
   callbackUrl: string;
+  spaceInstanceId: string;
   completion?: {
     callbackUrl: string;
     spaceInstanceId: string;
@@ -144,9 +151,6 @@ export interface SpaceQueueState {
   pendingCount: number;
 }
 
-const spaceDirectory = resolve(
-  process.env.SPACE_RUNTIME_DATA_DIR ?? join(process.cwd(), ".data", "spaces"),
-);
 const maximumStoredMessages = 100;
 const maximumAppPresenceBytes = 8 * 1024;
 const maximumAppEventBytes = 16 * 1024;
@@ -159,8 +163,13 @@ const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
 export class SpaceInstanceServer {
   readonly #spaces = new Map<string, LocalSpace>();
   readonly #onTurnAvailable?: (appId: string) => void;
+  readonly #durableControl: DurableSpaceControl;
 
-  constructor(onTurnAvailable?: (appId: string) => void) {
+  constructor(
+    durableControl: DurableSpaceControl,
+    onTurnAvailable?: (appId: string) => void,
+  ) {
+    this.#durableControl = durableControl;
     this.#onTurnAvailable = onTurnAvailable;
   }
 
@@ -326,6 +335,23 @@ export class SpaceInstanceServer {
     }
     const turnId = randomUUID();
     const createdAt = new Date().toISOString();
+    const turnRequest: SpaceTurnRequest = {
+      turnId,
+      kind: input.kind ?? "message",
+      clientId: input.clientId,
+      authorName: input.authorName,
+      text: input.text,
+      createdAt,
+      externalRequestId: input.externalRequestId,
+      agentId: input.agentId,
+      ...(input.billing ? { billing: input.billing } : {}),
+      ...(input.recovery ? { recovery: input.recovery } : {}),
+      ...(input.publication ? { publication: input.publication } : {}),
+    };
+    const enqueued = await this.#durableControl.enqueueTurn(appId, turnRequest);
+    if (enqueued.deduplicated) {
+      return { turnId: enqueued.turnId, queuePosition: 0, deduplicated: true };
+    }
     const userMessage: SpaceMessage = {
       id: randomUUID(),
       turnId,
@@ -337,20 +363,8 @@ export class SpaceInstanceServer {
       externalRequestId: input.externalRequestId,
     };
     space.messages.push(userMessage);
-    space.queuedTurns.push({
-      turnId,
-      kind: input.kind ?? "message",
-      clientId: input.clientId,
-      authorName: input.authorName,
-      text: input.text,
-      createdAt,
-      externalRequestId: input.externalRequestId,
-      agentId: input.agentId,
-      ...(input.billing ? { billing: input.billing } : {}),
-      ...(input.recovery ? { recovery: input.recovery } : {}),
-    });
+    space.queuedTurns.push(turnRequest);
     const queuePosition = space.activeTurns.length + space.queuedTurns.length;
-    await this.#save(space);
     await this.#broadcast(space, { type: "message", message: userMessage });
     await this.#broadcastQueue(space);
     this.#onTurnAvailable?.(appId);
@@ -363,24 +377,34 @@ export class SpaceInstanceServer {
 
   async claimTurn(appId: string): Promise<ClaimedSpaceTurn | null> {
     const space = await this.#getReadySpace(appId);
-    if (space.build || space.activeTurns.length || !space.queuedTurns.length) {
+    if (space.build || space.activeTurns.length) {
       return null;
     }
 
-    const firstQueued = space.queuedTurns[0];
-    if (!firstQueued) return null;
-    const kind = firstQueued.kind;
-    const batchSize = kind !== "message"
-      ? 1
-      : space.queuedTurns.findIndex(
-          (request) => request.kind !== kind || request.agentId !== firstQueued.agentId,
-        );
-    space.activeTurns = space.queuedTurns.splice(
-      0,
-      batchSize < 0 ? space.queuedTurns.length : batchSize,
+    const claimed = await this.#durableControl.claimTurn(appId);
+    if (!claimed || !isSpaceTurnRequest(claimed)) return null;
+    await this.#reloadDurableState(space);
+    if (!space.messages.some(
+      (message) => message.externalRequestId === claimed.externalRequestId,
+    )) {
+      space.messages.push({
+        id: randomUUID(),
+        turnId: claimed.turnId,
+        type: "user",
+        authorId: claimed.clientId,
+        authorName: claimed.authorName,
+        text: claimed.text,
+        createdAt: claimed.createdAt,
+        externalRequestId: claimed.externalRequestId,
+      });
+    }
+    space.queuedTurns = space.queuedTurns.filter(
+      (request) => request.externalRequestId !== claimed.externalRequestId,
     );
+    space.activeTurns = [claimed];
     const [first] = space.activeTurns;
     if (!first) return null;
+    const kind = first.kind;
     space.build = {
       turnId: first.turnId,
       authorName: first.authorName,
@@ -451,6 +475,7 @@ export class SpaceInstanceServer {
   async heartbeat(appId: string, turnId: string, elapsedSeconds: number) {
     const space = await this.#getReadySpace(appId);
     if (!space.build || space.build.turnId !== turnId) return;
+    await this.#durableControl.heartbeat(appId);
     await this.#broadcast(space, { type: "heartbeat", elapsedSeconds });
   }
 
@@ -481,6 +506,9 @@ export class SpaceInstanceServer {
     space.build = null;
     space.activeTurns = [];
     await this.#save(space);
+    if (!await this.#durableControl.completeTurn(appId, turnId, "completed")) {
+      throw new Error(`Space Turn ${turnId} completion was fenced`);
+    }
     await this.#broadcast(space, { type: "message", message });
     await this.#broadcast(space, deployed);
     await this.#broadcastQueue(space);
@@ -503,6 +531,9 @@ export class SpaceInstanceServer {
     space.build = null;
     space.activeTurns = [];
     await this.#save(space);
+    if (!await this.#durableControl.completeTurn(appId, turnId, "completed")) {
+      throw new Error(`Space Turn ${turnId} completion was fenced`);
+    }
     await this.#broadcast(space, { type: "message", message });
     await this.#broadcast(space, { type: "chat_completed", turnId });
     await this.#broadcastQueue(space);
@@ -525,6 +556,9 @@ export class SpaceInstanceServer {
     space.build = null;
     space.activeTurns = [];
     await this.#save(space);
+    if (!await this.#durableControl.completeTurn(appId, turnId, "failed")) {
+      throw new Error(`Space Turn ${turnId} failure was fenced`);
+    }
     await this.#broadcast(space, { type: "message", message });
     await this.#broadcast(space, {
       type: "turn_failed",
@@ -559,57 +593,33 @@ export class SpaceInstanceServer {
   }
 
   async #load(space: LocalSpace) {
-    try {
-      const contents = await readFile(this.#path(space.appId), "utf8");
-      const value = JSON.parse(contents) as {
-        messages?: unknown;
-        appState?: unknown;
-        queuedTurns?: unknown;
-        activeTurns?: unknown;
-      };
-      if (Array.isArray(value.messages)) {
-        space.messages = value.messages
-          .filter(isSpaceMessage)
-          .slice(-maximumStoredMessages);
-      }
-      const storedAppState = readStoredAppState(value.appState);
-      if (storedAppState) space.appState = storedAppState;
-      const interrupted = Array.isArray(value.activeTurns)
-        ? value.activeTurns.filter(isSpaceTurnRequest)
-        : [];
-      const queued = Array.isArray(value.queuedTurns)
-        ? value.queuedTurns.filter(isSpaceTurnRequest)
-        : [];
-      space.queuedTurns = [...interrupted, ...queued];
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
+    await this.#reloadDurableState(space);
   }
 
   async #save(space: LocalSpace) {
     space.messages = space.messages.slice(-maximumStoredMessages);
-    const snapshot = `${JSON.stringify(
-      {
-        messages: space.messages,
-        appState: space.appState,
-        queuedTurns: space.queuedTurns,
-        activeTurns: space.activeTurns,
-      },
-      null,
-      2,
-    )}\n`;
-    space.saveQueue = space.saveQueue.then(async () => {
-      await mkdir(spaceDirectory, { recursive: true });
-      const path = this.#path(space.appId);
-      const temporaryPath = `${path}.${process.pid}.${Date.now()}.tmp`;
-      await writeFile(temporaryPath, snapshot, "utf8");
-      await rename(temporaryPath, path);
-    });
+    const value = {
+      messages: space.messages,
+      appState: space.appState,
+    };
+    space.saveQueue = space.saveQueue.then(() =>
+      this.#durableControl.saveInstance(space.appId, space.sequence, value)
+    );
     await space.saveQueue;
   }
 
-  #path(appId: string) {
-    return join(spaceDirectory, `${appId}.json`);
+  async #reloadDurableState(space: LocalSpace) {
+    const stored = await this.#durableControl.loadInstance(space.appId);
+    if (!stored) return;
+    space.sequence = Math.max(space.sequence, stored.sequence);
+    const value = stored.snapshot;
+    if (Array.isArray(value.messages)) {
+      space.messages = value.messages
+        .filter(isSpaceMessage)
+        .slice(-maximumStoredMessages);
+    }
+    const storedAppState = readStoredAppState(value.appState);
+    if (storedAppState) space.appState = storedAppState;
   }
 
   #members(space: LocalSpace) {
@@ -703,6 +713,10 @@ function isSpaceTurnRequest(value: unknown): value is SpaceTurnRequest {
       request.recovery?.target === "default-chat" &&
       typeof request.recovery.expectedReadyRevisionId === "string" &&
       /^[a-f0-9]{16}$/.test(request.recovery.expectedReadyRevisionId)
+    )) &&
+    (request.kind !== "publish" || (
+      typeof request.publication?.expectedReadyRevisionId === "string" &&
+      /^[a-f0-9]{16}$/.test(request.publication.expectedReadyRevisionId)
     ))
   );
 }

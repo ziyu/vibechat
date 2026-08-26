@@ -1,6 +1,41 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+function pinnedNodeVersion() {
+  try {
+    return readFileSync(join(repositoryRoot, '.node-version'), 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+function pinnedNodeCandidates(version) {
+  if (!version) return []
+  const userDirectory = homedir()
+  return [
+    process.env.PNPM_HOME
+      ? join(process.env.PNPM_HOME, 'nodejs', version, 'bin', 'node')
+      : undefined,
+    join(userDirectory, 'Library', 'pnpm', 'nodejs', version, 'bin', 'node'),
+    join(userDirectory, '.local', 'share', 'pnpm', 'nodejs', version, 'bin', 'node'),
+    join(userDirectory, '.nvm', 'versions', 'node', `v${version}`, 'bin', 'node'),
+    join(
+      userDirectory,
+      '.fnm',
+      'node-versions',
+      `v${version}`,
+      'installation',
+      'bin',
+      'node',
+    ),
+    join(userDirectory, '.local', 'share', 'mise', 'installs', 'node', version, 'bin', 'node'),
+  ]
+}
 
 export function isSupportedNode(nodePath) {
   if (!nodePath || !existsSync(nodePath)) return false
@@ -13,8 +48,10 @@ export function isSupportedNode(nodePath) {
 }
 
 export function resolveCompatibleNode() {
+  const pinnedVersion = pinnedNodeVersion()
   const compatibleNode = [
     process.env.VIBECHAT_NODE_BIN,
+    ...pinnedNodeCandidates(pinnedVersion),
     process.execPath,
     '/opt/homebrew/opt/node@24/bin/node',
     '/usr/local/opt/node@24/bin/node',

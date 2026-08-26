@@ -112,6 +112,32 @@ describe('ProductApiClient', () => {
     )
   })
 
+  it('submits an exact ready Revision for Kernel publish', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'publish-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.publishSpaceApp('!space:localhost', {
+      requestId: 'publish-request-1',
+      expectedReadyRevisionId: '0123456789abcdef',
+    })).resolves.toMatchObject({ accepted: true, turnId: 'publish-turn-1' })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/publish',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          requestId: 'publish-request-1',
+          expectedReadyRevisionId: '0123456789abcdef',
+        }),
+      }),
+    )
+  })
+
   it('submits a structured Agent mention with the confirmed Matrix event', async () => {
     const http = transport(Response.json({
       accepted: true,

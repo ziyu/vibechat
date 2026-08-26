@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-24
+> 更新日期：2026-08-26
 > 维护范围：AI provider、任务持久化、积分结算与用户页面
 
 ## 前置条件
@@ -20,7 +20,7 @@
 4. Backend 校验输入与用户积分，写入预留/消费和任务状态，再调用 provider。
 5. 对话按 provider usage 结算；图片/视频保存结果或失败状态；失败通过确定性交易 ID 退款。
 
-Space Agent 使用相同账本语义，但入口必须是 Matrix 中已确认的结构化 Agent Mention：人类消息先写入 Matrix，Backend 按精确 `eventId` 核对 sender 与 Agent target 后预留积分，再把 turn 交给 Space Runtime。Runtime 返回标准化 token usage；Backend 负责最终结算，Runtime 不能直接修改余额。Agent 失败不撤回已确认的人类消息，并使用同一请求派生退款 ID 只退款一次。
+Space Agent 使用相同账本语义，但入口必须是 Matrix 中已确认的结构化 Agent Mention：人类消息先写入 Matrix，Backend 按精确 `eventId` 核对 sender、实时 `m.room.member=join` 与 Agent target 后预留积分，再把 turn 交给 Space Runtime。Runtime 返回标准化 token usage；Backend 把结算/退款 callback 写入 Product DB outbox 后返回 202，再由 reconciler 以稳定 transaction ID 投递，Runtime 不能直接修改余额。Agent 失败不撤回已确认的人类消息；callback 和 reconciler 重放都只能产生一次结算或退款效果。
 
 视频异步任务由 `GET /api/video-generate/status?taskId=...` 查询。接口核验任务所有者；浏览器轮询只展示状态，不决定账务。
 
@@ -39,3 +39,4 @@ npx playwright test --config=tests/e2e/playwright.config.ts tests/e2e/specs/acco
 - 流连接中止：按 request ID 核对 consume 与 failure refund；不要创建新的补偿 ID。
 - 视频长期 processing：状态接口会对未确认 provider task 的陈旧记录失败并退款；核对 provider task ID 后再决定是否重试。
 - 余额异常：按[积分账本 Runbook](./credits.md)处理。
+- Space Agent callback 已返回 202 但账本未变化：检查 `space_runtime_outbox` 的 `credits_callback` 事件、`available_at`、attempt 和 Backend reconciler 日志；不要绕过 outbox 手工创建新的交易 ID。

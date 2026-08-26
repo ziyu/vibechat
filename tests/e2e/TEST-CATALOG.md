@@ -1431,7 +1431,8 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 
 2026-08-24 结构化 Agent Mention、欢迎积分与真实 Pi 用量证据：
 
-- 新账号创建后通过 Better Auth `databaseHooks.user.create.after` 获得默认 100 欢迎积分；交易 ID 固定为 `signup:welcome:<userId>`，同一账号重复执行不会重复入账，`CREDITS_NEW_USER_GRANT=0` 可关闭。真实注册账号的 `/api/credits/status` 返回余额与累计购入均为 100。
+- 2026-08-24 走查时，新账号通过 Better Auth `databaseHooks.user.create.after` 获得当时配置的 100 欢迎积分；交易 ID 固定为 `signup:welcome:<userId>`，同一账号重复执行不会重复入账，`CREDITS_NEW_USER_GRANT=0` 可关闭。
+- 2026-08-26 当前默认欢迎额度调整为 1000；真实注册 E2E 要求 `/api/credits/status` 的余额与累计购入均为 1000，且账本只有一条 `new_user_bonus`。
 - Default Chat App 发送 Agent Mention 时把 `io.vibechat.agent_mentions` 结构化 metadata 与人类消息一起写入 Matrix；Backend 再读取该精确 `eventId`，核对 sender、事件类型、Agent target、Space membership 与实例 allowlist 后才预留积分和入队，不再用消息文本正则决定是否调度。
 - Alice 在真实 Synapse Space `!JMBcNJQgAZDgcSmOpt:localhost` 中发送 `@pi` 后，Matrix 人类消息先进入 App timeline，Kernel 显示 Agent 处理中，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 返回“积分与 Agent 对话都已打通。”；Project 未发生源码变化。
 - 该成功 turn 上报 Pi 的真实 `input/output/total` usage。4,839 tokens 先预留 4 credits，再幂等补扣 1 credit，Alice 余额由 100 变为 95；此前失败的两个 turn 均各自只产生一次 4-credit 退款。批次 usage 按整数余数稳定分摊，所有 tokens 只结算一次。
@@ -1445,7 +1446,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - Alice 的定制 Project 以 `space-default@0.1.2` 为基线保留原有深蓝动态 App 代码，经 Runtime Candidate 构建成功后将 ready Revision 从 `644b173f6420e62d` 切换为 `b942d96a821f9542`；Published Revision `2d68a0defce3aac1` 和 Release 均未变化。
 - 定向 unit 13/13、五个 App Project 严格 TypeScript、Catalog codegen、全仓 typecheck/build 18/18、Docs production build、文档链接、应用边界和 `git diff --check` 通过。浏览器视觉走查被本地 URL 安全策略拒绝，场景 3/4 的最终视觉确认不据此标为自动化通过。
 
-**文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts`、`specs/chat-space-agent-collaboration.spec.ts` 与对应 unit/contract suites ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
+**文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts`、`specs/chat-space-agent-collaboration.spec.ts`、`specs/space-runtime-membership-revocation.spec.ts` 与对应 unit/contract suites ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
 本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。
 
@@ -1461,12 +1462,12 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 | 6 | Agent provider-neutral | 相同合约分别接 Pi Adapter 与 fake/第二 Adapter → Agent ID/provider 可切换 → Project、queue、usage、错误、权限和 UI 不出现 Pi 专属字段或行为依赖 |
 | 7 | Conversation 与 Revision | A 向 Agent 提问只得到回复，Project 指针不变 → 再请求改变 App → Agent 生成 Candidate → Runtime 验证成功 → 双方实时看到相同 ready Revision → Published Release 不被改写 |
 | 8 | 多成员批次与单写 | A/B 连续提交兼容定制 → 保留作者、Agent 和顺序并合并一批 → 同一 Space 只有一个 active write batch → 不同 Space 在配额内并行 → 普通 Chat 不被批处理阻塞 |
-| 9 | Publish 屏障与不可变发布 | ready Revision M1 → 发布 P → 修改 M2 连续入队 → P 只固化 M1 并原子更新 Published 指针 → M2 不越过 P 且仍可成为当前 ready Revision → 重复 idempotency key 返回同一 Release |
+| 9 | Publish 屏障与不可变发布 | ready Revision M1 → Kernel 读取并随 P 提交 `expectedReadyRevisionId=M1` → 修改 M2 连续入队 → P 只固化 M1 并原子更新 Published 指针 → M2 不越过 P 且仍可成为当前 ready Revision → stale/缺失 expected revision 被拒绝且不产生 Release → 自然语言“发布”只走普通 Agent turn → 重复 idempotency key 返回同一 Release |
 | 10 | 失败保护与恢复 | 当前运行 ready Revision 时提交无法构建的 Candidate/发布 → Candidate 在独立版本实例中失败且不会终止当前 ready App → App 代理保持真实非 2xx，不合成包级 Default Chat 页面 → 当前 ready Revision 在 iframe 重载与页面刷新后仍按固定版本可用，Published Release 不被覆盖 → Kernel Bar 显示诊断并可显式恢复由 Template Project 管理的 Default Chat App |
 | 11 | Space SDK 数据语义 | 双浏览器 App 读取真实 members/chat → 完整消息操作、Mention、presence、state CAS 和瞬时 event 均走版本化 SDK → chat.send 使用当前成员身份 → UI 代码无法改变服务端结果 |
-| 12 | iframe 与身份安全 | 伪造 iframe/source/nonce/action/userId/spaceId/mention target/agentId、超大 JSON、原型污染 key 和越权 publish → Kernel/Backend 拒绝 → App 无法覆盖 Kernel Bar、读取 Cookie/Matrix token/Agent 凭据/源码或发布 API |
+| 12 | iframe 与身份安全 | 伪造 iframe/source/nonce/action/userId/spaceId/mention target/agentId、超大 JSON、原型污染 key 和越权 publish → Kernel/Backend 拒绝；Matrix member 被 kick/leave 后即使 `participant_user_ids_json` 仍含该用户，app/bootstrap/events/dev/publish/restore/messages/bridge 全部 fail closed；Backend→Runtime 与 callback 的过期、错误 audience、错误 method/path 短期凭证均被拒绝 → App 无法覆盖 Kernel Bar、读取 Cookie/Matrix token/Agent 凭据/源码或发布 API |
 | 13 | ACL、积分与退款 | `space.chat` 与 `agent.invoke` 独立 → 无 Agent 权限/余额时消息仍进 Chat但请求不入队 → 有权限请求逐条 reservation → provider/Candidate 构建失败只退款一次 → 重放不重复扣费 |
-| 14 | 重启、多副本与跨系统恢复 | Agent active、队列 pending、ready/Published 指针、Template lineage 和 App State 存在时终止 lease owner → 第二 Runtime replica 接管同一 `spaceInstanceId` → interrupted Turn 回队首、sequence/snapshot 恢复 → 不重复 Matrix 消息、Revision、Release 或账务 |
+| 14 | 重启、多副本与跨系统恢复 | 启动两个 Runtime replica 竞争同一 `spaceInstanceId`，断言只有 lease owner 与当前 fencing token 可写 → 在 ready M1、Publish P、修改 M2 连续排队时终止 owner，第二 replica 接管且 P 仍只固化 M1、M2 不越过屏障 → 在 Agent active 与 outbox 投递中分别终止 owner，interrupted Turn 回队首、sequence/snapshot 恢复、旧 owner fenced write 被拒绝 → 重放 reconciler 不重复 Matrix Agent reply、credits settlement/refund、Matrix v2 state、Revision 或 Release |
 | 15 | 现有房间与多人 Space 统一 | 准备一个带 v1 模板 lineage 的历史一对一 `room_index`、一个历史群聊和一个新多人 Space → 原地回填唯一 `spaceInstanceId`，不创建新记录/Matrix Room → 历史实例按 lineage lazy bootstrap 兼容 Project → 三者都经同一 SpaceInstanceRepository/Server/Project/SDK/queue → v1/v2 双读且参与人数不触发实现分支 |
 | 16 | 基础能力无回归 | #26–#39 与 #40 一起运行 → 认证、资料、联系人、邀请、Chat、Discover、分类、详情、收藏、模板版本、账户和 Admin 全绿 → 不删除 `/v1/spaces` 或模板创建 |
 | 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责导出/启动 Runtime registry 与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，Chat 浏览器状态机、消息渲染、Composer 交互与样式分区必须是可单独阅读和类型检查的模块，不能以压缩后的巨型字符串或单文件状态机代替项目结构，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
@@ -1475,6 +1476,14 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 `chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
 
 Agent Revision 用例必须由当前配置的真实 Pi/provider 修改完整 Project，并在两个 iframe 中观察相同的可见 marker；不能通过测试进程直接改 Project JSON。Candidate 失败用例使用仅在显式测试配置下启用的 provider-neutral fake Adapter 生成确定性的 TypeScript 语法错误，经正常 Matrix Mention、ACL、credits、Space turn、自动修复和 Dev Preview 链路失败；不得要求真实模型“故意写坏代码”，也不得直接覆盖 ready Project。失败后两个浏览器继续加载失败前的固定 revision、能够互发 Matrix Chat，刷新后 Draft/Release 仍不变。
+
+Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依赖固定 `sleep` 猜测时序。M1、P、M2、lease owner、fencing token、turn attempt、outbox event ID 和各下游幂等键都要在断言中可见；测试必须分别在“持久化前中止”“持久化后但 callback ACK 前中止”两处恢复，证明 at-least-once 投递与下游 exactly-once effect 同时成立。
+
+2026-08-26 control-plane unit 证据：定向 Vitest 6 个文件、17/17 通过。`control-plane-failover.test.ts` 使用注入时钟而非 `sleep`，覆盖 SQLite Product control plane 上的 M1→P→M2、lease token 1→2、P attempt 1→2、旧 owner fenced write、ready M2 不覆盖 Published M1，以及 outbox callback ACK 丢失后的稳定 dedupe effect；同一文件还以两个真实 `SpaceInstanceServer` 对象验证 active P 被第二 owner 接管且只完成一次。`space-instance-server.test.ts` 另断言自然语言“发布”只产生普通 message Turn。该证据满足 repository/runtime integration 门槛，但不代替场景 #14 的两个独立进程、Synapse、AgentOS 与 D1/R2 演练。
+
+2026-08-26 Matrix membership 撤权 E2E 证据：`space-runtime-membership-revocation.spec.ts` 2/2 通过。测试分别让 owner kick member、member 主动 leave；Matrix member state 已为 `leave` 而 SQLite `participant_user_ids_json` 仍包含该 product user 时，被移除成员访问 snapshot/bootstrap、live/dev App、events、messages/turns、publish、restore 与 bridge 全部得到 404 `SPACE_INSTANCE_NOT_FOUND`。两种场景均断言 Space Turn/Outbox 数量、成员 credits 余额和交易数量不变，owner 仍可读取 Runtime snapshot 与 Dev App。该证据完成场景 #12 的真实 membership 撤权子项；其余 iframe 伪造输入和凭证边界继续由现有 contract/unit 证据维护。
+
+当前 Runtime 验收不得设置本地控制模式或依赖 `.data/projects`、`.data/spaces` 恢复。开发、预览与生产都必须通过同一 Product DB/Object Store API；缺少内部签名/Backend origin 配置时 Runtime 启动失败，Backend、数据库迁移或 Object Store 不可用时读写 fail closed，不得回退到本地 JSON。unit 可注入显式内存 adapter，但该 adapter 不得进入生产 import graph。
 
 2026-08-25 Matrix Agent P0 运行证据：
 

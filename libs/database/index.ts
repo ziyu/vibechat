@@ -38,6 +38,18 @@ export type {
 export type { BlogPostStatus } from './constants'
 export type { NewRoomIndex, RoomIndex } from './schema/pg/room'
 export type {
+  NewSpaceRuntimeInstanceStateRow,
+  NewSpaceRuntimeLeaseRow,
+  NewSpaceRuntimeOutboxRow,
+  NewSpaceRuntimeProjectRow,
+  NewSpaceRuntimeTurnRow,
+  SpaceRuntimeInstanceStateRow,
+  SpaceRuntimeLeaseRow,
+  SpaceRuntimeOutboxRow,
+  SpaceRuntimeProjectRow,
+  SpaceRuntimeTurnRow,
+} from './schema/pg/space-runtime-control'
+export type {
   NewRoomUserPreference,
   NewSpaceFavorite,
   NewUserPreference,
@@ -66,6 +78,13 @@ export { withdrawal } from './schema/withdrawal'
 export { blogPost } from './schema/blog-post'
 export { pricingPlan } from './schema/pricing-plan'
 export { roomIndex } from './schema/room'
+export {
+  spaceRuntimeInstanceState,
+  spaceRuntimeLease,
+  spaceRuntimeOutbox,
+  spaceRuntimeProject,
+  spaceRuntimeTurn,
+} from './schema/space-runtime-control'
 export { roomUserPreference, spaceFavorite, userPreference } from './schema/product-state'
 export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
@@ -83,6 +102,13 @@ import { withdrawal as _withdrawal } from './schema/withdrawal'
 import { blogPost as _blogPost } from './schema/blog-post'
 import { pricingPlan as _pricingPlan } from './schema/pricing-plan'
 import { roomIndex as _roomIndex } from './schema/room'
+import {
+  spaceRuntimeInstanceState as _spaceRuntimeInstanceState,
+  spaceRuntimeLease as _spaceRuntimeLease,
+  spaceRuntimeOutbox as _spaceRuntimeOutbox,
+  spaceRuntimeProject as _spaceRuntimeProject,
+  spaceRuntimeTurn as _spaceRuntimeTurn,
+} from './schema/space-runtime-control'
 import {
   roomUserPreference as _roomUserPreference,
   spaceFavorite as _spaceFavorite,
@@ -103,6 +129,11 @@ const _schema = {
   commission: _commission, withdrawal: _withdrawal,
   blogPost: _blogPost, pricingPlan: _pricingPlan,
   roomIndex: _roomIndex,
+  spaceRuntimeInstanceState: _spaceRuntimeInstanceState,
+  spaceRuntimeProject: _spaceRuntimeProject,
+  spaceRuntimeTurn: _spaceRuntimeTurn,
+  spaceRuntimeLease: _spaceRuntimeLease,
+  spaceRuntimeOutbox: _spaceRuntimeOutbox,
   userPreference: _userPreference, roomUserPreference: _roomUserPreference,
   spaceFavorite: _spaceFavorite,
   block: _block, contact: _contact, friendRequest: _friendRequest,

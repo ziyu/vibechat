@@ -77,8 +77,9 @@ apps/*/.wrangler/
 # Local SQLite data
 data/
 
-# Local Space Runtime projects, state, previews, and RivetKit storage
+# Local Space Runtime projects, state, previews, RivetKit storage, and Backend object cache
 apps/space-runtime/.data/
+apps/backend/.data/
 
 # Temporary seed export files
 seed-data.sql

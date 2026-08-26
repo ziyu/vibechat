@@ -58,6 +58,8 @@ npm run matrix:dev:up
 npm run test:matrix:integration
 ```
 
+仓库通过 `.node-version` 声明 Node `24.19.0`，并要求 pnpm 子脚本继承启动 pnpm 的 Node；`pnpm dev` 会自动切换到本机兼容 Node，无需手工修改 `PATH`。启动服务前还会校验 `better-sqlite3` native binding，并根据最新 SQLite schema snapshot 自动补齐本地数据库结构；全新空库会自动 seed。
+
 `pnpm dev` 同时启动五项活动服务：访问 `http://localhost:8003/` 查看官网，访问 `http://localhost:8001/spaces` 进入 Space 产品，访问 `http://localhost:8005/admin` 进入运营后台；`http://localhost:8002` 是独立 Backend，`http://localhost:8007` 是 Space Runtime，浏览器业务经各自应用的同源网关访问。
 
 文档入口见 [`docs/README.md`](docs/README.md)，产品范围与架构决策以[VibeChat MVP 版本产品与技术设计](docs/stable/designs/vibechat-mvp-product-and-technical-design.md)为准。

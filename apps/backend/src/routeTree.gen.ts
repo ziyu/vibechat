@@ -28,6 +28,7 @@ import { Route as ApiBlogIndexRouteImport } from './routes/api/blog/index'
 import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
+import { Route as V1InternalSpaceRuntimeControlRouteImport } from './routes/v1/internal/space-runtime-control'
 import { Route as V1InternalSpaceAgentCompletionRouteImport } from './routes/v1/internal/space-agent-completion'
 import { Route as V1InternalSpaceAgentBillingRouteImport } from './routes/v1/internal/space-agent-billing'
 import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
@@ -62,6 +63,7 @@ import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/i
 import { Route as V1SpacesInstancesRoomIdRouteImport } from './routes/v1/spaces/instances/$roomId'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
+import { Route as V1InternalSpaceRuntimeObjectsObjectHashRouteImport } from './routes/v1/internal/space-runtime-objects/$objectHash'
 import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
 import { Route as V1FriendRequestsIdAcceptRouteImport } from './routes/v1/friend-requests/$id/accept'
 import { Route as ApiPaymentWebhookWechatRouteImport } from './routes/api/payment/webhook/wechat'
@@ -183,6 +185,12 @@ const V1RoomsMetadataRoute = V1RoomsMetadataRouteImport.update({
   path: '/v1/rooms/metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1InternalSpaceRuntimeControlRoute =
+  V1InternalSpaceRuntimeControlRouteImport.update({
+    id: '/v1/internal/space-runtime-control',
+    path: '/v1/internal/space-runtime-control',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1InternalSpaceAgentCompletionRoute =
   V1InternalSpaceAgentCompletionRouteImport.update({
     id: '/v1/internal/space-agent-completion',
@@ -359,6 +367,12 @@ const V1RoomsRoomIdPreferencesRoute =
     path: '/v1/rooms/$roomId/preferences',
     getParentRoute: () => rootRouteImport,
   } as any)
+const V1InternalSpaceRuntimeObjectsObjectHashRoute =
+  V1InternalSpaceRuntimeObjectsObjectHashRouteImport.update({
+    id: '/v1/internal/space-runtime-objects/$objectHash',
+    path: '/v1/internal/space-runtime-objects/$objectHash',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1FriendRequestsIdRejectRoute =
   V1FriendRequestsIdRejectRouteImport.update({
     id: '/v1/friend-requests/$id/reject',
@@ -532,6 +546,7 @@ export interface FileRoutesByFullPath {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -558,6 +573,7 @@ export interface FileRoutesByFullPath {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -612,6 +628,7 @@ export interface FileRoutesByTo {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -638,6 +655,7 @@ export interface FileRoutesByTo {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -693,6 +711,7 @@ export interface FileRoutesById {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
   '/v1/users/search': typeof V1UsersSearchRoute
@@ -719,6 +738,7 @@ export interface FileRoutesById {
   '/api/payment/webhook/wechat': typeof ApiPaymentWebhookWechatRoute
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
+  '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -775,6 +795,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -801,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -855,6 +877,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -881,6 +904,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -935,6 +959,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
     | '/v1/users/search'
@@ -961,6 +986,7 @@ export interface FileRouteTypes {
     | '/api/payment/webhook/wechat'
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
+    | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -1016,6 +1042,7 @@ export interface RootRouteChildren {
   V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
   V1InternalSpaceAgentBillingRoute: typeof V1InternalSpaceAgentBillingRoute
   V1InternalSpaceAgentCompletionRoute: typeof V1InternalSpaceAgentCompletionRoute
+  V1InternalSpaceRuntimeControlRoute: typeof V1InternalSpaceRuntimeControlRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
   V1UsersSearchRoute: typeof V1UsersSearchRoute
@@ -1042,6 +1069,7 @@ export interface RootRouteChildren {
   ApiPaymentWebhookWechatRoute: typeof ApiPaymentWebhookWechatRoute
   V1FriendRequestsIdAcceptRoute: typeof V1FriendRequestsIdAcceptRoute
   V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
+  V1InternalSpaceRuntimeObjectsObjectHashRoute: typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
   V1SpacesInstancesRoomIdRoute: typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -1190,6 +1218,13 @@ declare module '@tanstack/react-router' {
       path: '/v1/rooms/metadata'
       fullPath: '/v1/rooms/metadata'
       preLoaderRoute: typeof V1RoomsMetadataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/internal/space-runtime-control': {
+      id: '/v1/internal/space-runtime-control'
+      path: '/v1/internal/space-runtime-control'
+      fullPath: '/v1/internal/space-runtime-control'
+      preLoaderRoute: typeof V1InternalSpaceRuntimeControlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/internal/space-agent-completion': {
@@ -1430,6 +1465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1RoomsRoomIdPreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/internal/space-runtime-objects/$objectHash': {
+      id: '/v1/internal/space-runtime-objects/$objectHash'
+      path: '/v1/internal/space-runtime-objects/$objectHash'
+      fullPath: '/v1/internal/space-runtime-objects/$objectHash'
+      preLoaderRoute: typeof V1InternalSpaceRuntimeObjectsObjectHashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/friend-requests/$id/reject': {
       id: '/v1/friend-requests/$id/reject'
       path: '/v1/friend-requests/$id/reject'
@@ -1666,6 +1708,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1ContactsUserIdRoute: V1ContactsUserIdRoute,
   V1InternalSpaceAgentBillingRoute: V1InternalSpaceAgentBillingRoute,
   V1InternalSpaceAgentCompletionRoute: V1InternalSpaceAgentCompletionRoute,
+  V1InternalSpaceRuntimeControlRoute: V1InternalSpaceRuntimeControlRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,
   V1UsersSearchRoute: V1UsersSearchRoute,
@@ -1692,6 +1735,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaymentWebhookWechatRoute: ApiPaymentWebhookWechatRoute,
   V1FriendRequestsIdAcceptRoute: V1FriendRequestsIdAcceptRoute,
   V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
+  V1InternalSpaceRuntimeObjectsObjectHashRoute:
+    V1InternalSpaceRuntimeObjectsObjectHashRoute,
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
   V1SpacesInstancesRoomIdRoute: V1SpacesInstancesRoomIdRouteWithChildren,

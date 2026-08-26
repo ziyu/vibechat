@@ -1,15 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DatabaseRoomRepository } from '@libs/rooms'
 import { spaceAgentCompletionCallbackSchema } from '@vibechat/api-contracts'
-import { writeMatrixAgentReply } from '@/lib/matrix-agent-reply'
+import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
+import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
+import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'
 import { withCfDb } from '@/lib/with-request-db'
 
 export const Route = createFileRoute('/v1/internal/space-agent-completion')({
   server: {
     handlers: {
       POST: withCfDb(async ({ request }) => {
-        const token = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim()
-        if (!token || request.headers.get('authorization') !== `Bearer ${token}`) {
+        if (!await authorizeSpaceRuntimeCallback(request)) {
           return Response.json({ error: 'unauthorized' }, { status: 401 })
         }
         const parsed = spaceAgentCompletionCallbackSchema.safeParse(
@@ -19,9 +20,8 @@ export const Route = createFileRoute('/v1/internal/space-agent-completion')({
           return Response.json({ error: 'invalid_callback' }, { status: 400 })
         }
 
-        const [instance] = await new DatabaseRoomRepository().getAccessibleByMatrixRoomIds(
-          parsed.data.userId,
-          [parsed.data.matrixRoomId],
+        const instance = await new DatabaseRoomRepository().getByMatrixRoomId(
+          parsed.data.matrixRoomId,
         )
         if (
           !instance
@@ -31,8 +31,25 @@ export const Route = createFileRoute('/v1/internal/space-agent-completion')({
           return Response.json({ error: 'space_agent_callback_not_allowed' }, { status: 403 })
         }
 
-        const result = await writeMatrixAgentReply(parsed.data)
-        return Response.json({ ok: true, ...result }, {
+        const control = new DatabaseSpaceRuntimeControlPlane()
+        const turn = await control.getTurn(parsed.data.turnId)
+        if (
+          !turn
+          || turn.spaceInstanceId !== parsed.data.spaceInstanceId
+          || turn.status !== 'completed'
+        ) {
+          return Response.json({ error: 'space_agent_callback_fenced' }, { status: 409 })
+        }
+        const outbox = await control.enqueueOutbox({
+          eventId: `space-agent-reply:${parsed.data.turnId}`,
+          spaceInstanceId: parsed.data.spaceInstanceId,
+          eventType: 'agent_reply',
+          dedupeKey: parsed.data.turnId,
+          payload: parsed.data,
+        })
+        await reconcileSpaceRuntimeOutbox().catch(() => undefined)
+        return Response.json({ accepted: true, eventId: outbox.eventId }, {
+          status: 202,
           headers: { 'cache-control': 'no-store' },
         })
       }),

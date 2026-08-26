@@ -1,5 +1,10 @@
-import { createDefaultRoomService } from '@libs/rooms'
+import { DatabaseRoomRepository } from '@libs/rooms'
 import type { SpaceInstanceRecord } from '@libs/rooms/types'
+import {
+  signSpaceRuntimeCredential,
+  spaceRuntimeAudience,
+} from '@vibechat/space-runtime-auth'
+import { verifyLiveMatrixMembership } from './matrix-membership'
 import { injectSpaceAppSdk } from './space-app-html'
 import {
   productApiError,
@@ -11,11 +16,14 @@ export async function authorizeSpaceRuntimeRequest(request: Request, matrixRoomI
   const requestId = productRequestId(request)
   const auth = await requireProductSession(request, requestId)
   if (!auth.ok) return auth
-  const instance = await createDefaultRoomService().getAccessibleSpaceInstance(
-    auth.session.user.id,
-    matrixRoomId,
-  )
-  if (!instance) {
+  const instance = await new DatabaseRoomRepository().getByMatrixRoomId(matrixRoomId)
+  const isMember = instance
+    ? await verifyLiveMatrixMembership({
+        userId: auth.session.user.id,
+        matrixRoomId,
+      }).catch(() => false)
+    : false
+  if (!instance || !isMember) {
     return {
       ok: false,
       response: productApiError(
@@ -34,12 +42,22 @@ export async function fetchSpaceRuntime(
   init: RequestInit = {},
 ) {
   const origin = process.env.SPACE_RUNTIME_ORIGIN?.trim()
-  const token = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim()
-  if (!origin || !token) throw new SpaceRuntimeConfigurationError()
+  const secret = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim()
+  if (!origin || !secret) throw new SpaceRuntimeConfigurationError()
+  const target = new URL(path, origin)
+  const method = (init.method || 'GET').toUpperCase()
+  const credential = await signSpaceRuntimeCredential({
+    secret,
+    audience: spaceRuntimeAudience,
+    subject: 'vibechat-backend',
+    method,
+    path: target.pathname,
+    ttlSeconds: 60,
+  })
   const headers = new Headers(init.headers)
-  headers.set('authorization', `Bearer ${token}`)
+  headers.set('authorization', `Bearer ${credential}`)
   headers.set('accept', headers.get('accept') || 'application/json')
-  return fetch(new URL(path, origin), { ...init, headers, redirect: 'manual' })
+  return fetch(target, { ...init, headers, redirect: 'manual' })
 }
 
 export async function ensureSpaceTemplateProject(

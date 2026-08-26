@@ -25,7 +25,7 @@ export const creditsConfig = {
       const amount = Number(configured);
       if (Number.isFinite(amount) && amount >= 0) return amount;
     }
-    return 100;
+    return 1000;
   },
 
   /**

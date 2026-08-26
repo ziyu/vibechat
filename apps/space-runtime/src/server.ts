@@ -2,7 +2,6 @@ import { mkdir } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { join, resolve } from "node:path";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
 import {
   AgentOSAppsError,
   appsRouter,
@@ -10,6 +9,10 @@ import {
 } from "@rivet-dev/agentos-apps";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import {
+  spaceRuntimeAudience,
+  verifySpaceRuntimeCredential,
+} from "@vibechat/space-runtime-auth";
 import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { registry } from "./actors.js";
 import {
@@ -25,6 +28,7 @@ import {
   DevPreviewError,
   DevPreviewManager,
 } from "./dev-preview.js";
+import { createDurableSpaceControlFromEnv } from "./durable-space-control.js";
 import {
   configuredProvider,
   hasModelCredentials,
@@ -34,13 +38,12 @@ import {
   reviseProject,
 } from "./generator.js";
 import {
-  assertAppId,
   createProjectFromTemplate,
   initializeProjectFromTemplate,
   loadProject,
-  projectDirectory,
   saveProject,
 } from "./project-store.js";
+import { assertAppId } from "./app-id.js";
 import { checkRivetEngineHealth } from "./rivet-health.js";
 import {
   type ClaimedSpaceTurn,
@@ -71,9 +74,13 @@ const turnBatchWindowMs = Math.max(
 );
 const port = Number(process.env.SPACE_RUNTIME_PORT ?? process.env.PORT ?? 8007);
 const hostname = process.env.HOST ?? "0.0.0.0";
-const spaces = new SpaceInstanceServer(scheduleSpace);
+const durableSpaceControl = createDurableSpaceControlFromEnv();
+const spaces = new SpaceInstanceServer(
+  durableSpaceControl,
+  scheduleSpace,
+);
 const devPreviews = new DevPreviewManager();
-const internalToken = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim() ?? "";
+const internalSigningSecret = process.env.SPACE_RUNTIME_INTERNAL_TOKEN?.trim() ?? "";
 const defaultAgentId = process.env.SPACE_AGENT_DEFAULT_ID?.trim() || "pi";
 const agentAdapters = new SpaceAgentRegistry([
   createPiAgentAdapter({
@@ -90,6 +97,35 @@ const activeSpaceIds = new Set<string>();
 const spaceScheduleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const templateBootstrapTasks = new Map<string, Promise<Awaited<ReturnType<typeof bootstrapTemplateProject>>>>();
 let drainingTurnQueue = false;
+const controlPlaneStartupGraceDeadline = Date.now() + 5_000;
+const controlPlaneFailureLogIntervalMs = 30_000;
+const controlPlaneFailureReportedAt = new Map<string, number>();
+const clearControlPlaneFailure = (operation: string) => {
+  controlPlaneFailureReportedAt.delete(operation);
+};
+const reportControlPlaneFailure = (operation: string, error: unknown) => {
+  const now = Date.now();
+  if (now < controlPlaneStartupGraceDeadline) return;
+  const lastReportedAt = controlPlaneFailureReportedAt.get(operation) ?? 0;
+  if (now - lastReportedAt < controlPlaneFailureLogIntervalMs) return;
+  controlPlaneFailureReportedAt.set(operation, now);
+  console.error(`Space Runtime ${operation} failed`, boundedLogError(error));
+};
+const scanRunnableTurns = () => {
+  void durableSpaceControl.listRunnableSpaceInstanceIds()
+    .then((spaceInstanceIds) => {
+      clearControlPlaneFailure("runnable scan");
+      for (const spaceInstanceId of spaceInstanceIds) scheduleSpace(spaceInstanceId);
+    })
+    .catch((error) => {
+      reportControlPlaneFailure("runnable scan", error);
+    });
+  void durableSpaceControl.reconcileOutbox()
+    .then(() => clearControlPlaneFailure("outbox reconcile"))
+    .catch((error) => reportControlPlaneFailure("outbox reconcile", error));
+};
+scanRunnableTurns();
+setInterval(scanRunnableTurns, 1_000).unref();
 
 // Rivet actor runtime sockets must stay below macOS SUN_LEN. Worktree paths are
 // often too long, so keep only ephemeral VM sockets in a short, process-scoped path.
@@ -132,15 +168,15 @@ await registryReady;
 const app = new Hono();
 
 app.use("/api/apps/*", async (context, next) => {
-  if (!internalToken) return context.json({ error: "space runtime internal token is not configured" }, 503);
-  if (context.req.header("authorization") !== `Bearer ${internalToken}`) {
+  if (!internalSigningSecret) return context.json({ error: "space runtime signing secret is not configured" }, 503);
+  if (!await authorizeRuntimeRequest(context.req.raw, internalSigningSecret)) {
     return context.json({ error: "unauthorized" }, 401);
   }
   await next();
 });
 app.use("/runtime/*", async (context, next) => {
-  if (!internalToken) return context.json({ error: "space runtime internal token is not configured" }, 503);
-  if (context.req.header("authorization") !== `Bearer ${internalToken}`) {
+  if (!internalSigningSecret) return context.json({ error: "space runtime signing secret is not configured" }, 503);
+  if (!await authorizeRuntimeRequest(context.req.raw, internalSigningSecret)) {
     return context.json({ error: "unauthorized" }, 401);
   }
   await next();
@@ -156,10 +192,10 @@ app.get("/api/health", async (context) => {
     piMode: piMode(),
     provider: configuredProvider(),
     piConcurrency: maximumConcurrentTurns,
-    projectDirectory: projectDirectory(),
+    projectStore: "product-db+object-store",
     rivetEngineDataDirectory,
-    spaceInstanceServer: "local-first",
-    internalAuthConfigured: Boolean(internalToken),
+    spaceInstanceServer: durableSpaceControl.description,
+    internalAuthConfigured: Boolean(internalSigningSecret),
     dependencies: { rivetEngine },
     urls: localUrls(port),
   }, rivetEngine.ok ? 200 : 503);
@@ -314,10 +350,21 @@ app.post("/api/apps/:appId/publish", async (context) => {
   } catch {
     request = {};
   }
-  const body = request as { clientId?: unknown; authorName?: unknown; requestId?: unknown };
+  const body = request as {
+    clientId?: unknown;
+    authorName?: unknown;
+    requestId?: unknown;
+    expectedReadyRevisionId?: unknown;
+  };
   const member = parseMember(body.clientId, body.authorName);
   if (typeof body.requestId !== "string" || !body.requestId.trim()) {
     return context.json({ error: "requestId is required" }, 400);
+  }
+  if (
+    typeof body.expectedReadyRevisionId !== "string" ||
+    !/^[a-f0-9]{16}$/.test(body.expectedReadyRevisionId)
+  ) {
+    return context.json({ error: "expectedReadyRevisionId is required" }, 400);
   }
   const turn = await spaces.beginTurn(appId, {
     clientId: member.clientId,
@@ -326,6 +373,9 @@ app.post("/api/apps/:appId/publish", async (context) => {
     kind: "publish",
     externalRequestId: body.requestId,
     agentId: "kernel",
+    publication: {
+      expectedReadyRevisionId: body.expectedReadyRevisionId,
+    },
   });
   return context.json({ accepted: true, ...turn }, 202);
 });
@@ -424,14 +474,13 @@ app.post("/api/apps/:appId/messages", async (context) => {
   if (body.billing && !billing) {
     return context.json({ error: "billing callback is invalid" }, 400);
   }
-  const kind = isPublishOnlyMessage(message.trim()) ? "publish" : "message";
   const turn = await spaces.beginTurn(appId, {
     clientId: member.clientId,
     authorName: member.name,
     text: message.trim(),
-    kind,
+    kind: "message",
     externalRequestId: body.matrixEventId,
-    agentId: kind === "publish" ? "kernel" : agentId,
+    agentId,
     ...(billing ? { billing } : {}),
   });
   return context.json({ accepted: true, ...turn }, 202);
@@ -522,8 +571,6 @@ app.all("/runtime/dev/apps/:appId/*", async (context) => {
 });
 
 app.route("/runtime/apps", appsRouter);
-app.use("/*", serveStatic({ root: "./public" }));
-app.get("*", serveStatic({ path: "./public/index.html" }));
 
 app.onError((error, context) => {
   console.error("Unhandled request error", boundedLogError(error));
@@ -580,7 +627,13 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
   let reply: SpaceTurnReply | undefined;
   try {
     if (turn.kind === "publish") {
-      succeeded = await publishCurrentProject(appId, turn.turnId);
+      const publication = turn.requests[0]?.publication;
+      if (!publication) throw new Error("Space publish request is missing revision metadata");
+      succeeded = await publishCurrentProject(
+        appId,
+        turn.turnId,
+        publication.expectedReadyRevisionId,
+      );
     } else if (turn.kind === "restore") {
       const recovery = turn.requests[0]?.recovery;
       if (!recovery) throw new Error("Space restore request is missing recovery metadata");
@@ -611,12 +664,12 @@ async function executeClaimedTurn(appId: string, turn: ClaimedSpaceTurn) {
         turn,
         status: succeeded ? "completed" : "failed",
         usage,
-        internalToken,
+        signingSecret: internalSigningSecret,
       }).catch((error) => {
         console.error("Space turn billing callback failed", boundedLogError(error));
       }),
       ...(succeeded && reply
-        ? [reportTurnCompletion({ turn, reply, internalToken }).catch((error) => {
+        ? [reportTurnCompletion({ turn, reply, signingSecret: internalSigningSecret }).catch((error) => {
             console.error("Space turn completion callback failed", boundedLogError(error));
           })]
         : []),
@@ -672,7 +725,7 @@ async function restoreDefaultChatProject(
       }),
     );
     const updatedAt = preview.updatedAt;
-    await saveProject({
+    const saved = await saveProject({
       ...candidate,
       updatedAt,
       draftId: preview.version,
@@ -786,7 +839,7 @@ async function processTurn(
             }),
         );
         const updatedAt = preview.updatedAt;
-        await saveProject({
+        const saved = await saveProject({
           appId,
           files: revision.files,
           summary: revision.summary,
@@ -798,50 +851,6 @@ async function processTurn(
           ...(existing?.releaseId ? { releaseId: existing.releaseId } : {}),
           ...(existing?.template ? { template: existing.template } : {}),
         });
-
-        if (requestsPublishAfterRevision(message)) {
-          await spaces.announce(appId, {
-            type: "dev_ready",
-            turnId,
-            appId,
-            version: preview.version,
-            devUrl: preview.url,
-            updatedAt,
-          });
-          const deployment = await deployRevision(
-            appId,
-            revision.files,
-            relayProgress,
-          );
-          const publishedAt = new Date().toISOString();
-          await saveProject({
-            appId,
-            files: revision.files,
-            summary: revision.summary,
-            updatedAt: publishedAt,
-            draftId: preview.version,
-            publishedDraftId: preview.version,
-            releaseId: deployment.release,
-            ...(existing?.template ? { template: existing.template } : {}),
-          });
-          await spaces.complete(appId, turnId, revision.summary, {
-            type: "deployed",
-            message: revision.summary,
-            appId,
-            appUrl: `/apps/${encodeURIComponent(appId)}/`,
-            updatedAt: publishedAt,
-            deployment,
-          });
-          return {
-            succeeded: true,
-            usage,
-            reply: {
-              agentId: agent.id,
-              agentName: agent.name,
-              text: revision.summary,
-            },
-          };
-        }
 
         await spaces.complete(appId, turnId, revision.summary, {
           type: "draft_ready",
@@ -941,7 +950,7 @@ async function bootstrapTemplateProject(
       draftId: preview.version,
       updatedAt: preview.updatedAt,
     };
-    await saveProject(project);
+    project = await saveProject(project);
   }
   await spaces.announce(appId, {
     type: "dev_ready",
@@ -957,7 +966,11 @@ async function bootstrapTemplateProject(
   };
 }
 
-async function publishCurrentProject(appId: string, turnId: string) {
+async function publishCurrentProject(
+  appId: string,
+  turnId: string,
+  expectedReadyRevisionId: string,
+) {
   const startedAt = Date.now();
   const heartbeat = setInterval(() => {
     void spaces
@@ -971,6 +984,12 @@ async function publishCurrentProject(appId: string, turnId: string) {
     const project = await loadProject(appId);
     if (!project) {
       throw new Error("Space 还没有可发布的开发版本，请先让 Agent 创建应用。");
+    }
+    if (!project.draftId || project.draftId !== expectedReadyRevisionId) {
+      throw new SpaceReadyRevisionChangedError(
+        expectedReadyRevisionId,
+        project.draftId || "missing",
+      );
     }
     await relayProgress({
       type: "status",
@@ -987,6 +1006,12 @@ async function publishCurrentProject(appId: string, turnId: string) {
           message: status,
         }),
     );
+    if (preview.version !== expectedReadyRevisionId) {
+      throw new SpaceReadyRevisionChangedError(
+        expectedReadyRevisionId,
+        preview.version,
+      );
+    }
     await spaces.announce(appId, {
       type: "dev_ready",
       appId,
@@ -1001,7 +1026,7 @@ async function publishCurrentProject(appId: string, turnId: string) {
       relayProgress,
     );
     const updatedAt = new Date().toISOString();
-    await saveProject({
+    const saved = await saveProject({
       ...project,
       updatedAt,
       draftId: preview.version,
@@ -1054,22 +1079,6 @@ function isRepairableRevisionError(error: unknown) {
 function revisionDiagnostics(error: unknown) {
   if (error instanceof DevPreviewError) return error.diagnostics;
   return boundedDiagnostics(error);
-}
-
-function isPublishOnlyMessage(message: string) {
-  return /^(?:请)?(?:(?:把)?当前(?:开发)?版本(?:正式)?(?:发布|上线|部署)(?:一下)?|(?:正式)?(?:发布|上线|部署)(?:一下)?(?:应用|当前(?:开发)?版本|这个版本)?)[。！!]?$/i.test(
-    message.trim().replace(/\s+/g, ""),
-  );
-}
-
-function requestsPublishAfterRevision(message: string) {
-  const normalized = message.replace(/\s+/g, "");
-  if (/(?:不要|不用|暂不|先不|别)(?:发布|上线|部署)/.test(normalized)) {
-    return false;
-  }
-  return /(?:并|然后|完成后|改完后?|做好后?)(?:直接|正式)?(?:发布|上线|部署)/.test(
-    normalized,
-  );
 }
 
 function spaceErrorCode(error: unknown) {
@@ -1186,6 +1195,22 @@ function parseMember(clientId: unknown, name: unknown): SpaceMember {
     clientId: normalizedClientId,
     name: normalizedName || `访客 ${normalizedClientId.slice(-4)}`,
   };
+}
+
+async function authorizeRuntimeRequest(request: Request, signingSecret: string) {
+  const authorization = request.headers.get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return false;
+  const credential = authorization.slice("Bearer ".length).trim();
+  if (!credential) return false;
+  const url = new URL(request.url);
+  const claims = await verifySpaceRuntimeCredential(credential, {
+    secret: signingSecret,
+    audience: spaceRuntimeAudience,
+    subject: "vibechat-backend",
+    method: request.method,
+    path: url.pathname,
+  });
+  return Boolean(claims);
 }
 
 function localUrls(activePort: number) {

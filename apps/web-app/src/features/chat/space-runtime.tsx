@@ -85,14 +85,19 @@ export function useSpaceRuntime(roomId: string) {
   }, [baseAppUrl, roomId, snapshot])
 
   const publish = useCallback(async () => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
     setPublishing(true)
     try {
-      await productApi.publishSpaceApp(roomId, { requestId: globalThis.crypto.randomUUID() })
+      await productApi.publishSpaceApp(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        expectedReadyRevisionId,
+      })
       await refresh()
     } finally {
       if (mounted.current) setPublishing(false)
     }
-  }, [refresh, roomId])
+  }, [refresh, roomId, snapshot?.project.draftId])
 
   const restoreDefaultChat = useCallback(async () => {
     const expectedReadyRevisionId = snapshot?.project.draftId

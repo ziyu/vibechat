@@ -72,6 +72,7 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId/turns')({
               authorName: access.session.user.name || 'Member',
               billing: {
                 callbackUrl: new URL('/v1/internal/space-agent-billing', callbackOrigin).href,
+                spaceInstanceId: access.instance.spaceInstanceId,
                 completion: {
                   callbackUrl: new URL('/v1/internal/space-agent-completion', callbackOrigin).href,
                   spaceInstanceId: access.instance.spaceInstanceId,
