@@ -343,6 +343,7 @@ describe("Space Chat migration-ready view contracts", () => {
     expect(spaceChatTimelineStyles).toContain("inline-size:fit-content");
     expect(spaceReactionBarStyles).toContain(":host([hidden])");
     expect(spaceMessageActionsStyles).toContain("position:fixed");
+    expect(spaceMessageActionsStyles).toContain(".menu::backdrop");
     expect(spaceMessageActionsStyles).toContain("prefers-reduced-motion");
     expect(spaceMessageActionsStyles).toContain(".danger");
   });

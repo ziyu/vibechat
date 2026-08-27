@@ -20,6 +20,8 @@
 
 本轮没有改写任何既有 Published Release。托管依赖解析、Registry 缺失/漂移 fail closed、旧 Space 后加依赖、prepared 缓存冷启动和 source/artifact 分离已有 unit 证据；`space-default@0.1.3` 也已在真实本地 Rivet/AgentOS Dev VM 中生成 ready Revision，并在完整开发栈冷启动后从同一 prepared artifact 恢复。首个抽屉式 Template `space-focus@0.1.3` 已固定 `@vibechat/space-app-components@0.7.0`，保留共享便签桌面并删除 Template 自有 Chat renderer/composer/state machine；单 Chromium 真实 Matrix iframe 已覆盖发送、回复、Reaction、抽屉 unread、刷新恢复和 390px 布局。生产 Object Store publish、不可变 Release、真实 Matrix 双浏览器和完整交互/a11y 矩阵仍未执行，因此 C1/C3/C5 与“可供所有生产 Space 使用”都不能标记 Complete。
 
+当前基线已推进到 `@vibechat/space-app-components@0.7.4`：Default `0.1.6`、Campfire `0.1.5` 与 Focus `0.1.6` 固定同一 exact version/integrity。compact More 在支持 Popover API 时使用 top layer、native light-dismiss 和 `::backdrop`，不支持时保留 fixed/backdrop/document fallback；移动 action sheet 显式占用 `100vw - 1.5rem`，指针关闭在下一帧恢复 trigger 焦点。Campfire/Focus 已恢复抽屉原有 `transform` 与 `backdrop-filter`，真实 E2E 证明公共组件不依赖 Template CSS workaround。Campfire 同时完成共享 Chat controller/elements 迁移，保留夜航电台场景、presence、主题和 launcher。生产 publish、不可变 Release、双 Chromium 和完整 a11y 矩阵仍未执行，因此 C1/C3/C5 继续保持 Active。
+
 ## 状态定义
 
 | 状态 | 含义 | 证据要求 |
@@ -34,11 +36,11 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.7.0` tracked managed release lock、exact version/integrity、注入式 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.7.4` tracked managed release lock、exact version/integrity、注入式 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | Default `0.1.5` 与 Focus `0.1.3` 同锁 `0.7.0`；Focus 单 Chromium 真实 Matrix 复合 E2E 已覆盖便签、抽屉、消息操作和移动布局 | 完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | Default `0.1.6`、Campfire `0.1.5` 与 Focus `0.1.6` 同锁 `0.7.4`；单 Chromium 真实 Matrix 4/4 覆盖三种布局、消息操作、恢复和移动布局 | 迁移 Arcade/Postcard，并完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
@@ -70,6 +72,8 @@
 - [x] 将 Default 升到 development `space-default@0.1.4` / exact `0.6.0`，删除 Timeline Shadow DOM 查询和 style 注入，改用组件公共类型与 parts；read receipt 按最新消息去重且不占全局 command pending。
 - [x] 将组件升到 `0.7.0`、Default 升到相邻 development `0.1.5`；交互 Timeline 只保留 canonical Reaction + compact More，新增五分钟消息分组、气泡锚定 controls、桌面浮层/移动 action sheet、键盘焦点管理和危险删除确认，同时保持 standalone MessageActions inline 默认兼容。
 - [x] 将首个抽屉式官方 Template `space-focus` 升到相邻 development `0.1.3`，固定同一个 `@vibechat/space-app-components@0.7.0`；保留共享便签桌面、主题和抽屉开关，只删除 Template 内重复的 Chat renderer/composer/state machine，并验证既有 `0.1.2` release lock 与已存储 Space Revision 不被改写。
+- [x] 将组件升级到 `0.7.4`，让 compact More 在支持 Popover 时进入 top layer，并为无 Popover 浏览器保留 fixed/backdrop fallback；覆盖 390px 全宽 action sheet、native light-dismiss、Escape、外部点击和确定性焦点恢复。
+- [x] 将 Campfire 升到 development `0.1.5` 并迁移共享 Chat controller/elements；Default/Focus 分别升到 `0.1.6`，三者固定同一 exact `0.7.4` 与 managed integrity，既有中间版本锁不改写。
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
@@ -86,7 +90,7 @@
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
-- `0.7.0`、`space-default@0.1.5` 与 `space-focus@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release和完整 a11y 矩阵继续保持未完成。
+- `0.7.4`、`space-default@0.1.6`、`space-campfire@0.1.5` 与 `space-focus@0.1.6` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
 
 ## 2026-08-26 验证记录
 
@@ -202,6 +206,21 @@
 | 当前本地验收 Space | 通过 | `space-default@0.1.5` 在真实本地 Runtime 生成 ready Revision `04b4b51`；桌面 More 保持打开且边界为 top 187 / right 826 / bottom 461（iframe 891×882），验收 tab 保持打开 |
 
 本轮仍未把 `0.7.0` 上传生产 managed Registry/Object Store，也未生成不可变 Published Release、执行跨 Runtime/主机恢复、双 Chromium 同房消息交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
+
+### 2026-08-27 Popover top-layer 与 Campfire 迁移最终验证
+
+`@vibechat/space-app-components@0.7.4` source/browser artifact hash 为 `sha256:38aa4979ee10c2e54004e6c50824b1fd97b2e71b22f3fbe3cdc8705c84669578` / `sha256:7c53377c043aaad983c14b63eec9ed28246dcaf888953a27147afccb317d3d4f`，本地 managed package integrity 为 `sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201`。Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6` 的 source/manifest hash 分别为 `sha256:c6c6db8ead9aff2a1b1003132cedb19d349f07add2bed0d5e66076179c228575` / `sha256:0345a489c8e3077630be2075c5e75eab03b747ad408ebaba898307c6fe2f20fb`、`sha256:eb94f43a24bbe331406dd4bbc4bb8af38938e3a3e440f5d8805be75bf0b357ba` / `sha256:62174e22dd89707c45e26c81cab2897cc512af7077e94acee884cb0965a5bcd4`、`sha256:a0e9de7a34fe116305b4a6055a30c426f3febbeea760da57ca8851222cc19db9` / `sha256:0f57b6fa82054445597c08ff0d21a38d2bcf46b573752d9b02abcb0a706edabf`。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| package/bundle | 通过 | Node 24 下 browser/chat gzip 为 25,647 / 22,033 bytes；semantic exports、side-effect 边界、无远程 runtime import、managed integrity 与 Catalog lock 一致 |
+| 定向 unit/TypeScript | 通过 | components/templates 共 3 files、21 tests；组件、Default、Campfire、Focus TypeScript 与 Catalog `--check` 通过 |
+| top-layer/降级契约 | 通过 | 支持 Popover 时只安装 native light-dismiss/toggle/`::backdrop`；fallback 才安装 document pointer listener；桌面 menu 在 viewport 内，390px action sheet 两侧各 12px，外部点击与 Escape 均关闭并恢复 trigger 焦点 |
+| Template CSS 独立性 | 通过 | Campfire/Focus 恢复抽屉 `translateX(0)` 与自身 `blur(26px)`；Campfire 在 active transform/backdrop-filter 下打开 More、回复和 Reaction，未再出现 renderer crash |
+| 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 4/4，覆盖未认证拒绝、Campfire 创建/发送/回复/Reaction/刷新/恢复、Default 菜单稳定性与移动 action sheet、Focus 便签/unread/消息/刷新/390px 布局 |
+| UI 静态检查 | 通过 | Impeccable detector 对共享 MessageActions、Campfire Chat UI 和 Focus foundation 返回空结果 |
+
+本轮仍未把 `0.7.4` 上传生产 managed Registry/Object Store，也未生成不可变 Published Release、执行跨 Runtime/主机恢复、双 Chromium 同房消息交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
 
 ## 待决策清单
 

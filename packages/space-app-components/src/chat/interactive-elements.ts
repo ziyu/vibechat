@@ -724,7 +724,8 @@ button:disabled { cursor:not-allowed; opacity:.55; }
 .trigger svg { inline-size:1.1rem; block-size:1.1rem; fill:currentColor; }
 .backdrop { display:none; position:fixed; z-index:20; inset:0; background:rgba(0,0,0,.42); }
 .backdrop[hidden],.menu[hidden] { display:none; }
-.menu { box-sizing:border-box; position:fixed; z-index:21; inset:auto; display:grid; min-inline-size:13rem; max-inline-size:min(19rem,calc(100vw - 1.5rem)); max-block-size:calc(100vh - 1.5rem); overflow:auto; gap:.45rem; padding:.65rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface-raised,#fff); box-shadow:0 .75rem 2rem rgba(23,32,38,.18); }
+.menu { box-sizing:border-box; position:fixed; z-index:21; inset:auto; display:grid; min-inline-size:13rem; max-inline-size:min(19rem,calc(100vw - 1.5rem)); max-block-size:calc(100vh - 1.5rem); overflow:auto; gap:.45rem; margin:0; padding:.65rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface-raised,#fff); box-shadow:0 .75rem 2rem rgba(23,32,38,.18); }
+.menu::backdrop { background:transparent; }
 .menu-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding-inline:.2rem; }
 .menu-title,.reaction-title { color:var(--vc-space-color-text-muted,#5d6670); font-size:var(--vc-space-text-caption-size,.76rem); font-weight:760; line-height:1.35; }
 .close { min-block-size:2rem; padding:.3rem .42rem; border-color:transparent; background:transparent; }
@@ -735,7 +736,8 @@ button:disabled { cursor:not-allowed; opacity:.55; }
 .reaction-choice { min-inline-size:2.75rem; padding:.45rem; font-size:1rem; }
 .danger { color:var(--vc-space-color-negative,#a33b43); }
 @media (max-width:30rem) {
-  .menu { position:fixed; z-index:31; inset-inline:.75rem; inset-block-end:max(.75rem,env(safe-area-inset-bottom)); max-inline-size:none; max-block-size:min(70vh,30rem); overflow:auto; padding:.85rem; border-radius:1rem; box-shadow:0 1rem 3rem rgba(0,0,0,.32); }
+  .menu { position:fixed; z-index:31; inset-inline:.75rem; inset-block-end:max(.75rem,env(safe-area-inset-bottom)); inline-size:calc(100vw - 1.5rem); max-inline-size:none; max-block-size:min(70vh,30rem); overflow:auto; padding:.85rem; border-radius:1rem; box-shadow:0 1rem 3rem rgba(0,0,0,.32); }
+  .menu::backdrop { background:rgba(0,0,0,.42); }
   .backdrop:not([hidden]) { display:block; z-index:30; }
   .menu-actions { gap:.4rem; }
   .menu-action { min-block-size:3rem; }
@@ -744,7 +746,7 @@ button:disabled { cursor:not-allowed; opacity:.55; }
   .menu { animation:vc-space-action-menu-in 140ms cubic-bezier(.2,.8,.2,1); }
   @keyframes vc-space-action-menu-in { from { opacity:.82; transform:translateY(.35rem); } }
 }
-@media (forced-colors:active),(prefers-contrast:more) { button,.menu { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .backdrop { background:CanvasText; opacity:.5; } .danger { color:CanvasText; text-decoration:underline; } }
+@media (forced-colors:active),(prefers-contrast:more) { button,.menu { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .backdrop,.menu::backdrop { background:CanvasText; opacity:.5; } .danger { color:CanvasText; text-decoration:underline; } }
 `;
 
 function createMoreActionsIcon(document: Document) {
@@ -785,6 +787,7 @@ function createSpaceMessageActionsElementClass() {
     #menu: HTMLElement | null = null;
     #backdrop: HTMLElement | null = null;
     #open = false;
+    #usesPopover = false;
 
     get actions() { return this.#actions; }
     set actions(value) {
@@ -818,7 +821,10 @@ function createSpaceMessageActionsElementClass() {
     }
 
     readonly #handleDocumentPointerDown = (event: PointerEvent) => {
-      if (this.#open && !event.composedPath().includes(this)) this.closeMenu();
+      if (this.#open && !event.composedPath().includes(this)) {
+        this.closeMenu(false);
+        this.restoreTriggerFocusAfterPointer();
+      }
     };
 
     readonly #handleDocumentKeyDown = (event: KeyboardEvent) => {
@@ -845,6 +851,18 @@ function createSpaceMessageActionsElementClass() {
     readonly #handleWindowResize = () => {
       if (this.#open) this.positionMenu();
     };
+
+    private restoreTriggerFocusAfterPointer() {
+      const restoreFocus = () => {
+        if (!this.#open && this.#trigger?.isConnected) this.#trigger.focus();
+      };
+      const view = this.ownerDocument.defaultView;
+      if (view && typeof view.requestAnimationFrame === "function") {
+        view.requestAnimationFrame(restoreFocus);
+      } else {
+        Promise.resolve().then(restoreFocus);
+      }
+    }
 
     private clearMenuPosition() {
       for (const property of ["inset", "left", "right", "top", "bottom"]) {
@@ -918,10 +936,22 @@ function createSpaceMessageActionsElementClass() {
       this.resetDeleteConfirmation();
       this.#open = true;
       this.#menu.hidden = false;
-      this.#backdrop.hidden = false;
+      let usesPopover = false;
+      if (typeof this.#menu.showPopover === "function") {
+        try {
+          this.#menu.showPopover();
+          usesPopover = true;
+        } catch {
+          usesPopover = false;
+        }
+      }
+      this.#usesPopover = usesPopover;
+      this.#backdrop.hidden = usesPopover;
       this.positionMenu();
       this.#trigger.setAttribute("aria-expanded", "true");
-      this.ownerDocument.addEventListener("pointerdown", this.#handleDocumentPointerDown);
+      if (!usesPopover) {
+        this.ownerDocument.addEventListener("pointerdown", this.#handleDocumentPointerDown);
+      }
       this.ownerDocument.addEventListener("keydown", this.#handleDocumentKeyDown);
       this.ownerDocument.defaultView?.addEventListener("resize", this.#handleWindowResize);
       Promise.resolve().then(() => {
@@ -935,12 +965,18 @@ function createSpaceMessageActionsElementClass() {
       if (!this.#open) return;
       this.resetDeleteConfirmation();
       this.#open = false;
+      if (
+        this.#menu
+        && typeof this.#menu.hidePopover === "function"
+        && this.#menu.matches(":popover-open")
+      ) this.#menu.hidePopover();
       if (this.#menu) this.#menu.hidden = true;
       if (this.#backdrop) this.#backdrop.hidden = true;
       this.#trigger?.setAttribute("aria-expanded", "false");
       this.ownerDocument.removeEventListener("pointerdown", this.#handleDocumentPointerDown);
       this.ownerDocument.removeEventListener("keydown", this.#handleDocumentKeyDown);
       this.ownerDocument.defaultView?.removeEventListener("resize", this.#handleWindowResize);
+      this.#usesPopover = false;
       this.clearMenuPosition();
       if (restoreFocus) this.#trigger?.focus();
     }
@@ -1026,11 +1062,17 @@ function createSpaceMessageActionsElementClass() {
         const menu = this.ownerDocument.createElement("div");
         menu.className = "menu";
         menu.hidden = true;
+        menu.setAttribute("popover", "auto");
         menu.setAttribute("part", "menu");
         menu.setAttribute("role", "dialog");
         menu.setAttribute("aria-modal", "true");
         menu.setAttribute("aria-label", translate("space.components.chat.action.menu"));
         menu.setAttribute("data-testid", "message-actions-menu");
+        menu.addEventListener("toggle", () => {
+          if (!this.#open || menu.matches(":popover-open")) return;
+          this.closeMenu(false);
+          this.restoreTriggerFocusAfterPointer();
+        });
         const header = this.ownerDocument.createElement("div");
         header.className = "menu-header";
         const title = this.ownerDocument.createElement("span");

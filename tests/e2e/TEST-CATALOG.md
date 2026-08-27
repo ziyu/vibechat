@@ -1371,7 +1371,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 2026-08-23 第一版证据：
 
 - Host 浏览器 DOM 只有 Kernel Bar 与单一 iframe；差异化夜航电台 App 内提供自己的 Chat drawer，新建流程默认选择 Default Chat 且允许零联系人。
-- `chat-matrix-room.spec.ts` 3/3 通过，覆盖固定 Template Version Space 创建、ready snapshot 后挂载 App iframe、真实 Matrix 发送/回复/Reaction、刷新后历史唯一恢复，以及独立 Default Chat compact More/390px action sheet 回归。
+- `chat-matrix-room.spec.ts` 4/4 通过，覆盖固定 Template Version Space 创建、ready snapshot 后挂载 App iframe、真实 Matrix 发送/回复/Reaction、刷新后历史唯一恢复，以及 Default compact More/390px action sheet、Campfire top-layer 和 Focus 抽屉回归。
 - `chat-matrix-operations.spec.ts` 1/1 通过，覆盖两个真实用户在同一 Template App 内的 typing、发送/接收、编辑、撤回、附件、离线失败/重试和刷新恢复。
 - Space Template/Runtime/Product State 定向 unit 12/12 通过，覆盖五个不同 App Project、Default Chat App HTML 恢复、安全升级未修改内置 Project、自定义 Project 不覆盖；全仓 18/18 package/app `pnpm typecheck` 通过。
 - 本证据尚未覆盖双 Chromium 完整操作、媒体/typing/Mention、结构化 `@agent`、Candidate 失败、rollback 和发布固化，所以其余复选项保持未通过。
@@ -1468,6 +1468,8 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 下一抽屉迁移切片 Spec：`space-focus@0.1.3` 使用与 Default 相同的 exact `@vibechat/space-app-components@0.7.0` 和 managed integrity。共享便签桌面的 markup/state/theme 保持不变；Chat launcher 打开抽屉后，由同一个公共 controller snapshot 驱动 Timeline、Composer、Mention、附件、Reaction、消息操作、错误与 read receipt，不再保留 Template 自有 message renderer/composer/state machine。验收必须确认 `space-focus@0.1.2` release lock 未改写、既有 Space 不自动升级、抽屉关闭时 unread 累积且打开后清零，并在真实 iframe 中覆盖 Matrix 发送/回复/Reaction/刷新恢复；这些证据未齐前，上方双 Template 复合场景保持未勾选。
 
 2026-08-27 Focus 迁移证据：`space-focus@0.1.3` source/manifest hash 为 `sha256:6b42d106b6da65979810dda9ae93f7dafa977b37d4cdc51fafac26c8761080a2` / `sha256:8c4fa05b215b53c64a65b53e8bbc98fedf507e33c7c4518aa7c8b9c7450f7f34`，固定 `@vibechat/space-app-components@0.7.0` 和 managed integrity `sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103`。Catalog unit 保留 `0.1.2` release lock 并确认相邻 `0.1.3` 为 current development version；真实 Matrix 单 Chromium `keeps Focus notes and docked Chat stable across refresh and responsive layouts` 通过，覆盖共享便签、dock launcher、关闭时 unread/打开清零、发送、回复、Reaction、刷新恢复及 390px iframe 可用视口。Impeccable detector 只有共享工作台网格背景的 advisory；该网格表达真实桌面/测量表面语义，保留为既有 Focus 视觉。双 Chromium 同房交互、Existing custom Project 的端到端不升级证据、不可变 Release 和生产 managed publish 仍未执行，因此上方复合场景继续未勾选。
+
+2026-08-27 Popover top-layer 与 Campfire 迁移最终证据：Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6` 固定 exact `@vibechat/space-app-components@0.7.4` 与 integrity `sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201`。组件 source/browser hash 为 `sha256:38aa4979ee10c2e54004e6c50824b1fd97b2e71b22f3fbe3cdc8705c84669578` / `sha256:7c53377c043aaad983c14b63eec9ed28246dcaf888953a27147afccb317d3d4f`。compact More 在支持 Popover 时进入 top layer，只使用 native light-dismiss/toggle/`::backdrop`；无 Popover 时保留 fixed/backdrop/document fallback。Campfire/Focus 恢复原抽屉 transform 与 `blur(26px)`，真实 E2E 仍能完成 More、回复、Reaction，未再触发 Chromium renderer crash。390px action sheet 两侧各 12px，外部点击与 Escape 均关闭并恢复 trigger 焦点。`chat-matrix-room.spec.ts` 整文件 4/4 通过，Impeccable detector 返回空结果。生产 managed publish、不可变 Release、双 Chromium、Existing custom Project 端到端不升级和完整 screen-reader/high-contrast/200% 字体矩阵仍未执行，因此上方复合场景继续保持未勾选。
 
 阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
 

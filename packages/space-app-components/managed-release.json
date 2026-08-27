@@ -1,14 +1,14 @@
 {
   "schemaVersion": "vibechat.space-app-component-package-release/v1",
   "name": "@vibechat/space-app-components",
-  "version": "0.7.0",
-  "integrity": "sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103",
+  "version": "0.7.4",
+  "integrity": "sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201",
   "packageFormat": "npm-package-v1",
   "projectFormats": [
     "agentos-app-v1"
   ],
   "componentBundle": {
-    "sourceHash": "sha256:c22df8454e0866229dd596c5b0938d3a255398a0ac37f60dc6cc0bc36745d7d7",
-    "artifactHash": "sha256:60e66b2f9e2db6d595fa9c7bd66cd749624db7aa51ed3c43c3e65d76edc44c83"
+    "sourceHash": "sha256:38aa4979ee10c2e54004e6c50824b1fd97b2e71b22f3fbe3cdc8705c84669578",
+    "artifactHash": "sha256:7c53377c043aaad983c14b63eec9ed28246dcaf888953a27147afccb317d3d4f"
   }
 }

@@ -1,5 +1,9 @@
 # Vibe Chat
 
+## 0.1.6
+
+- Upgrade to `@vibechat/space-app-components@0.7.4` so compact message actions use the browser Popover top layer while retaining the fixed-position fallback, full-width mobile action sheet, and deterministic light-dismiss focus restoration.
+
 ## 0.1.5
 
 - Upgrade to `@vibechat/space-app-components@0.7.0` and replace the always-visible action grid with one canonical Reaction row plus progressively disclosed message actions.

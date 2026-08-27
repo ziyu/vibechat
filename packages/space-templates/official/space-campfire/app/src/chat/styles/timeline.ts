@@ -1,43 +1,43 @@
 export const chatTimelineStyles = `
-.vcc-timeline {
+.vcc-timeline-region {
+  display: grid;
   min-height: 0;
-  overflow-y: auto;
-  padding: 20px 16px 24px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-}
-
-.vcc-root[data-mode="full"] .vcc-timeline {
-  padding: clamp(28px, 5vw, 66px) max(18px, calc((100% - 760px) / 2)) 32px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .vcc-opening {
-  margin: 4vh auto 48px;
+  padding: 28px 18px 18px;
   text-align: center;
+}
+
+.vcc-opening[hidden],
+.vcc-build[hidden] {
+  display: none;
 }
 
 .vcc-opening b {
   display: grid;
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
   place-items: center;
   margin: auto;
   border: 1px solid color-mix(in srgb, var(--vcc-accent) 40%, transparent);
-  border-radius: 20px;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--vcc-accent) 10%, transparent);
   color: var(--vcc-accent);
-  box-shadow: 0 0 70px color-mix(in srgb, var(--vcc-accent) 13%, transparent);
-  font: italic 31px Georgia, serif;
+  box-shadow: 0 14px 48px color-mix(in srgb, var(--vcc-accent) 13%, transparent);
+  font: italic 28px Georgia, serif;
 }
 
 .vcc-opening h1 {
-  margin: 18px 0 8px;
-  font: 500 clamp(27px, 4vw, 48px) / 1.05 Georgia, "Noto Serif SC", serif;
+  margin: 16px 0 8px;
+  font: 500 clamp(25px, 4vw, 38px)/1.05 Georgia, "Noto Serif SC", serif;
   letter-spacing: -0.04em;
 }
 
 .vcc-opening p {
-  max-width: 500px;
+  max-width: 360px;
   margin: auto;
   color: var(--vcc-muted);
   font-size: 12px;
@@ -45,196 +45,119 @@ export const chatTimelineStyles = `
 
 .vcc-opening span {
   display: inline-flex;
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 5px 9px;
   border: 1px solid var(--vcc-line);
   border-radius: 999px;
-  color: #bcb9b1;
+  color: #c7c4bc;
   font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.vcc-message {
-  display: grid;
-  grid-template-columns: 31px minmax(0, 1fr);
-  gap: 9px;
-  align-items: start;
-  margin-top: 15px;
-}
-
-.vcc-message[data-own="true"] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.vcc-avatar {
-  display: grid;
-  width: 31px;
-  height: 31px;
-  place-items: center;
-  border: 1px solid var(--vcc-line);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.07);
-  color: #ddd8ce;
-  font: 700 10px Georgia, serif;
-}
-
-.vcc-message[data-agent="true"] .vcc-avatar {
-  border-color: color-mix(in srgb, var(--vcc-accent) 42%, transparent);
-  color: var(--vcc-accent);
-}
-
-.vcc-main {
-  min-width: 0;
-  max-width: 82%;
-}
-
-.vcc-message[data-own="true"] .vcc-main {
-  justify-self: end;
-}
-
-.vcc-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 5px 5px;
-}
-
-.vcc-meta strong {
-  font-size: 10px;
-}
-
-.vcc-meta time,
-.vcc-edited,
-.vcc-status {
-  color: #77776f;
-  font-size: 8px;
-}
-
-.vcc-bubble {
-  position: relative;
-  padding: 10px 12px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 4px 14px 14px;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.vcc-message[data-own="true"] .vcc-bubble {
-  border-color: color-mix(in srgb, var(--vcc-accent) 32%, transparent);
-  border-radius: 14px 4px 14px 14px;
-  background: color-mix(in srgb, var(--vcc-accent) 15%, rgba(255, 255, 255, 0.05));
-}
-
-.vcc-message[data-agent="true"] .vcc-bubble {
-  border-color: color-mix(in srgb, var(--vcc-accent) 28%, transparent);
-  background: color-mix(in srgb, var(--vcc-accent) 9%, rgba(255, 255, 255, 0.04));
-}
-
-.vcc-bubble p {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.vcc-bubble blockquote {
-  margin: 0 0 8px;
-  padding: 7px 9px;
-  border-left: 2px solid var(--vcc-accent);
-  border-radius: 4px 8px 8px 4px;
-  background: rgba(0, 0, 0, 0.2);
-  color: #b9b6ad;
-  font-size: 10px;
-}
-
-.vcc-bubble blockquote b {
+vc-space-chat-timeline {
   display: block;
-  color: #e1ddd4;
+  min-height: 0;
+  height: 100%;
+  --vc-space-chat-timeline-max-height: none;
 }
 
-.vcc-attachment {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  margin: 0 0 8px;
-  padding: 8px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 9px;
-  color: #fff;
-  text-decoration: none;
+vc-space-chat-timeline::part(viewport) {
+  height: 100%;
+  max-height: none;
+  padding: 18px 14px 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.vcc-attachment img {
-  width: 96px;
-  max-height: 84px;
-  border-radius: 7px;
-  object-fit: cover;
+vc-space-chat-timeline::part(list) {
+  width: 100%;
+  margin-inline: auto;
 }
 
-.vcc-attachment span {
-  display: grid;
-}
-
-.vcc-attachment small {
+vc-space-chat-timeline::part(status) {
+  min-height: 100%;
   color: var(--vcc-muted);
-  font-size: 9px;
 }
 
-.vcc-edited,
-.vcc-status {
-  display: block;
-  margin-top: 5px;
+vc-space-chat-timeline::part(controls) {
+  gap: 6px;
 }
 
-.vcc-status {
-  text-align: right;
-}
-
-.vcc-status[data-failed="true"] {
-  color: #f09a8c;
-  cursor: pointer;
-}
-
-.vcc-actions,
-.vcc-reactions {
-  display: flex;
-  flex-wrap: wrap;
+vc-space-chat-timeline::part(message-actions),
+vc-space-chat-timeline::part(reaction-bar) {
   gap: 4px;
-  margin-top: 7px;
 }
 
-.vcc-actions button,
-.vcc-reactions button {
-  min-width: 25px;
-  height: 24px;
-  padding: 0 7px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ccc8bf;
+vc-space-chat-timeline::part(message-action-more),
+vc-space-chat-timeline::part(reaction) {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--vcc-line) 82%, transparent);
+  background: rgba(255, 255, 255, 0.035);
+  color: #bbb9b2;
   font-size: 10px;
-  cursor: pointer;
 }
 
-.vcc-actions button:hover,
-.vcc-reactions button:hover {
-  border-color: color-mix(in srgb, var(--vcc-accent) 55%, transparent);
-  color: #fff;
+vc-space-chat-timeline::part(message-action-more):hover,
+vc-space-chat-timeline::part(reaction):hover {
+  border-color: color-mix(in srgb, var(--vcc-accent) 38%, var(--vcc-line));
+  background: color-mix(in srgb, var(--vcc-accent) 8%, #171916);
+  color: #f7f4ed;
 }
 
-.vcc-reactions button[data-reacted="true"] {
-  border-color: var(--vcc-accent);
-  background: color-mix(in srgb, var(--vcc-accent) 16%, transparent);
+vc-space-chat-timeline::part(message-action-menu) {
+  min-width: 224px;
+  border-color: rgba(255, 255, 255, 0.17);
+  background: #1b1d19;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.44);
+}
+
+vc-space-chat-timeline::part(message-action-menu-title) {
+  color: #aaa9a2;
+}
+
+vc-space-chat-timeline::part(message-action-menu-close) {
+  color: #c9c6be;
+}
+
+vc-space-chat-timeline::part(message-action-reply),
+vc-space-chat-timeline::part(message-action-edit),
+vc-space-chat-timeline::part(message-action-delete),
+vc-space-chat-timeline::part(message-action-retry) {
+  min-block-size: 42px;
+  padding: 9px 10px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 11px;
+}
+
+vc-space-chat-timeline::part(message-action-delete) {
+  color: #f0a292;
+}
+
+vc-space-chat-timeline::part(message-reaction-choice) {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  border-radius: 9px;
+  background: #171916;
 }
 
 .vcc-build {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin: 18px 0 0 40px;
+  width: calc(100% - 28px);
+  margin: 0 auto 12px;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--vcc-accent) 28%, transparent);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.24);
 }
 
 .vcc-build i {
@@ -259,6 +182,13 @@ export const chatTimelineStyles = `
   to {
     opacity: 0.35;
     transform: scale(0.7);
+  }
+}
+
+@media (max-width: 480px) {
+  vc-space-chat-timeline::part(message-action-menu) {
+    min-width: 0;
+    border-radius: 16px;
   }
 }
 `;

@@ -104,7 +104,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'tplv-space-campfire-0-1-2',
+      spaceVersionId: 'tplv-space-campfire-0-1-5',
       status: 'active',
     })
 
@@ -120,9 +120,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
       templateId: 'space-campfire',
-      templateVersionId: 'tplv-space-campfire-0-1-2',
-      version: '0.1.2',
-      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.2\+sha256\./),
+      templateVersionId: 'tplv-space-campfire-0-1-5',
+      version: '0.1.5',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.5\+sha256\./),
       publisher: {
         id: 'publisher-vibechat',
         verification: 'official',
@@ -176,6 +176,15 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const appResponse = await readyAppResponse
     expect(appResponse.headers()['x-vibechat-space-recovery']).toBeUndefined()
     const chat = await openAppChat(page)
+    await expect(chat.getByRole('heading', { name: '夜航电台' })).toBeVisible()
+    await expect(chat.locator('script[data-vibechat-components="0.7.4"]')).toHaveCount(1)
+    await expect.poll(() => chat.locator('#vcc-shell').evaluate((element) => {
+      const styles = getComputedStyle(element)
+      return {
+        transformed: styles.transform !== 'none',
+        backdropFilter: styles.backdropFilter,
+      }
+    })).toEqual({ transformed: true, backdropFilter: 'blur(26px)' })
 
     const messageText = `真实 Matrix 消息 ${Date.now()}`
     await chat.getByTestId('message-input').fill(messageText)
@@ -184,36 +193,62 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       () => delayedSend,
       { message: `Matrix send requests: ${matrixSendRequests.join(', ')}` },
     ).toBe(true)
-    const ownMessage = chat.getByTestId('message-body')
-      .filter({ hasText: messageText })
-      .locator('xpath=ancestor::article')
-    await expect(ownMessage).toContainText('发送中…')
+    const sendButton = chat.getByTestId('send-message')
+    await expect(sendButton).toBeDisabled()
+    const ownMessage = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    // The shared controller exposes command pending through the Composer and
+    // only projects messages received from the Host-owned Matrix timeline.
     await expect(ownMessage).toContainText('已发送')
+    await expect(sendButton).toHaveText('发送')
     expect(delayedSend).toBe(true)
 
-    await ownMessage.getByRole('button', { name: '回复' }).click()
+    const ownActionsMenu = ownMessage.getByTestId('message-actions-menu')
+    await ownMessage.getByTestId('message-actions-more').click()
+    await expect(ownActionsMenu).toBeVisible()
+    await expect.poll(() => ownActionsMenu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        open: element.matches(':popover-open'),
+        insideViewport: rect.top >= 0
+          && rect.right <= window.innerWidth
+          && rect.bottom <= window.innerHeight
+          && rect.left >= 0,
+      }
+    })).toEqual({ open: true, insideViewport: true })
+    await ownActionsMenu
+      .getByRole('button', { name: '回复', exact: true })
+      .click()
     await expect(chat.getByTestId('chat-context')).toContainText(messageText)
     const replyText = `标准 Matrix 回复 ${Date.now()}`
     await chat.getByTestId('message-input').fill(replyText)
     await chat.getByTestId('send-message').click()
-    const replyMessage = chat.getByTestId('message-body')
-      .filter({ hasText: replyText })
-      .locator('xpath=ancestor::article')
+    const replyMessage = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
     await expect(replyMessage).toContainText(messageText)
     await expect(replyMessage).toContainText('已发送')
 
     // Resolve fresh locators after the message round-trip so this assertion is
     // independent from App-owned drawer rendering updates.
     const readyChat = await openAppChat(page)
-    const readyOwnMessage = readyChat.getByTestId('message-body')
-      .filter({ hasText: messageText })
-      .locator('xpath=ancestor::article')
-    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
-    await readyOwnMessage.locator('.vcc-reactions').getByRole('button', { name: '🌙 1' }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toHaveCount(0)
-    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
+    const readyOwnMessage = readyChat.getByTestId('chat-message-entry').filter({
+      has: readyChat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    const readyMoreActions = readyOwnMessage.getByTestId('message-actions-more')
+    const readyActionsMenu = readyOwnMessage.getByTestId('message-actions-menu')
+    await readyMoreActions.click()
+    await expect.poll(() => readyActionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await readyActionsMenu.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toBeVisible()
+    await readyOwnMessage.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toHaveCount(0)
+    await readyMoreActions.click()
+    await readyActionsMenu.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toBeVisible()
 
     await page.reload()
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
@@ -221,17 +256,18 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const reloadedChat = await openAppChat(page)
     await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
     await expect(
-      reloadedChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: replyText }),
+      }),
     ).toContainText(messageText)
     await expect(
       reloadedChat.getByTestId('message-body').filter({ hasText: 'Transaction retry should appear once' }),
     ).toHaveCount(1)
     await expect(
-      reloadedChat.getByTestId('message-body')
-        .filter({ hasText: messageText })
-        .locator('xpath=ancestor::article')
-        .locator('.vcc-reactions'),
-    ).toContainText('🌙')
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: messageText }),
+      }).getByRole('button', { name: /🌙/ }),
+    ).toBeVisible()
 
     const runtimeUrl = `/v1/spaces/instances/${encodeURIComponent(created.matrixRoomId)}`
     const beforeRestoreResponse = await page.request.get(runtimeUrl)
@@ -332,6 +368,8 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const actionsMenu = messageEntry.getByTestId('message-actions-menu')
     await moreActions.click()
     await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => element.matches(':popover-open')))
+      .toBe(true)
     await expect.poll(() => actionsMenu.evaluate((element) => {
       const rect = element.getBoundingClientRect()
       return {
@@ -353,16 +391,22 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await moreActions.click()
     await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => ({
+      open: element.matches(':popover-open'),
+      backdrop: getComputedStyle(element, '::backdrop').backgroundColor,
+    }))).toEqual({ open: true, backdrop: 'rgba(0, 0, 0, 0.42)' })
     await expect(actionsMenu.getByRole('button', { name: '删除', exact: true })).toBeVisible()
     await expect(actionsMenu.getByRole('button', { name: '确认删除', exact: true })).toHaveCount(0)
-    await expect(messageEntry.locator('[part="backdrop"]')).toBeVisible()
+    await expect(messageEntry.locator('[part="backdrop"]')).toBeHidden()
     await expect.poll(() => actionsMenu.evaluate((element) => ({
       position: getComputedStyle(element).position,
       left: Math.round(element.getBoundingClientRect().left),
       right: Math.round(element.getBoundingClientRect().right),
       viewport: window.innerWidth,
     }))).toEqual({ position: 'fixed', left: 12, right: 378, viewport: 390 })
-    await messageEntry.locator('[part="backdrop"]').click({ position: { x: 2, y: 2 } })
+    const frameBox = await page.getByTestId('space-app-surface').locator('iframe').boundingBox()
+    expect(frameBox).not.toBeNull()
+    await page.mouse.click(frameBox!.x + 2, frameBox!.y + 2)
     await expect(actionsMenu).toBeHidden()
     await expect(moreActions).toBeFocused()
   })
@@ -395,7 +439,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const created = await createdResponse.json()
     expect(created).toMatchObject({
       spaceId: 'space-focus',
-      spaceVersionId: 'tplv-space-focus-0-1-3',
+      spaceVersionId: 'tplv-space-focus-0-1-6',
       status: 'active',
     })
 
@@ -425,8 +469,13 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     })
     await expect(messageEntry).toHaveCount(1)
     await expect(messageEntry.getByTestId('message-body')).toContainText(messageText)
+    const focusActionsMenu = messageEntry.getByTestId('message-actions-menu')
     await messageEntry.getByTestId('message-actions-more').click()
-    await messageEntry.getByTestId('message-actions-menu')
+    await expect(focusActionsMenu).toBeVisible()
+    await expect.poll(() => focusActionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await focusActionsMenu
       .getByRole('button', { name: '回复', exact: true })
       .click()
     const replyText = `Focus 组件回复 ${Date.now()}`

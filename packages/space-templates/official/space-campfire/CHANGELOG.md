@@ -1,5 +1,19 @@
 # Afterglow Radio
 
+## 0.1.5
+
+- Upgrade to `@vibechat/space-app-components@0.7.4` and restore the drawer's original transform and backdrop-filter; shared action menus now remain independent through the browser Popover top layer.
+
+## 0.1.4
+
+- Keep the drawer's backdrop blur on a non-ancestor decoration layer so viewport-positioned shared action menus remain visible and interactive.
+
+## 0.1.3
+
+- Replace the duplicated drawer Chat projection, Composer, Mention, message actions, and error handling with exact `@vibechat/space-app-components@0.7.0` package imports.
+- Preserve the Afterglow Radio surface, presence interaction, theme, and dock launcher while adding shared unread, read-receipt, compact actions, and narrow-screen behavior.
+- Remove the open drawer's transformed containing block so viewport-positioned shared action menus remain visible and interactive.
+
 ## 0.1.2
 
 - Refactor the App and default Chat UI into type-checked, responsibility-focused modules.

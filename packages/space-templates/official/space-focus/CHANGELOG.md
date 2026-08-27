@@ -1,5 +1,17 @@
 # Moss Studio
 
+## 0.1.6
+
+- Upgrade to `@vibechat/space-app-components@0.7.4` and restore the drawer's original transform and backdrop-filter; shared action menus now remain independent through the browser Popover top layer.
+
+## 0.1.5
+
+- Keep the drawer's backdrop blur on a non-ancestor decoration layer so viewport-positioned shared action menus remain visible and interactive.
+
+## 0.1.4
+
+- Remove the open drawer's transformed containing block so viewport-positioned shared action menus remain visible and interactive.
+
 ## 0.1.3
 
 - Pin `@vibechat/space-app-components@0.7.0` through the managed dependency lock and replace the duplicated drawer Chat renderer, Composer, and state machine with the shared Chat controller and elements.
