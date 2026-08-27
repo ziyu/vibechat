@@ -29,6 +29,7 @@ import { Route as V1UsersSearchRouteImport } from './routes/v1/users/search'
 import { Route as V1SessionBootstrapRouteImport } from './routes/v1/session/bootstrap'
 import { Route as V1RoomsMetadataRouteImport } from './routes/v1/rooms/metadata'
 import { Route as V1InternalSpaceRuntimeControlRouteImport } from './routes/v1/internal/space-runtime-control'
+import { Route as V1InternalSpaceAppManagedPackagesRouteImport } from './routes/v1/internal/space-app-managed-packages'
 import { Route as V1InternalSpaceAgentCompletionRouteImport } from './routes/v1/internal/space-agent-completion'
 import { Route as V1InternalSpaceAgentBillingRouteImport } from './routes/v1/internal/space-agent-billing'
 import { Route as V1ContactsUserIdRouteImport } from './routes/v1/contacts/$userId'
@@ -189,6 +190,12 @@ const V1InternalSpaceRuntimeControlRoute =
   V1InternalSpaceRuntimeControlRouteImport.update({
     id: '/v1/internal/space-runtime-control',
     path: '/v1/internal/space-runtime-control',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const V1InternalSpaceAppManagedPackagesRoute =
+  V1InternalSpaceAppManagedPackagesRouteImport.update({
+    id: '/v1/internal/space-app-managed-packages',
+    path: '/v1/internal/space-app-managed-packages',
     getParentRoute: () => rootRouteImport,
   } as any)
 const V1InternalSpaceAgentCompletionRoute =
@@ -546,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-app-managed-packages': typeof V1InternalSpaceAppManagedPackagesRoute
   '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
@@ -628,6 +636,7 @@ export interface FileRoutesByTo {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-app-managed-packages': typeof V1InternalSpaceAppManagedPackagesRoute
   '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
@@ -711,6 +720,7 @@ export interface FileRoutesById {
   '/v1/contacts/$userId': typeof V1ContactsUserIdRoute
   '/v1/internal/space-agent-billing': typeof V1InternalSpaceAgentBillingRoute
   '/v1/internal/space-agent-completion': typeof V1InternalSpaceAgentCompletionRoute
+  '/v1/internal/space-app-managed-packages': typeof V1InternalSpaceAppManagedPackagesRoute
   '/v1/internal/space-runtime-control': typeof V1InternalSpaceRuntimeControlRoute
   '/v1/rooms/metadata': typeof V1RoomsMetadataRoute
   '/v1/session/bootstrap': typeof V1SessionBootstrapRoute
@@ -795,6 +805,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-app-managed-packages'
     | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
@@ -877,6 +888,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-app-managed-packages'
     | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
@@ -959,6 +971,7 @@ export interface FileRouteTypes {
     | '/v1/contacts/$userId'
     | '/v1/internal/space-agent-billing'
     | '/v1/internal/space-agent-completion'
+    | '/v1/internal/space-app-managed-packages'
     | '/v1/internal/space-runtime-control'
     | '/v1/rooms/metadata'
     | '/v1/session/bootstrap'
@@ -1042,6 +1055,7 @@ export interface RootRouteChildren {
   V1ContactsUserIdRoute: typeof V1ContactsUserIdRoute
   V1InternalSpaceAgentBillingRoute: typeof V1InternalSpaceAgentBillingRoute
   V1InternalSpaceAgentCompletionRoute: typeof V1InternalSpaceAgentCompletionRoute
+  V1InternalSpaceAppManagedPackagesRoute: typeof V1InternalSpaceAppManagedPackagesRoute
   V1InternalSpaceRuntimeControlRoute: typeof V1InternalSpaceRuntimeControlRoute
   V1RoomsMetadataRoute: typeof V1RoomsMetadataRoute
   V1SessionBootstrapRoute: typeof V1SessionBootstrapRoute
@@ -1225,6 +1239,13 @@ declare module '@tanstack/react-router' {
       path: '/v1/internal/space-runtime-control'
       fullPath: '/v1/internal/space-runtime-control'
       preLoaderRoute: typeof V1InternalSpaceRuntimeControlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v1/internal/space-app-managed-packages': {
+      id: '/v1/internal/space-app-managed-packages'
+      path: '/v1/internal/space-app-managed-packages'
+      fullPath: '/v1/internal/space-app-managed-packages'
+      preLoaderRoute: typeof V1InternalSpaceAppManagedPackagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/v1/internal/space-agent-completion': {
@@ -1708,6 +1729,8 @@ const rootRouteChildren: RootRouteChildren = {
   V1ContactsUserIdRoute: V1ContactsUserIdRoute,
   V1InternalSpaceAgentBillingRoute: V1InternalSpaceAgentBillingRoute,
   V1InternalSpaceAgentCompletionRoute: V1InternalSpaceAgentCompletionRoute,
+  V1InternalSpaceAppManagedPackagesRoute:
+    V1InternalSpaceAppManagedPackagesRoute,
   V1InternalSpaceRuntimeControlRoute: V1InternalSpaceRuntimeControlRoute,
   V1RoomsMetadataRoute: V1RoomsMetadataRoute,
   V1SessionBootstrapRoute: V1SessionBootstrapRoute,

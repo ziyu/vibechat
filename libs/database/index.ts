@@ -66,6 +66,10 @@ export type {
   NewFriendRequest,
 } from './schema/pg/social'
 export type { AiGenerationTask, NewAiGenerationTask } from './schema/pg/ai-generation-task'
+export type {
+  NewSpaceAppManagedPackageReleaseRow,
+  SpaceAppManagedPackageReleaseRow,
+} from './schema/pg/space-app-registry'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -89,6 +93,7 @@ export { roomUserPreference, spaceFavorite, userPreference } from './schema/prod
 export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 export { aiGenerationTask } from './schema/ai-generation-task'
+export { spaceAppManagedPackageRelease } from './schema/space-app-registry'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -122,6 +127,9 @@ import {
   userProfile as _userProfile,
 } from './schema/identity'
 import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-task'
+import {
+  spaceAppManagedPackageRelease as _spaceAppManagedPackageRelease,
+} from './schema/space-app-registry'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
@@ -140,6 +148,7 @@ const _schema = {
   userProfile: _userProfile, matrixIdentity: _matrixIdentity,
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
   aiGenerationTask: _aiGenerationTask,
+  spaceAppManagedPackageRelease: _spaceAppManagedPackageRelease,
 }
 
 // ---------------------------------------------------------------------------

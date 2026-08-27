@@ -4,6 +4,7 @@ import {
   type SpaceAppManagedPackageRegistry,
 } from "@vibechat/space-app-dependencies";
 import { createSpaceAppComponentManagedRegistry } from "@vibechat/space-app-components/node";
+import { createRemoteSpaceAppManagedPackageRegistryFromEnv } from "./remote-managed-package-registry.js";
 import {
   validateFiles,
   validatePreparedProject,
@@ -18,11 +19,20 @@ export type ProjectDependencyPreparer = (
   prepared?: PreparedProject,
 ) => Promise<PreparedProject>;
 
+export function createDefaultSpaceAppManagedPackageRegistry(
+  environment = process.env.NODE_ENV,
+) {
+  const remote = createRemoteSpaceAppManagedPackageRegistryFromEnv();
+  if (environment === "production") return remote;
+  return composeSpaceAppManagedPackageRegistries([
+    remote,
+    createSpaceAppComponentManagedRegistry(),
+  ]);
+}
+
 export function createProjectDependencyPreparer(
   registry: SpaceAppManagedPackageRegistry =
-    composeSpaceAppManagedPackageRegistries([
-      createSpaceAppComponentManagedRegistry(),
-    ]),
+    createDefaultSpaceAppManagedPackageRegistry(),
 ): ProjectDependencyPreparer {
   return async (files, prepared) => {
     const sourceFiles = validateFiles(files);

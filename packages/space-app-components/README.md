@@ -56,10 +56,14 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
+pnpm --filter @vibechat/space-app-components registry:publish -- 0.8.1
+# Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
 
-`release:prepare` 生成 `dist/package` 的标准 ESM package 并签锁当前 metadata；`release:pack` 生成可发布 tarball。Release job 必须把 tarball 上传 VibeChat managed Registry/Object Store，再登记不可变的 `name + version + integrity + objectKey`。公共 npm 不是线上 Runtime 的必要条件，但每个供 Space 使用的版本都必须经过这次 managed publish；npm-compatible Registry 或公共 npm 只能作为同一 package 的分发/mirror。
+`release:prepare` 生成 `dist/package` 的标准 ESM package 并签锁当前 metadata。`registry:publish` 从该 package 生成版本化、规范化 JSON envelope，经专用 `SPACE_APP_PACKAGE_PUBLISHING_TOKEN` 上传 VibeChat managed Registry；Backend 把对象写入私有内容寻址 Object Store，并在 Product DB 登记不可变的 `name + version + integrity + projectFormats + objectKey/objectHash`。重复发布相同内容幂等验证，任何同版本内容漂移都返回冲突且不会覆盖记录。`SPACE_APP_PACKAGE_REGISTRY_ORIGIN` 指向 Backend；Space Runtime 不持有发布 token。
+
+`release:pack` 只生成可选 npm-compatible mirror tarball。公共 npm 不是线上 Runtime 的必要条件，但每个供 Space 使用的版本都必须经过 managed publish；Registry 中的规范化 package object 才是 Runtime 的主分发对象。
 
 本地开发 Registry 使用 gitignored `dist/managed-registry/<version>/package` 保存多个已验证版本，Runtime 始终按 Project lock 中的 exact version 与 integrity 解析；构建当前版本不会覆盖旧版本。历史版本没有本地缓存时，可以从已经持久化且通过校验的 prepared Project 恢复：
 
@@ -224,6 +228,8 @@ Recipe 统一 controller snapshot、typed events、增量 render、unread/read r
 `0.7.4` 将 compact MessageActions 菜单提升到原生 Popover top layer，避免 Space Template 的 `transform`、`filter`、`backdrop-filter` 或 `overflow` 创建 containing block 后裁切、错位或触发渲染器异常。支持 Popover API 的浏览器只使用原生 light dismiss、`toggle` 与 `::backdrop`；不支持时才安装 document pointer fallback，并继续使用 viewport fixed 菜单和显式 backdrop。两条路径都保留 Escape、外部点击、关闭后焦点恢复、窄屏全宽 action sheet 与二次删除确认；指针关闭会在点击默认动作完成后的下一帧恢复 trigger 焦点，因此 Template 无需为了菜单修改自身布局或视觉效果。
 
 `0.8.1` 新增 side-effect-free `/recipes` 与 `/recipes/inline`，公开 `mountDefaultChatRecipe`、`mountChatDrawerRecipe` 和 `resolveSpaceChatRecipeElements`。Recipe 只把五个官方 Template 已验证的 Chat 装配与 lifecycle 收敛到 package；既有 `/chat`、`/chat/inline`、Custom Element、typed event、token、part 和默认交互保持兼容。App 必须显式升级 exact version 并生成新 Revision，既有 Template/Space/Release 不自动切换。
+
+`0.8.2` 增加 managed Registry 发布脚本和对应发行说明：规范化 JSON package object 是 Runtime 主分发对象，npm tarball 只作为可选 mirror。浏览器 bundle、公开 export、Custom Element、Recipe 与交互行为均未改变；Default/Focus 继续固定 `0.8.1`，不会因发布工具 patch 自动升级。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 

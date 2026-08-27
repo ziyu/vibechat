@@ -24,6 +24,8 @@
 
 2026-08-28 新增 `@vibechat/space-app-components@0.8.1` 的 side-effect-free `/recipes` 和自包含 `/recipes/inline`。`mountDefaultChatRecipe` / `mountChatDrawerRecipe` 统一 controller snapshot、typed events、增量 render、unread/read receipt 与幂等 dispose；Template 继续拥有 copy、markup、主题、launcher 和场景状态。Default/Focus 以相邻 development `0.1.7` 分别验证 full/dock 消费；Campfire/Arcade/Postcard 仍固定 `0.7.4`。真实 E2E 首轮发现 inline bundle 未注册 Custom Element 后，改由专用 browser entry 生成，并增加四个关键 Chat element 的 bundle 防回归检查。随后又发现本地 Registry 只接受当前版本，已改为 gitignored `dist/managed-registry/<version>/package` exact-version 缓存；`0.7.4` 与 `0.8.1` 可同时解析且 integrity 漂移 fail closed，不需要修改旧 Template 或既有 Revision。该本地缓存不替代生产 Registry/Object Store publish。
 
+同日完成 managed Registry/Object Store 生产接线和隔离 Cloudflare preview。Backend 新增不可变 package release 表、专用 publish/只读 resolve API 和规范化 JSON envelope；Runtime 生产模式只使用远程 provider，开发模式仅在远程未命中后回退 gitignored cache。隔离 D1/R2 实跑同时发布 `0.7.4`/`0.8.1`，重复 `0.8.1` 幂等返回原记录、内容漂移返回 409，Runtime 远程 provider 分别解析 66/74 个文件。包内 README 属于不可变发布内容，因此文档与发布工具变化没有重签 `0.8.1`，而是新增 browser API/behavior 不变的 patch `0.8.2`；其重复发布和 74 文件远程解析也已通过。该证据证明 Cloudflare D1/R2 路径和发布控制面可运行，但尚未向真实部署环境发布组件、生成本轮不可变 Space Release 或完成跨 Runtime 恢复，因此 C1/C3 继续保持 Active。
+
 ## 状态定义
 
 | 状态 | 含义 | 证据要求 |
@@ -38,19 +40,21 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.8.1` tracked managed release、exact version/integrity、`0.7.4`/`0.8.1` 本地多版本 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.8.2` tracked managed release、exact version/integrity、不可变 build、`0.7.4`/`0.8.1`/`0.8.2` 隔离 D1/R2 managed publish/resolve | 真实部署环境 publish 与不可变 Release 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus 使用 `0.8.1` Recipe，其他三个继续固定 `0.7.4`；单 Chromium 真实 Matrix 6/6 | 完成双浏览器 Matrix、不可变 Release、生产 publish 和完整 a11y 矩阵 |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus 使用 `0.8.1` Recipe，其他三个继续固定 `0.7.4`；单 Chromium 真实 Matrix 6/6 | 完成双浏览器 Matrix、不可变 Release、真实部署 publish 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
-Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot → Timeline/Composer/Mention/Error 装配、typed event、unread/read receipt 和 lifecycle 已收敛到语义化 `/recipes` 公共入口。Recipe 只接收注入 context、Template copy 和既有标准元素，不拥有主题、launcher markup、场景状态、Matrix/Agent 权威或 Kernel 操作。Default 全屏和 Focus 抽屉以相邻 development `0.1.7` 固定 exact `0.8.1`/integrity；另外三个 Template 与既有版本继续固定 `0.7.4`，由本地多版本 Registry 和 prepared artifact 保持可运行。下一切片仍需双浏览器 Matrix、不可变 Release、生产 managed publish 与完整 a11y 矩阵，C1/C3/C5 继续保持 Active。
+Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot → Timeline/Composer/Mention/Error 装配、typed event、unread/read receipt 和 lifecycle 已收敛到语义化 `/recipes` 公共入口。Recipe 只接收注入 context、Template copy 和既有标准元素，不拥有主题、launcher markup、场景状态、Matrix/Agent 权威或 Kernel 操作。Default 全屏和 Focus 抽屉以相邻 development `0.1.7` 固定 exact `0.8.1`/integrity；另外三个 Template 与既有版本继续固定 `0.7.4`，由本地多版本 Registry 和 prepared artifact 保持可运行。
+
+managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cloudflare D1/R2 preview。下一切片转入不可变 Space Release、真实部署 publish、跨 Runtime 恢复、双浏览器 Matrix 与完整 a11y 验证；在这些证据完成前，不能把本地 preview 冒充生产上线。
 
 ### 目标
 
-在不读取全局 SDK、不过度固定视觉布局的前提下，让五个官方 Template 固定并组合完整、provider-neutral 的 Chat controller/elements。Template 只保留 SDK 注入、布局、主题和场景；Matrix timeline 仍是唯一消息源，Agent 只通过结构化 Mention Chat event 触发，不把 Agent build/progress 伪装成消息。本切片把全屏与抽屉布局中重复验证的组合收敛为公开 recipe，同时保持 Template 场景视觉和业务状态在组件库之外。
+建立所有生产 Space 共用的 managed package 发布与解析控制面：发布器把规范化 package object 写入内容寻址 Object Store，并幂等登记不可变 release；Runtime 只按 Project lock 的 exact name/version/integrity/project format 读取。相同版本重复发布相同内容返回同一记录；相同版本内容漂移、记录/object hash 不一致、对象缺失、对象篡改或不支持的 Project format全部 fail closed。现有 prepared Revision/Release 不重新解析依赖、不自动升级，`0.7.4` 与 `0.8.1` 必须可同时解析。
 
 ### 任务
 
@@ -87,6 +91,10 @@ Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot 
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
+- [x] 定义规范化 managed package object envelope；发布记录只保存 name、exact version、integrity、project formats、object key/hash 和创建时间，不保存 Git/dist 路径或公共下载 URL。
+- [x] 增加独立发布凭证、幂等 publish 与只读 resolve 内部 API；同版本同内容返回原记录，同版本内容漂移返回冲突，Runtime 凭证不能执行 publish。
+- [x] Runtime 生产默认只使用远程 Registry；开发模式可在远程未命中时使用 gitignored 多版本 cache，生产不得回退到 workspace `dist`。
+- [x] 覆盖无本地 `dist` 冷启动、`0.7.4`/`0.8.1` 共存、对象缺失/篡改、错误 integrity/project format 和 Existing Revision/Release 不升级，并完成 PG/SQLite/D1 migration 与 Cloudflare preview。
 - [ ] 建立 long name、图片失败、keyboard、screen reader、200% 字体、high contrast 与 reduced motion 的 unit/DOM/浏览器证据。
 - [x] 在真实本地 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中验证相同 component artifact/revision hash。
 - [ ] 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中验证相同 component artifact hash。
@@ -99,7 +107,7 @@ Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot 
 - 两套主题只覆盖 `--vc-space-*` token 和布局，不复制 Avatar/User/Agent identity 逻辑。
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
-- 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
+- 受管 Registry 与 Runtime 接线已有代码/unit 和隔离 Cloudflare D1/R2 preview；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、真实部署 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
 - `0.8.1` Recipe、`space-default@0.1.7`、`space-focus@0.1.7` 与继续固定 `0.7.4` 的 `space-campfire@0.1.5`、`space-arcade@0.1.3`、`space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
 
 ## 2026-08-26 验证记录
@@ -273,7 +281,21 @@ Postcard `0.1.3` 的 source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd
 | 定向 unit/TypeScript | 通过 | components/dependencies/templates 共 7 files、45/45；组件、Default/Focus App TypeScript 与 Catalog lock 通过 |
 | 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 6/6；Default/Focus 断言 `0.8.1` full/dock Recipe，Campfire/Arcade/Postcard 继续断言 `0.7.4`，覆盖创建、发送、回复、Reaction、刷新、恢复、unread、Popover/action sheet、场景状态和 390px 布局 |
 
-本轮本地 Registry cache 只模拟 managed Registry 的 exact-version 语义，不是生产发布渠道。`0.7.4`/`0.8.1` 仍未上传生产 Registry/Object Store，也没有生成本轮不可变 Published Release、完成双 Chromium 同房交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
+本轮本地 Registry cache 只模拟 managed Registry 的 exact-version 语义，不是生产发布渠道。该差距已由下一节的隔离 Cloudflare D1/R2 preview 补上，但尚未完成真实部署 publish、本轮不可变 Published Release、双 Chromium 同房交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
+
+### 2026-08-28 managed Registry/Object Store 接线验证
+
+主发布对象确定为 `vibechat.space-app-managed-package-object/v1` 规范化 JSON envelope；npm tarball 只保留为可选 mirror。PG 与 SQLite/D1 新增同一不可变 `space_app_managed_package_release` 模型，Backend 的 PUT publish 使用独立 `space-app-package-registry` audience，POST resolve 继续使用 Runtime callback credential。发布前先按 canonical content hash 查询既有记录，内容漂移在 Object Store 写入前拒绝；数据库唯一约束继续处理并发竞态。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| envelope/repository/service | 通过 | exact name/version、integrity、Project formats、object key/hash 全绑定；同内容幂等、内容漂移冲突、对象缺失/篡改和错误 lock 全部 fail closed |
+| 权限与 Runtime provider | 通过 | 发布 token/audience 与 Runtime callback credential 隔离；生产 provider 不使用 workspace/`dist` fallback，开发只在远程 404 后使用多版本 cache |
+| migration/build | 通过 | PG/SQLite migration 已生成；隔离 D1 从 0000 应用到 0014；Backend Node/Cloudflare build、Runtime/Backend/components typecheck 通过 |
+| 隔离 Cloudflare D1/R2 | 通过 | `0.7.4` → object `5ac435ac…`，`0.8.1` → `03c2a80b…`，`0.8.2` → `18fc0fdf…`；重复发布返回 Verified，漂移返回 409 |
+| Runtime exact resolve | 通过 | 远程 provider 从 workerd 按 exact lock 解析 `0.7.4` 66 个文件、`0.8.1`/`0.8.2` 各 74 个文件，无本地 package 解析依赖 |
+
+真实部署环境尚未执行 publish；本轮也没有生成不可变 Space Release 或跨 Runtime 恢复证据，因此不把 C1/C3 标记 Complete。
 
 ## 待决策清单
 

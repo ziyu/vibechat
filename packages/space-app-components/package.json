@@ -1,6 +1,6 @@
 {
   "name": "@vibechat/space-app-components",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": false,
   "description": "Framework-neutral User, Chat, and Agent UI components for VibeChat Space Apps",
   "license": "MIT",
@@ -43,13 +43,13 @@
     "./package.json": "./package.json"
   },
   "publishConfig": {
-    "access": "restricted",
-    "directory": "dist/package"
+    "access": "restricted"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs",
     "check:bundle": "node --import tsx scripts/check-bundle.mjs",
     "registry:import-prepared": "node --import tsx scripts/import-managed-package-from-prepared.mjs",
+    "registry:publish": "node --env-file-if-exists=../../.env --import tsx scripts/publish-managed-package.mjs",
     "release:prepare": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs --write-release",
     "release:pack": "pnpm build && pnpm pack ./dist/package --pack-destination ../releases",
     "typecheck": "tsc --noEmit"
@@ -60,6 +60,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.16.0",
+    "@vibechat/space-runtime-auth": "workspace:*",
     "esbuild": "0.25.12",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3"

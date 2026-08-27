@@ -119,7 +119,7 @@ describe("Space component bundle", () => {
       projectFormat: "agentos-app-v1",
     });
 
-    expect(release.version).toBe("0.8.1");
+    expect(release.version).toBe("0.8.2");
     expect(release.packageFormat).toBe("npm-package-v1");
     expect(resolved?.files["chat/inline.js"]).toContain(
       "spaceChatInlineModule",

@@ -1,9 +1,12 @@
 export const spaceRuntimeAudience = "space-runtime" as const;
 export const spaceBackendCallbackAudience = "space-backend-callback" as const;
+export const spaceAppPackageRegistryAudience =
+  "space-app-package-registry" as const;
 
 export type SpaceRuntimeCredentialAudience =
   | typeof spaceRuntimeAudience
-  | typeof spaceBackendCallbackAudience;
+  | typeof spaceBackendCallbackAudience
+  | typeof spaceAppPackageRegistryAudience;
 
 export interface SpaceRuntimeCredentialClaims {
   version: 1;
@@ -110,7 +113,11 @@ function readClaims(value: unknown): SpaceRuntimeCredentialClaims | null {
   if (!isRecord(value)) return null;
   if (
     value.version !== 1
-    || (value.audience !== spaceRuntimeAudience && value.audience !== spaceBackendCallbackAudience)
+    || (
+      value.audience !== spaceRuntimeAudience
+      && value.audience !== spaceBackendCallbackAudience
+      && value.audience !== spaceAppPackageRegistryAudience
+    )
     || typeof value.subject !== "string"
     || !value.subject
     || typeof value.method !== "string"

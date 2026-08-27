@@ -10,6 +10,10 @@ export const resolvedSpaceAppDependenciesSchemaVersion =
   "vibechat.resolved-space-app-dependencies/v1" as const;
 export const preparedSpaceAppProjectSchemaVersion =
   "vibechat.prepared-space-app-project/v1" as const;
+export const spaceAppManagedPackageObjectSchemaVersion =
+  "vibechat.space-app-managed-package-object/v1" as const;
+export const spaceAppManagedPackageFormat =
+  "vibechat-managed-package-v1" as const;
 
 export type SpaceAppProjectFormat = "agentos-app-v1";
 export type SpaceAppProjectFiles = Record<string, string>;
@@ -30,6 +34,23 @@ export interface SpaceAppManagedPackageArtifact {
   readonly integrity: `sha256:${string}`;
   readonly projectFormats: readonly SpaceAppProjectFormat[];
   readonly files: Readonly<Record<string, string>>;
+}
+
+export interface SpaceAppManagedPackageObject {
+  readonly schemaVersion: typeof spaceAppManagedPackageObjectSchemaVersion;
+  readonly packageFormat: typeof spaceAppManagedPackageFormat;
+  readonly name: string;
+  readonly version: string;
+  readonly integrity: `sha256:${string}`;
+  readonly projectFormats: readonly SpaceAppProjectFormat[];
+  readonly files: Readonly<Record<string, string>>;
+}
+
+export interface SpaceAppManagedPackageResolution {
+  readonly name: string;
+  readonly version: string;
+  readonly integrity: `sha256:${string}`;
+  readonly projectFormat: SpaceAppProjectFormat;
 }
 
 export interface SpaceAppManagedPackageRegistry {
@@ -138,6 +159,102 @@ export function createSpaceAppManagedPackageArtifact(input: {
     integrity: hashSpaceAppDependencyFiles(files),
     projectFormats: Object.freeze([...input.projectFormats]),
     files,
+  });
+}
+
+export function createSpaceAppManagedPackageObject(
+  artifact: SpaceAppManagedPackageArtifact,
+): SpaceAppManagedPackageObject {
+  const verified = createSpaceAppManagedPackageArtifact({
+    name: artifact.name,
+    version: artifact.version,
+    projectFormats: artifact.projectFormats,
+    files: artifact.files,
+  });
+  if (verified.integrity !== artifact.integrity) {
+    throw new TypeError(
+      `Managed package ${artifact.name}@${artifact.version} has invalid integrity`,
+    );
+  }
+  return Object.freeze({
+    schemaVersion: spaceAppManagedPackageObjectSchemaVersion,
+    packageFormat: spaceAppManagedPackageFormat,
+    name: verified.name,
+    version: verified.version,
+    integrity: verified.integrity,
+    projectFormats: verified.projectFormats,
+    files: verified.files,
+  });
+}
+
+export function parseSpaceAppManagedPackageObject(
+  value: unknown,
+): SpaceAppManagedPackageObject {
+  const object = typeof value === "string"
+    ? JSON.parse(value) as unknown
+    : value;
+  if (!object || typeof object !== "object" || Array.isArray(object)) {
+    throw new TypeError("Invalid managed package object");
+  }
+  const fields = object as Record<string, unknown>;
+  if (
+    fields.schemaVersion !== spaceAppManagedPackageObjectSchemaVersion
+    || fields.packageFormat !== spaceAppManagedPackageFormat
+    || typeof fields.name !== "string"
+    || typeof fields.version !== "string"
+    || typeof fields.integrity !== "string"
+    || !integrityPattern.test(fields.integrity)
+    || !Array.isArray(fields.projectFormats)
+    || !fields.projectFormats.every((format) => format === "agentos-app-v1")
+    || !fields.files
+    || typeof fields.files !== "object"
+    || Array.isArray(fields.files)
+  ) {
+    throw new TypeError("Invalid managed package object");
+  }
+  const artifact = createSpaceAppManagedPackageArtifact({
+    name: fields.name,
+    version: fields.version,
+    projectFormats: fields.projectFormats as SpaceAppProjectFormat[],
+    files: fields.files as Record<string, string>,
+  });
+  if (artifact.integrity !== fields.integrity) {
+    throw new TypeError(
+      `Managed package ${artifact.name}@${artifact.version} failed object integrity validation`,
+    );
+  }
+  return createSpaceAppManagedPackageObject(artifact);
+}
+
+export function serializeSpaceAppManagedPackageObject(
+  artifact: SpaceAppManagedPackageArtifact,
+) {
+  return `${JSON.stringify(createSpaceAppManagedPackageObject(artifact))}\n`;
+}
+
+export function parseSpaceAppManagedPackageResolution(
+  value: unknown,
+): SpaceAppManagedPackageResolution {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Invalid managed package resolution request");
+  }
+  const fields = value as Record<string, unknown>;
+  if (
+    typeof fields.name !== "string"
+    || !packageNamePattern.test(fields.name)
+    || typeof fields.version !== "string"
+    || !exactVersionPattern.test(fields.version)
+    || typeof fields.integrity !== "string"
+    || !integrityPattern.test(fields.integrity)
+    || fields.projectFormat !== "agentos-app-v1"
+  ) {
+    throw new TypeError("Invalid managed package resolution request");
+  }
+  return Object.freeze({
+    name: fields.name,
+    version: fields.version,
+    integrity: fields.integrity as `sha256:${string}`,
+    projectFormat: fields.projectFormat,
   });
 }
 

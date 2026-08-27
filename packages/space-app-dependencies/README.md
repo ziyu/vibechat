@@ -34,7 +34,11 @@ files, resolved manifest, each package integrity and the reconstructed import
 map before a cached artifact can be reused. Registry implementations are
 injected; this package never performs network access itself.
 
-The managed Registry record is immutable by package name, exact version and
-integrity, and points to the package tarball in the platform Object Store.
-Public npm or another npm-compatible registry may mirror the same package, but
-Space Runtime does not depend on that mirror while preparing a Project.
+The managed Registry record is immutable by package name and exact version. It
+binds integrity, supported Project formats and the content-addressed Object
+Store key/hash of a canonical, versioned JSON package envelope. Publish verifies
+the package file tree before storage; resolve verifies the database pointer,
+object hash, envelope metadata and reconstructed file integrity before returning
+an artifact. Public npm or another npm-compatible registry may mirror a tarball
+of the same package, but Space Runtime does not depend on that mirror while
+preparing a Project.

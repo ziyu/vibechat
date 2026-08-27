@@ -1,10 +1,14 @@
 import {
   assertPreparedSpaceAppProject,
+  createSpaceAppManagedPackageObject,
   createSpaceAppManagedPackageArtifact,
   hashSpaceAppDependencyFiles,
   prepareSpaceAppProject,
+  parseSpaceAppManagedPackageObject,
+  parseSpaceAppManagedPackageResolution,
   resolvedSpaceAppDependenciesPath,
   SpaceAppDependencyResolutionError,
+  serializeSpaceAppManagedPackageObject,
   type SpaceAppManagedPackageArtifact,
   type SpaceAppManagedPackageRegistry,
 } from "@vibechat/space-app-dependencies";
@@ -78,6 +82,25 @@ function registry(
 }
 
 describe("Space App managed dependency resolution", () => {
+  it("serializes a canonical managed package object and rejects envelope drift", () => {
+    const artifact = managedArtifact();
+    const serialized = serializeSpaceAppManagedPackageObject(artifact);
+    const object = parseSpaceAppManagedPackageObject(serialized);
+
+    expect(object).toEqual(createSpaceAppManagedPackageObject(artifact));
+    expect(serializeSpaceAppManagedPackageObject(object)).toBe(serialized);
+    expect(() => parseSpaceAppManagedPackageObject({
+      ...object,
+      integrity: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    })).toThrow("object integrity validation");
+    expect(() => parseSpaceAppManagedPackageResolution({
+      name: artifact.name,
+      version: "latest",
+      integrity: artifact.integrity,
+      projectFormat: "agentos-app-v1",
+    })).toThrow("Invalid managed package resolution request");
+  });
+
   it("preserves legacy projects without managed dependencies byte-for-byte", async () => {
     const files = sourceProject();
     const resolve = vi.fn();

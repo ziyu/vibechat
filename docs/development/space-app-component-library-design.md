@@ -381,7 +381,11 @@ Candidate 构建从平台管理的 Registry/Object Store 解析 name、精确 ve
 
 公共 import 使用与存储方式无关的语义化 subpath：`/foundation`、`/user`、`/agent`、`/chat` 均保留 ESM module boundary 供消费方 tree-shake，仅 `/register` 与 `/register/*` 声明自动注册 side effect。当前返回自包含 HTML 的 `agentos-app-v1` 使用 `/chat/inline` delivery adapter；普通浏览器构建使用 `/chat`。`/artifacts/*`、Registry object key 和版本目录不是公共 import 契约。
 
-Git 只保存源码、构建配置和当前 `managed-release.json` 发布锁；`dist/`、tarball 和 `releases/<version>/package` 类逐版本编译目录都是 gitignored 发布产物。每个供 Space 使用的版本必须先将 tarball 上传到 managed Registry/Object Store，并登记不可变的 `name + version + integrity + objectKey`。公共 npm 或 npm-compatible Registry 可以镜像同一 package，但不是线上 Space Runtime 构建或浏览器加载的前置依赖。
+Git 只保存源码、构建配置和当前 `managed-release.json` 发布锁；`dist/`、tarball 和 `releases/<version>/package` 类逐版本编译目录都是 gitignored 发布产物。每个供 Space 使用的版本必须先把由 `dist/package` 规范化生成的 managed package object 写入 Registry/Object Store，并登记不可变的 `name + version + integrity + objectKey`。tarball 只用于可选的公共 npm 或 npm-compatible Registry 镜像，不是 managed publish、线上 Space Runtime 构建或浏览器加载的前置依赖。
+
+Managed package object 使用平台版本化、规范化的 envelope 保存 package name、exact version、支持的 Project format、文件树和由文件树计算的 integrity。Object Store 继续使用私有内容寻址 key；Product DB 只登记 package name/version、integrity、Project formats、object key/hash 与创建时间。记录不包含仓库路径、`dist` 路径、公共 npm URL 或可变 tag。
+
+发布和解析是两个独立权限面：Release job 使用专用短期、method/path/audience scoped 凭证执行 publish；Space Runtime 的内部凭证只能 resolve。发布相同 name/version 与相同 object/integrity 必须幂等返回原记录；相同 name/version 指向任何不同内容必须冲突并 fail closed，不能覆盖。Resolve 必须同时匹配 name、exact version、integrity 与 Project format，并在返回前验证 DB pointer、Object Store content hash、envelope metadata 与重算后的文件 integrity。
 
 已有 ready Revision、Published Release 和已缓存的 prepared artifact 不依赖 Registry 在线可用。Registry 只参与新 Candidate；缺包、版本不一致、hash 漂移或生成路径冲突会令 Candidate fail closed，不切换 ready/Release 指针。生产浏览器不从 npm、CDN 或未版本化 Host URL 下载组件实现。
 
@@ -390,6 +394,8 @@ Git 只保存源码、构建配置和当前 `managed-release.json` 发布锁；`
 `/v1/space-app-sdk` 仍是可信能力桥的特殊入口；组件 bundle 不增加第二条 Host capability。组件 bundle 可以在当前单文档 App 中以内联 ESM/CSS 形式存在，也可以在 Runtime 支持 revision-local 静态资产后使用同 artifact 的 hashed asset URL，两者都必须由 artifact hash 覆盖。
 
 Template 和 Agent-generated Space 不得提交 `vendor/vibechat-packages/`、`vibechat.resolved-dependencies.json` 或组件源码副本；这些路径只属于 Runtime 生成的 prepared artifact。仓库内相对路径 import 不是 Space 的分发契约，不能作为线上或既有 Space 后加依赖的方式。
+
+本地开发 Registry 可以使用 gitignored `dist/managed-registry/<version>/package` 缓存多个已校验版本，并允许从已有 prepared Project 恢复缺失的历史缓存；该目录不是发布事实来源、不提交 Git，也不能替代生产 publish。生产 Runtime 只能通过注入的 managed Registry provider 按 lock 解析 Object Store 中已经登记的版本；生产冷启动不得因 workspace package 或本地 `dist` 恰好存在而成功。
 
 ### 12.2 版本关系
 
