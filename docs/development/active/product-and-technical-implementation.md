@@ -14,7 +14,7 @@
 
 稳定设计定义目标状态和长期约束；本文件记录从当前仓库到目标状态的实际进展。设计完成与功能实现是两件事，任何 Complete 都必须附代码、测试和运行证据。
 
-2026-08-22 设计确认：产品实体为 Space；每个 Space 保留完整 Chat、市场模板与收藏，并增加独立 App Project 和可插拔 Agent。现有代码已经实现 Chat 与官方 Space 目录，并已落地 Kernel/Chat/App、通用 Agent Adapter、Draft/Release、空白 Space、模板后应用、不可变 Revision 历史、Kernel rollback、member Mention 与受控历史分页的首版纵向切片；生产 R2/external Engine 跨宿主验证与完整 E2E 仍未完成。
+2026-08-22 设计确认：产品实体为 Space；每个 Space 保留完整 Chat、市场模板与收藏，并增加独立 App Project 和可插拔 Agent。现有代码已经实现 Chat 与官方 Space 目录，并已落地 Kernel/Chat/App、通用 Agent Adapter、Draft/Release、空白 Space、模板后应用、不可变 Revision 历史、Kernel rollback、member Mention、受控历史分页与 Default/Custom 共用 Chat Core contract 的首版纵向切片；生产 R2/external Engine 跨宿主验证与完整 E2E 仍未完成。
 
 ## 2. 当前结论
 
@@ -64,7 +64,7 @@
 
 - 已有定制 Space 应用模板的双浏览器影响确认与完整失败恢复验收；空白 Space 创建、后选模板和历史 rollback 首版已通过真实 Synapse/Chromium。
 - 真实 R2/external Engine 跨宿主，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练；全新 D1 `0000 → 0018` migration 与 Workers preview 已验证。
-- 其余 #40 双浏览器完整 Chat Core、Candidate、publish 与故障恢复验收；member Mention 和跨 initial-sync 历史分页定向切片已验证。
+- 其余 #40 Candidate、publish、App 代理故障与信任边界验收；Default/Custom 共用 Chat Core contract、member Mention 和跨 initial-sync 历史分页定向切片已验证。
 - 用户 Template 发布、审核与撤销。
 - 真实 Anthropic credential 下的 Claude Conversation/Revision，以及 external Engine 独立专属 Agent worker 的目标环境演练；第二 Adapter 的仓库 contract、Registry 和治理实现已在 S6 完成。
 - 真实目标环境的区域级 external AgentOS/Rivet Engine、D1/R2、Synapse 跨宿主接管与备份恢复验收；仓库中的独立 worker pool、credential、quota 和生产 Runbook 已完成。
@@ -85,7 +85,7 @@
 | A0 | 兼容护栏与语义校正 | §1、§2、§9.4、§14 阶段 0 | Active | [Space App 演进记录](./space-app-design-transition.md)、TEST-CATALOG #40 | 市场/Chat 保留，形成 v1/v2 双读和空白创建 spec |
 | A1 | 产品壳与信息架构 | §4 | Complete（现有 IA） | `apps/web-app/src/features/chat` 与真实路由/E2E | 保留 Discover；新增 Kernel/Chat/App 与 Space 用户语义 |
 | A2 | 身份、社交、Chat 与市场底座 | §3.1、§5.1、§9 | Complete | identity/social/rooms/timeline/product-state 测试与真实 Synapse/Chromium | 保持全回归，不用本地 demo 替代 Matrix/市场 |
-| A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、nullable `room_index` migration、空白/模板创建、Kernel 模板应用/历史 rollback、Revision `0018`、member Mention/历史分页、Runtime、Backend gateway、真实 blank/apply/rollback、Mention/pagination 与 kick/leave E2E | R2/external Engine 跨宿主、双进程接管与其余双浏览器 App |
+| A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、nullable `room_index` migration、空白/模板创建、Kernel 模板应用/历史 rollback、Revision `0018`、Default/Custom Chat Core contract、member Mention/历史分页、Runtime、Backend gateway、真实 blank/apply/rollback、Chat/Mention/pagination 与 kick/leave E2E | R2/external Engine 跨宿主、双进程接管与 #40 Candidate/publish/信任边界 |
 | A4 | Agent Adapter、Space Dev 与发布 | MVP §6、§7、§10、§14；[Agent/AgentOS 设计](../../stable/designs/agent-architecture-and-agentos-deployment.md) | Active | Product DB Definition/Binding/session/audit、完整 Pi/fake/Claude Code lifecycle、Admin 治理、区域/专属 pool policy、结构化 Matrix Mention、virtual-user Matrix 回写、queue、cancel、credits settlement/refund、Candidate 隔离、Revision rollback 与 Dev/Release smoke | 目标区域 external Engine 的 Claude/专属 pool、真实跨宿主恢复与完整 E2E |
 | A5 | 生产恢复与市场演进 | §11–§14 阶段 5 | 未开始 | 当前通用 Auth/Matrix/市场/账务/部署能力 | 治理、压测、安全、备份恢复和第三方市场独立评审 |
 

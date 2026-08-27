@@ -1167,17 +1167,18 @@ Better Auth session 是浏览器登录设备的产品权威；每个产品 sessi
 
 **文件：** `specs/chat-matrix-operations.spec.ts` ｜ **优先级：** P0 ｜ **SQLite / 本地 Synapse / 双 Chromium Context**
 
-阶段 1 的消息 adapter 必须使用 Matrix 标准事件与关系完成文字以外的日常操作，并在双方同步、刷新和恢复投影中保持一致。
+平台 Chat Core 必须使用 Matrix 标准事件与关系完成日常操作，并通过同一个 Space SDK contract 在 Default Chat 与差异化 Template 中保持双方同步、刷新和恢复投影一致。
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 编辑自己的文字 | 发送者编辑已确认消息 → 写入 `m.replace` 与 `m.new_content` → 双方原消息位置展示新文字和“已编辑” |
-| 2 | 删除自己的消息 | 发送者确认删除 → Matrix redaction → 双方保留删除占位而不是静默丢失时间线位置 |
-| 3 | 权限约束 | 非发送者 UI 不显示编辑/删除；adapter 不把编辑和 redaction 暴露为普通新消息 |
-| 4 | 媒体附件 | 选择图片或文件 → 上传 Synapse media repository → 发送 `m.image`/`m.file` → 对端显示名称、类型和受控下载入口 |
-| 5 | 正在输入 | 输入框变化发送 `m.typing` ephemeral event → 对端显示输入提示 → 发送、清空或超时后提示消失 |
-| 6 | 历史搜索 | 会话搜索命中已加载消息正文或附件名称 → 返回对应房间；删除内容不再参与可读搜索 |
-| 7 | 恢复一致 | 页面刷新后编辑、删除和附件投影保持一致；token、媒体内容与本地文件句柄不写入 localStorage |
+| 1 | 共用 contract | 同一对用户分别创建 `space-default` 与 `space-campfire` → Product/Runtime template identity 不同 → 同一个 runner 只通过 App DOM 与 Space SDK 执行后续操作 |
+| 2 | 双向文字与关系 | A 发送、B 回复并添加/移除/重加 Reaction → 双方通过 Matrix reply/reaction relation 收敛；Reaction mutation 等待发起端 local projection 后再断言对端 |
+| 3 | 编辑、删除与权限 | A 编辑已确认消息后双方原位置显示新文字和“已编辑” → A 删除后双方保留占位；B 不显示编辑/删除入口 |
+| 4 | 媒体附件 | 选择文件 → 上传 Synapse media repository → 发送 `m.file` → 对端显示名称、类型和受控下载入口 |
+| 5 | 正在输入 | 输入框变化发送 `m.typing` ephemeral event → 对端显示输入提示 → 清空后提示消失 |
+| 6 | 离线与重试 | B 离线发送只产生 local echo → A 不提前看到 → 恢复网络并重试后双方恰好一条已确认消息 |
+| 7 | 显式已读 | B 发送最新消息 → A 从 Space SDK 调用 `chat.markRead()` → Host 向当前 Room 的最新事件发送成功的 Matrix `m.read` receipt |
+| 8 | 刷新与凭据隔离 | 双方刷新后近期 reply/reaction、附件、重试和已读目标各唯一恢复；附件正文与各自 Matrix access token 不进入宿主 localStorage |
 
 ---
 
@@ -1357,7 +1358,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] 产品文案、URL 和 Kernel 状态都把 Space 描述为持续可用、实时更新的在线空间，不出现 Workspace、试验场或“发布后才能使用”的语义。
 - [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
 - [x] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
-- [ ] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
+- [x] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
 - [x] App 通过 SDK 查询平台结构化 member/agent Mention；member Mention 写入标准 Matrix metadata 且不调度 Agent/credits，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue；受管 Agent Matrix user 不进入 member target。
 - [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
 - [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
@@ -1389,6 +1390,17 @@ member Mention 与历史分页定向验收：Default Chat App 与至少一个差
 - Default Chat 与 Campfire 分别写入 35 条窗口历史，新浏览器确认最早消息不在 initial sync 30 条内，再通过相同 `space.chat.recent({ limit, before })` 取回；prepend 滚动位置、非法 limit/未知 cursor、重复分页、SDK event ID 去重、分页失败保留 timeline 和刷新唯一性均有自动化或 unit 证据。五个官方 Template 均包含相同分页入口和状态处理，差异化 App Surface 保持各自源码。
 - 相关 unit 9 个文件、26/26，现有 `chat-matrix-operations.spec.ts` 1/1，五个 Template App typecheck、Template codegen/lock、边界检查、20 个 package/app typecheck 和完整 build 范围通过。根 Turbo 受本机 Keychain/TLS 问题影响未进入任务，逐 workspace 等价命令全部执行。
 - 既有 `chat-matrix-room.spec.ts` 同轮没有全绿：Runtime 热重载/首次 snapshot 竞态导致 `SPACE_RUNTIME_UNAVAILABLE`，稳定重跑中的 publish turn 又因 Release Build VM `npm install failed with exit code 1` 失败；完整结果保留在实施记录，不作为本切片通过证据。
+
+Default/Custom Chat Core 共用 contract 定向验收：使用同一对真实 Matrix 用户依次创建 Default Chat 与 Campfire Space，并由一个不依赖 Template 文案或布局的共享 runner 在两个 App 中执行相同操作。每个 App 都必须覆盖双向文字、reply relation、Reaction 添加/移除、typing、本人编辑/删除与对端不可管理、附件上传/投影、离线 local echo 与重试、显式已读回执、刷新后关系事件/附件/消息唯一恢复；同时确认宿主 localStorage 不包含附件正文或 Matrix access token。测试必须断言两个 App 的 Template identity 不同，不能把同一 Default Chat artifact 运行两次冒充 custom contract。
+
+自动化结构必须保持：账号/好友关系只初始化一次；两个 Space 各自拥有唯一 Matrix Room 与 Project；共享 runner 只能通过 App DOM 和版本化 Space SDK 触发 Chat Core，不直接调用消息写入 API；单个 Template 失败时错误信息包含 Template ID。member Mention、历史窗口与 Agent 调度继续由独立定向 E2E 覆盖，不在本 contract 中复制。
+
+2026-08-28 Default/Custom Chat Core 共用 contract 证据：
+
+- `chat-matrix-operations.spec.ts` 现以一次账号/好友初始化生成两个独立测试 case；`space-default` 与 `space-campfire` 的 Product/Runtime template identity 均先被固定断言，再调用同一个 `exerciseChatCoreContract`。测试不读取 Template 标题或复制 Template 专属操作逻辑。
+- Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Web `8001`、Backend `8002`、Space Runtime `8007` 与 external Rivet Engine `6420` 上，最终完整文件 2/2 通过（44.5 秒）；Campfire 聚焦重跑另为 1/1（8.7 秒）。Default 与 Campfire 都覆盖双向文字、reply、Reaction 添加/移除/重加、typing、编辑/删除权限、附件、离线 local echo/重试、显式 `m.read` receipt 和刷新唯一恢复。
+- 初版扩展曾把早期 relation 根消息错误假设为仍在 Matrix initial-sync 30-event 窗口，并继续等待已不属于当前 Spaces 页的 `space-search`；两项都在测试结构中移除，没有据此修改生产逻辑。连续两个 Space 下 Reaction 传播存在正常异步抖动，最终 contract 先等待发起端 local projection，再在 20 秒 Matrix 预算内验证对端，不以固定 sleep 掩盖失败。
+- 结合 `chat-member-history.spec.ts` 的 Default/Campfire member Mention、跨 initial-sync 分页、失败保留和刷新去重 1/1 证据，#40 的 Chat Core contract 复选项已满足；Candidate/publish、App 代理失败和信任边界复选项继续保持未完成，完整 #40 仍为 Active。
 
 完成证据必须包含 Default Chat App 源码、Custom Template App 源码、Host DOM 只有 Kernel Bar + iframe 的断言、两种 App 的 Chat Core contract suite、双 Chromium 实时 Revision 切换、Candidate 失败保护、结构化 `@agent` 去重和发布固化结果。
 
