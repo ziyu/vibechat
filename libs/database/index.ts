@@ -66,6 +66,16 @@ export type {
   NewFriendRequest,
 } from './schema/pg/social'
 export type { AiGenerationTask, NewAiGenerationTask } from './schema/pg/ai-generation-task'
+export type {
+  NewSpaceAgentAuditEventRow,
+  NewSpaceAgentBindingRow,
+  NewSpaceAgentDefinitionRow,
+  NewSpaceAgentSessionRow,
+  SpaceAgentAuditEventRow,
+  SpaceAgentBindingRow,
+  SpaceAgentDefinitionRow,
+  SpaceAgentSessionRow,
+} from './schema/pg/space-agent'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -89,6 +99,12 @@ export { roomUserPreference, spaceFavorite, userPreference } from './schema/prod
 export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 export { aiGenerationTask } from './schema/ai-generation-task'
+export {
+  spaceAgentAuditEvent,
+  spaceAgentBinding,
+  spaceAgentDefinition,
+  spaceAgentSession,
+} from './schema/space-agent'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -122,6 +138,12 @@ import {
   userProfile as _userProfile,
 } from './schema/identity'
 import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-task'
+import {
+  spaceAgentAuditEvent as _spaceAgentAuditEvent,
+  spaceAgentBinding as _spaceAgentBinding,
+  spaceAgentDefinition as _spaceAgentDefinition,
+  spaceAgentSession as _spaceAgentSession,
+} from './schema/space-agent'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
@@ -140,6 +162,10 @@ const _schema = {
   userProfile: _userProfile, matrixIdentity: _matrixIdentity,
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
   aiGenerationTask: _aiGenerationTask,
+  spaceAgentDefinition: _spaceAgentDefinition,
+  spaceAgentBinding: _spaceAgentBinding,
+  spaceAgentSession: _spaceAgentSession,
+  spaceAgentAuditEvent: _spaceAgentAuditEvent,
 }
 
 // ---------------------------------------------------------------------------

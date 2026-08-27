@@ -1,5 +1,5 @@
 {
-  "name": "@vibechat/space-app-contracts",
+  "name": "@vibechat/space-agent-contracts",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vibechat/space-agent-contracts": "workspace:*",
     "zod": "4.2.1"
   },
   "devDependencies": {

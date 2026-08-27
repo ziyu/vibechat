@@ -1,7 +1,17 @@
 import { z } from 'zod'
+import { spaceAgentIdSchema } from '@vibechat/space-agent-contracts'
+
+export {
+  spaceAgentBillingCallbackSchema,
+  spaceAgentCompletionCallbackSchema,
+  spaceAgentIdSchema,
+} from '@vibechat/space-agent-contracts'
+export type {
+  SpaceAgentBillingCallbackV1 as SpaceAgentBillingCallback,
+  SpaceAgentCompletionCallbackV1 as SpaceAgentCompletionCallback,
+} from '@vibechat/space-agent-contracts'
 
 export const spaceAppChannelSchema = z.enum(['dev', 'live'])
-export const spaceAgentIdSchema = z.string().trim().min(1).max(64)
 export const spaceAgentMentionSchema = z.object({
   type: z.literal('agent'),
   id: spaceAgentIdSchema,
@@ -20,36 +30,6 @@ export const spaceAgentReplyMetadataSchema = z.object({
   agentId: spaceAgentIdSchema,
   turnId: z.string().min(1).max(255),
   sourceEventIds: z.array(z.string().min(1).max(255)).min(1).max(32),
-})
-
-export const spaceAgentCompletionCallbackSchema = z.object({
-  userId: z.string().min(1),
-  spaceInstanceId: z.string().min(1).max(255),
-  matrixRoomId: z.string().min(1).max(255),
-  turnId: z.string().min(1).max(255),
-  agentId: spaceAgentIdSchema,
-  agentName: z.string().trim().min(1).max(128),
-  sourceEventIds: z.array(z.string().min(1).max(255)).min(1).max(32),
-  reply: z.object({
-    text: z.string().trim().min(1).max(64_000),
-  }),
-})
-
-export const spaceAgentBillingCallbackSchema = z.object({
-  spaceInstanceId: z.string().min(1).max(255),
-  turnId: z.string().min(1).max(255),
-  userId: z.string().min(1),
-  requestId: z.string().min(1),
-  provider: z.string().min(1),
-  model: z.string().min(1),
-  reservedCredits: z.number().int().positive(),
-  transactionId: z.string().min(1),
-  status: z.enum(['completed', 'failed']),
-  usage: z.object({
-    inputTokens: z.number().int().nonnegative().optional(),
-    outputTokens: z.number().int().nonnegative().optional(),
-    totalTokens: z.number().int().nonnegative().optional(),
-  }).optional(),
 })
 
 export const spaceRuntimeStateCallbackSchema = z.object({
@@ -268,8 +248,6 @@ export type SpaceAppChannel = z.infer<typeof spaceAppChannelSchema>
 export type SpaceAgentMention = z.infer<typeof spaceAgentMentionSchema>
 export type SpaceAgentMemberMetadata = z.infer<typeof spaceAgentMemberMetadataSchema>
 export type SpaceAgentReplyMetadata = z.infer<typeof spaceAgentReplyMetadataSchema>
-export type SpaceAgentCompletionCallback = z.infer<typeof spaceAgentCompletionCallbackSchema>
-export type SpaceAgentBillingCallback = z.infer<typeof spaceAgentBillingCallbackSchema>
 export type SpaceRuntimeStateCallback = z.infer<typeof spaceRuntimeStateCallbackSchema>
 export type SpaceRuntimeLease = z.infer<typeof spaceRuntimeLeaseSchema>
 export type SpaceRuntimeProjectPointer = z.infer<typeof spaceRuntimeProjectPointerSchema>

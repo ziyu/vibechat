@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
-import { spaceAgentBillingCallbackSchema } from '@vibechat/api-contracts'
+import { spaceAgentBillingCallbackSchema } from '@vibechat/space-agent-contracts'
 import { withCfDb } from '@/lib/with-request-db'
 import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
 import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'

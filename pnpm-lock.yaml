@@ -70,6 +70,9 @@ importers:
       '@vibechat/product-core':
         specifier: workspace:*
         version: link:packages/product-core
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:packages/space-agent-contracts
       '@vibechat/space-templates':
         specifier: workspace:*
         version: link:packages/space-templates
@@ -342,6 +345,9 @@ importers:
       '@vibechat/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../../packages/space-agent-contracts
       '@vibechat/space-app-sdk':
         specifier: workspace:*
         version: link:../../packages/space-app-sdk
@@ -555,6 +561,9 @@ importers:
       '@rivet-dev/agentos-apps':
         specifier: 0.2.15
         version: 0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../../packages/space-agent-contracts
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
@@ -941,8 +950,21 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/space-agent-contracts:
+    dependencies:
+      zod:
+        specifier: 4.2.1
+        version: 4.2.1
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/space-app-contracts:
     dependencies:
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../space-agent-contracts
       zod:
         specifier: 4.2.1
         version: 4.2.1

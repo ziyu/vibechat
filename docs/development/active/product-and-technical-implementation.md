@@ -53,6 +53,7 @@
 - [x] `composition/` 已接管配置、依赖组装和 Runtime 启动，`transport/http/` 已接管 health、instance、project、turn 和 App proxy routes；`server.ts` 只创建 Runtime/Hono app 并监听端口。新增 HTTP composition 测试覆盖内部鉴权、Agent message dispatch 与 Template bootstrap。
 - [x] `boundaries:check` 已从过渡白名单收紧为目录规则：阻止 concrete 目录外的 AgentOS/Pi import、`deployApp()`/`vm.getOrCreate()` 越界、Adapter 依赖 Backend/credits/Matrix/DB，以及新 Runtime core `appId` 参数。
 - [x] Node 24.19.0 下 Space Runtime 22 个测试文件、73 个测试通过，Space Runtime typecheck/build、应用边界检查、文档检查与 docs app 直接生产构建通过；最终 GitNexus、根门禁和 E2E 环境边界记录见 Agent 实施结构计划的 S1 完成证据。
+- [ ] S2 已进入 Active：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段也已落地。真实 PG/D1 migration 与 S3 invoke/enqueue 固定 snapshot 尚未完成。
 
 尚未完成：
 

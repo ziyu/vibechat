@@ -26,6 +26,7 @@ const activeRoots = [
   'apps/site-app/src',
   'apps/space-runtime/src',
   'apps/web-app/src',
+  'libs/space-agents',
   'packages/api-contracts/src',
   'packages/auth-client/src',
   'packages/i18n/src',
@@ -36,6 +37,7 @@ const activeRoots = [
   'packages/validators/src',
   'packages/product-client/src',
   'packages/product-core/src',
+  'packages/space-agent-contracts/src',
   'packages/space-app-contracts/src',
   'packages/space-app-sdk/src',
 ]
@@ -62,6 +64,17 @@ const adapterForbiddenImports = [
   '@libs/database',
   '@libs/credits',
   '@vibechat/matrix-client',
+  'matrix-js-sdk',
+]
+const spaceAgentsForbiddenImports = [
+  '@rivet-dev/agentos',
+  '@agentos-software/',
+  '@vibechat/matrix-client',
+  '@vibechat/react-shared',
+  '@vibechat/ui',
+  '@libs/ai',
+  '@libs/credits',
+  'hono',
   'matrix-js-sdk',
 ]
 const runtimeCoreRoots = [
@@ -92,7 +105,8 @@ const packageDependencyPolicy = {
   '@vibechat/auth-client': new Set(),
   '@vibechat/i18n': new Set(),
   '@vibechat/product-core': new Set(),
-  '@vibechat/space-app-contracts': new Set(),
+  '@vibechat/space-agent-contracts': new Set(),
+  '@vibechat/space-app-contracts': new Set(['@vibechat/space-agent-contracts']),
   '@vibechat/space-app-sdk': new Set(['@vibechat/space-app-contracts']),
   '@vibechat/platform-contracts': new Set(),
   '@vibechat/ui': new Set(),
@@ -140,6 +154,12 @@ for (const file of files) {
         || specifier.includes('/backend/')
         || specifier.includes('/database/schema'))) {
       failures.push(`${file}: Agent Adapter imports Backend, credits, Matrix, or database implementation (${specifier})`)
+    }
+    if (file.startsWith('libs/space-agents/')
+      && spaceAgentsForbiddenImports.some((prefix) => (
+        specifier === prefix || specifier.startsWith(prefix)
+      ))) {
+      failures.push(`${file}: Space Agent domain imports a forbidden provider, product, or UI module (${specifier})`)
     }
     if (specifier.includes('/apps/') || specifier.startsWith('apps/')) {
       failures.push(`${file}: app-to-app import is forbidden (${specifier})`)

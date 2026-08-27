@@ -2,7 +2,7 @@ import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
 import {
   spaceAgentBillingCallbackSchema,
   spaceAgentCompletionCallbackSchema,
-} from '@vibechat/api-contracts'
+} from '@vibechat/space-agent-contracts'
 import { writeMatrixAgentReply } from './matrix-agent-reply'
 import { writeMatrixSpaceV2State } from './matrix-space-v2-state'
 

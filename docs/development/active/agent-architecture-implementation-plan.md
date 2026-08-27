@@ -426,7 +426,7 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | --- | --- | --- | --- |
 | S0 | Agent/App runtime 首版封装、平台配置命名 | 无用户可见变化 | Complete（当前工作树） |
 | S1 | Space Runtime 结构拆分和自动边界检查 | 无行为变化 | Complete（2026-08-26） |
-| S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Pending |
+| S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Active（2026-08-27） |
 | S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Pending |
 | S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Pending |
 | S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Pending |
@@ -480,6 +480,17 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 3. 同步 PG、SQLite/D1 schema 与 migration；增加三种 dialect repository tests。
 4. 扩展现有 Runtime Turn 记录，固定 Definition/session/policy；不新增 queue。
 5. 为历史 Space 幂等回填 binding，保持 `room_index.default_agent_id` 双读和回滚。
+
+#### S2 开始记录（2026-08-27）
+
+- [x] 已冻结首个 contracts-first 切片：新建 provider-neutral 的 `@vibechat/space-agent-contracts`，覆盖 Agent/Definition/Binding/Session/Turn identity、Definition 与 policy snapshot、版本化 usage/error/event、session ref 和 Backend↔Runtime callback；公共 schema 使用 strict object 与有界 diagnostics，不携带 credential、prompt、源码或 provider-native event。
+- [x] `@vibechat/space-app-contracts` 暂时兼容 re-export 旧 Agent ID 与 callback 名称；Backend/Space Runtime 新消费者改从新 package 导入，旧调用方无需同批迁移。Runtime 内 `AgentUsage` 继续作为无版本内部累计形状，只有跨边界时转换为 `vibechat.agent-usage/v1`。
+- [x] 已建立 `libs/space-agents` repository ports、Definition/Binding/session/audit service 和数据库 repository；解析顺序固定为“显式 binding（包括 disabled）→ 旧 `default_agent_id` → Pi bootstrap”，disabled binding 不得静默回退。session 只在 Definition、Adapter、region 与 restore 状态兼容时复用，否则递增 generation。
+- [x] PG 与 SQLite/D1 schema 已对称增加 `space_agent_definition`、`space_agent_binding`、`space_agent_session`、`space_agent_audit_event`；现有 `space_runtime_turn` 只增加 nullable Definition/Adapter/session/policy/reservation/versioned payload-result/cancel 字段，没有创建第二条 queue。`0014` migration 幂等 seed Pi Definition，并只为旧 `default_agent_id = pi` 的 Space 回填默认 binding。
+- [x] contracts、领域服务、schema parity、SQLite repository/migration/backfill 和 Runtime callback 定向测试共 6 个文件、19 个测试通过；回填测试重复执行 seed/backfill SQL，确认 Definition/binding 不重复，且非 Pi 旧指针不被误绑定。`pnpm typecheck` 与 `pnpm build` 均覆盖 20/20 workspace package 并通过，`pnpm docs:check`、`pnpm build:docs` 和边界检查通过；GitNexus 对本次 S2 切片报告 22 个已跟踪文件、39 个符号、0 条已索引流程，风险 LOW。
+- [x] Node 24.15.0 完整 unit 为 245 通过、3 个既有失败、1 个 integration skip；既有失败仍是 `validators/user` 1 个和缺少默认邮件 provider key 导致的 `email/cloudflare` 2 个，与本切片一致。所有包含新 `0014` SQLite migration 的数据库 repository、credits、payment、identity、rooms、social 和 Runtime control-plane 测试均通过。
+- [ ] PostgreSQL migration 目前只完成 Drizzle 生成和 schema parity，尚未在真实 PostgreSQL 应用；D1 目前由同一 SQLite schema/migration 与 SQL 执行证据覆盖，尚未在真实 Cloudflare D1 preview 应用。两者完成前 S2 保持 Active，binding 不切为权威，也不开放多 Agent UI。
+- [ ] 回滚采用 additive compatibility：S3 切换前可停止读取 binding 并继续使用 `room_index.default_agent_id`；已部署的 nullable Turn 字段和领域表保留，不做破坏性 down migration。需要撤回回填时只禁用/删除 `space_agent_binding` 的 bootstrap 行，不删除旧默认指针或历史 Turn；真实 PG/D1 演练后再固化生产回滚命令。
 
 ### 9.3 S3：Backend 调用切换
 
