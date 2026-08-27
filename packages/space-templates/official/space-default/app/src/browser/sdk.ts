@@ -33,6 +33,18 @@ export interface SpaceMessage {
   reactions: Array<{ emoji: string; userIds: string[] }>;
 }
 
+export interface SpaceChatPermissions {
+  readonly send: boolean;
+  readonly attach: boolean;
+  readonly reply: boolean;
+  readonly editOwn: boolean;
+  readonly deleteOwn: boolean;
+  readonly react: boolean;
+  readonly retryOwn: boolean;
+  readonly typing: boolean;
+  readonly markRead: boolean;
+}
+
 export interface SpaceSnapshot {
   locale: string;
   meta: {
@@ -48,6 +60,7 @@ export interface SpaceSnapshot {
   chat: {
     messages: SpaceMessage[];
     typingMemberIds: string[];
+    permissions: SpaceChatPermissions;
   };
   agent: {
     id?: string;
@@ -70,6 +83,7 @@ export interface SpaceSdk {
   readonly chat: {
     readonly messages: SpaceMessage[];
     readonly typingMemberIds: string[];
+    readonly permissions: SpaceChatPermissions;
     send(input: {
       text: string;
       replyToId?: string;

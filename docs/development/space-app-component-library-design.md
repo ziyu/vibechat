@@ -212,19 +212,21 @@ Foundation 不知道 User、Chat 或 Agent 对象，不读取 SDK。
 | P0 组件/控制器 | 主要职责 |
 | --- | --- |
 | `ChatController` | snapshot selector、message map、reply/edit context、typing timer、command pending/error 和 dispose |
-| `ChatTimeline` | 有序消息、空状态、增量更新、滚动锚点和加载状态 |
+| `ChatTimeline` | 有序消息、空状态、增量更新、滚动锚点、加载状态，以及可选的公开 Actions/Reaction 组合 |
 | `ChatMessage` / `ChatBubble` | 自己/他人/Agent、删除、编辑、delivery 和语义化正文 |
 | `ChatMessageMeta` | User/Agent identity、时间和状态，不混入平台私有标识 |
 | `ReplyPreview` | 被回复消息、作者和缺失消息 fallback |
 | `ChatAttachment` | 图片/文件预览、名称、类型和安全下载入口 |
 | `ReactionBar` | Reaction 计数、当前用户状态和 toggle 命令 |
-| `MessageActions` | reply/edit/delete/retry 的可用性和错误反馈 |
+| `MessageActions` | 消费 message view 中 Host 授权的 reply/edit/delete/retry availability，并提供错误反馈 |
 | `TypingIndicator` | 使用 SDK typing member IDs 与 User 组件 |
 | `ChatComposer` | 自动扩展输入、发送、附件、reply/edit context、pending 与错误恢复 |
 | `MentionMenu` | SDK target search、键盘导航、结构化 member/Agent ID |
 | `ChatErrorState` | 可恢复命令错误；不伪造 Runtime/Kernel 诊断 |
 
 P0 不在浏览器维护第二条消息数据库。分页、虚拟列表、富文本、语音、线程和媒体画廊在 SDK 合约成熟后单独增加。
+
+Host 必须在 SDK snapshot 中显式提供 Chat permissions；空 snapshot 和缺失字段一律 fail closed。message view 只允许把全局 permission 与消息 ownership/status 组合成每条消息的 action availability，Template 和 presentational component 都不能通过 `isOwn`、`isAgent` 或 DOM 状态自行猜测 ACL。交互 Timeline 通过公开 property、typed event、稳定 test id 与 `::part` 组合 Actions/Reaction；只读 Timeline 保持默认呈现，消费方不得进入 Shadow DOM 添加控件或注入样式。
 
 ### 8.4 Agent
 
@@ -303,7 +305,7 @@ message.onReply = () => chat.command.beginReply(message.id)
 - 提供 light、dark、high-contrast 默认主题，Template 可以只覆盖 token，不复制整份组件 CSS。
 - `variant` 表达有限结构差异，token 表达视觉差异，slot 表达内容差异；不通过无限 boolean props 拼出页面。
 - 组件不注入全局 CSS reset，不修改 `html/body`，不使用固定页面级 z-index。
-- 叶子组件公开有限 `::part`；未声明的内部 DOM 不是公共 API。
+- 叶子组件和组合 Timeline 公开有限 `::part`；未声明的内部 DOM、Shadow Root selector 与私有 data attribute 不是公共 API。
 
 ### 10.2 i18n
 
@@ -355,7 +357,7 @@ Space 源码必须使用普通 package import 和精确 SemVer，并用独立 lo
 // package.json
 {
   "dependencies": {
-    "@vibechat/space-app-components": "0.5.0"
+    "@vibechat/space-app-components": "0.6.0"
   }
 }
 ```
@@ -366,8 +368,8 @@ Space 源码必须使用普通 package import 和精确 SemVer，并用独立 lo
   "schemaVersion": "vibechat.space-app-dependencies/v1",
   "packages": {
     "@vibechat/space-app-components": {
-      "version": "0.5.0",
-      "integrity": "sha256:9754fd6cb4b084c3c23c7f945a4e8784192ed04aa2b1b3fb8517bc8b4e780049"
+      "version": "0.6.0",
+      "integrity": "sha256:4187cc990c2ed9aea01fdd596535593e22460d77e28ca7b2d143ae7184be9b25"
     }
   }
 }

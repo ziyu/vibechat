@@ -1,121 +1,21 @@
+import type { SpaceSdk } from "../../browser/sdk.js";
 import type {
-  SpaceMentionTarget,
-  SpaceSdk,
-} from "../../browser/sdk.js";
+  SpaceChatComponentEventDetailMap,
+  SpaceChatComposerElement,
+  SpaceChatController,
+  SpaceChatErrorStateElement,
+  SpaceChatMessageView,
+  SpaceChatTimelineElement,
+  SpaceMentionMenuElement,
+  SpaceMentionRange,
+} from "@vibechat/space-app-components/chat";
+import type { SpaceComponentContext } from "@vibechat/space-app-components/core";
 import { getChatCopy } from "./copy.js";
 
-interface SpaceChatAuthorView {
-  readonly id: string;
-  readonly name: string;
-}
-
-interface SpaceChatReactionView {
-  readonly emoji: string;
-  readonly count: number;
-  readonly reactedBySelf: boolean;
-}
-
-interface SpaceChatMessageView {
-  readonly id: string;
-  readonly text: string;
-  readonly status: "sending" | "sent" | "failed";
-  readonly isOwn: boolean;
-  readonly isAgent: boolean;
-  readonly deleted: boolean;
-  readonly author: SpaceChatAuthorView;
-  readonly reactions: readonly SpaceChatReactionView[];
-}
-
-interface SpaceChatSnapshot {
-  readonly messages: readonly SpaceChatMessageView[];
-  readonly typingUsers: readonly SpaceChatAuthorView[];
-  readonly ready: boolean;
-  readonly draft: string;
-  readonly mentionIds: readonly string[];
-  readonly mentionTargets: readonly SpaceMentionTarget[];
-  readonly context: {
-    readonly kind: "reply" | "edit";
-    readonly message: SpaceChatMessageView;
-  } | null;
-  readonly pending: string | null;
-  readonly error: { readonly command: string; readonly message: string } | null;
-}
-
-interface SpaceChatController {
-  readonly ready: Promise<void>;
-  getSnapshot(): SpaceChatSnapshot;
-  subscribe(listener: () => void): () => void;
-  setDraft(value: string, mentionIds?: readonly string[]): void;
-  beginReply(messageId: string): void;
-  beginEdit(messageId: string): void;
-  cancelContext(): void;
-  searchMentions(query?: string): readonly SpaceMentionTarget[];
-  selectMention(target: SpaceMentionTarget): void;
-  send(): Promise<unknown>;
-  attach(file: File): Promise<unknown>;
-  delete(messageId: string): Promise<unknown>;
-  toggleReaction(messageId: string, emoji: string): Promise<unknown>;
-  retry(messageId: string): Promise<unknown>;
-  setTyping(isTyping: boolean): Promise<void>;
-  markRead(): Promise<unknown>;
-  clearError(): void;
-  dispose(): void;
-}
-
-interface SpaceChatTimelineElement extends HTMLElement {
-  messages: readonly SpaceChatMessageView[];
-  typingUsers: readonly SpaceChatAuthorView[];
-  state: "loading" | "ready" | "error";
-  error: string | null;
-}
-
-interface SpaceChatComposerElement extends HTMLElement {
-  draft: string;
-  mentionIds: readonly string[];
-  context: {
-    readonly kind: "reply" | "edit";
-    readonly messageId: string;
-    readonly author: string;
-    readonly text: string;
-  } | null;
-  pending: boolean;
-  insertMention(
-    target: SpaceMentionTarget,
-    range?: { readonly start: number; readonly end: number } | null,
-  ): void;
-}
-
-interface SpaceMentionMenuElement extends HTMLElement {
-  targets: readonly SpaceMentionTarget[];
-}
-
-interface SpaceErrorElement extends HTMLElement {
-  error: { readonly command: string; readonly message: string } | null;
-}
-
-interface SpaceMessageActionsElement extends HTMLElement {
-  actions: {
-    readonly messageId: string;
-    readonly canReply: boolean;
-    readonly canEdit: boolean;
-    readonly canDelete: boolean;
-    readonly canRetry: boolean;
-    readonly disabled: boolean;
-  } | null;
-}
-
-interface SpaceReactionBarElement extends HTMLElement {
-  messageId: string;
-  reactions: readonly SpaceChatReactionView[];
-  disabled: boolean;
-}
-
 interface SpaceChatComponentModule {
-  createSpaceComponentContext(options: { sdk: SpaceSdk }): {
-    dispose(): void;
-  };
-  createSpaceChatController(context: unknown): SpaceChatController;
-  spaceChatEventNames: Readonly<Record<string, string>>;
+  createSpaceComponentContext(options: { sdk: SpaceSdk }): SpaceComponentContext;
+  createSpaceChatController(context: SpaceComponentContext): SpaceChatController;
+  spaceChatEventNames: typeof import("@vibechat/space-app-components/chat").spaceChatEventNames;
 }
 
 export async function bootstrapChat(
@@ -131,6 +31,8 @@ export async function bootstrapChat(
   const eventDetail = <T>(event: Event) => (event as CustomEvent<T>).detail;
   const root = requireElement<HTMLElement>("#vcc-root");
   const launch = requireElement<HTMLButtonElement>("#vcc-launch");
+  const launchLabel = requireElement<HTMLElement>("#vcc-launch-label");
+  const shell = requireElement<HTMLElement>("#vcc-shell");
   const close = requireElement<HTMLButtonElement>("#vcc-close");
   const unread = requireElement<HTMLElement>("#vcc-unread");
   const mark = requireElement<HTMLElement>("#vcc-mark");
@@ -148,123 +50,44 @@ export async function bootstrapChat(
   const timeline = requireElement<SpaceChatTimelineElement>("#vcc-timeline");
   const composer = requireElement<SpaceChatComposerElement>("#vcc-composer");
   const mentions = requireElement<SpaceMentionMenuElement>("#vcc-mentions");
-  const error = requireElement<SpaceErrorElement>("#vcc-error");
+  const error = requireElement<SpaceChatErrorStateElement>("#vcc-error");
   const context = components.createSpaceComponentContext({ sdk: space });
   const chat = components.createSpaceChatController(context);
   const events = components.spaceChatEventNames;
-  let mentionRange: { readonly start: number; readonly end: number } | null = null;
+  let mentionRange: SpaceMentionRange | null = null;
   let renderedDraft: string | null = null;
   let renderedMentionIds = "";
   let renderedMessages: readonly SpaceChatMessageView[] | null = null;
-  let renderedTypingUsers: readonly SpaceChatAuthorView[] | null = null;
-  let controlsMessages: readonly SpaceChatMessageView[] | null = null;
-  let controlsPending: string | null = null;
+  let renderedTypingUsers: SpaceChatTimelineElement["typingUsers"] | null = null;
   let lastMessageCount = chat.getSnapshot().messages.length;
+  let unreadCount = 0;
+  let lastMarkedReadMessageId: string | null = null;
 
   root.dataset.mode = mode;
   root.dataset.open = String(mode === "full");
+  timeline.interactive = true;
+  timeline.reactionChoices = ["♥", "✨", "🌙"];
 
-  const updateMessageControls = (state: SpaceChatSnapshot) => {
-    const timelineRoot = timeline.shadowRoot;
-    if (!timelineRoot) return;
-    if (!timelineRoot.querySelector("[data-vcc-template-controls]")) {
-      const style = document.createElement("style");
-      style.dataset.vccTemplateControls = "true";
-      style.textContent = `
-        .vcc-entry-controls {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-inline-start: 42px;
-        }
-        .vcc-entry-controls[data-own="true"] {
-          justify-content: flex-end;
-          margin-inline: 0;
-        }
-        .vcc-entry-controls vc-space-message-actions,
-        .vcc-entry-controls vc-space-reaction-bar {
-          display: block;
-        }
-        .vcc-entry-controls vc-space-message-actions::part(actions),
-        .vcc-entry-controls vc-space-reaction-bar::part(bar) {
-          gap: 4px;
-        }
-        .vcc-entry-controls vc-space-message-actions::part(reply),
-        .vcc-entry-controls vc-space-message-actions::part(edit),
-        .vcc-entry-controls vc-space-message-actions::part(delete),
-        .vcc-entry-controls vc-space-message-actions::part(retry),
-        .vcc-entry-controls vc-space-reaction-bar::part(reaction) {
-          min-block-size: 44px;
-          min-inline-size: 44px;
-          padding: 7px 10px;
-          border-radius: 8px;
-          font-size: 10px;
-        }
-        @media (max-width: 390px) {
-          .vcc-entry-controls { margin-inline-start: 0; }
-        }
-      `;
-      timelineRoot.append(style);
-    }
-    const reactionChoices = ["♥", "✨", "🌙"];
-    for (const message of state.messages) {
-      const entry = timelineRoot.querySelector<HTMLElement>(
-        `[data-message-id="${CSS.escape(message.id)}"]`,
-      );
-      if (!entry) continue;
-      let controls = entry.querySelector<HTMLElement>(".vcc-entry-controls");
-      if (!controls) {
-        controls = document.createElement("div");
-        controls.className = "vcc-entry-controls";
-        entry.append(controls);
+  const markLatestRead = () => {
+    const latestMessageId = chat.getSnapshot().messages.at(-1)?.id;
+    if (
+      !space.chat.permissions.markRead
+      || !latestMessageId
+      || latestMessageId === lastMarkedReadMessageId
+      || root.dataset.open !== "true"
+      || document.visibilityState !== "visible"
+    ) return;
+    lastMarkedReadMessageId = latestMessageId;
+    void chat.markRead().then(() => {
+      const current = chat.getSnapshot();
+      const currentMessageId = current.messages.at(-1)?.id;
+      if (current.error?.command === "mark-read" && currentMessageId === latestMessageId) {
+        lastMarkedReadMessageId = null;
       }
-      controls.dataset.own = String(message.isOwn);
-      let actions = controls.querySelector<SpaceMessageActionsElement>(
-        "vc-space-message-actions",
-      );
-      if (!actions) {
-        actions = document.createElement(
-          "vc-space-message-actions",
-        ) as SpaceMessageActionsElement;
-        controls.append(actions);
+      if (currentMessageId !== latestMessageId) {
+        markLatestRead();
       }
-      actions.actions = message.deleted || message.isAgent
-        ? null
-        : {
-            messageId: message.id,
-            canReply: true,
-            canEdit: message.isOwn,
-            canDelete: message.isOwn,
-            canRetry: message.isOwn && message.status === "failed",
-            disabled: state.pending !== null,
-          };
-      let reactions = controls.querySelector<SpaceReactionBarElement>(
-        "vc-space-reaction-bar",
-      );
-      if (!reactions) {
-        reactions = document.createElement(
-          "vc-space-reaction-bar",
-        ) as SpaceReactionBarElement;
-        controls.append(reactions);
-      }
-      const reactionByEmoji = new Map(
-        message.reactions.map((reaction) => [reaction.emoji, reaction]),
-      );
-      for (const emoji of reactionChoices) {
-        if (!reactionByEmoji.has(emoji)) {
-          reactionByEmoji.set(emoji, {
-            emoji,
-            count: 0,
-            reactedBySelf: false,
-          });
-        }
-      }
-      reactions.messageId = message.id;
-      reactions.reactions = message.deleted
-        ? []
-        : [...reactionByEmoji.values()];
-      reactions.disabled = state.pending !== null;
-    }
+    });
   };
 
   const render = () => {
@@ -273,9 +96,16 @@ export async function bootstrapChat(
     const copy = getChatCopy(space);
     const locale = space.locale || snapshot.locale || "en";
     document.documentElement.lang = locale;
+    document.title = `${snapshot.meta.name || "Space"} · ${copy.title}`;
     for (const element of [timeline, composer, mentions, error]) {
       element.setAttribute("locale", locale);
     }
+    launch.setAttribute("aria-label", copy.open);
+    launchLabel.textContent = copy.title;
+    shell.setAttribute("aria-label", copy.region);
+    close.setAttribute("aria-label", copy.close);
+    close.title = copy.close;
+    timeline.setAttribute("aria-label", copy.timeline);
     mark.textContent = snapshot.meta.icon || "V";
     roomName.textContent = snapshot.meta.name || "Space";
     memberCount.textContent =
@@ -321,6 +151,9 @@ export async function bootstrapChat(
       composer.mentionIds = state.mentionIds;
     }
     composer.pending = state.pending !== null;
+    composer.sendDisabled = !space.chat.permissions.send;
+    composer.attachmentDisabled = !space.chat.permissions.attach;
+    timeline.interactionDisabled = state.pending !== null;
     composer.context = state.context
       ? {
           kind: state.context.kind,
@@ -332,51 +165,48 @@ export async function bootstrapChat(
     mentions.targets = state.mentionTargets;
     error.error = state.error;
 
-    if (
-      controlsMessages !== state.messages
-      || controlsPending !== state.pending
-    ) {
-      controlsMessages = state.messages;
-      controlsPending = state.pending;
-      updateMessageControls(state);
-    }
     if (root.dataset.open !== "true" && state.messages.length > lastMessageCount) {
-      unread.textContent = String(state.messages.length - lastMessageCount);
+      unreadCount += state.messages.length - lastMessageCount;
     } else if (root.dataset.open === "true") {
-      unread.textContent = "0";
+      unreadCount = 0;
     }
+    unread.textContent = String(unreadCount);
     lastMessageCount = state.messages.length;
+    markLatestRead();
   };
 
   launch.addEventListener("click", () => {
     root.dataset.open = "true";
+    unreadCount = 0;
     unread.textContent = "0";
-    void chat.markRead();
+    markLatestRead();
   });
   close.addEventListener("click", () => {
     root.dataset.open = "false";
   });
   composer.addEventListener(events.submit, (event) => {
-    const detail = eventDetail<{
-      text: string;
-      mentionIds: readonly string[];
-    }>(event);
+    const detail = eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.submit]
+    >(event);
     chat.setDraft(detail.text, detail.mentionIds);
     void chat.send();
   });
   composer.addEventListener(events.attach, (event) => {
-    void chat.attach(eventDetail<{ file: File }>(event).file);
+    void chat.attach(eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.attach]
+    >(event).file);
   });
   composer.addEventListener(events.typing, (event) => {
+    if (!space.chat.permissions.typing) return;
     void chat.setTyping(
-      eventDetail<{ isTyping: boolean }>(event).isTyping,
+      eventDetail<SpaceChatComponentEventDetailMap[typeof events.typing]>(event)
+        .isTyping,
     );
   });
   composer.addEventListener(events.mentionQuery, (event) => {
-    const detail = eventDetail<{
-      query: string | null;
-      range: { readonly start: number; readonly end: number } | null;
-    }>(event);
+    const detail = eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.mentionQuery]
+    >(event);
     mentionRange = detail.range;
     mentions.hidden = detail.query === null;
     if (detail.query !== null) chat.searchMentions(detail.query);
@@ -385,7 +215,9 @@ export async function bootstrapChat(
     chat.cancelContext();
   });
   mentions.addEventListener(events.mentionSelect, (event) => {
-    const target = eventDetail<{ target: SpaceMentionTarget }>(event).target;
+    const target = eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.mentionSelect]
+    >(event).target;
     chat.selectMention(target);
     composer.insertMention(target, mentionRange);
     mentionRange = null;
@@ -396,19 +228,29 @@ export async function bootstrapChat(
     mentions.hidden = true;
   });
   timeline.addEventListener(events.reply, (event) => {
-    chat.beginReply(eventDetail<{ messageId: string }>(event).messageId);
+    chat.beginReply(eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.reply]
+    >(event).messageId);
   });
   timeline.addEventListener(events.edit, (event) => {
-    chat.beginEdit(eventDetail<{ messageId: string }>(event).messageId);
+    chat.beginEdit(eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.edit]
+    >(event).messageId);
   });
   timeline.addEventListener(events.delete, (event) => {
-    void chat.delete(eventDetail<{ messageId: string }>(event).messageId);
+    void chat.delete(eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.delete]
+    >(event).messageId);
   });
   timeline.addEventListener(events.retry, (event) => {
-    void chat.retry(eventDetail<{ messageId: string }>(event).messageId);
+    void chat.retry(eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.retry]
+    >(event).messageId);
   });
   timeline.addEventListener(events.reaction, (event) => {
-    const detail = eventDetail<{ messageId: string; emoji: string }>(event);
+    const detail = eventDetail<
+      SpaceChatComponentEventDetailMap[typeof events.reaction]
+    >(event);
     void chat.toggleReaction(detail.messageId, detail.emoji);
   });
   error.addEventListener(events.dismissError, () => {
@@ -416,10 +258,12 @@ export async function bootstrapChat(
   });
 
   const unsubscribe = chat.subscribe(render);
+  const handleVisibilityChange = () => markLatestRead();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
   await chat.ready;
   render();
-  void chat.markRead();
   window.addEventListener("pagehide", () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
     unsubscribe();
     chat.dispose();
     context.dispose();

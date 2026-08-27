@@ -276,12 +276,11 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(
       restoredChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
     ).toContainText(messageText)
-    await expect(
-      restoredChat.getByTestId('message-body')
-        .filter({ hasText: messageText })
-        .locator('xpath=ancestor::article')
-        .locator('.vcc-reactions'),
-    ).toContainText('🌙')
+    const restoredMessageEntry = restoredChat.getByTestId('chat-message-entry').filter({
+      has: restoredChat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(restoredMessageEntry).toHaveCount(1)
+    await expect(restoredMessageEntry.getByRole('button', { name: /🌙/ })).toHaveCount(1)
     await expect(restoredChat.getByText('已恢复 Default Chat App。')).toHaveCount(0)
 
     const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage))

@@ -224,7 +224,21 @@ export function SpaceAppSurface({
           })),
       ],
       messages,
-      chat: { messages, typingMemberIds },
+      chat: {
+        messages,
+        typingMemberIds,
+        permissions: {
+          send: true,
+          attach: true,
+          reply: true,
+          editOwn: true,
+          deleteOwn: true,
+          react: true,
+          retryOwn: true,
+          typing: true,
+          markRead: true,
+        },
+      },
       app: {
         revision: snapshot?.appState.revision || 0,
         state: snapshot?.appState.state || {},

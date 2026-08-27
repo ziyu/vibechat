@@ -1,5 +1,12 @@
 # Vibe Chat
 
+## 0.1.4
+
+- Consume `@vibechat/space-app-components@0.6.0` with Host-authorized message actions and Timeline-owned interaction composition.
+- Remove all Template access to component Shadow DOM and style only documented Timeline parts.
+- Keep Matrix read receipts current while the Chat surface is open and visible, with deduplicated non-blocking commands and accumulating dock unread state.
+- Use public component types in the adapter and localize the document, Chat region, launch, close, and timeline accessible names.
+
 ## 0.1.3
 
 - Depend on the publishable framework-neutral Space Chat package through the semantic `@vibechat/space-app-components/chat/inline` subpath, exact `0.5.0` version and managed Registry integrity pin.

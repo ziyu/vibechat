@@ -82,6 +82,28 @@ vc-space-chat-timeline::part(status) {
   color: var(--vcc-muted);
 }
 
+vc-space-chat-timeline::part(controls) {
+  gap: 6px;
+  margin-inline-start: 42px;
+}
+
+vc-space-chat-timeline::part(message-actions),
+vc-space-chat-timeline::part(reaction-bar) {
+  gap: 4px;
+}
+
+vc-space-chat-timeline::part(message-action-reply),
+vc-space-chat-timeline::part(message-action-edit),
+vc-space-chat-timeline::part(message-action-delete),
+vc-space-chat-timeline::part(message-action-retry),
+vc-space-chat-timeline::part(reaction) {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+
 .vcc-build {
   display: flex;
   gap: 10px;
@@ -116,6 +138,12 @@ vc-space-chat-timeline::part(status) {
   to {
     opacity: 0.35;
     transform: scale(0.7);
+  }
+}
+
+@media (max-width: 390px) {
+  vc-space-chat-timeline::part(controls) {
+    margin-inline-start: 0;
   }
 }
 `;

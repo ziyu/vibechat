@@ -235,6 +235,7 @@ export function createSpaceChatController(
   let disposed = context.disposed;
   let typingTimer: ReturnType<typeof setTimeout> | null = null;
   let typingActive = false;
+  let markReadPromise: Promise<unknown> | null = null;
   let removeFromContext = () => {};
   let state: SpaceChatSnapshot = Object.freeze({
     ...timeline.getSnapshot(),
@@ -464,7 +465,27 @@ export function createSpaceChatController(
       }
     },
     markRead() {
-      return execute("mark-read", () => context.sdk.chat.markRead());
+      if (disposed) return Promise.resolve(undefined);
+      if (markReadPromise) return markReadPromise;
+      markReadPromise = Promise.resolve()
+        .then(() => context.sdk.chat.markRead())
+        .then((value) => {
+          if (!disposed && state.error?.command === "mark-read") {
+            publish({ ...state, error: null });
+          }
+          return value;
+        })
+        .catch((reason) => {
+          if (!disposed) publish({
+            ...state,
+            error: commandError("mark-read", reason),
+          });
+          return undefined;
+        })
+        .finally(() => {
+          markReadPromise = null;
+        });
+      return markReadPromise;
     },
     clearError() {
       if (!disposed && state.error) publish({ ...state, error: null });

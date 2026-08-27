@@ -1,9 +1,9 @@
 export const chatMarkup = `<div class="vcc-root" id="vcc-root">
   <button class="vcc-launch" id="vcc-launch" type="button" aria-label="Open Space Chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
-    <span>Chat</span><i id="vcc-unread">0</i>
+    <span id="vcc-launch-label">Chat</span><i id="vcc-unread">0</i>
   </button>
-  <section class="vcc-shell" aria-label="Space Chat">
+  <section class="vcc-shell" id="vcc-shell" aria-label="Space Chat">
     <header class="vcc-head">
       <span class="vcc-mark" id="vcc-mark">V</span>
       <span class="vcc-title"><strong id="vcc-room-name">Space</strong><small><i></i><span id="vcc-member-count">Connected</span></small></span>
@@ -20,6 +20,7 @@ export const chatMarkup = `<div class="vcc-root" id="vcc-root">
       </section>
       <vc-space-chat-timeline
         id="vcc-timeline"
+        interactive
         state="loading"
         data-testid="message-timeline"
       ></vc-space-chat-timeline>

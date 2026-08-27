@@ -66,7 +66,21 @@ function snapshot(
     }],
     messages,
     app: { revision: 0, state: {}, presence: [] },
-    chat: { messages, typingMemberIds: [] },
+    chat: {
+      messages,
+      typingMemberIds: [],
+      permissions: {
+        send: true,
+        attach: true,
+        reply: true,
+        editOwn: true,
+        deleteOwn: true,
+        react: true,
+        retryOwn: true,
+        typing: true,
+        markRead: true,
+      },
+    },
     agent: {
       id: "wayfinder",
       name: "Wayfinder",
@@ -137,7 +151,17 @@ describe("Space Chat view models", () => {
 
     expect(views.map((item) => item.id)).toEqual(["m1", "m2", "m3", "m4", "m5"]);
     expect(views).toHaveLength(messages.length);
-    expect(views[0]).toMatchObject({ isOwn: true, edited: true });
+    expect(views[0]).toMatchObject({
+      isOwn: true,
+      edited: true,
+      actions: {
+        reply: true,
+        edit: true,
+        delete: true,
+        retry: false,
+        react: true,
+      },
+    });
     expect(views[1]?.author).toMatchObject({ name: "Member", kind: "member" });
     expect(views[1]?.reply).toMatchObject({ state: "missing", author: null, text: "" });
     expect(views[1]?.reactions[0]).toEqual({
@@ -150,8 +174,20 @@ describe("Space Chat view models", () => {
       isOwn: false,
       author: { id: "wayfinder", name: "Wayfinder", kind: "agent" },
       reply: { state: "available", text: "Opening note" },
+      actions: { reply: true, edit: false, delete: false, react: true },
     });
-    expect(views[3]).toMatchObject({ text: "", deleted: true, edited: false });
+    expect(views[3]).toMatchObject({
+      text: "",
+      deleted: true,
+      edited: false,
+      actions: {
+        reply: false,
+        edit: false,
+        delete: false,
+        retry: false,
+        react: false,
+      },
+    });
     expect(views[4]?.reply).toMatchObject({ state: "deleted", text: "" });
     expect(Object.isFrozen(views)).toBe(true);
     expect(Object.isFrozen(views[2])).toBe(true);

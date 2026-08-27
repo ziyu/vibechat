@@ -32,7 +32,21 @@ function snapshot(name: string): SpaceAppSnapshot {
     mentions: [],
     messages: [],
     app: { revision: 0, state: {}, presence: [] },
-    chat: { messages: [], typingMemberIds: [] },
+    chat: {
+      messages: [],
+      typingMemberIds: [],
+      permissions: {
+        send: false,
+        attach: false,
+        reply: false,
+        editOwn: false,
+        deleteOwn: false,
+        react: false,
+        retryOwn: false,
+        typing: false,
+        markRead: false,
+      },
+    },
     agent: {
       id: "agent",
       name: "Agent",

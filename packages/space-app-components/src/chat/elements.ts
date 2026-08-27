@@ -44,6 +44,7 @@ export interface SpaceChatBubbleElement extends HTMLElement {
 
 export interface SpaceChatMessageElement extends HTMLElement {
   message: SpaceChatMessageView | null;
+  showReactions: boolean;
 }
 
 export interface SpaceTypingIndicatorElement extends HTMLElement {
@@ -168,6 +169,13 @@ function messageFromAttributes(element: HTMLElement): SpaceChatMessageView {
     deleted,
     reply: replyFromAttributes(element),
     reactions: reactionViewsFromAttribute(element.getAttribute("reactions")),
+    actions: {
+      reply: false,
+      edit: false,
+      delete: false,
+      retry: false,
+      react: false,
+    },
     hasAttachment: element.hasAttribute("has-attachment"),
   };
 }
@@ -244,8 +252,10 @@ function createSpaceChatMessageMetaElementClass() {
       this.render();
     }
 
-    attributeChangedCallback() {
-      if (this.isConnected && !this.#message) this.render();
+    attributeChangedCallback(name: string) {
+      if (this.isConnected && (name === "hide-reactions" || !this.#message)) {
+        this.render();
+      }
     }
 
     private render() {
@@ -576,13 +586,17 @@ function avatarForMessage(
 
 function createSpaceChatMessageElementClass() {
   return class VcSpaceChatMessageElement extends HTMLElement implements SpaceChatMessageElement {
-    static readonly observedAttributes = messageAttributes;
+    static readonly observedAttributes = [...messageAttributes, "hide-reactions"];
     #message: SpaceChatMessageView | null = null;
 
     get message() { return this.#message; }
     set message(value) {
       this.#message = value;
       if (this.isConnected) this.render();
+    }
+    get showReactions() { return !this.hasAttribute("hide-reactions"); }
+    set showReactions(value) {
+      this.toggleAttribute("hide-reactions", !value);
     }
 
     connectedCallback() {
@@ -638,7 +652,7 @@ function createSpaceChatMessageElementClass() {
         message,
       );
       content.append(meta, bubble);
-      if (message.reactions.length > 0) {
+      if (this.showReactions && message.reactions.length > 0) {
         const reactions = this.ownerDocument.createElement("div");
         reactions.className = "reactions";
         reactions.setAttribute("part", "reactions");

@@ -42,6 +42,14 @@ export interface SpaceChatReplyView {
   readonly text: string;
 }
 
+export interface SpaceChatActionAvailability {
+  readonly reply: boolean;
+  readonly edit: boolean;
+  readonly delete: boolean;
+  readonly retry: boolean;
+  readonly react: boolean;
+}
+
 export interface SpaceChatMessageView {
   readonly id: string;
   readonly roomId: string;
@@ -55,6 +63,8 @@ export interface SpaceChatMessageView {
   readonly deleted: boolean;
   readonly reply: SpaceChatReplyView | null;
   readonly reactions: readonly SpaceChatReactionView[];
+  /** Host-authorized actions after applying message ownership and state. */
+  readonly actions?: SpaceChatActionAvailability;
   readonly hasAttachment: boolean;
   /** Safe, provider-neutral metadata when the SDK exposes an attachment. */
   readonly attachment?: SpaceChatAttachmentView | null;
@@ -221,6 +231,26 @@ function replyView(
   });
 }
 
+function actionAvailability(
+  snapshot: SpaceAppSnapshot,
+  message: SpaceChatMessage,
+  isOwn: boolean,
+  deleted: boolean,
+): SpaceChatActionAvailability {
+  const permissions = snapshot.chat?.permissions;
+  const sent = message.status === "sent";
+  return Object.freeze({
+    reply: permissions?.reply === true && sent && !deleted,
+    edit: permissions?.editOwn === true && isOwn && sent && !deleted,
+    delete: permissions?.deleteOwn === true && isOwn && sent && !deleted,
+    retry: permissions?.retryOwn === true
+      && isOwn
+      && message.status === "failed"
+      && !deleted,
+    react: permissions?.react === true && sent && !deleted,
+  });
+}
+
 /**
  * Projects the Matrix-backed Chat timeline without merging Agent build or
  * progress records. The incoming SDK order is preserved exactly.
@@ -236,6 +266,7 @@ export function createSpaceChatMessageViews(
     const author = messageAuthor(snapshot, message);
     const agent = author.kind === "agent";
     const deleted = message.deleted === true;
+    const isOwn = !agent && author.isSelf;
     const attachment = createSpaceChatAttachmentView(message.attachment);
     return Object.freeze({
       id: message.id,
@@ -244,12 +275,13 @@ export function createSpaceChatMessageViews(
       text: deleted ? "" : String(message.text ?? ""),
       createdAt: message.createdAt,
       status: message.status,
-      isOwn: !agent && author.isSelf,
+      isOwn,
       isAgent: agent,
       edited: !deleted && message.edited === true,
       deleted,
       reply: replyView(snapshot, message, sourceById),
       reactions: reactionViews(message, snapshot.self?.id),
+      actions: actionAvailability(snapshot, message, isOwn, deleted),
       hasAttachment: Boolean(message.attachment),
       attachment,
     });

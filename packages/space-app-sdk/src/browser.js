@@ -26,7 +26,21 @@ function emptySnapshot() {
     mentions: [],
     messages: [],
     app: { revision: 0, state: {}, presence: [] },
-    chat: { messages: [], typingMemberIds: [] },
+    chat: {
+      messages: [],
+      typingMemberIds: [],
+      permissions: {
+        send: false,
+        attach: false,
+        reply: false,
+        editOwn: false,
+        deleteOwn: false,
+        react: false,
+        retryOwn: false,
+        typing: false,
+        markRead: false,
+      },
+    },
     agent: { id: "pi", name: "Pi", messages: [], build: null, queue: { activeCount: 0, pendingCount: 0 } },
   };
 }
@@ -336,6 +350,9 @@ export const space = Object.freeze({
     },
     get typingMemberIds() {
       return clone(currentSnapshot.chat.typingMemberIds);
+    },
+    get permissions() {
+      return clone(currentSnapshot.chat.permissions);
     },
     send(input) {
       return command(

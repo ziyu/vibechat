@@ -11,6 +11,7 @@ import type {
 } from "./controller.js";
 import type {
   SpaceChatAttachmentView,
+  SpaceChatActionAvailability,
   SpaceChatAuthorView,
   SpaceChatMessageView,
   SpaceChatReactionView,
@@ -91,6 +92,9 @@ export interface SpaceChatTimelineElement extends HTMLElement {
   typingUsers: readonly SpaceChatAuthorView[];
   state: SpaceChatTimelineState;
   error: string | null;
+  interactive: boolean;
+  interactionDisabled: boolean;
+  reactionChoices: readonly string[];
 }
 
 export interface SpaceChatComposerElement extends HTMLElement {
@@ -98,6 +102,8 @@ export interface SpaceChatComposerElement extends HTMLElement {
   mentionIds: readonly string[];
   context: SpaceChatComposerContext | null;
   disabled: boolean;
+  sendDisabled: boolean;
+  attachmentDisabled: boolean;
   pending: boolean;
   insertMention(target: SpaceMentionTarget, range?: SpaceMentionRange | null): void;
   focus(): void;
@@ -178,7 +184,15 @@ button:focus-visible,textarea:focus-visible { outline:3px solid var(--vc-space-c
 
 function createSpaceChatComposerElementClass() {
   return class VcSpaceChatComposerElement extends HTMLElement implements SpaceChatComposerElement {
-    static readonly observedAttributes = ["disabled", "locale", "maxlength", "pending", "placeholder"];
+    static readonly observedAttributes = [
+      "attachment-disabled",
+      "disabled",
+      "locale",
+      "maxlength",
+      "pending",
+      "placeholder",
+      "send-disabled",
+    ];
     #draft = "";
     #mentionIds: string[] = [];
     #mentionHandles = new Map<string, string>();
@@ -208,6 +222,14 @@ function createSpaceChatComposerElementClass() {
     }
     get disabled() { return this.hasAttribute("disabled"); }
     set disabled(value) { this.toggleAttribute("disabled", Boolean(value)); }
+    get sendDisabled() { return this.hasAttribute("send-disabled"); }
+    set sendDisabled(value) {
+      this.toggleAttribute("send-disabled", Boolean(value));
+    }
+    get attachmentDisabled() { return this.hasAttribute("attachment-disabled"); }
+    set attachmentDisabled(value) {
+      this.toggleAttribute("attachment-disabled", Boolean(value));
+    }
     get pending() { return this.hasAttribute("pending"); }
     set pending(value) { this.toggleAttribute("pending", Boolean(value)); }
 
@@ -334,7 +356,7 @@ function createSpaceChatComposerElementClass() {
 
     private submit() {
       const text = this.#draft.trim();
-      if (!text || this.disabled || this.pending) return;
+      if (!text || this.disabled || this.sendDisabled || this.pending) return;
       emit(this, spaceChatEventNames.submit, {
         text,
         mentionIds: Object.freeze([...this.#mentionIds]),
@@ -354,18 +376,20 @@ function createSpaceChatComposerElementClass() {
       const textarea = this.#textarea;
       const send = this.#send;
       const attach = this.shadowRoot?.querySelector<HTMLButtonElement>(".attach");
+      const file = this.shadowRoot?.querySelector<HTMLInputElement>("input[type=file]");
       if (textarea) {
-        textarea.disabled = this.disabled;
+        textarea.disabled = this.disabled || this.sendDisabled;
         textarea.maxLength = Math.max(1, Number(this.getAttribute("maxlength")) || 4000);
         textarea.placeholder = this.getAttribute("placeholder")
           || translate("space.components.chat.composer.placeholder");
         textarea.setAttribute("aria-label", textarea.placeholder);
       }
       if (attach) {
-        attach.disabled = this.disabled || this.pending;
+        attach.disabled = this.disabled || this.attachmentDisabled || this.pending;
         attach.textContent = translate("space.components.chat.composer.attach");
         attach.setAttribute("aria-label", translate("space.components.chat.composer.attach"));
       }
+      if (file) file.disabled = this.disabled || this.attachmentDisabled || this.pending;
       if (send) {
         send.textContent = this.pending
           ? translate("space.components.chat.composer.pending")
@@ -377,7 +401,10 @@ function createSpaceChatComposerElementClass() {
 
     private syncDisabled() {
       if (this.#send) {
-        this.#send.disabled = this.disabled || this.pending || !this.#draft.trim();
+        this.#send.disabled = this.disabled
+          || this.sendDisabled
+          || this.pending
+          || !this.#draft.trim();
       }
     }
 
@@ -794,25 +821,49 @@ export const spaceChatTimelineStyles = `
 .list { display:grid; min-inline-size:0; gap:.9rem; }
 .entry { display:grid; min-inline-size:0; gap:.45rem; }
 .entry ${spaceChatAttachmentElementName} { margin-inline-start:2.6rem; max-inline-size:34rem; }
+.controls { display:flex; min-inline-size:0; flex-wrap:wrap; gap:.35rem; margin-inline-start:2.6rem; }
+.controls[data-own="true"] { justify-content:flex-end; margin-inline-start:0; }
+.controls[hidden] { display:none; }
 .typing { margin-block-start:.65rem; }
 .viewport:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
-@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName} { margin-inline-start:0; } }
+@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName},.controls { margin-inline-start:0; } }
 @media (forced-colors:active),(prefers-contrast:more) { .viewport { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .status { color:CanvasText; } }
 `;
 
 interface TimelineEntry {
   readonly wrapper: HTMLElement;
-  readonly messageElement: HTMLElement & { message: SpaceChatMessageView | null };
+  readonly messageElement: HTMLElement & {
+    message: SpaceChatMessageView | null;
+    showReactions: boolean;
+  };
+  readonly controls: HTMLElement;
+  readonly actionsElement: SpaceMessageActionsElement;
+  readonly reactionsElement: SpaceReactionBarElement;
   message: SpaceChatMessageView;
 }
 
+const noSpaceChatActions: SpaceChatActionAvailability = Object.freeze({
+  reply: false,
+  edit: false,
+  delete: false,
+  retry: false,
+  react: false,
+});
+
 function createSpaceChatTimelineElementClass() {
   return class VcSpaceChatTimelineElement extends HTMLElement implements SpaceChatTimelineElement {
-    static readonly observedAttributes = ["error", "locale", "state"];
+    static readonly observedAttributes = [
+      "error",
+      "interaction-disabled",
+      "interactive",
+      "locale",
+      "state",
+    ];
     #messages: readonly SpaceChatMessageView[] = Object.freeze([]);
     #typingUsers: readonly SpaceChatAuthorView[] = Object.freeze([]);
     #state: SpaceChatTimelineState = "loading";
     #error: string | null = null;
+    #reactionChoices: readonly string[] = Object.freeze([]);
     #viewport: HTMLElement | null = null;
     #status: HTMLElement | null = null;
     #list: HTMLElement | null = null;
@@ -827,6 +878,19 @@ function createSpaceChatTimelineElementClass() {
     set state(value) { this.#state = value === "error" || value === "ready" ? value : "loading"; if (this.isConnected) this.update(); }
     get error() { return this.#error; }
     set error(value) { this.#error = value?.trim() || null; if (this.isConnected) this.update(); }
+    get interactive() { return this.hasAttribute("interactive"); }
+    set interactive(value) { this.toggleAttribute("interactive", Boolean(value)); }
+    get interactionDisabled() { return this.hasAttribute("interaction-disabled"); }
+    set interactionDisabled(value) {
+      this.toggleAttribute("interaction-disabled", Boolean(value));
+    }
+    get reactionChoices() { return this.#reactionChoices; }
+    set reactionChoices(value) {
+      this.#reactionChoices = Object.freeze([...new Set(
+        (value ?? []).map((choice) => String(choice).trim()).filter(Boolean),
+      )]);
+      if (this.isConnected) this.update();
+    }
 
     connectedCallback() {
       if (!this.shadowRoot) this.build();
@@ -903,9 +967,42 @@ function createSpaceChatTimelineElementClass() {
             wrapper.className = "entry";
             wrapper.dataset.messageId = message.id;
             wrapper.setAttribute("part", "entry");
-            const messageElement = this.ownerDocument.createElement("vc-space-chat-message") as HTMLElement & { message: SpaceChatMessageView | null };
-            wrapper.append(messageElement);
-            entry = { wrapper, messageElement, message };
+            wrapper.setAttribute("data-testid", "chat-message-entry");
+            const messageElement = this.ownerDocument.createElement("vc-space-chat-message") as TimelineEntry["messageElement"];
+            messageElement.setAttribute("part", "message");
+            messageElement.setAttribute(
+              "exportparts",
+              "message:message-body,avatar:message-avatar,content:message-content,reactions:readonly-reactions,reaction:readonly-reaction",
+            );
+            const controls = this.ownerDocument.createElement("div");
+            controls.className = "controls";
+            controls.setAttribute("part", "controls");
+            const actionsElement = this.ownerDocument.createElement(
+              spaceMessageActionsElementName,
+            ) as SpaceMessageActionsElement;
+            actionsElement.setAttribute("part", "actions");
+            actionsElement.setAttribute(
+              "exportparts",
+              "actions:message-actions,reply:message-action-reply,edit:message-action-edit,delete:message-action-delete,retry:message-action-retry",
+            );
+            const reactionsElement = this.ownerDocument.createElement(
+              spaceReactionBarElementName,
+            ) as SpaceReactionBarElement;
+            reactionsElement.setAttribute("part", "reactions");
+            reactionsElement.setAttribute(
+              "exportparts",
+              "bar:reaction-bar,reaction:reaction",
+            );
+            controls.append(actionsElement, reactionsElement);
+            wrapper.append(messageElement, controls);
+            entry = {
+              wrapper,
+              messageElement,
+              controls,
+              actionsElement,
+              reactionsElement,
+              message,
+            };
             this.#entries.set(message.id, entry);
           }
           if (entry.message !== message) {
@@ -914,12 +1011,50 @@ function createSpaceChatTimelineElementClass() {
           } else if (!entry.messageElement.message) {
             entry.messageElement.message = message;
           }
+          const interactive = this.interactive;
+          const actions = message.actions ?? noSpaceChatActions;
+          const showActions = interactive && (
+            actions.reply || actions.edit || actions.delete || actions.retry
+          );
+          const showReactions = interactive
+            && actions.react
+            && (message.reactions.length > 0 || this.#reactionChoices.length > 0);
+          entry.messageElement.showReactions = !showReactions;
+          entry.controls.dataset.own = String(message.isOwn);
+          entry.controls.hidden = !showActions && !showReactions;
+          entry.actionsElement.actions = showActions
+            ? {
+                messageId: message.id,
+                canReply: actions.reply,
+                canEdit: actions.edit,
+                canDelete: actions.delete,
+                canRetry: actions.retry,
+                disabled: this.interactionDisabled,
+              }
+            : null;
+          const reactionByEmoji = new Map(
+            message.reactions.map((reaction) => [reaction.emoji, reaction]),
+          );
+          for (const emoji of this.#reactionChoices) {
+            if (!reactionByEmoji.has(emoji)) {
+              reactionByEmoji.set(emoji, Object.freeze({
+                emoji,
+                count: 0,
+                reactedBySelf: false,
+              }));
+            }
+          }
+          entry.reactionsElement.messageId = message.id;
+          entry.reactionsElement.reactions = showReactions
+            ? Object.freeze([...reactionByEmoji.values()])
+            : Object.freeze([]);
+          entry.reactionsElement.disabled = this.interactionDisabled;
           const existingAttachment = entry.wrapper.querySelector<SpaceChatAttachmentElement>(spaceChatAttachmentElementName);
           if (message.attachment) {
             const attachment = existingAttachment
               || this.ownerDocument.createElement(spaceChatAttachmentElementName) as SpaceChatAttachmentElement;
             attachment.attachment = message.attachment;
-            if (!existingAttachment) entry.wrapper.append(attachment);
+            if (!existingAttachment) entry.wrapper.insertBefore(attachment, entry.controls);
           } else {
             existingAttachment?.remove();
           }

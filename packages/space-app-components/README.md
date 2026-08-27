@@ -122,10 +122,15 @@ function renderChat() {
     timeline.state = state.ready ? "ready" : "loading"
     timeline.messages = state.messages
     timeline.typingUsers = state.typingUsers
+    timeline.interactive = true
+    timeline.interactionDisabled = state.pending !== null
+    timeline.reactionChoices = ["♥", "✨", "🌙"]
   }
   if (composer) {
     composer.draft = state.draft
     composer.pending = state.pending !== null
+    composer.sendDisabled = !space.chat.permissions.send
+    composer.attachmentDisabled = !space.chat.permissions.attach
     composer.context = state.context && {
       kind: state.context.kind,
       messageId: state.context.message.id,
@@ -167,11 +172,13 @@ window.addEventListener("pagehide", () => {
 }, { once: true })
 ```
 
-Composer 的 Enter/Shift+Enter/IME、附件 input 和结构化 Mention 均由组件统一处理；Template adapter 只连接 typed event 与 controller。`MessageActions` 的 `canReply/canEdit/canDelete/canRetry` 必须来自 Template 已有的显式权限 view，组件不会猜测 ACL。Agent 请求只能随 `chat.send({ mentionIds })` 进入 Matrix，组件库不提供 `agent.invoke()`。
+Composer 的 Enter/Shift+Enter/IME、附件 input 和结构化 Mention 均由组件统一处理；Template adapter 只连接 typed event 与 controller。Host 通过 `snapshot.chat.permissions` 明确下发 Chat 能力，message view 再结合 ownership/status 生成 `actions`；Timeline 在 `interactive` 模式内正式组合 `MessageActions` 和 `ReactionBar`，Template 不读取 Shadow DOM，也不自行猜测 ACL。Agent 请求只能随 `chat.send({ mentionIds })` 进入 Matrix，组件库不提供 `agent.invoke()`。
 
 `0.5.0` 保留 `0.4.1` 的 controller/element API，并建立 publishable ESM package、语义化 `/foundation|user|agent|chat` subpath、显式 `/register/*` side-effect entry、`/chat/inline` 自包含 HTML adapter 与 managed Registry provider。该版本把 Space 的正式消费方式从 Template 内相对 vendor 路径切换为普通 package specifier；组件交互语义、CSS token、Custom Element、typed event 和稳定 `data-testid` 不变。
 
-主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
+`0.6.0` 增加 Host 显式 Chat permissions、message action availability、Composer 的 `sendDisabled` / `attachmentDisabled`、Timeline 的 `interactive` / `interactionDisabled` / `reactionChoices` 公共 property、`chat-message-entry` test id 与嵌套 action/reaction `::part`。`vc-space-chat-message.showReactions`（对应 `hide-reactions` attribute）允许交互 Timeline 隐藏重复的只读 Reaction；`markRead()` 是去重且不占全局 command pending 的非阻塞命令。以上均为新增 API；旧的只读 Timeline 默认行为保持不变。
+
+主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-*`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 
 Browser bundles are built without network imports. 聚合、Foundation、User、Agent 与 Chat bundle 分别接受 gzip 预算检查；发布 package 自身保留未合并 ESM module boundary 和 `sideEffects` metadata，使普通 `/chat` 等领域入口可以继续由消费方 tree-shake。`dist/manifest.json` 将浏览器 bundle 绑定到同一个 package version、source/bundle hash、SDK range、Project format 与 CSS token version；`managed-release.json` 再把这些字段绑定到发布 package integrity，但不保存或引用 Git 内版本化编译目录。
 

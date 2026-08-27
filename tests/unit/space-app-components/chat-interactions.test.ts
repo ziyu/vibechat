@@ -72,7 +72,21 @@ function chatSnapshot(): SpaceAppSnapshot {
     ],
     messages,
     app: { revision: 0, state: {}, presence: [] },
-    chat: { messages, typingMemberIds: [] },
+    chat: {
+      messages,
+      typingMemberIds: [],
+      permissions: {
+        send: true,
+        attach: true,
+        reply: true,
+        editOwn: true,
+        deleteOwn: true,
+        react: true,
+        retryOwn: true,
+        typing: true,
+        markRead: true,
+      },
+    },
     agent: {
       id: "wayfinder",
       name: "Wayfinder",
@@ -225,6 +239,31 @@ describe("Space Chat migration-ready controller", () => {
     expect(sdk.chat.setTyping).toHaveBeenLastCalledWith(false);
     expect(controller.getSnapshot()).toMatchObject({ disposed: true, typing: false });
     expect([...sdk.listeners.values()].every((handlers) => handlers.size === 0)).toBe(true);
+    context.dispose();
+  });
+
+  it("deduplicates non-blocking read receipts without occupying command pending state", async () => {
+    const sdk = interactiveSdk();
+    let finishRead: (() => void) | undefined;
+    sdk.chat.markRead.mockImplementationOnce(() => new Promise<void>((resolve) => {
+      finishRead = resolve;
+    }));
+    const context = createSpaceComponentContext({ sdk: sdk.client });
+    const controller = createSpaceChatController(context);
+    await controller.ready;
+
+    const first = controller.markRead();
+    const second = controller.markRead();
+    await Promise.resolve();
+    expect(first).toBe(second);
+    expect(sdk.chat.markRead).toHaveBeenCalledTimes(1);
+    expect(controller.getSnapshot().pending).toBeNull();
+
+    finishRead?.();
+    await first;
+    await controller.markRead();
+    expect(sdk.chat.markRead).toHaveBeenCalledTimes(2);
+    controller.dispose();
     context.dispose();
   });
 });

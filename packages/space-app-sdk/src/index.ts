@@ -3,6 +3,7 @@ export type {
   SpaceAppMember,
   SpaceMentionTarget,
   SpaceChatMessage,
+  SpaceChatPermissions,
   SpaceAppPresence,
   SpaceAppSnapshot,
   SpaceAppStateUpdate,

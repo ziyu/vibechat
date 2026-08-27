@@ -65,6 +65,7 @@ export {
 export {
   createSpaceChatAttachmentView,
   createSpaceChatMessageViews,
+  type SpaceChatActionAvailability,
   type SpaceChatAttachmentKind,
   type SpaceChatAttachmentView,
   type SpaceChatAuthorKind,

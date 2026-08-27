@@ -140,6 +140,7 @@ export function renderSpaceComponentCatalogDocument(
       deleted: false,
       reply: null,
       reactions: [{ emoji: "Signal", count: 3, reactedBySelf: true }],
+      actions: { reply: true, edit: false, delete: false, retry: false, react: true },
       hasAttachment: true,
       attachment: {
         name: locale === "zh-CN" ? "河岸路线图.png" : "river-route-map.png",
@@ -168,6 +169,7 @@ export function renderSpaceComponentCatalogDocument(
         text: copy.aliceMessage,
       },
       reactions: [],
+      actions: { reply: true, edit: false, delete: false, retry: false, react: true },
       hasAttachment: false,
     },
     {
@@ -188,6 +190,7 @@ export function renderSpaceComponentCatalogDocument(
         text: "",
       },
       reactions: [],
+      actions: { reply: false, edit: false, delete: false, retry: true, react: false },
       hasAttachment: false,
     },
     {
@@ -203,6 +206,7 @@ export function renderSpaceComponentCatalogDocument(
       deleted: true,
       reply: null,
       reactions: [],
+      actions: { reply: false, edit: false, delete: false, retry: false, react: false },
       hasAttachment: false,
     },
   ];
