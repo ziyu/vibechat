@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：实施记录
 > 状态：Active
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：Space 语义、市场与模板、Kernel Bar/Chat Core/Space App、Agent Adapter、Runtime、数据/API/UI/E2E 演进
 > 对应稳定设计：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据。真实 Cloudflare D1/R2 preview、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和完整 #40 仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据；2026-08-28 已补齐空白 Space、Default Chat bootstrap、固定 Template 后应用和 Release/App State 保持的真实本地 E2E。真实 Cloudflare D1/R2 preview、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练、历史 rollback 和完整 #40 仍是后续门槛。
 
 本次产品校正确认：
 
@@ -299,7 +299,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-26 当前新账号欢迎额度从 100 调整为 1000 credits；交易 ID、账本类型和幂等语义保持不变，部署仍可通过 `CREDITS_NEW_USER_GRANT` 覆盖或关闭。上面的 100 credits 保留为 2026-08-24 实际走查的历史账务证据。
 - 2026-08-27 在明确授权外发测试 Project 源码与 Prompt 后，`chat-space-agent-collaboration.spec.ts` 的真实 Pi/provider 场景 2/2 通过：双 Chromium 对同一幂等 Matrix Agent event 刷新后仍各保留一条；真实 Agent 修改完整 Project 后，双方 live App 收敛到同一新 ready Revision，Published Release 保持不变。完整 E2E 同轮为 56 通过、0 失败、3 个 Agent 开关场景跳过；Fake Candidate 失败隔离继续沿用 2026-08-25 的独立 1/1 证据。
 
-尚未完成：双 Chromium member Mention 与分页 contract、空白 Space 后选模板、历史 rollback、真实 D1/R2 preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
+尚未完成：双 Chromium member Mention 与分页 contract、已有定制 Space 的模板替换/历史 rollback、真实 D1/R2 preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。空白 Space 后选模板、双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
 
@@ -325,6 +325,18 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 全仓 18/18 `pnpm typecheck` 与 `pnpm build`、Backend Node/Cloudflare build、`pnpm docs:check` 与 Docs production build 已通过；本轮文档更新后再次执行适用门禁。
 
 若真实模型凭据缺失，只能把 fake 合约与 Matrix 回写标为通过，不能声称真实 Agent provider 全链路通过。本轮环境存在真实 provider 凭据并已完成上述真实 Pi E2E；这仍不替代生产多副本、outbox 和故障注入证据。
+
+### 5.0.5 2026-08-28 空白 Space 与固定 Template 后应用（首版已验证）
+
+- `/v1/rooms` 显式区分 `startMode=blank|template`，兼容 alias 冲突返回 400；PG 与 SQLite/D1 `0017` 允许 `room_index.space_id/space_version_id` 为空。空白实例的 Product DB response 与 Matrix `io.vibechat.space.instance.v1` state 都不伪造 Template lineage，但 Runtime 仍从官方 Default Chat 固定 Version 创建首个 ready Project。
+- `POST /v1/rooms/:roomId/apply-template` 固定 Template Version、幂等 request 和 expected ready Revision；Backend 先校验 Better Auth、实时 Matrix membership 与市场 Version，再把请求作为 `target=template` Restore Turn 进入同 Space 单写队列。Runtime 在隔离 Candidate ready 后才保存新 Project，旧 ready Revision 与 Release 是失败保护边界。
+- 连续 Publish→Template Turn 暴露 control plane 提前释放 lease、Runtime 的 Instance/Project store 仍复用本地未到期 token 的竞态。两个写路径现在使用缓存 lease 前都先向 Backend 续租确认；失效时重新 claim 更高 fencing token。回归单测分别覆盖 Instance snapshot 与 Project pointer 的提前释放场景，Product DB 的 409 fencing 语义未被放宽。
+- 创建 API 成功后到 Matrix `/sync` 投影新 Room 之间由 Web 保存受信任的 optimistic Room 与 canonical metadata；Matrix 权威 Room 出现后自动移除，`leave/ban` 仍立即丢弃，不创建第二套长期 membership。
+- Node 24.19.0、本地 SQLite、Synapse、managed Rivet Engine、独立 Agent/build/serving pool、Backend `18102`、Web `18101` 与 Runtime `18107` 上，`chat-matrix-room.spec.ts` 定向 blank/apply 1/1（3.0 分钟）和完整 spec 3/3（3.3 分钟）通过。流程覆盖空白 lineage、Default Chat iframe、真实 Matrix 消息、App State、64 位不可变 Release、未知 Version 404、非成员 404、Kernel 请求 202、Template Candidate ready，以及应用后原消息/App State/Release 保持。
+- 全新隔离 Wrangler D1 从 `0000` 顺序迁移到 `0017_public_wrecker.sql`，18/18 migration 成功；实际 schema 查询确认 `room_index.space_id/space_version_id` 均为 nullable。使用同一 D1 binding 的本地 Workers 预览 `/api/health` 返回 200 且 database healthy，未登录治理 API 返回 401；该证据不包含真实 R2 Object Store 或目标环境跨宿主。
+- 最终 A3 定向 unit 10 个文件、45/45，应用边界、文档检查、Docs production build，以及 21/22 workspace 递归 typecheck/build 均通过。根 Turbo 包装命令受当前 macOS Keychain/TLS 初始化问题影响未进入任务执行，逐 workspace 等价门禁已完成。
+
+该证据完成空白 Space 后选模板首版，不代表已有复杂定制 Project 的历史 rollback、双浏览器模板切换或生产 D1/R2/external Engine 跨宿主已经完成。
 
 ### S0：兼容护栏与命名校正
 

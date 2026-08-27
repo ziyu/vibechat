@@ -125,13 +125,15 @@ export function registerProjectRoutes(
       requestId?: unknown;
       target?: unknown;
       expectedReadyRevisionId?: unknown;
+      templateId?: unknown;
+      templateVersionId?: unknown;
     };
     const member = parseMember(body.clientId, body.authorName);
     if (typeof body.requestId !== "string" || !body.requestId.trim()) {
       return context.json({ error: "requestId is required" }, 400);
     }
     if (
-      body.target !== "default-chat" ||
+      (body.target !== "default-chat" && body.target !== "template") ||
       typeof body.expectedReadyRevisionId !== "string" ||
       !/^[a-f0-9]{16}$/.test(body.expectedReadyRevisionId)
     ) {
@@ -140,17 +142,39 @@ export function registerProjectRoutes(
         400,
       );
     }
+    if (
+      body.target === "template"
+      && (
+        typeof body.templateId !== "string"
+        || !body.templateId.trim()
+        || typeof body.templateVersionId !== "string"
+        || !body.templateVersionId.trim()
+      )
+    ) {
+      return context.json(
+        { error: "templateId and templateVersionId are required" },
+        400,
+      );
+    }
+    const recovery = body.target === "template"
+      ? {
+          target: "template" as const,
+          expectedReadyRevisionId: body.expectedReadyRevisionId,
+          templateId: body.templateId as string,
+          templateVersionId: body.templateVersionId as string,
+        }
+      : {
+          target: "default-chat" as const,
+          expectedReadyRevisionId: body.expectedReadyRevisionId,
+        };
     const turn = await runtime.spaces.beginTurn(appId, {
       clientId: member.clientId,
       authorName: member.name,
-      text: "恢复默认 Chat App",
+      text: body.target === "template" ? "应用 Space Template" : "恢复默认 Chat App",
       kind: "restore",
       externalRequestId: body.requestId,
       agentId: "kernel",
-      recovery: {
-        target: body.target,
-        expectedReadyRevisionId: body.expectedReadyRevisionId,
-      },
+      recovery,
     });
     return context.json({ accepted: true, ...turn }, 202);
   });

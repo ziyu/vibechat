@@ -112,6 +112,36 @@ describe('ProductApiClient', () => {
     )
   })
 
+  it('submits a fixed Template Version for Kernel Template application', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'apply-template-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.applySpaceTemplate('!space:localhost', {
+      requestId: 'apply-template-request-1',
+      expectedReadyRevisionId: '0123456789abcdef',
+      spaceTemplateId: 'space-campfire',
+      spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+    })).resolves.toMatchObject({ accepted: true, turnId: 'apply-template-turn-1' })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/rooms/!space%3Alocalhost/apply-template',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          requestId: 'apply-template-request-1',
+          expectedReadyRevisionId: '0123456789abcdef',
+          spaceTemplateId: 'space-campfire',
+          spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+        }),
+      }),
+    )
+  })
+
   it('submits an exact ready Revision for Kernel publish', async () => {
     const http = transport(Response.json({
       accepted: true,

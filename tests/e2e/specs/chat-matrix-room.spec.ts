@@ -5,11 +5,11 @@ function chatFrame(page: Page) {
   return page.frameLocator('[data-testid="space-app-surface"] iframe')
 }
 
-async function openAppChat(page: Page) {
+async function openAppChat(page: Page, timeout = 30_000) {
   const frame = chatFrame(page)
   const input = frame.getByTestId('message-input')
   const root = frame.locator('#vcc-root')
-  await input.waitFor({ state: 'attached' })
+  await input.waitFor({ state: 'attached', timeout })
   if (await root.getAttribute('data-open') !== 'true') {
     await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
   }
@@ -45,6 +45,240 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
         requestId: expect.any(String),
       },
     })
+
+    const applyTemplate = await request.post(
+      `/v1/rooms/${encodeURIComponent('!missing:localhost')}/apply-template`,
+      {
+        data: {
+          requestId: `unauth-apply-${crypto.randomUUID()}`,
+          expectedReadyRevisionId: '0123456789abcdef',
+          spaceTemplateId: 'space-campfire',
+          spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+        },
+      },
+    )
+    expect(applyTemplate.status()).toBe(401)
+    await expect(applyTemplate.json()).resolves.toMatchObject({
+      error: { code: 'AUTH_SESSION_REQUIRED' },
+    })
+  })
+
+  test('creates a blank Space and applies a fixed Template without replacing Chat, App state, or Release', async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(420_000)
+    const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Blank Space E2E',
+      email: `e2e-blank-space-${suffix}@example.com`,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    const bootstrap = await bootstrapResponse.json()
+    expect(bootstrap.matrix.status).toBe('ready')
+
+    await page.goto('/spaces')
+    await page.getByTestId('create-space-hero').click()
+    const createDialog = page.getByTestId('new-space-dialog')
+    await expect(createDialog).toBeVisible()
+    await createDialog.getByTestId('new-space-next').click()
+    await expect(createDialog.getByTestId('space-start-blank')).toHaveAttribute(
+      'data-selected',
+      'true',
+    )
+    await createDialog.getByTestId('new-space-next').click()
+
+    const createResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/v1/rooms',
+    )
+    await createDialog.getByTestId('new-space-create').click()
+    const createResponse = await createResponsePromise
+    expect(createResponse.status(), await createResponse.text()).toBe(201)
+    const created = await createResponse.json()
+    expect(created).toMatchObject({
+      matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
+      startMode: 'blank',
+      spaceId: null,
+      spaceVersionId: null,
+      spaceTemplateId: null,
+      spaceTemplateVersionId: null,
+      status: 'active',
+    })
+    expect(createResponse.request().postDataJSON()).toMatchObject({
+      startMode: 'blank',
+    })
+    expect(createResponse.request().postDataJSON()).not.toHaveProperty('spaceTemplateId')
+    await page.waitForURL((url) =>
+      decodeURIComponent(url.pathname) === `/spaces/${created.matrixRoomId}`,
+    )
+
+    const blankStateUrl =
+      `${bootstrap.matrix.homeserverUrl}/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+      + '/state/io.vibechat.space.instance.v1/'
+    const stateResponse = await page.request.get(blankStateUrl, {
+      headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` },
+    })
+    expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
+    const blankState = await stateResponse.json()
+    expect(blankState).toMatchObject({
+      startMode: 'blank',
+      spaceInstanceId: created.spaceInstanceId,
+      projectId: created.projectId,
+      defaultAgentId: 'pi',
+      createdBy: bootstrap.matrix.userId,
+    })
+    expect(blankState).not.toHaveProperty('templateId')
+    expect(blankState).not.toHaveProperty('templateVersionId')
+
+    await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
+    const runtimeUrl = `/v1/spaces/instances/${encodeURIComponent(created.matrixRoomId)}`
+    const initialSnapshotResponse = await page.request.get(runtimeUrl)
+    expect(initialSnapshotResponse.ok(), await initialSnapshotResponse.text()).toBeTruthy()
+    const initialSnapshot = await initialSnapshotResponse.json()
+    expect(initialSnapshot.project).toMatchObject({
+      draftId: expect.stringMatching(/^[a-f0-9]{16}$/),
+      template: { id: 'space-default' },
+    })
+
+    const messageText = `Blank Space Matrix message ${Date.now()}`
+    const blankChat = await openAppChat(page, 90_000)
+    await blankChat.getByTestId('message-input').fill(messageText)
+    await blankChat.getByTestId('send-message').click()
+    await expect(
+      blankChat.getByTestId('message-body')
+        .filter({ hasText: messageText })
+        .locator('xpath=ancestor::article'),
+    ).toContainText('已发送')
+
+    const stateValue = { marker: `preserved-${suffix}` }
+    const appStateResponse = await page.request.post(`${runtimeUrl}/bridge`, {
+      data: {
+        action: 'state.set',
+        payload: { key: 'e2e.template-preserved', value: stateValue },
+      },
+    })
+    expect(appStateResponse.ok(), await appStateResponse.text()).toBeTruthy()
+
+    const publishResponse = await page.request.post(`${runtimeUrl}/publish`, {
+      data: {
+        requestId: `blank-publish-${crypto.randomUUID()}`,
+        expectedReadyRevisionId: initialSnapshot.project.draftId,
+      },
+    })
+    expect(publishResponse.status(), await publishResponse.text()).toBe(202)
+    await expect.poll(async () => {
+      const response = await page.request.get(runtimeUrl)
+      if (!response.ok()) return null
+      const snapshot = await response.json()
+      return snapshot.project.releaseId ? snapshot : null
+    }, { timeout: 240_000 }).not.toBeNull()
+    const beforeApplyResponse = await page.request.get(runtimeUrl)
+    expect(beforeApplyResponse.ok(), await beforeApplyResponse.text()).toBeTruthy()
+    const beforeApply = await beforeApplyResponse.json()
+    expect(beforeApply.appState.state['e2e.template-preserved']).toEqual(stateValue)
+    expect(beforeApply.project.releaseId).toEqual(expect.any(String))
+
+    const wrongVersion = await page.request.post(
+      `/v1/rooms/${encodeURIComponent(created.matrixRoomId)}/apply-template`,
+      {
+        data: {
+          requestId: `wrong-template-version-${crypto.randomUUID()}`,
+          expectedReadyRevisionId: beforeApply.project.draftId,
+          spaceTemplateId: 'space-campfire',
+          spaceTemplateVersionId: 'tplv-space-campfire-does-not-exist',
+        },
+      },
+    )
+    expect(wrongVersion.status()).toBe(404)
+    await expect(wrongVersion.json()).resolves.toMatchObject({
+      error: { code: 'SPACE_TEMPLATE_VERSION_NOT_FOUND' },
+    })
+
+    const outsiderContext = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'http://localhost:8001',
+    })
+    try {
+      const outsider = await outsiderContext.newPage()
+      const outsiderSignUp = await signUpViaAPI(outsider, {
+        name: 'Blank Space Outsider',
+        email: `e2e-blank-space-outsider-${suffix}@example.com`,
+        password: 'VibeChat-e2e-password-2026!',
+      })
+      expect(outsiderSignUp.ok(), await outsiderSignUp.text()).toBeTruthy()
+      await completeChatOnboarding(outsider)
+      const outsiderBootstrap = await outsider.request.get('/v1/session/bootstrap')
+      expect(outsiderBootstrap.ok(), await outsiderBootstrap.text()).toBeTruthy()
+      const outsiderApply = await outsider.request.post(
+        `/v1/rooms/${encodeURIComponent(created.matrixRoomId)}/apply-template`,
+        {
+          data: {
+            requestId: `outsider-template-${crypto.randomUUID()}`,
+            expectedReadyRevisionId: beforeApply.project.draftId,
+            spaceTemplateId: 'space-campfire',
+            spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+          },
+        },
+      )
+      expect(outsiderApply.status()).toBe(404)
+      await expect(outsiderApply.json()).resolves.toMatchObject({
+        error: { code: 'SPACE_INSTANCE_NOT_FOUND' },
+      })
+    } finally {
+      await outsiderContext.close()
+    }
+
+    await page.getByRole('button', { name: 'Space 菜单' }).click()
+    await page.getByTestId('apply-space-template').click()
+    const applyDialog = page.getByTestId('apply-space-template-dialog')
+    await expect(applyDialog).toBeVisible()
+    await applyDialog.getByTestId('apply-template-space-campfire').click()
+    const applyResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname.endsWith('/apply-template'),
+    )
+    await applyDialog.getByTestId('confirm-apply-space-template').click()
+    const applyResponse = await applyResponsePromise
+    expect(applyResponse.status(), await applyResponse.text()).toBe(202)
+    expect(applyResponse.request().postDataJSON()).toMatchObject({
+      expectedReadyRevisionId: beforeApply.project.draftId,
+      spaceTemplateId: 'space-campfire',
+      spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+    })
+
+    await expect.poll(async () => {
+      const response = await page.request.get(runtimeUrl)
+      if (!response.ok()) return null
+      const snapshot = await response.json()
+      return {
+        draftChanged: snapshot.project.draftId !== beforeApply.project.draftId,
+        templateId: snapshot.project.template?.id,
+        templateVersionId: snapshot.project.template?.versionId,
+        releaseId: snapshot.project.releaseId,
+        appState: snapshot.appState.state['e2e.template-preserved'],
+        previewState: snapshot.devPreview.state,
+      }
+    }, { timeout: 120_000 }).toEqual({
+      draftChanged: true,
+      templateId: 'space-campfire',
+      templateVersionId: 'tplv-space-campfire-0-1-2',
+      releaseId: beforeApply.project.releaseId,
+      appState: stateValue,
+      previewState: 'ready',
+    })
+
+    const appliedChat = await openAppChat(page)
+    await expect(appliedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    const unchangedBlankState = await (await page.request.get(blankStateUrl, {
+      headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` },
+    })).json()
+    expect(unchangedBlankState).toMatchObject({ startMode: 'blank' })
+    expect(unchangedBlankState).not.toHaveProperty('templateId')
   })
 
   test('creates an indexed atmosphere room and sends a durable Matrix message', async ({ page }) => {
@@ -113,7 +347,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(repeatedResponse.json()).resolves.toEqual(created)
 
     const stateResponse = await page.request.get(
-      `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+      `${bootstrap.matrix.homeserverUrl}/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
         + '/state/io.vibechat.space.instance.v1/',
       { headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` } },
     )
@@ -134,7 +368,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
 
     const idempotentTxnId = `e2e-txn-${crypto.randomUUID()}`
     const idempotentSendUrl =
-      `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+      `${bootstrap.matrix.homeserverUrl}/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
       + `/send/m.room.message/${encodeURIComponent(idempotentTxnId)}`
     const idempotentSendBody = {
       msgtype: 'm.text',

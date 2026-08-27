@@ -13,7 +13,6 @@ import { runtimeReplicaOwnerId } from './runtime-replica.js'
 
 const controlPath = '/v1/internal/space-runtime-control'
 const leaseTtlMs = 30_000
-const leaseRenewalWindowMs = 10_000
 
 export interface RemoteProjectStore {
   load(appId: string): Promise<StoredProject | null>
@@ -130,8 +129,9 @@ export class BackendRemoteProjectStore implements RemoteProjectStore {
   async #lease(spaceInstanceId: string) {
     const current = this.#leases.get(spaceInstanceId)
     if (current) {
-      const remainingMs = new Date(current.expiresAt).getTime() - Date.now()
-      if (remainingMs > leaseRenewalWindowMs) return current
+      // The turn control path can release this replica's lease before the
+      // advertised expiry. Confirm cached ownership before persisting a Project
+      // so an independently cached token cannot cross a fencing generation.
       const renewed = await this.#control({
         action: 'renew_lease',
         lease: current,

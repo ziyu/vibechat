@@ -130,8 +130,18 @@ export async function createRuntime(
   });
   const restoreTurnProcessor = new RestoreTurnProcessor({
     loadProject,
-    getDefaultTemplate: () =>
-      getOfficialSpaceTemplate(config.defaultChatTemplateId),
+    resolveTemplate: (recovery) => {
+      const templateId = recovery.target === "default-chat"
+        ? config.defaultChatTemplateId
+        : recovery.templateId;
+      const template = getOfficialSpaceTemplate(templateId);
+      const versionId = recovery.target === "default-chat"
+        ? template?.currentVersionId
+        : recovery.templateVersionId;
+      return template?.versions.some((version) => version.id === versionId) && versionId
+        ? { id: template.id, versionId }
+        : null;
+    },
     createProjectFromTemplate: ({
       spaceInstanceId,
       templateId,

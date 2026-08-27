@@ -9,6 +9,9 @@ const input = {
   accessToken: "matrix-secret-token",
   name: "Afterglow",
   inviteMatrixUserIds: ["@vibe_friend:localhost"],
+  spaceInstanceId: "space-instance-1",
+  projectId: "project-1",
+  defaultAgentId: "pi",
   space: {
     id: "space-campfire",
     versionId: "tplv-space-campfire-0-1-0",
@@ -52,6 +55,12 @@ describe("SynapseMatrixRoomAdapter", () => {
         type: "io.vibechat.space.instance.v1",
         state_key: "",
         content: {
+          startMode: "template",
+          spaceInstanceId: "space-instance-1",
+          projectId: "project-1",
+          defaultAgentId: "pi",
+          spaceId: "space-campfire",
+          spaceVersionId: "tplv-space-campfire-0-1-0",
           templateId: "space-campfire",
           templateVersionId: "tplv-space-campfire-0-1-0",
           publisher: {
@@ -63,6 +72,28 @@ describe("SynapseMatrixRoomAdapter", () => {
         },
       }],
     });
+  });
+
+  it("creates a blank Matrix Space state without claiming Template lineage", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ room_id: "!blank:localhost" }),
+    );
+    const adapter = new SynapseMatrixRoomAdapter({
+      homeserverUrl: "http://localhost:8008",
+      fetch,
+    });
+
+    await adapter.createRoom({ ...input, space: null });
+
+    const body = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body));
+    expect(body.initial_state[0].content).toMatchObject({
+      startMode: "blank",
+      spaceInstanceId: "space-instance-1",
+      projectId: "project-1",
+      defaultAgentId: "pi",
+    });
+    expect(body.initial_state[0].content).not.toHaveProperty("templateId");
+    expect(body.initial_state[0].content).not.toHaveProperty("spaceId");
   });
 
   it("returns a stable error without response or access-token contents", async () => {

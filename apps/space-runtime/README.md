@@ -16,7 +16,7 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 - `PI_MAX_CONCURRENCY` / `PI_BATCH_WINDOW_MS`：上述平台变量缺失时使用的旧名 fallback，仅保留一个兼容周期；新配置优先。
 - `PI_MODE`：默认 `auto`；存在本机 Pi CLI 会话时走 `host`，具备 AgentOS provider credential 时可设为 `agentos`。
 - `PI_BIN`：可选的 Host Pi 可执行文件绝对路径。根目录 `pnpm dev` 会忽略仓库 `node_modules/.bin` 中的旧版依赖并自动解析仓库外的系统 Pi；部署时建议显式配置和固定版本。
-- `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程隔离的 `/tmp/vc-space-runtime-<pid>`，避免 macOS Unix socket 路径超限。
+- `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程/worker 隔离的 `/tmp/vc-space-runtime[-<workload>]-<pid>`，避免 macOS Unix socket 路径超限。
 - `AGENTOS_APPS_DNS_SERVERS`：可选的 Release Build VM DNS，使用逗号分隔。根目录 `pnpm dev` 在本地默认注入 `1.1.1.1,8.8.8.8`，避免 macOS AgentOS `0.2.15` 无法解析系统 resolver；生产运行时若已有正确 DNS 可不设置。
 - `SPACE_RUNTIME_ENGINE_MODE`：`managed` 或 `external`。开发环境可使用 `managed`；生产环境必须显式为 `external`，否则 Runtime 启动失败。
 - `RIVET_ENDPOINT` / `AGENTOS_ENDPOINT`：外部 Rivet Engine 地址。`external` 模式必须提供；endpoint 禁止携带 URL credential、query 或 fragment。根目录开发启动器管理本地 Engine 时会显式使用 `managed` 并注入本地 endpoint。
@@ -65,6 +65,9 @@ server.ts
 4. Agent 写入 Project 后，agentOS Apps 在独立版本实例中构建 Candidate；成功后该固定 revision 成为新的 ready App，Web iframe 按 `version` 精确加载。
 5. 只有可信 Kernel 发布 API 可以创建 Publish Turn，并必须提交用户看到的 `expectedReadyRevisionId`；自然语言“发布”仍是普通 Agent Turn。发布只固化该 ready Revision，Live 不会被后续 Draft 自动覆盖。
 6. 成员也可以从可信 Kernel 菜单显式恢复 Default Chat App；Backend 校验身份和 Matrix membership，Runtime 用请求中的 expected ready Revision 做并发保护，再从官方固定 Template Artifact 构建隔离 Candidate。只有 Candidate ready 才保存新的 ready Revision，已有 Release、Matrix timeline 与 App State 不变；该 Turn 不进入 Agent Adapter 或 AI credits。
+7. 空白 Space 以 Default Chat 作为首个 ready Project，但 Product DB/Matrix 创建 lineage 保持为空；后续应用市场 Template 复用 Restore Turn 和 Candidate 屏障，只切 ready Project，不改 Matrix timeline、App State 或已有 Release。
+
+Runtime 的 Instance snapshot 与 Project pointer 使用同一 Product DB lease/fencing 代次。Backend 在空队列 claim 后可以提前释放 lease，因此两个远程写客户端在复用缓存 token 前必须先续租复核；不能只根据本地 `expiresAt` 判断所有权，也不能捕获 409 后绕过 fencing。
 
 Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 ready Revision 使用不同 actor key，启动 Candidate 不会停止成员正在使用的 ready App；当前进程保留最近三个 ready 版本供 iframe 重载和页面刷新按 revision 读取。Candidate 构建或启动失败只更新诊断，不改变最后 ready 指针。
 

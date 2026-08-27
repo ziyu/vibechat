@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：当前实现事实、近期主线和跨应用工程约束
 > 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -19,7 +19,7 @@
 1. 保留 `/v1/spaces`、Discover、分类、收藏、模板版本和现有 `spaceId/spaceVersionId` 创建链路。
 2. Runtime P0 正确性与安全已收口：gateway 实时核验 Matrix membership；Publish 固定请求时的 ready Revision 且只接受 Kernel 命令；内部调用使用短期 audience/method/path scoped 凭证。真实 member kick/leave 全 gateway E2E 已 2/2 通过：即使 `participant_user_ids_json` 仍含旧成员，snapshot/bootstrap、live/dev App、events、messages/turns、publish、restore 和 bridge 也全部立即 fail closed，且不产生 Turn、Outbox 或 credits 副作用。
 3. 已在原地升级的 `room_index` 和统一 SpaceInstance 上抽取 Project/Instance/Turn/Lease/Outbox repositories，接入 Product DB/Object Store、v2 state、outbox reconciler、lease/fencing 与 interrupted-turn 恢复，没有新增 `space_instances`。下一步执行真实 D1/R2 migration/preview。
-4. 在保持真实 Matrix Chat/社交/市场回归的前提下增加空白 Space 创建与模板后应用。
+4. 空白 Space 创建与模板后应用首版已完成：创建 lineage 保持为空，Default Chat 首次 ready，Kernel 以固定 Template Version 生成隔离 Candidate，成功后只切 ready Revision 并保持 Matrix、App State 与既有 Release。下一步补已有定制 Space 的双浏览器/rollback 验收。
 5. 以 TEST-CATALOG #40 推进 Kernel Bar + 全尺寸 App Surface、Default Chat App、完整 Chat/Mention SDK、结构化 Agent Mention、ready Revision 实时更新和 publish barrier。
 6. 以统一 `SpaceTemplate` / `SpaceTemplateVersion` / `SpaceTemplateMarketEntry` 协议补齐用户从固定 ready Revision 发布到市场的 Product DB/Object Store、审核和撤销链路；不得为官方和用户建立平行类型或市场表。
 7. Agent 架构 S5 仓库实现已完成：生产 control 只预检区域 external Engine，Agent/build/serving 以三个独立 OS worker/Envoy pool 运行，接入独立 credential scope、egress、quota 和 metrics。control 不通过 session 请求传 provider secret，只有 Agent worker resolver 注入；各角色的 key 缺失/泄漏边界均失败关闭。双 Node replica harness 覆盖 M1→Publish→M2、active owner 接管、旧 owner fencing、session rebuild、Release pointer 和 outbox ACK 丢失重放；disposable 真实 Engine 上三类 pool 各两个 replica 同时 active，停止一个 build worker 后保持 `2/1/2`。下一步是目标环境的真实 Synapse + D1/R2 + external Engine 跨宿主与备份恢复验收，完成前不能声称生产接管已验证。
@@ -46,6 +46,7 @@
 - 默认开发启动器现同时拥有本地 Rivet Engine 生命周期；Runtime 已删除本地 JSON Project/Instance/Turn adapter 和 `SPACE_RUNTIME_CONTROL_MODE` 开关，Project source 始终进入内容寻址 Object Store，pointer/snapshot/turn/lease/outbox 始终进入 Product DB，并由 Runtime 周期扫描、续租、接管和触发 reconciler。单元测试使用显式内存 adapter，不进入生产构建。Alice 的既有 Release 重启恢复仍是本地 Actor 证据；真实跨宿主 AgentOS artifact 恢复尚未验证。
 - 仓库级 CI/CD 配置已迁移到 CircleCI：所有构建分支执行文档、类型、产品构建、文档站和 Web Docker 验证；`main` 通过人工批准后可部署 Backend Cloudflare Workers。CircleCI 项目接入、生产 Context 和首次真实部署证据仍在 [Active 迁移记录](./active/circleci-ci-cd-migration.md)中跟踪。
 - 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；结构化 `@pi`、欢迎积分、Host Pi 回复、真实 usage 结算和 ready Revision 更新先有单浏览器运行证据，2026-08-27 又以真实 Pi/provider 和双 Chromium 自动化覆盖幂等 Matrix Agent event、刷新唯一恢复及双方 live App 收敛到同一新 ready Revision，Published Release 未被隐式改写。同一 collaboration spec 最终在显式 Fake Definition/Binding 下 3/3 通过，Candidate 三次 repair 失败后旧 ready Revision、Release 与 Chat 均保持。真实 Synapse 的 member kick/leave 安全 E2E 也已覆盖全部八类 Runtime Gateway，并确认 Product DB 成员投影陈旧时仍以 Matrix 为权威。完整 Chromium 回归同轮为 56 通过、0 失败、3 个显式 Agent 开关场景跳过；Publish expected-revision 屏障、生产 control plane 和双 server takeover 已有代码与 unit 证据，但真实双进程/D1/R2/外部 AgentOS 演练、空白 Space、历史 rollback 与完整 #40 未完成，因此 A3/A4 保持 Active。
+- 2026-08-28 空白 Space 与模板后应用形成真实本地证据：Web 默认空白创建，Product DB 与 Matrix v1 state 不伪造 Template lineage，Runtime 从 Default Chat 固定版本生成首个 ready Revision；Kernel `apply-template` 以固定 Version 和 expected ready Revision 入队 Restore Turn，隔离 Candidate ready 后更新 Project，原 Matrix 消息、App State 和 64 位不可变 Release 均保持。连续 Turn 暴露的提前 lease release/本地缓存 fencing 竞态已通过写前续租复核关闭；创建成功到 Matrix `/sync` 的窗口由受信任 optimistic Room 承接，权威投影到达后自动移除。真实 Synapse/managed Engine `chat-matrix-room.spec.ts` 完整 3/3 通过；全新本地 Wrangler D1 从 `0000` 迁移至 `0017`、nullable schema 和 Workers database health 也已验证。历史 rollback、真实 R2/external Engine 跨宿主和完整 #40 仍未完成，因此 A3/A4 保持 Active。
 - S5 完成轮再次尝试完整 Chromium 回归，结果为 39 passed、8 failed、3 skipped、9 did not run。失败集中在当前共享服务/数据环境的 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 和 `SPACE_RUNTIME_UNAVAILABLE`；这些失败未被改写为通过，也不作为 S5 Engine/pool 证据。S5 定向 Runtime unit 107/107、真实 Engine pool 1/1 和双 Node failover 1/1 另行通过。
 
 ## 当前约束

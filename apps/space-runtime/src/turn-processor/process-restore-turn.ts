@@ -8,12 +8,12 @@ import type {
 
 export interface RestoreTemplateRef {
   id: string;
-  currentVersionId: string;
+  versionId: string;
 }
 
 export interface RestoreTurnProcessorDependencies {
   loadProject(spaceInstanceId: string): Promise<StoredProject | null>;
-  getDefaultTemplate(): RestoreTemplateRef | null;
+  resolveTemplate(recovery: SpaceTurnRecovery): RestoreTemplateRef | null;
   createProjectFromTemplate(input: {
     spaceInstanceId: string;
     templateId: string;
@@ -92,20 +92,23 @@ export class RestoreTurnProcessor {
           current.draftId,
         );
       }
-      const template = this.#dependencies.getDefaultTemplate();
+      const template = this.#dependencies.resolveTemplate(input.recovery);
       if (!template) {
-        throw new Error("Default Chat Template is unavailable");
+        throw new Error("Requested Space Template is unavailable");
       }
 
+      const isDefaultChat = input.recovery.target === "default-chat";
       await relayProgress({
         type: "status",
         stage: "recovering",
-        message: "正在从官方 Template 准备 Default Chat App Candidate…",
+        message: isDefaultChat
+          ? "正在从官方 Template 准备 Default Chat App Candidate…"
+          : "正在准备 Space Template Candidate…",
       });
       const candidate = await this.#dependencies.createProjectFromTemplate({
         spaceInstanceId: input.spaceInstanceId,
         templateId: template.id,
-        templateVersionId: template.currentVersionId,
+        templateVersionId: template.versionId,
       });
       const preview = await this.#dependencies.preparePreview({
         spaceInstanceId: input.spaceInstanceId,
@@ -127,7 +130,9 @@ export class RestoreTurnProcessor {
           : {}),
         ...(current.releaseId ? { releaseId: current.releaseId } : {}),
       });
-      const message = "已恢复 Default Chat App。";
+      const message = isDefaultChat
+        ? "已恢复 Default Chat App。"
+        : "已应用 Space Template。";
       await this.#dependencies.complete({
         spaceInstanceId: input.spaceInstanceId,
         turnId: input.turnId,
@@ -142,12 +147,14 @@ export class RestoreTurnProcessor {
           updatedAt,
           recoveredFromRevisionId: current.draftId,
           recoveryTarget: input.recovery.target,
+          appliedTemplateId: candidate.template?.id ?? null,
+          appliedTemplateVersionId: candidate.template?.versionId ?? null,
           publishedReleaseId: current.releaseId ?? null,
         },
       });
       return true;
     } catch (error) {
-      this.#dependencies.reportError("Default Chat recovery failed", error);
+      this.#dependencies.reportError("Managed Template replacement failed", error);
       await this.#dependencies.failTurn({
         spaceInstanceId: input.spaceInstanceId,
         turnId: input.turnId,

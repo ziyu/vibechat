@@ -120,6 +120,13 @@
       "when": 1787831289874,
       "tag": "0016_parallel_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1787841221343,
+      "tag": "0017_public_wrecker",
+      "breakpoints": true
     }
   ]
 }

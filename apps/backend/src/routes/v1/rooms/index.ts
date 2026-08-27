@@ -91,8 +91,11 @@ export const Route = createFileRoute('/v1/rooms/')({
             spaceInstanceId: room.spaceInstanceId,
             projectId: room.projectId,
             defaultAgentId: room.defaultAgentId,
+            startMode: room.spaceId ? 'template' : 'blank',
             spaceId: room.spaceId,
             spaceVersionId: room.spaceVersionId,
+            spaceTemplateId: room.spaceId,
+            spaceTemplateVersionId: room.spaceVersionId,
             status: room.status,
             createdAt: room.createdAt.toISOString(),
             updatedAt: room.updatedAt.toISOString(),
@@ -115,7 +118,10 @@ export const Route = createFileRoute('/v1/rooms/')({
             )
           }
           if (error instanceof RoomServiceError) {
-            const status = error.code === 'ROOM_SPACE_NOT_FOUND' ? 404 : 409
+            const status = error.code === 'ROOM_SPACE_NOT_FOUND'
+              || error.code === 'ROOM_SPACE_VERSION_NOT_FOUND'
+              ? 404
+              : 409
             return productError(requestId, status, error.code, error.code)
           }
           if (error instanceof SocialServiceError) {

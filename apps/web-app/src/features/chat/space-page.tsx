@@ -5,6 +5,7 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowLeft,
   CheckCheck,
+  LayoutTemplate,
   MoreHorizontal,
   Pin,
   PinOff,
@@ -58,10 +59,14 @@ export function SpacePage({ roomId }: { roomId: string }) {
   } = useChat()
   const [reloadKey, setReloadKey] = useState(0)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [applyTemplateDialogOpen, setApplyTemplateDialogOpen] = useState(false)
+  const [applyTemplateId, setApplyTemplateId] = useState('')
   const room = state.rooms.find((candidate) => candidate.id === roomId)
-  const space = state.spaces.find((candidate) => candidate.id === room?.spaceId)
   const runtime = useSpaceRuntime(roomId)
+  const activeTemplateId = runtime.snapshot?.project.template?.id ?? room?.spaceId
+  const space = state.spaces.find((candidate) => candidate.id === activeTemplateId)
   const messages = useMemo(() => getRoomMessages(state, roomId), [roomId, state])
+  const applyTemplate = state.spaces.find((candidate) => candidate.id === applyTemplateId)
 
   useEffect(() => {
     markRoomRead(roomId)
@@ -208,12 +213,34 @@ export function SpacePage({ roomId }: { roomId: string }) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              data-testid="apply-space-template"
+              disabled={
+                !runtime.snapshot?.project.draftId
+                || Boolean(runtime.snapshot.build)
+                || runtime.publishing
+                || runtime.restoring
+                || runtime.applyingTemplate
+                || runtime.unavailable
+              }
+              onSelect={() => {
+                const initial = state.spaces.find(
+                  (candidate) => candidate.id !== runtime.snapshot?.project.template?.id,
+                ) ?? state.spaces[0]
+                setApplyTemplateId(initial?.id ?? '')
+                setApplyTemplateDialogOpen(true)
+              }}
+            >
+              <LayoutTemplate />
+              {t.chatApp.spaceRuntime.applyTemplate}
+            </DropdownMenuItem>
+            <DropdownMenuItem
               data-testid="restore-default-chat"
               disabled={
                 !runtime.snapshot?.project.draftId
                 || Boolean(runtime.snapshot.build)
                 || runtime.publishing
                 || runtime.restoring
+                || runtime.applyingTemplate
                 || runtime.unavailable
               }
               onSelect={() => setRestoreDialogOpen(true)}
@@ -260,7 +287,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
       <Dialog
         open={restoreDialogOpen}
         onOpenChange={(open) => {
-          if (!runtime.restoring) setRestoreDialogOpen(open)
+          if (!runtime.restoring && !runtime.applyingTemplate) setRestoreDialogOpen(open)
         }}
       >
         <DialogContent
@@ -289,7 +316,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
             <button
               type="button"
               className="vc-space-recovery-cancel"
-              disabled={runtime.restoring}
+              disabled={runtime.restoring || runtime.applyingTemplate}
               onClick={() => setRestoreDialogOpen(false)}
             >
               {t.actions.cancel}
@@ -298,7 +325,11 @@ export function SpacePage({ roomId }: { roomId: string }) {
               type="button"
               className="vc-space-recovery-confirm"
               data-testid="confirm-restore-default-chat"
-              disabled={runtime.restoring || !runtime.snapshot?.project.draftId}
+              disabled={
+                runtime.restoring
+                || runtime.applyingTemplate
+                || !runtime.snapshot?.project.draftId
+              }
               onClick={() => void runtime.restoreDefaultChat()
                 .then(() => setRestoreDialogOpen(false))
                 .catch(() => undefined)}
@@ -307,6 +338,96 @@ export function SpacePage({ roomId }: { roomId: string }) {
               {runtime.restoring
                 ? t.chatApp.spaceRuntime.restoringDefaultChat
                 : t.chatApp.spaceRuntime.restoreDefaultChatConfirm}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={applyTemplateDialogOpen}
+        onOpenChange={(open) => {
+          if (!runtime.applyingTemplate) setApplyTemplateDialogOpen(open)
+        }}
+      >
+        <DialogContent
+          className="vc-space-recovery-dialog"
+          data-testid="apply-space-template-dialog"
+        >
+          <DialogHeader>
+            <span className="vc-space-recovery-symbol" aria-hidden="true">
+              <LayoutTemplate />
+            </span>
+            <DialogTitle>{t.chatApp.spaceRuntime.applyTemplateTitle}</DialogTitle>
+            <DialogDescription>
+              {t.chatApp.spaceRuntime.applyTemplateDescription}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="vc-space-picker">
+            {state.spaces.map((candidate) => {
+              const selected = candidate.id === applyTemplateId
+              return (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  className="vc-space-option"
+                  data-testid={`apply-template-${candidate.id}`}
+                  data-selected={selected || undefined}
+                  onClick={() => setApplyTemplateId(candidate.id)}
+                >
+                  <SpaceGlyph space={candidate} />
+                  <span>
+                    <strong>{candidate.name}</strong>
+                    <small>{candidate.summary}</small>
+                    <b className="vc-template-version">
+                      {t.chatApp.newSpace.templateVersion.replace(
+                        '{version}',
+                        candidate.semanticVersion,
+                      )}
+                    </b>
+                  </span>
+                  <i>{selected ? <CheckCheck size={14} /> : null}</i>
+                </button>
+              )
+            })}
+          </div>
+          <div className="vc-space-recovery-revision">
+            <span>{t.chatApp.spaceRuntime.ready}</span>
+            <code>{runtime.snapshot?.project.draftId?.slice(0, 7)}</code>
+          </div>
+          {runtime.applyTemplateError ? (
+            <p className="vc-space-recovery-error" role="alert">
+              {t.chatApp.spaceRuntime.applyTemplateFailed}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <button
+              type="button"
+              className="vc-space-recovery-cancel"
+              disabled={runtime.applyingTemplate}
+              onClick={() => setApplyTemplateDialogOpen(false)}
+            >
+              {t.actions.cancel}
+            </button>
+            <button
+              type="button"
+              className="vc-space-recovery-confirm"
+              data-testid="confirm-apply-space-template"
+              disabled={
+                runtime.applyingTemplate
+                || !runtime.snapshot?.project.draftId
+                || !applyTemplate
+              }
+              onClick={() => {
+                if (!applyTemplate) return
+                void runtime.applyTemplate(applyTemplate.id, applyTemplate.versionId)
+                  .then(() => setApplyTemplateDialogOpen(false))
+                  .catch(() => undefined)
+              }}
+            >
+              <LayoutTemplate size={14} />
+              {runtime.applyingTemplate
+                ? t.chatApp.spaceRuntime.applyingTemplate
+                : t.chatApp.spaceRuntime.applyTemplateConfirm}
             </button>
           </DialogFooter>
         </DialogContent>

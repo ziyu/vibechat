@@ -15,7 +15,6 @@ import { runtimeReplicaOwnerId } from './runtime-replica.js'
 
 const controlPath = '/v1/internal/space-runtime-control'
 const leaseTtlMs = 30_000
-const leaseRenewalWindowMs = 10_000
 
 export interface DurableSpaceInstanceSnapshot {
   sequence: number
@@ -311,8 +310,9 @@ export class BackendDurableSpaceControl implements DurableSpaceControl {
   async #lease(spaceInstanceId: string) {
     const current = this.#leases.get(spaceInstanceId)
     if (current) {
-      const remainingMs = new Date(current.expiresAt).getTime() - Date.now()
-      if (remainingMs > leaseRenewalWindowMs) return current
+      // The control plane may release a lease before its advertised expiry when
+      // an empty turn claim drains the queue. Revalidate cached ownership before
+      // every write so an early release cannot turn a locally fresh lease stale.
       const renewed = await this.#control({
         action: 'renew_lease',
         lease: current,

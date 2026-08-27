@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
 > 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 > Agent 稳定来源：[Agent 架构与 AgentOS 部署设计](../../stable/designs/agent-architecture-and-agentos-deployment.md)
@@ -14,7 +14,7 @@
 
 稳定设计定义目标状态和长期约束；本文件记录从当前仓库到目标状态的实际进展。设计完成与功能实现是两件事，任何 Complete 都必须附代码、测试和运行证据。
 
-2026-08-22 设计确认：产品实体为 Space；每个 Space 保留完整 Chat、市场模板与收藏，并增加独立 App Project 和可插拔 Agent。现有代码已经实现 Chat 与官方 Space 目录，并已落地 Kernel/Chat/App、通用 Agent Adapter、Draft/Release 的首版纵向切片；空白 Space 后选模板、生产存储与完整 E2E 仍未完成。
+2026-08-22 设计确认：产品实体为 Space；每个 Space 保留完整 Chat、市场模板与收藏，并增加独立 App Project 和可插拔 Agent。现有代码已经实现 Chat 与官方 Space 目录，并已落地 Kernel/Chat/App、通用 Agent Adapter、Draft/Release、空白 Space 与模板后应用的首版纵向切片；生产 D1/R2 跨宿主验证、历史 rollback 与完整 E2E 仍未完成。
 
 ## 2. 当前结论
 
@@ -32,6 +32,7 @@
 
 - `room_index` 已原地增加 `spaceInstanceId/projectId/defaultAgentId`，历史与新房间继续使用同一记录、repository 和 Matrix Room。
 - `apps/space-runtime`、Space contracts/SDK、Backend membership gateway 与 Web Kernel/Chat/App 已接通。
+- 空白/模板创建使用同一 `/v1/rooms` 契约；空白 Space 在 Product DB 与 Matrix state 中保留 nullable Template lineage，同时以 Default Chat App 作为首个 ready Project。Kernel 可将固定 Template Version 作为同 Space Restore Turn 应用，Candidate 失败不切指针，成功后保持 Chat、App State 与 Published Release。
 - 真实 Synapse/Chromium 已覆盖成员被 kick 与主动 leave 两种撤权；即使 `room_index.participant_user_ids_json` 仍保留旧成员，八类 Backend→Runtime Gateway 也全部返回 `SPACE_INSTANCE_NOT_FOUND`，且没有新增 Turn、Outbox 或 credits 交易，未被移除的 owner 仍可读取 snapshot 与 Dev App。
 - Host Pi 已真实生成可交互 App；Dev draft 与不可变 publish/live 均返回 HTTP 200。
 - Default Chat App 已把结构化 Agent Mention 写入 Matrix event content；Backend 按精确事件核验后预留积分并入队，Host Pi 真实回复和 token usage 结算已通过本地 Synapse 浏览器走查。
@@ -61,7 +62,7 @@
 
 尚未完成：
 
-- 空白 Space 创建，以及空白/已有 Space 后续应用模板。
+- 已有定制 Space 应用模板的双浏览器影响确认、历史 rollback 与完整失败恢复验收；空白 Space 创建和后选模板首版已通过真实 Synapse/Chromium。
 - 真实 Cloudflare D1/R2 migration/preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。
 - member Mention、分页、历史 rollback 和其余 #40 浏览器验收。
 - 用户 Template 发布、审核与撤销。
@@ -84,7 +85,7 @@
 | A0 | 兼容护栏与语义校正 | §1、§2、§9.4、§14 阶段 0 | Active | [Space App 演进记录](./space-app-design-transition.md)、TEST-CATALOG #40 | 市场/Chat 保留，形成 v1/v2 双读和空白创建 spec |
 | A1 | 产品壳与信息架构 | §4 | Complete（现有 IA） | `apps/web-app/src/features/chat` 与真实路由/E2E | 保留 Discover；新增 Kernel/Chat/App 与 Space 用户语义 |
 | A2 | 身份、社交、Chat 与市场底座 | §3.1、§5.1、§9 | Complete | identity/social/rooms/timeline/product-state 测试与真实 Synapse/Chromium | 保持全回归，不用本地 demo 替代 Matrix/市场 |
-| A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、`room_index` migration、Runtime、Backend gateway、真实 kick/leave 全 gateway E2E | 空白/后选模板、D1/R2 preview、双进程接管与其余双浏览器 App |
+| A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、nullable `room_index` migration、空白/模板创建、Kernel 模板应用、Runtime、Backend gateway、真实 blank/apply 与 kick/leave E2E | D1/R2 preview、历史 rollback、双进程接管与其余双浏览器 App |
 | A4 | Agent Adapter、Space Dev 与发布 | MVP §6、§7、§10、§14；[Agent/AgentOS 设计](../../stable/designs/agent-architecture-and-agentos-deployment.md) | Active | Product DB Definition/Binding/session/audit、完整 Pi/fake/Claude Code lifecycle、Admin 治理、区域/专属 pool policy、结构化 Matrix Mention、virtual-user Matrix 回写、queue、cancel、credits settlement/refund、Candidate 隔离与 Dev/Release smoke | 目标区域 external Engine 的 Claude/专属 pool、真实跨宿主恢复、历史 rollback 与完整 E2E |
 | A5 | 生产恢复与市场演进 | §11–§14 阶段 5 | 未开始 | 当前通用 Auth/Matrix/市场/账务/部署能力 | 治理、压测、安全、备份恢复和第三方市场独立评审 |
 
@@ -98,7 +99,7 @@
 - [x] 确定 Space Runtime 采用与 `chat-app-server` 同构的技术方案，并确定现有房间/多人 Space 使用统一 SpaceInstance。
 - [x] 更新 TEST-CATALOG #40 为 Space App 计划验收。
 - [x] `room_index` 原地升级稳定 `spaceInstanceId/projectId/defaultAgentId`，并保留 Template lineage；v2 Matrix state 和回滚工具仍待后续。
-- [ ] 设计 `/v1/rooms` 空白/模板兼容创建与后续 `apply-template` 契约。
+- [x] `/v1/rooms` 空白/模板兼容创建与后续 `apply-template` 契约、nullable lineage migration、Web 入口、Runtime Candidate 和真实 E2E 已落地。
 - [x] 完成 `apps/space-runtime` 独立部署单元、内部 token、Backend membership gateway 和 Agent/Runtime provider 首版边界。
 - [x] Space App contracts/package、Host bridge 与 Runtime 切片进入 A3 Active。
 
@@ -153,7 +154,7 @@ A2 的完成结论不因 Space App 增量设计而撤销：
 | `room_index` 原地升级 | 不新建平行实例表；PG/SQLite/D1 回填、唯一约束和回滚均需验证 | A3 schema migration |
 | 普通 Chat 与 Agent 寻址 | 人类消息默认不入付费队列 | A3 queue 实现前 |
 | 积分批次分摊 | 逐请求 reservation 与稳定 usage 分摊 | A4 计费实现前 |
-| 模板应用策略 | 空白/已有 Project 都保留 Chat、Live 和恢复点 | A3 Project 实现前 |
+| 模板应用策略 | 空白 Space 已验证保持 Chat、App State 与 Release；已有定制 Project 继续补双浏览器/rollback 验收 | A3 完整验收前 |
 | Runtime 故障恢复 | Project/Draft/Live/任务不能只存在 provider 内 | A4 发布前 |
 | 第三方模板市场 | 提交、审核、签名和分成独立评审 | A5 市场演进前 |
 

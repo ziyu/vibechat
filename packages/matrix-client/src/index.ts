@@ -507,7 +507,11 @@ export function projectMatrixChatState(
   for (const room of client.getRooms()) {
     const membership = room.getMyMembership()
     if (membership !== 'join' && membership !== 'invite') continue
-    const spaceId = roomSpaceId(room) || roomMetadata[room.roomId]?.spaceId || null
+    const metadata = roomMetadata[room.roomId]
+    const spaceId = roomSpaceId(room)
+      || metadata?.spaceTemplateId
+      || metadata?.spaceId
+      || (metadata?.startMode === 'blank' ? 'space-default' : null)
     if (!spaceId || !baseState.spaces.some((space) => space.id === spaceId)) continue
 
     const joinedMembers = room.getJoinedMembers()

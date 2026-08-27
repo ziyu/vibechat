@@ -106,10 +106,15 @@ interface BeginTurnInput {
 
 export type SpaceTurnKind = "message" | "publish" | "restore";
 
-export interface SpaceTurnRecovery {
+export type SpaceTurnRecovery = {
   target: "default-chat";
   expectedReadyRevisionId: string;
-}
+} | {
+  target: "template";
+  expectedReadyRevisionId: string;
+  templateId: string;
+  templateVersionId: string;
+};
 
 export interface SpaceTurnPublication {
   expectedReadyRevisionId: string;
@@ -722,16 +727,27 @@ function isSpaceTurnRequest(value: unknown): value is SpaceTurnRequest {
       request.agentTurn.turnId === request.turnId &&
       request.agentTurn.agentId === request.agentId
     )) &&
-    (request.kind !== "restore" || (
-      request.recovery?.target === "default-chat" &&
-      typeof request.recovery.expectedReadyRevisionId === "string" &&
-      /^[a-f0-9]{16}$/.test(request.recovery.expectedReadyRevisionId)
-    )) &&
+    (request.kind !== "restore" || isSpaceTurnRecovery(request.recovery)) &&
     (request.kind !== "publish" || (
       typeof request.publication?.expectedReadyRevisionId === "string" &&
       /^[a-f0-9]{16}$/.test(request.publication.expectedReadyRevisionId)
     ))
   );
+}
+
+function isSpaceTurnRecovery(value: unknown): value is SpaceTurnRecovery {
+  if (!value || typeof value !== "object") return false;
+  const recovery = value as Partial<SpaceTurnRecovery>;
+  if (
+    typeof recovery.expectedReadyRevisionId !== "string"
+    || !/^[a-f0-9]{16}$/.test(recovery.expectedReadyRevisionId)
+  ) return false;
+  if (recovery.target === "default-chat") return true;
+  return recovery.target === "template"
+    && typeof recovery.templateId === "string"
+    && recovery.templateId.length > 0
+    && typeof recovery.templateVersionId === "string"
+    && recovery.templateVersionId.length > 0;
 }
 
 function normalizeAppKey(value: unknown) {

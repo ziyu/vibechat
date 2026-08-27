@@ -288,6 +288,13 @@ export const restoreSpaceAppRequestSchema = z.object({
   expectedReadyRevisionId: z.string().regex(/^[a-f0-9]{16}$/),
 })
 
+export const applySpaceTemplateRequestSchema = z.object({
+  requestId: z.string().min(1).max(255),
+  expectedReadyRevisionId: z.string().regex(/^[a-f0-9]{16}$/),
+  spaceTemplateId: z.string().min(1).max(128),
+  spaceTemplateVersionId: z.string().min(1).max(255),
+}).strict()
+
 export const spaceAppBridgeRequestSchema = z.object({
   action: z.enum([
     'presence.update',
@@ -326,5 +333,6 @@ export type SpaceAgentTurnCancellation = z.infer<typeof spaceAgentTurnCancellati
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>
 export type PublishSpaceAppRequest = z.infer<typeof publishSpaceAppRequestSchema>
 export type RestoreSpaceAppRequest = z.infer<typeof restoreSpaceAppRequestSchema>
+export type ApplySpaceTemplateRequest = z.infer<typeof applySpaceTemplateRequestSchema>
 export type SpaceAppBridgeRequest = z.infer<typeof spaceAppBridgeRequestSchema>
 export type SpaceAppBridgeResponse = z.infer<typeof spaceAppBridgeResponseSchema>

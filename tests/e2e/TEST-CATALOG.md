@@ -1356,13 +1356,22 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 - [x] 产品文案、URL 和 Kernel 状态都把 Space 描述为持续可用、实时更新的在线空间，不出现 Workspace、试验场或“发布后才能使用”的语义。
 - [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
-- [ ] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
+- [x] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
 - [ ] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
 - [x] App 通过 SDK 查询平台结构化 agent Mention；普通消息不调度 Agent，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue。member Mention 的完整双浏览器覆盖仍待补齐。
 - [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
 - [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
 - [ ] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
 - [ ] App 无法覆盖/伪造 Kernel Bar，不能读取 Matrix token、伪造身份、改写 Mention 解析、绕过屏蔽/ACL/计费或建立第二条消息 timeline。
+
+空白创建与模板后应用的实现验收：
+
+- `POST /v1/rooms` 接受显式 `startMode=blank|template`。空白模式拒绝任何 Template 引用，并在 Product DB 将兼容 `spaceId/spaceVersionId` lineage 保存为 `null`；模板模式固定 `spaceTemplateId/spaceTemplateVersionId`。旧客户端的 `spaceId/spaceVersionId` 继续作为同一字段的兼容别名，两组值冲突时必须返回 400，不能静默选择一组。
+- 空白创建仍只生成一个 Matrix Room、一条 `room_index`、一个 `spaceInstanceId` 和一个 Project；首次 Runtime bootstrap 使用官方 Default Chat Template 的固定当前版本生成初始 ready Revision，但不得把它伪写成该 Space 的创建 Template lineage。相同 `clientRequestId` 重试只返回原实例。
+- `POST /v1/rooms/:roomId/apply-template` 只接受固定 Template Version、幂等 `requestId` 和用户当前看到的 `expectedReadyRevisionId`。Backend 必须校验 Better Auth、实时 Matrix membership 和市场 Version；Runtime 复用同 Space 单写 Turn 与隔离 Candidate 链路，成功后才更新 ready Revision。
+- 应用模板不得修改 Matrix Room、成员、Chat timeline、App State 或既有 Published Release。相同 `requestId` 去重；过期 ready Revision、未知/不匹配 Version、Runtime/Artifact/Candidate 失败均保持原 ready Revision 与 Release。
+- Web 新建流程默认提供“空白 Space”并允许显式选择市场 Template；Space Kernel 提供受信任的“应用模板”确认面板，展示固定版本、能力与影响。App iframe 内不能直接调用该高权限操作。
+- 自动化至少覆盖：请求 schema 冲突/空白 lineage、PG 与 SQLite/D1 nullable migration、Matrix blank state、Default Chat bootstrap、固定 Template Candidate、幂等与 stale-revision 失败保护，以及真实 Synapse/Chromium 中空白创建后应用差异化模板且原 Chat 消息仍存在。
 
 Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 → 请求携带幂等 `requestId` 与当前 `expectedReadyRevisionId` → Backend 校验 Better Auth 与 Matrix membership → Runtime 将恢复作为不可合批的同 Space 顺序 Turn → 从官方 Default Chat Template 当前固定 Version/Artifact 生成 Candidate → Candidate ready 后原子保存为新的 ready Revision 并广播 → Published Release、Matrix timeline 与 App State 不变。相同 request ID 去重；revision 已变化、artifact 不存在或 Candidate 失败均不得覆盖当前 ready App；恢复不进入 Agent Adapter 或 credits 预留/结算。
 
@@ -1482,6 +1491,16 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - 当前 worktree 的空 SQLite 实际迁移到 `0016` 并 seed，Pi/Claude Definition、execution pool policy 和每 Space 单默认唯一索引均存在；Wrangler 本地 D1 也实际应用 `0015/0016`，Workers `/api/health` 为 200 且治理 API 未登录为 401。
 - 隔离 Web/Backend/Admin 实栈运行完整 `admin-app.spec.ts`，结果 6/6 通过；新增治理页面真实加载 Definition/binding/audit，响应不含 credential/source，重复版本返回 409，freeze 后在 `finally` 中 unfreeze 恢复。既有 Admin 用户、运营域、CRUD、KYC/提现回归同轮保持通过；`admin-permission.test.ts` 12/12 验证普通用户访问全部 Admin endpoint（含四个 Agent endpoint）均为 403。
 - 本轮没有真实 Anthropic credential，也未在目标 external Engine 上部署独立专属 `agentExecution` worker；因此场景 20 的真实 Claude provider Turn、场景 21 的专属 worker 缺失/恢复、Chat/credits/ready/published 全链路仍未标记为目标环境通过。仓库 unit、Admin/API E2E 与本地 D1/Workers 证据不能替代该演练。
+
+2026-08-28 空白 Space 与固定 Template 后应用首版证据：
+
+- Node 24.19.0、本地 SQLite、Synapse、managed Rivet Engine、独立 Agent/build/serving pool、Backend `18102`、Web `18101` 与 Runtime `18107` 上，`chat-matrix-room.spec.ts` 定向 blank/apply 1/1（3.0 分钟）和完整 spec 3/3（3.3 分钟）通过。
+- 空白创建 response 与 Matrix `io.vibechat.space.instance.v1` state 的 Template lineage 均为 `null`；Runtime 仍从官方 Default Chat 固定版本生成首个 ready Revision。流程随后完成真实 Matrix 消息、App State 写入和 64 位不可变 Release 发布。
+- 未知 Template Version 与非成员请求均返回 404；Kernel `apply-template` 返回 202，隔离 Candidate ready 后只切换 ready Project。应用后原 Matrix 消息、App State、Published Release 与空白创建 lineage 保持不变。
+- fencing 回归以 Node 24 运行 Space Runtime 相关 5 个文件、25/25 unit 通过，覆盖 Backend 提前释放 lease 后 Instance snapshot 与 Project pointer 写入在复用缓存 token 前续租复核；Web 创建后到 Matrix `/sync` 投影之间使用受信任 optimistic Room，权威 Room 到达后自动移除。
+- 全新隔离 Wrangler D1 从 `0000` 顺序迁移到 `0017_public_wrecker.sql`，18/18 migration 成功；实际 `room_index` schema 查询确认 `space_id` 与 `space_version_id` 均为 nullable。基于同一 D1 binding 的 Workers 预览 `/` 与 `/api/health` 返回 200、database healthy，未登录治理 API 返回 401。
+- 本轮最终 A3 定向 unit 覆盖 contracts、product client、Room repository/service/Matrix adapter 和 Runtime HTTP/Restore/server/lease，共 10 个文件、45/45 通过；`boundaries:check` 检查 429 个活动源码文件，文档检查、Docs production build，以及 21/22 workspace 递归 typecheck/build 均通过。根 Turbo 包装命令因当前 macOS 无可用 Keychain 而在任务启动前失败，等价的逐 workspace 命令已实际跑齐。
+- 本证据只勾选空白 Space 的 Default Chat 首个 ready Revision，不代表已有复杂定制 Space 的双浏览器 Template 替换、历史 rollback 或真实 D1/R2/external Engine 跨宿主已经完成。
 
 `chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
 

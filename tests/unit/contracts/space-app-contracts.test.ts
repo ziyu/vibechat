@@ -1,11 +1,36 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applySpaceTemplateRequestSchema,
   cancelSpaceAgentTurnRequestSchema,
   spaceAgentTurnCancellationSchema,
   spaceRuntimeControlRequestSchema,
 } from '../../../packages/space-app-contracts/src'
 
 describe('Space App S4 control contracts', () => {
+  it('pins Template application to an exact ready Revision and Template Version', () => {
+    expect(applySpaceTemplateRequestSchema.parse({
+      requestId: 'apply-template-request-1',
+      expectedReadyRevisionId: '0123456789abcdef',
+      spaceTemplateId: 'space-campfire',
+      spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+    })).toMatchObject({
+      expectedReadyRevisionId: '0123456789abcdef',
+      spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+    })
+    expect(applySpaceTemplateRequestSchema.safeParse({
+      requestId: 'apply-template-request-1',
+      expectedReadyRevisionId: '0123456789abcdef',
+      spaceTemplateId: 'space-campfire',
+    }).success).toBe(false)
+    expect(applySpaceTemplateRequestSchema.safeParse({
+      requestId: 'apply-template-request-1',
+      expectedReadyRevisionId: '0123456789abcdef',
+      spaceTemplateId: 'space-campfire',
+      spaceTemplateVersionId: 'tplv-space-campfire-0-1-2',
+      providerCredential: 'must-not-cross-the-boundary',
+    }).success).toBe(false)
+  })
+
   it('accepts strict Agent session, audit, and turn-control actions', () => {
     const lease = {
       spaceInstanceId: 'space-1',

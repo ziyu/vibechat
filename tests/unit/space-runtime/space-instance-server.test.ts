@@ -113,6 +113,40 @@ describe('SpaceInstanceServer', () => {
     })
   })
 
+  it('persists fixed Template recovery metadata in the existing ordered Turn queue', async () => {
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
+    const request = {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '应用 Space Template',
+      kind: 'restore',
+      externalRequestId: 'apply-template-request-1',
+      agentId: 'kernel',
+      recovery: {
+        target: 'template',
+        expectedReadyRevisionId: '0123456789abcdef',
+        templateId: 'space-campfire',
+        templateVersionId: 'tplv-space-campfire-0-1-2',
+      },
+    } as const
+    const accepted = await server.beginTurn('space-instance-template', request)
+    const duplicate = await server.beginTurn('space-instance-template', request)
+
+    expect(duplicate).toMatchObject({ turnId: accepted.turnId, deduplicated: true })
+    await expect(server.claimTurn('space-instance-template')).resolves.toMatchObject({
+      turnId: accepted.turnId,
+      kind: 'restore',
+      requests: [{
+        recovery: {
+          target: 'template',
+          expectedReadyRevisionId: '0123456789abcdef',
+          templateId: 'space-campfire',
+          templateVersionId: 'tplv-space-campfire-0-1-2',
+        },
+      }],
+    })
+  })
+
   it('treats natural-language publish requests as ordinary Agent messages', async () => {
     const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
     const accepted = await server.beginTurn('space-instance-natural-publish', {

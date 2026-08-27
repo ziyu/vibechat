@@ -55,9 +55,9 @@ function dependencies(
 ): RestoreTurnProcessorDependencies {
   return {
     loadProject: vi.fn(async () => currentProject()),
-    getDefaultTemplate: vi.fn(() => ({
+    resolveTemplate: vi.fn(() => ({
       id: "space-default",
-      currentVersionId: "0.1.2",
+      versionId: "0.1.2",
     })),
     createProjectFromTemplate: vi.fn(async () => templateProject()),
     preparePreview: vi.fn(async () => ({
@@ -152,6 +152,8 @@ describe("RestoreTurnProcessor", () => {
         updatedAt: "2026-08-26T00:02:00.000Z",
         recoveredFromRevisionId: "revision-customized",
         recoveryTarget: "default-chat",
+        appliedTemplateId: "space-default",
+        appliedTemplateVersionId: "0.1.2",
         publishedReleaseId: "release-published",
       },
     });
@@ -173,7 +175,7 @@ describe("RestoreTurnProcessor", () => {
         message: "Space 还没有可恢复的 ready Revision。",
       }),
     });
-    expect(input.getDefaultTemplate).not.toHaveBeenCalled();
+    expect(input.resolveTemplate).not.toHaveBeenCalled();
     expect(input.preparePreview).not.toHaveBeenCalled();
     expect(input.saveProject).not.toHaveBeenCalled();
   });
@@ -204,7 +206,7 @@ describe("RestoreTurnProcessor", () => {
 
   it("fails closed when the Default Chat Template is unavailable", async () => {
     const input = dependencies({
-      getDefaultTemplate: vi.fn(() => null),
+      resolveTemplate: vi.fn(() => null),
     });
     const processor = new RestoreTurnProcessor(input);
 
@@ -216,7 +218,7 @@ describe("RestoreTurnProcessor", () => {
       spaceInstanceId: "space-instance-1",
       turnId: "turn-restore-1",
       error: expect.objectContaining({
-        message: "Default Chat Template is unavailable",
+        message: "Requested Space Template is unavailable",
       }),
     });
   });
@@ -235,7 +237,7 @@ describe("RestoreTurnProcessor", () => {
     expect(input.saveProject).not.toHaveBeenCalled();
     expect(input.complete).not.toHaveBeenCalled();
     expect(input.reportError).toHaveBeenCalledWith(
-      "Default Chat recovery failed",
+      "Managed Template replacement failed",
       failure,
     );
     expect(input.failTurn).toHaveBeenCalledWith({
@@ -243,6 +245,64 @@ describe("RestoreTurnProcessor", () => {
       turnId: "turn-restore-1",
       error: failure,
     });
+  });
+
+  it("applies a fixed Template Candidate while preserving App state and Published Release pointers", async () => {
+    const current = currentProject();
+    const candidate = {
+      ...templateProject(),
+      summary: "Campfire App",
+      template: {
+        ...templateProject().template!,
+        id: "space-campfire",
+        versionId: "tplv-space-campfire-0-1-2",
+      },
+    };
+    const input = dependencies({
+      loadProject: vi.fn(async () => current),
+      resolveTemplate: vi.fn(() => ({
+        id: "space-campfire",
+        versionId: "tplv-space-campfire-0-1-2",
+      })),
+      createProjectFromTemplate: vi.fn(async () => candidate),
+      preparePreview: vi.fn(async () => ({
+        version: "revision-campfire",
+        updatedAt: "2026-08-27T00:02:00.000Z",
+        url: "http://space-dev.test/apps/space-instance-1/",
+      })),
+    });
+    const processor = new RestoreTurnProcessor(input);
+
+    await expect(processor.process({
+      spaceInstanceId: "space-instance-1",
+      turnId: "turn-template-1",
+      recovery: {
+        target: "template",
+        expectedReadyRevisionId: "revision-customized",
+        templateId: "space-campfire",
+        templateVersionId: "tplv-space-campfire-0-1-2",
+      },
+    })).resolves.toBe(true);
+
+    expect(input.createProjectFromTemplate).toHaveBeenCalledWith({
+      spaceInstanceId: "space-instance-1",
+      templateId: "space-campfire",
+      templateVersionId: "tplv-space-campfire-0-1-2",
+    });
+    expect(input.saveProject).toHaveBeenCalledWith(expect.objectContaining({
+      draftId: "revision-campfire",
+      publishedDraftId: "revision-published",
+      releaseId: "release-published",
+      template: expect.objectContaining({ id: "space-campfire" }),
+    }));
+    expect(input.complete).toHaveBeenCalledWith(expect.objectContaining({
+      message: "已应用 Space Template。",
+      event: expect.objectContaining({
+        recoveryTarget: "template",
+        appliedTemplateId: "space-campfire",
+        publishedReleaseId: "release-published",
+      }),
+    }));
   });
 
   it("heartbeats while Restore work is active and stops after completion", async () => {

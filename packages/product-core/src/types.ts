@@ -131,5 +131,8 @@ export interface ChatState {
 
 export interface CreateRoomInput {
   participantIds: string[]
-  spaceId: string
+  startMode: 'blank' | 'template'
+  name: string
+  templateId?: string
+  templateVersionId?: string
 }

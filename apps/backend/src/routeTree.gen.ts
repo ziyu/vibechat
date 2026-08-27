@@ -64,6 +64,7 @@ import { Route as ApiAdminAgentsIndexRouteImport } from './routes/api/admin/agen
 import { Route as V1SpacesInstancesRoomIdRouteImport } from './routes/v1/spaces/instances/$roomId'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
+import { Route as V1RoomsRoomIdApplyTemplateRouteImport } from './routes/v1/rooms/$roomId/apply-template'
 import { Route as V1InternalSpaceRuntimeObjectsObjectHashRouteImport } from './routes/v1/internal/space-runtime-objects/$objectHash'
 import { Route as V1FriendRequestsIdRejectRouteImport } from './routes/v1/friend-requests/$id/reject'
 import { Route as V1FriendRequestsIdAcceptRouteImport } from './routes/v1/friend-requests/$id/accept'
@@ -376,6 +377,12 @@ const V1RoomsRoomIdPreferencesRoute =
     path: '/v1/rooms/$roomId/preferences',
     getParentRoute: () => rootRouteImport,
   } as any)
+const V1RoomsRoomIdApplyTemplateRoute =
+  V1RoomsRoomIdApplyTemplateRouteImport.update({
+    id: '/v1/rooms/$roomId/apply-template',
+    path: '/v1/rooms/$roomId/apply-template',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1InternalSpaceRuntimeObjectsObjectHashRoute =
   V1InternalSpaceRuntimeObjectsObjectHashRouteImport.update({
     id: '/v1/internal/space-runtime-objects/$objectHash',
@@ -601,6 +608,7 @@ export interface FileRoutesByFullPath {
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
+  '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -687,6 +695,7 @@ export interface FileRoutesByTo {
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
+  '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -774,6 +783,7 @@ export interface FileRoutesById {
   '/v1/friend-requests/$id/accept': typeof V1FriendRequestsIdAcceptRoute
   '/v1/friend-requests/$id/reject': typeof V1FriendRequestsIdRejectRoute
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
+  '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -862,6 +872,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/internal/space-runtime-objects/$objectHash'
+    | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -948,6 +959,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/internal/space-runtime-objects/$objectHash'
+    | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -1034,6 +1046,7 @@ export interface FileRouteTypes {
     | '/v1/friend-requests/$id/accept'
     | '/v1/friend-requests/$id/reject'
     | '/v1/internal/space-runtime-objects/$objectHash'
+    | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
@@ -1121,6 +1134,7 @@ export interface RootRouteChildren {
   V1FriendRequestsIdAcceptRoute: typeof V1FriendRequestsIdAcceptRoute
   V1FriendRequestsIdRejectRoute: typeof V1FriendRequestsIdRejectRoute
   V1InternalSpaceRuntimeObjectsObjectHashRoute: typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
+  V1RoomsRoomIdApplyTemplateRoute: typeof V1RoomsRoomIdApplyTemplateRoute
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
   V1SpacesInstancesRoomIdRoute: typeof V1SpacesInstancesRoomIdRouteWithChildren
@@ -1527,6 +1541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1RoomsRoomIdPreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/rooms/$roomId/apply-template': {
+      id: '/v1/rooms/$roomId/apply-template'
+      path: '/v1/rooms/$roomId/apply-template'
+      fullPath: '/v1/rooms/$roomId/apply-template'
+      preLoaderRoute: typeof V1RoomsRoomIdApplyTemplateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/internal/space-runtime-objects/$objectHash': {
       id: '/v1/internal/space-runtime-objects/$objectHash'
       path: '/v1/internal/space-runtime-objects/$objectHash'
@@ -1820,6 +1841,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1FriendRequestsIdRejectRoute: V1FriendRequestsIdRejectRoute,
   V1InternalSpaceRuntimeObjectsObjectHashRoute:
     V1InternalSpaceRuntimeObjectsObjectHashRoute,
+  V1RoomsRoomIdApplyTemplateRoute: V1RoomsRoomIdApplyTemplateRoute,
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
   V1SpacesInstancesRoomIdRoute: V1SpacesInstancesRoomIdRouteWithChildren,

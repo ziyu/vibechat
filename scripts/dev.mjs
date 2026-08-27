@@ -437,13 +437,9 @@ function environmentForAgentOsPool(workload) {
     SPACE_RUNTIME_ENGINE_MODE: 'external',
     SPACE_RUNTIME_POOL_WORKLOAD: workload,
     SPACE_RUNTIME_REPLICA_ID: `dev-pool-${workload}-${process.pid}`,
-    SPACE_RUNTIME_TMP_DIR: join(
-      repositoryRoot,
-      'apps',
-      'space-runtime',
-      '.data',
-      `pool-${workload}-${process.pid}`,
-    ),
+    SPACE_RUNTIME_TMP_DIR:
+      `${process.env.SPACE_RUNTIME_TMP_DIR?.trim() || '/tmp/vc-space-runtime'}`
+      + `-${workload}-${process.pid}`,
     RIVET_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
     AGENTOS_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
     RIVET_RUN_ENGINE: '0',

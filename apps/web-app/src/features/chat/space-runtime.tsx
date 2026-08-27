@@ -28,6 +28,8 @@ export function useSpaceRuntime(roomId: string) {
   const [publishing, setPublishing] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
+  const [applyingTemplate, setApplyingTemplate] = useState(false)
+  const [applyTemplateError, setApplyTemplateError] = useState(false)
   const [readyAppTarget, setReadyAppTarget] = useState<ReadySpaceAppTarget | null>(null)
   const mounted = useRef(true)
   const activeRoomId = useRef(roomId)
@@ -51,6 +53,8 @@ export function useSpaceRuntime(roomId: string) {
     setUnavailable(false)
     setRestoring(false)
     setRestoreError(false)
+    setApplyingTemplate(false)
+    setApplyTemplateError(false)
     void refresh()
     const timer = window.setInterval(() => void refresh(), 1_500)
     const events = new EventSource(productApi.spaceEventsUrl(roomId), { withCredentials: true })
@@ -119,6 +123,30 @@ export function useSpaceRuntime(roomId: string) {
     }
   }, [refresh, roomId, snapshot?.project.draftId])
 
+  const applyTemplate = useCallback(async (
+    spaceTemplateId: string,
+    spaceTemplateVersionId: string,
+  ) => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
+    setApplyingTemplate(true)
+    setApplyTemplateError(false)
+    try {
+      await productApi.applySpaceTemplate(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        expectedReadyRevisionId,
+        spaceTemplateId,
+        spaceTemplateVersionId,
+      })
+      await refresh()
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setApplyTemplateError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setApplyingTemplate(false)
+    }
+  }, [refresh, roomId, snapshot?.project.draftId])
+
   const appUrl = readyAppTarget?.roomId === roomId ? readyAppTarget.url : null
 
   return {
@@ -128,8 +156,11 @@ export function useSpaceRuntime(roomId: string) {
     publishing,
     restoring,
     restoreError,
+    applyingTemplate,
+    applyTemplateError,
     publish,
     restoreDefaultChat,
+    applyTemplate,
     refresh,
     appUrl,
   }
@@ -353,7 +384,14 @@ export function SpaceKernelControls({
   onReload: () => void
 }) {
   const { t } = useTranslation()
-  const { snapshot, unavailable, publishing, publish } = runtime
+  const {
+    snapshot,
+    unavailable,
+    publishing,
+    restoring,
+    applyingTemplate,
+    publish,
+  } = runtime
   const building = Boolean(snapshot?.build) || snapshot?.devPreview.state === 'building'
   const revision = snapshot?.project.draftId?.slice(0, 7)
   return (
@@ -381,7 +419,13 @@ export function SpaceKernelControls({
       <button
         type="button"
         className="vc-space-publish"
-        disabled={!snapshot?.project.draftId || publishing || unavailable}
+        disabled={
+          !snapshot?.project.draftId
+          || publishing
+          || restoring
+          || applyingTemplate
+          || unavailable
+        }
         onClick={() => void publish().catch(() => undefined)}
       >
         <Rocket size={13} />

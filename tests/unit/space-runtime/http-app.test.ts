@@ -118,6 +118,68 @@ describe("Space Runtime HTTP composition", () => {
     );
   });
 
+  it("queues a fixed Space Template replacement through the existing Restore turn", async () => {
+    const path = "/api/apps/space-1/restore";
+    const credential = await runtimeCredential("POST", path);
+    const { runtime, beginTurn } = createRuntimeStub();
+    const response = await createHttpApp(runtime).request(path, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        requestId: "apply-template-request-1",
+        target: "template",
+        expectedReadyRevisionId: "0123456789abcdef",
+        templateId: "space-campfire",
+        templateVersionId: "tplv-space-campfire-0-1-2",
+        clientId: "member-1",
+        authorName: "Alice",
+      }),
+    });
+
+    expect(response.status).toBe(202);
+    expect(beginTurn).toHaveBeenCalledWith("space-1", {
+      clientId: "member-1",
+      authorName: "Alice",
+      text: "应用 Space Template",
+      kind: "restore",
+      externalRequestId: "apply-template-request-1",
+      agentId: "kernel",
+      recovery: {
+        target: "template",
+        expectedReadyRevisionId: "0123456789abcdef",
+        templateId: "space-campfire",
+        templateVersionId: "tplv-space-campfire-0-1-2",
+      },
+    });
+  });
+
+  it("rejects a Template replacement without a fixed Template Version", async () => {
+    const path = "/api/apps/space-1/restore";
+    const credential = await runtimeCredential("POST", path);
+    const { runtime, beginTurn } = createRuntimeStub();
+    const response = await createHttpApp(runtime).request(path, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        requestId: "apply-template-request-1",
+        target: "template",
+        expectedReadyRevisionId: "0123456789abcdef",
+        templateId: "space-campfire",
+        clientId: "member-1",
+        authorName: "Alice",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(beginTurn).not.toHaveBeenCalled();
+  });
+
   it("reports external Engine, replica, region, and declared pool boundaries", async () => {
     vi.stubEnv("PI_MODE", "agentos");
     vi.stubEnv("SPACE_RUNTIME_ENGINE_MODE", "external");

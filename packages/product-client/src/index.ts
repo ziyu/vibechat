@@ -51,6 +51,7 @@ import {
   type CreateSpaceAgentTurnRequest,
   type PublishSpaceAppRequest,
   type RestoreSpaceAppRequest,
+  type ApplySpaceTemplateRequest,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -258,6 +259,15 @@ export class ProductApiClient {
       `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/restore`,
       spaceTurnAcceptedSchema,
       'SPACE_APP_RESTORE_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  applySpaceTemplate(matrixRoomId: string, input: ApplySpaceTemplateRequest) {
+    return this.request(
+      `/v1/rooms/${encodeURIComponent(matrixRoomId)}/apply-template`,
+      spaceTurnAcceptedSchema,
+      'SPACE_TEMPLATE_APPLY_FAILED',
       this.jsonInit('POST', input),
     )
   }
