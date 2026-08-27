@@ -273,9 +273,10 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     )
     const restoredChat = await openAppChat(page)
     await expect(restoredChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
-    await expect(
-      restoredChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
-    ).toContainText(messageText)
+    const restoredReplyEntry = restoredChat.getByTestId('chat-message-entry').filter({
+      has: restoredChat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
+    await expect(restoredReplyEntry.getByText(messageText, { exact: true })).toBeVisible()
     const restoredMessageEntry = restoredChat.getByTestId('chat-message-entry').filter({
       has: restoredChat.getByTestId('message-body').filter({ hasText: messageText }),
     })
@@ -285,5 +286,84 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
 
     const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage))
     expect(localStorageDump).not.toContain(bootstrap.matrix.accessToken)
+  })
+
+  test('keeps Default Chat actions stable across refresh and responsive layouts', async ({ page }) => {
+    const email = `e2e-default-actions-${Date.now()}@example.com`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Default Actions E2E',
+      email,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    await expect(bootstrapResponse.json()).resolves.toMatchObject({
+      matrix: { status: 'ready' },
+    })
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-default',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `default-actions-${crypto.randomUUID()}`,
+        name: 'Default Actions E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const chat = await openAppChat(page)
+    const messageText = `Default action menu ${Date.now()}`
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
+    const messageEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(messageEntry).toHaveCount(1)
+    await expect(messageEntry.getByTestId('message-body')).toContainText(messageText)
+
+    const moreActions = messageEntry.getByTestId('message-actions-more')
+    const actionsMenu = messageEntry.getByTestId('message-actions-menu')
+    await moreActions.click()
+    await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        top: rect.top >= 0,
+        right: rect.right <= window.innerWidth,
+        bottom: rect.bottom <= window.innerHeight,
+        left: rect.left >= 0,
+      }
+    })).toEqual({ top: true, right: true, bottom: true, left: true })
+    await page.waitForTimeout(4_500)
+    await expect(actionsMenu).toBeVisible()
+
+    await actionsMenu.getByRole('button', { name: '删除', exact: true }).click()
+    await expect(actionsMenu.getByRole('button', { name: '确认删除', exact: true })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(actionsMenu).toBeHidden()
+    await expect(moreActions).toBeFocused()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await moreActions.click()
+    await expect(actionsMenu).toBeVisible()
+    await expect(actionsMenu.getByRole('button', { name: '删除', exact: true })).toBeVisible()
+    await expect(actionsMenu.getByRole('button', { name: '确认删除', exact: true })).toHaveCount(0)
+    await expect(messageEntry.locator('[part="backdrop"]')).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => ({
+      position: getComputedStyle(element).position,
+      left: Math.round(element.getBoundingClientRect().left),
+      right: Math.round(element.getBoundingClientRect().right),
+      viewport: window.innerWidth,
+    }))).toEqual({ position: 'fixed', left: 12, right: 378, viewport: 390 })
+    await messageEntry.locator('[part="backdrop"]').click({ position: { x: 2, y: 2 } })
+    await expect(actionsMenu).toBeHidden()
+    await expect(moreActions).toBeFocused()
   })
 })

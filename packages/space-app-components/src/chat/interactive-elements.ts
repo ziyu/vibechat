@@ -16,6 +16,7 @@ import type {
   SpaceChatMessageView,
   SpaceChatReactionView,
 } from "./view.js";
+import type { SpaceChatMessageGroupPosition } from "./elements.js";
 
 export const spaceChatTimelineElementName = "vc-space-chat-timeline" as const;
 export const spaceChatComposerElementName = "vc-space-chat-composer" as const;
@@ -126,6 +127,8 @@ export interface SpaceReactionBarElement extends HTMLElement {
 
 export interface SpaceMessageActionsElement extends HTMLElement {
   actions: SpaceMessageActionsView | null;
+  compact: boolean;
+  reactionChoices: readonly string[];
 }
 
 export interface SpaceChatErrorStateElement extends HTMLElement {
@@ -651,6 +654,7 @@ function createSpaceChatAttachmentElementClass() {
 
 export const spaceReactionBarStyles = `
 :host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+:host([hidden]) { display:none; }
 .bar { display:flex; min-inline-size:0; flex-wrap:wrap; gap:.35rem; }
 button { min-inline-size:2.75rem; min-block-size:2.75rem; padding:.45rem .7rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:999px; color:var(--vc-space-color-text-muted,#5d6670); background:var(--vc-space-color-surface,#f5f2eb); font:700 .78rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; overflow-wrap:anywhere; }
 button[aria-pressed="true"] { border-width:2px; color:var(--vc-space-color-text,#172026); background:color-mix(in srgb,var(--vc-space-color-accent,#d95835) 14%,var(--vc-space-color-surface,#f5f2eb)); }
@@ -709,22 +713,279 @@ function createSpaceReactionBarElementClass() {
 }
 
 export const spaceMessageActionsStyles = `
-:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
-.actions { display:flex; flex-wrap:wrap; gap:.35rem; }
+:host { position:relative; display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.actions { display:flex; min-inline-size:0; flex-wrap:wrap; gap:.35rem; }
 .actions[hidden] { display:none; }
 button { min-block-size:2.75rem; padding:.45rem .7rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:var(--vc-space-color-surface,#f5f2eb); font:700 .76rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; }
+button:not(:disabled):hover { border-color:color-mix(in srgb,var(--vc-space-color-accent,#d95835) 45%,var(--vc-space-color-border,#8a929a)); background:color-mix(in srgb,var(--vc-space-color-accent,#d95835) 8%,var(--vc-space-color-surface,#f5f2eb)); }
 button:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
 button:disabled { cursor:not-allowed; opacity:.55; }
-@media (forced-colors:active),(prefers-contrast:more) { button { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+.trigger { display:inline-grid; min-inline-size:2.75rem; place-items:center; padding:.45rem; }
+.trigger svg { inline-size:1.1rem; block-size:1.1rem; fill:currentColor; }
+.backdrop { display:none; position:fixed; z-index:20; inset:0; background:rgba(0,0,0,.42); }
+.backdrop[hidden],.menu[hidden] { display:none; }
+.menu { box-sizing:border-box; position:fixed; z-index:21; inset:auto; display:grid; min-inline-size:13rem; max-inline-size:min(19rem,calc(100vw - 1.5rem)); max-block-size:calc(100vh - 1.5rem); overflow:auto; gap:.45rem; padding:.65rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface-raised,#fff); box-shadow:0 .75rem 2rem rgba(23,32,38,.18); }
+.menu-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding-inline:.2rem; }
+.menu-title,.reaction-title { color:var(--vc-space-color-text-muted,#5d6670); font-size:var(--vc-space-text-caption-size,.76rem); font-weight:760; line-height:1.35; }
+.close { min-block-size:2rem; padding:.3rem .42rem; border-color:transparent; background:transparent; }
+.menu-actions,.reaction-choices { display:grid; gap:.25rem; }
+.reaction-choices { grid-template-columns:repeat(auto-fit,minmax(2.75rem,1fr)); }
+.reaction-title { grid-column:1/-1; padding:.2rem; }
+.menu-action { inline-size:100%; justify-self:stretch; text-align:start; }
+.reaction-choice { min-inline-size:2.75rem; padding:.45rem; font-size:1rem; }
+.danger { color:var(--vc-space-color-negative,#a33b43); }
+@media (max-width:30rem) {
+  .menu { position:fixed; z-index:31; inset-inline:.75rem; inset-block-end:max(.75rem,env(safe-area-inset-bottom)); max-inline-size:none; max-block-size:min(70vh,30rem); overflow:auto; padding:.85rem; border-radius:1rem; box-shadow:0 1rem 3rem rgba(0,0,0,.32); }
+  .backdrop:not([hidden]) { display:block; z-index:30; }
+  .menu-actions { gap:.4rem; }
+  .menu-action { min-block-size:3rem; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  .menu { animation:vc-space-action-menu-in 140ms cubic-bezier(.2,.8,.2,1); }
+  @keyframes vc-space-action-menu-in { from { opacity:.82; transform:translateY(.35rem); } }
+}
+@media (forced-colors:active),(prefers-contrast:more) { button,.menu { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .backdrop { background:CanvasText; opacity:.5; } .danger { color:CanvasText; text-decoration:underline; } }
 `;
+
+function createMoreActionsIcon(document: Document) {
+  const namespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(namespace, "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  for (const x of [4, 10, 16]) {
+    const circle = document.createElementNS(namespace, "circle");
+    circle.setAttribute("cx", String(x));
+    circle.setAttribute("cy", "10");
+    circle.setAttribute("r", "1.6");
+    svg.append(circle);
+  }
+  return svg;
+}
+
+function sameMessageActions(
+  left: SpaceMessageActionsView | null,
+  right: SpaceMessageActionsView | null,
+) {
+  return left === right || Boolean(left && right
+    && left.messageId === right.messageId
+    && left.canReply === right.canReply
+    && left.canEdit === right.canEdit
+    && left.canDelete === right.canDelete
+    && left.canRetry === right.canRetry
+    && left.disabled === right.disabled);
+}
 
 function createSpaceMessageActionsElementClass() {
   return class VcSpaceMessageActionsElement extends HTMLElement implements SpaceMessageActionsElement {
+    static readonly observedAttributes = ["compact", "locale"];
     #actions: SpaceMessageActionsView | null = null;
+    #reactionChoices: readonly string[] = Object.freeze([]);
+    #trigger: HTMLButtonElement | null = null;
+    #menu: HTMLElement | null = null;
+    #backdrop: HTMLElement | null = null;
+    #open = false;
+
     get actions() { return this.#actions; }
-    set actions(value) { this.#actions = value; if (this.isConnected) this.render(); }
+    set actions(value) {
+      if (sameMessageActions(this.#actions, value)) return;
+      this.#actions = value;
+      if (this.isConnected) this.render();
+    }
+    get compact() { return this.hasAttribute("compact"); }
+    set compact(value) { this.toggleAttribute("compact", Boolean(value)); }
+    get reactionChoices() { return this.#reactionChoices; }
+    set reactionChoices(value) {
+      const normalized = Object.freeze([...new Set(
+        (value ?? []).map((choice) => String(choice).trim()).filter(Boolean),
+      )]);
+      if (
+        normalized.length === this.#reactionChoices.length
+        && normalized.every((choice, index) => choice === this.#reactionChoices[index])
+      ) return;
+      this.#reactionChoices = normalized;
+      if (this.isConnected) this.render();
+    }
+
     connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: "open" }); this.render(); }
+    disconnectedCallback() { this.closeMenu(false); }
+    attributeChangedCallback(
+      _name: string,
+      oldValue: string | null,
+      newValue: string | null,
+    ) {
+      if (this.isConnected && oldValue !== newValue) this.render();
+    }
+
+    readonly #handleDocumentPointerDown = (event: PointerEvent) => {
+      if (this.#open && !event.composedPath().includes(this)) this.closeMenu();
+    };
+
+    readonly #handleDocumentKeyDown = (event: KeyboardEvent) => {
+      if (!this.#open) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.closeMenu();
+        return;
+      }
+      if (event.key !== "Tab" || !this.#menu) return;
+      const focusable = Array.from(
+        this.#menu.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+      );
+      if (focusable.length === 0) return;
+      const active = this.shadowRoot?.activeElement;
+      const current = focusable.indexOf(active as HTMLButtonElement);
+      const next = event.shiftKey
+        ? (current <= 0 ? focusable.length - 1 : current - 1)
+        : (current < 0 || current === focusable.length - 1 ? 0 : current + 1);
+      event.preventDefault();
+      focusable[next]?.focus();
+    };
+
+    readonly #handleWindowResize = () => {
+      if (this.#open) this.positionMenu();
+    };
+
+    private clearMenuPosition() {
+      for (const property of ["inset", "left", "right", "top", "bottom"]) {
+        this.#menu?.style.removeProperty(property);
+      }
+    }
+
+    private positionMenu() {
+      const menu = this.#menu;
+      const trigger = this.#trigger;
+      const view = this.ownerDocument.defaultView;
+      if (!menu || !trigger || !view) return;
+      this.clearMenuPosition();
+      if (view.matchMedia("(max-width: 30rem)").matches) return;
+
+      const viewportPadding = 12;
+      const triggerGap = 8;
+      const triggerRect = trigger.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      const direction = view.getComputedStyle(this).direction;
+      const preferredLeft = direction === "rtl"
+        ? triggerRect.left
+        : triggerRect.right - menuRect.width;
+      const maximumLeft = Math.max(
+        viewportPadding,
+        view.innerWidth - menuRect.width - viewportPadding,
+      );
+      const left = Math.min(
+        Math.max(viewportPadding, preferredLeft),
+        maximumLeft,
+      );
+      const availableAbove = triggerRect.top - viewportPadding - triggerGap;
+      const availableBelow = view.innerHeight
+        - triggerRect.bottom
+        - viewportPadding
+        - triggerGap;
+      const opensBelow = availableBelow >= menuRect.height
+        || availableBelow >= availableAbove;
+      const preferredTop = opensBelow
+        ? triggerRect.bottom + triggerGap
+        : triggerRect.top - menuRect.height - triggerGap;
+      const maximumTop = Math.max(
+        viewportPadding,
+        view.innerHeight - menuRect.height - viewportPadding,
+      );
+      const top = Math.min(
+        Math.max(viewportPadding, preferredTop),
+        maximumTop,
+      );
+
+      menu.style.left = `${Math.round(left)}px`;
+      menu.style.top = `${Math.round(top)}px`;
+      menu.style.right = "auto";
+      menu.style.bottom = "auto";
+    }
+
+    private resetDeleteConfirmation() {
+      const button = this.#menu?.querySelector<HTMLButtonElement>(
+        ".menu-action.danger[data-confirm='true']",
+      );
+      if (!button) return;
+      button.removeAttribute("data-confirm");
+      button.removeAttribute("aria-label");
+      button.textContent = createSpaceComponentTranslator(localeFor(this))(
+        "space.components.chat.action.delete",
+      );
+    }
+
+    private openMenu() {
+      if (!this.#menu || !this.#backdrop || !this.#trigger || this.#open) return;
+      this.resetDeleteConfirmation();
+      this.#open = true;
+      this.#menu.hidden = false;
+      this.#backdrop.hidden = false;
+      this.positionMenu();
+      this.#trigger.setAttribute("aria-expanded", "true");
+      this.ownerDocument.addEventListener("pointerdown", this.#handleDocumentPointerDown);
+      this.ownerDocument.addEventListener("keydown", this.#handleDocumentKeyDown);
+      this.ownerDocument.defaultView?.addEventListener("resize", this.#handleWindowResize);
+      Promise.resolve().then(() => {
+        this.#menu?.querySelector<HTMLButtonElement>(
+          ".reaction-choice:not(:disabled),.menu-action:not(:disabled),.close:not(:disabled)",
+        )?.focus();
+      });
+    }
+
+    private closeMenu(restoreFocus = true) {
+      if (!this.#open) return;
+      this.resetDeleteConfirmation();
+      this.#open = false;
+      if (this.#menu) this.#menu.hidden = true;
+      if (this.#backdrop) this.#backdrop.hidden = true;
+      this.#trigger?.setAttribute("aria-expanded", "false");
+      this.ownerDocument.removeEventListener("pointerdown", this.#handleDocumentPointerDown);
+      this.ownerDocument.removeEventListener("keydown", this.#handleDocumentKeyDown);
+      this.ownerDocument.defaultView?.removeEventListener("resize", this.#handleWindowResize);
+      this.clearMenuPosition();
+      if (restoreFocus) this.#trigger?.focus();
+    }
+
+    private appendActionButton(
+      container: HTMLElement,
+      action: "reply" | "edit" | "delete" | "retry",
+      eventName: typeof spaceChatEventNames.reply
+        | typeof spaceChatEventNames.edit
+        | typeof spaceChatEventNames.delete
+        | typeof spaceChatEventNames.retry,
+      actions: SpaceMessageActionsView,
+      menuItem: boolean,
+    ) {
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const button = this.ownerDocument.createElement("button");
+      button.type = "button";
+      button.disabled = actions.disabled === true;
+      button.className = menuItem
+        ? `menu-action${action === "delete" ? " danger" : ""}`
+        : "";
+      button.setAttribute("part", action);
+      if (action === "retry") button.setAttribute("data-testid", "retry-message");
+      button.textContent = translate(`space.components.chat.action.${action}`);
+      button.addEventListener("click", () => {
+        if (menuItem && action === "delete" && button.dataset.confirm !== "true") {
+          button.dataset.confirm = "true";
+          button.textContent = translate("space.components.chat.action.confirm-delete");
+          button.setAttribute(
+            "aria-label",
+            translate("space.components.chat.action.confirm-delete"),
+          );
+          return;
+        }
+        emit(this, eventName, { messageId: actions.messageId });
+        if (menuItem) this.closeMenu();
+      });
+      container.append(button);
+    }
+
     private render() {
+      this.closeMenu(false);
+      this.#trigger = null;
+      this.#menu = null;
+      this.#backdrop = null;
       const root = this.shadowRoot;
       if (!root) return;
       const translate = createSpaceComponentTranslator(localeFor(this));
@@ -740,23 +1001,103 @@ function createSpaceMessageActionsElementClass() {
         ["delete", actions.canDelete, spaceChatEventNames.delete],
         ["retry", actions.canRetry, spaceChatEventNames.retry],
       ] as const : [];
-      container.hidden = !actions || !definitions.some(([, allowed]) => allowed);
+      const allowedDefinitions = definitions.filter(([, allowed]) => allowed);
+      const hasReactionChoices = Boolean(actions) && this.#reactionChoices.length > 0;
+      container.hidden = !actions || (allowedDefinitions.length === 0 && !hasReactionChoices);
+
+      if (this.compact && actions && !container.hidden) {
+        const trigger = this.ownerDocument.createElement("button");
+        trigger.className = "trigger";
+        trigger.type = "button";
+        trigger.disabled = actions.disabled === true;
+        trigger.setAttribute("part", "trigger");
+        trigger.setAttribute("data-testid", "message-actions-more");
+        trigger.setAttribute("aria-haspopup", "dialog");
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.setAttribute("aria-label", translate("space.components.chat.action.menu"));
+        trigger.append(createMoreActionsIcon(this.ownerDocument));
+
+        const backdrop = this.ownerDocument.createElement("div");
+        backdrop.className = "backdrop";
+        backdrop.hidden = true;
+        backdrop.setAttribute("part", "backdrop");
+        backdrop.addEventListener("click", () => this.closeMenu());
+
+        const menu = this.ownerDocument.createElement("div");
+        menu.className = "menu";
+        menu.hidden = true;
+        menu.setAttribute("part", "menu");
+        menu.setAttribute("role", "dialog");
+        menu.setAttribute("aria-modal", "true");
+        menu.setAttribute("aria-label", translate("space.components.chat.action.menu"));
+        menu.setAttribute("data-testid", "message-actions-menu");
+        const header = this.ownerDocument.createElement("div");
+        header.className = "menu-header";
+        const title = this.ownerDocument.createElement("span");
+        title.className = "menu-title";
+        title.setAttribute("part", "menu-title");
+        title.textContent = translate("space.components.chat.action.menu");
+        const close = this.ownerDocument.createElement("button");
+        close.className = "close";
+        close.type = "button";
+        close.setAttribute("part", "menu-close");
+        close.textContent = translate("space.components.chat.action.close");
+        close.addEventListener("click", () => this.closeMenu());
+        header.append(title, close);
+        menu.append(header);
+
+        if (hasReactionChoices) {
+          const choices = this.ownerDocument.createElement("div");
+          choices.className = "reaction-choices";
+          choices.setAttribute("part", "reaction-choices");
+          const choicesTitle = this.ownerDocument.createElement("span");
+          choicesTitle.className = "reaction-title";
+          choicesTitle.textContent = translate("space.components.chat.reaction.add");
+          choices.append(choicesTitle);
+          for (const emoji of this.#reactionChoices) {
+            const choice = this.ownerDocument.createElement("button");
+            choice.className = "reaction-choice";
+            choice.type = "button";
+            choice.disabled = actions.disabled === true;
+            choice.setAttribute("part", "reaction-choice");
+            choice.setAttribute("aria-label", translate(
+              "space.components.chat.reaction.choice",
+              { emoji },
+            ));
+            choice.textContent = emoji;
+            choice.addEventListener("click", () => {
+              emit(this, spaceChatEventNames.reaction, {
+                messageId: actions.messageId,
+                emoji,
+              });
+              this.closeMenu();
+            });
+            choices.append(choice);
+          }
+          menu.append(choices);
+        }
+
+        const menuActions = this.ownerDocument.createElement("div");
+        menuActions.className = "menu-actions";
+        for (const [action, , eventName] of allowedDefinitions) {
+          this.appendActionButton(menuActions, action, eventName, actions, true);
+        }
+        menu.append(menuActions);
+        trigger.addEventListener("click", () => {
+          if (this.#open) this.closeMenu();
+          else this.openMenu();
+        });
+        container.append(trigger, backdrop, menu);
+        this.#trigger = trigger;
+        this.#backdrop = backdrop;
+        this.#menu = menu;
+        root.replaceChildren(style, container);
+        return;
+      }
+
       for (const [action, allowed, eventName] of definitions) {
         if (!allowed || !actions) continue;
-        const button = this.ownerDocument.createElement("button");
-        button.type = "button";
-        button.disabled = actions.disabled === true;
-        button.setAttribute("part", action);
-        if (action === "retry") {
-          button.setAttribute("data-testid", "retry-message");
-        }
-        button.textContent = translate(`space.components.chat.action.${action}`);
-        button.addEventListener("click", () => emit(
-          this,
-          eventName,
-          { messageId: actions.messageId },
-        ));
-        container.append(button);
+        this.appendActionButton(container, action, eventName, actions, false);
       }
       root.replaceChildren(style, container);
     }
@@ -818,21 +1159,57 @@ export const spaceChatTimelineStyles = `
 .viewport { min-block-size:12rem; max-block-size:var(--vc-space-chat-timeline-max-height,40rem); overflow:auto; overscroll-behavior:contain; padding:.75rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface,#f5f2eb); scrollbar-gutter:stable; }
 .status { display:grid; min-block-size:9rem; place-items:center; padding:1.5rem; color:var(--vc-space-color-text-muted,#5d6670); text-align:center; overflow-wrap:anywhere; }
 .status[hidden],.list[hidden] { display:none; }
-.list { display:grid; min-inline-size:0; gap:.9rem; }
+.list { display:grid; min-inline-size:0; gap:.18rem; }
 .entry { display:grid; min-inline-size:0; gap:.45rem; }
+.entry[data-group="single"],.entry[data-group="last"] { margin-block-end:.72rem; }
 .entry ${spaceChatAttachmentElementName} { margin-inline-start:2.6rem; max-inline-size:34rem; }
-.controls { display:flex; min-inline-size:0; flex-wrap:wrap; gap:.35rem; margin-inline-start:2.6rem; }
-.controls[data-own="true"] { justify-content:flex-end; margin-inline-start:0; }
+.entry[data-own="true"] ${spaceChatAttachmentElementName} { margin-inline-start:auto; }
+.controls { display:flex; inline-size:fit-content; max-inline-size:calc(100% - 2.6rem); min-inline-size:0; flex-wrap:wrap; align-items:center; gap:.35rem; margin-inline-start:2.6rem; }
+.controls[data-own="true"] { justify-content:flex-end; margin-inline-start:auto; }
 .controls[hidden] { display:none; }
 .typing { margin-block-start:.65rem; }
 .viewport:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
-@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName},.controls { margin-inline-start:0; } }
+@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName},.controls { max-inline-size:100%; margin-inline-start:0; } .controls[data-own="true"] { margin-inline-start:auto; } }
 @media (forced-colors:active),(prefers-contrast:more) { .viewport { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .status { color:CanvasText; } }
 `;
+
+const spaceChatMessageGroupWindowMs = 5 * 60 * 1_000;
+
+function messagesShareGroup(
+  previous: SpaceChatMessageView | undefined,
+  next: SpaceChatMessageView | undefined,
+) {
+  if (!previous || !next) return false;
+  if (
+    previous.author.id !== next.author.id
+    || previous.author.kind !== next.author.kind
+    || previous.isOwn !== next.isOwn
+  ) return false;
+  const previousTime = new Date(previous.createdAt).valueOf();
+  const nextTime = new Date(next.createdAt).valueOf();
+  return Number.isFinite(previousTime)
+    && Number.isFinite(nextTime)
+    && nextTime >= previousTime
+    && nextTime - previousTime <= spaceChatMessageGroupWindowMs;
+}
+
+export function getSpaceChatMessageGroupPositions(
+  messages: readonly SpaceChatMessageView[],
+): readonly SpaceChatMessageGroupPosition[] {
+  return Object.freeze(messages.map((message, index) => {
+    const joinsPrevious = messagesShareGroup(messages[index - 1], message);
+    const joinsNext = messagesShareGroup(message, messages[index + 1]);
+    if (joinsPrevious && joinsNext) return "middle";
+    if (joinsPrevious) return "last";
+    if (joinsNext) return "first";
+    return "single";
+  }));
+}
 
 interface TimelineEntry {
   readonly wrapper: HTMLElement;
   readonly messageElement: HTMLElement & {
+    groupPosition: SpaceChatMessageGroupPosition;
     message: SpaceChatMessageView | null;
     showReactions: boolean;
   };
@@ -960,7 +1337,8 @@ function createSpaceChatTimelineElementClass() {
         }
       }
       if (!list.hidden) {
-        for (const message of this.#messages) {
+        const groupPositions = getSpaceChatMessageGroupPositions(this.#messages);
+        for (const [index, message] of this.#messages.entries()) {
           let entry = this.#entries.get(message.id);
           if (!entry) {
             const wrapper = this.ownerDocument.createElement("div");
@@ -983,8 +1361,9 @@ function createSpaceChatTimelineElementClass() {
             actionsElement.setAttribute("part", "actions");
             actionsElement.setAttribute(
               "exportparts",
-              "actions:message-actions,reply:message-action-reply,edit:message-action-edit,delete:message-action-delete,retry:message-action-retry",
+              "actions:message-actions,trigger:message-action-more,backdrop:message-action-backdrop,menu:message-action-menu,menu-title:message-action-menu-title,menu-close:message-action-menu-close,reaction-choices:message-reaction-choices,reaction-choice:message-reaction-choice,reply:message-action-reply,edit:message-action-edit,delete:message-action-delete,retry:message-action-retry",
             );
+            actionsElement.compact = true;
             const reactionsElement = this.ownerDocument.createElement(
               spaceReactionBarElementName,
             ) as SpaceReactionBarElement;
@@ -993,7 +1372,7 @@ function createSpaceChatTimelineElementClass() {
               "exportparts",
               "bar:reaction-bar,reaction:reaction",
             );
-            controls.append(actionsElement, reactionsElement);
+            controls.append(reactionsElement, actionsElement);
             wrapper.append(messageElement, controls);
             entry = {
               wrapper,
@@ -1013,15 +1392,23 @@ function createSpaceChatTimelineElementClass() {
           }
           const interactive = this.interactive;
           const actions = message.actions ?? noSpaceChatActions;
+          const groupPosition = groupPositions[index] ?? "single";
           const showActions = interactive && (
-            actions.reply || actions.edit || actions.delete || actions.retry
+            actions.reply
+            || actions.edit
+            || actions.delete
+            || actions.retry
+            || (actions.react && this.#reactionChoices.length > 0)
           );
           const showReactions = interactive
-            && actions.react
-            && (message.reactions.length > 0 || this.#reactionChoices.length > 0);
-          entry.messageElement.showReactions = !showReactions;
+            && message.reactions.length > 0;
+          entry.messageElement.groupPosition = groupPosition;
+          entry.messageElement.showReactions = !interactive;
+          entry.wrapper.dataset.group = groupPosition;
+          entry.wrapper.dataset.own = String(message.isOwn);
           entry.controls.dataset.own = String(message.isOwn);
           entry.controls.hidden = !showActions && !showReactions;
+          entry.actionsElement.setAttribute("locale", localeFor(this));
           entry.actionsElement.actions = showActions
             ? {
                 messageId: message.id,
@@ -1030,25 +1417,18 @@ function createSpaceChatTimelineElementClass() {
                 canDelete: actions.delete,
                 canRetry: actions.retry,
                 disabled: this.interactionDisabled,
-              }
-            : null;
-          const reactionByEmoji = new Map(
-            message.reactions.map((reaction) => [reaction.emoji, reaction]),
-          );
-          for (const emoji of this.#reactionChoices) {
-            if (!reactionByEmoji.has(emoji)) {
-              reactionByEmoji.set(emoji, Object.freeze({
-                emoji,
-                count: 0,
-                reactedBySelf: false,
-              }));
             }
-          }
-          entry.reactionsElement.messageId = message.id;
-          entry.reactionsElement.reactions = showReactions
-            ? Object.freeze([...reactionByEmoji.values()])
+            : null;
+          entry.actionsElement.reactionChoices = actions.react
+            ? this.#reactionChoices
             : Object.freeze([]);
-          entry.reactionsElement.disabled = this.interactionDisabled;
+          entry.reactionsElement.setAttribute("locale", localeFor(this));
+          entry.reactionsElement.messageId = message.id;
+          entry.reactionsElement.hidden = !showReactions;
+          entry.reactionsElement.reactions = showReactions
+            ? message.reactions
+            : Object.freeze([]);
+          entry.reactionsElement.disabled = this.interactionDisabled || !actions.react;
           const existingAttachment = entry.wrapper.querySelector<SpaceChatAttachmentElement>(spaceChatAttachmentElementName);
           if (message.attachment) {
             const attachment = existingAttachment
@@ -1058,7 +1438,10 @@ function createSpaceChatTimelineElementClass() {
           } else {
             existingAttachment?.remove();
           }
-          list.append(entry.wrapper);
+          const expectedWrapper = list.children[index];
+          if (expectedWrapper !== entry.wrapper) {
+            list.insertBefore(entry.wrapper, expectedWrapper ?? null);
+          }
         }
       }
       this.updateTyping();

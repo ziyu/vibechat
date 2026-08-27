@@ -8,6 +8,8 @@ import type {
 import {
   createSpaceChatAttachmentView,
   createSpaceChatController,
+  createSpaceChatMessageViews,
+  getSpaceChatMessageGroupPositions,
   renderSpaceChatAttachment,
   spaceChatComposerStyles,
   spaceChatEventNames,
@@ -269,6 +271,32 @@ describe("Space Chat migration-ready controller", () => {
 });
 
 describe("Space Chat migration-ready view contracts", () => {
+  it("groups only adjacent messages from the same author inside the time window", () => {
+    const base = chatSnapshot();
+    const messages = [
+      chatMessage("bob-1", "bob", "One", { createdAt: "2026-08-26T10:00:00.000Z" }),
+      chatMessage("bob-2", "bob", "Two", { createdAt: "2026-08-26T10:02:00.000Z" }),
+      chatMessage("bob-3", "bob", "Three", { createdAt: "2026-08-26T10:04:00.000Z" }),
+      chatMessage("bob-4", "bob", "Later", { createdAt: "2026-08-26T10:10:00.000Z" }),
+      chatMessage("self-1", "self", "Mine", { createdAt: "2026-08-26T10:11:00.000Z" }),
+      chatMessage("self-2", "self", "Also mine", { createdAt: "2026-08-26T10:12:00.000Z" }),
+    ];
+    const views = createSpaceChatMessageViews({
+      ...base,
+      messages,
+      chat: { ...base.chat, messages },
+    });
+
+    expect(getSpaceChatMessageGroupPositions(views)).toEqual([
+      "first",
+      "middle",
+      "last",
+      "single",
+      "first",
+      "last",
+    ]);
+  });
+
   it("normalizes attachment metadata and strips unsafe protocols", () => {
     const unsafe = createSpaceChatAttachmentView({
       name: '<img onerror="alert(1)">',
@@ -312,5 +340,10 @@ describe("Space Chat migration-ready view contracts", () => {
     }
     expect(spaceChatComposerStyles).toContain("min-block-size:2.75rem");
     expect(spaceChatTimelineStyles).toContain("overflow:auto");
+    expect(spaceChatTimelineStyles).toContain("inline-size:fit-content");
+    expect(spaceReactionBarStyles).toContain(":host([hidden])");
+    expect(spaceMessageActionsStyles).toContain("position:fixed");
+    expect(spaceMessageActionsStyles).toContain("prefers-reduced-motion");
+    expect(spaceMessageActionsStyles).toContain(".danger");
   });
 });

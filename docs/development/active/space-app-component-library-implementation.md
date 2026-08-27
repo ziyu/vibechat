@@ -16,6 +16,8 @@
 
 随后审计补丁签锁 `@vibechat/space-app-components@0.6.0` 与相邻 development Template `space-default@0.1.4`：Host 在 SDK snapshot 显式下发 Chat permissions，message view 结合 ownership/status 生成 action availability，Timeline 通过公开 property/event/`::part` 正式组合 Actions/Reaction，并以 `chat-message-entry` 提供稳定测试入口。Default adapter 删除 Shadow DOM 查询和运行时 style 注入，使用组件公开 type-only imports；可见且打开时按最新 Matrix message ID 去重发送非阻塞 read receipt，并补齐 dock unread 累积与可访问名称本地化。`0.6.0` 当前完成本地可发布 package 与仓库 release lock，未上传生产 managed Registry/Object Store，也未生成不可变 Space Release。
 
+本轮进一步新增 `@vibechat/space-app-components@0.7.0` 与相邻 development Template `space-default@0.1.5`，不覆盖 `0.1.4` lock。交互 Timeline 现在只呈现一套 canonical Reaction，候选 Reaction 与 reply/edit/delete/retry 进入 compact MessageActions；桌面使用浮层，窄屏使用带 backdrop 的 action sheet，覆盖焦点循环/恢复、Escape、外部点击、危险删除二次确认和英中内建文案。相邻同作者消息按五分钟窗口分组，重复 author/time/delivery 与 avatar chrome 被压缩；controls 使用 `fit-content` 跟随消息方向和气泡。独立 MessageActions 仍保持 inline 默认，因此这是新增 compact 能力与交互 Timeline 默认优化，不要求旧消费方迁移。`0.7.0` 当前仍只有本地 release lock/构建证据，未上传生产 managed Registry/Object Store。
+
 本轮没有改写任何既有 Published Release。托管依赖解析、Registry 缺失/漂移 fail closed、旧 Space 后加依赖、prepared 缓存冷启动和 source/artifact 分离已有 unit 证据；`space-default@0.1.3` 也已在真实本地 Rivet/AgentOS Dev VM 中生成 ready Revision，并在完整开发栈冷启动后从同一 prepared artifact 恢复。单 Chromium iframe 已确认 `0.5.0` Composer/Timeline 可见且无新 console error，但没有发送消息。生产 Object Store publish、不可变 Release、真实 Matrix 双浏览器、完整交互/a11y 矩阵和抽屉式 Template 迁移仍未执行，因此 C1/C3/C5 与“可供所有生产 Space 使用”都不能标记 Complete。
 
 ## 状态定义
@@ -32,11 +34,11 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.6.0` tracked managed release lock、exact version/integrity、注入式 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.7.0` tracked managed release lock、exact version/integrity、注入式 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | `0.6.0` + `space-default@0.1.4` 公开交互/权限契约，旧 vendor 与 Shadow DOM adapter 删除；`0.5.0` 有真实单 Chromium 空状态证据 | 对 `0.6.0` 做真实 Matrix 双浏览器交互后迁移抽屉式 Template |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | `0.7.0` + `space-default@0.1.5` 渐进式操作、单一 Reaction、消息分组与响应式 action sheet；旧 vendor 与 Shadow DOM adapter 已删除 | 对 `0.7.0` 做真实 Matrix 双浏览器交互后迁移抽屉式 Template |
 
 ## 当前 Active 切片
 
@@ -66,6 +68,7 @@
 - [x] 增加 `@vibechat/space-app-dependencies`、`space-app-dependencies.json`、managed Registry release 和 `@vibechat/space-app-components@0.5.0` 语义化 subpath exports；Space 源码使用普通 package import。
 - [x] 增加 Host→SDK `chat.permissions`，由 message view 结合 ownership/status 生成 actions；Timeline 公开 `interactive`、`interactionDisabled`、`reactionChoices`、稳定 `chat-message-entry` 与嵌套 action/reaction parts。
 - [x] 将 Default 升到 development `space-default@0.1.4` / exact `0.6.0`，删除 Timeline Shadow DOM 查询和 style 注入，改用组件公共类型与 parts；read receipt 按最新消息去重且不占全局 command pending。
+- [x] 将组件升到 `0.7.0`、Default 升到相邻 development `0.1.5`；交互 Timeline 只保留 canonical Reaction + compact More，新增五分钟消息分组、气泡锚定 controls、桌面浮层/移动 action sheet、键盘焦点管理和危险删除确认，同时保持 standalone MessageActions inline 默认兼容。
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
@@ -82,7 +85,7 @@
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
-- `0.6.0` 与 `space-default@0.1.4` 已完成审计补丁的源码、类型、package/bundle 和定向 unit 基线；真实浏览器证据仍只覆盖此前 `0.5.0` / `0.1.3` 的单 Chromium 空状态/Composer。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 与抽屉式 Template 继续保持未完成。
+- `0.7.0` 与 `space-default@0.1.5` 已完成最终 package/bundle、43 个定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 与抽屉式 Template 继续保持未完成。
 
 ## 2026-08-26 验证记录
 
@@ -183,6 +186,21 @@
 | package/bundle | 通过 | browser/chat gzip 为 22,313 / 18,707 bytes；语义 exports、side-effect 边界、无远程 runtime import 与 managed integrity 校验通过 |
 | 定向 unit | 通过 | components/dependencies/templates 共 5 files、30 tests；Default、SDK 与 component 定向 TypeScript 通过 |
 | 真实 Runtime/浏览器 | 未执行 | `0.6.0` 未上传生产 Registry/Object Store，`0.1.4` 未生成 ready Revision/不可变 Release，也未执行真实 Matrix 双浏览器/a11y E2E |
+
+### 2026-08-27 Default 操作密度修复最终验证
+
+`@vibechat/space-app-components@0.7.0` source/browser artifact hash 为 `sha256:c22df8454e0866229dd596c5b0938d3a255398a0ac37f60dc6cc0bc36745d7d7` / `sha256:60e66b2f9e2db6d595fa9c7bd66cd749624db7aa51ed3c43c3e65d76edc44c83`，本地 managed package integrity 为 `sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103`。`space-default@0.1.5` source/artifact hash 为 `sha256:5e26e8fc2d6cf530bfff971b94029ba32d366cb90c8daf42d8115cc5ccce4449`，manifest hash 为 `sha256:8e3363f923328a46b9b668488d4a3753c6a8e214bd332b5a4646162a4f725dfa`；既有 `0.1.4` lock 未改写。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| package/bundle | 通过 | browser/chat gzip 为 25,431 / 21,804 bytes；managed integrity、semantic exports、side-effect 边界、无远程 runtime import 和 Catalog lock 一致性通过 |
+| 定向 unit/TypeScript | 通过 | components/dependencies/templates 共 7 files、43 tests；组件与 Default Template TypeScript、Catalog `--check` 和 `git diff --check` 通过 |
+| Timeline 稳定性 | 通过 | equivalent actions/reaction choices/locale 不重建 More；列表只在真实顺序变化时移动节点，5.2 秒 snapshot 刷新后菜单仍打开；Delete 确认在关闭/重开后复位，Escape 恢复 trigger 焦点 |
+| 响应式与视觉 | 通过 | 桌面 fixed menu 根据 trigger 与上下可用空间定位且完整落在 iframe viewport；390×844 action sheet 两侧各 12px、backdrop 可见、外部点击关闭；Impeccable 最终 detector 返回空结果 |
+| 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 3/3：原有创建/发送/回复/Reaction/刷新/恢复长链继续通过，新增独立 Default 用例发送真实 Matrix 消息并覆盖 4.5 秒刷新、确认/焦点和 390px action sheet |
+| 当前本地验收 Space | 通过 | `space-default@0.1.5` 在真实本地 Runtime 生成 ready Revision `04b4b51`；桌面 More 保持打开且边界为 top 187 / right 826 / bottom 461（iframe 891×882），验收 tab 保持打开 |
+
+本轮仍未把 `0.7.0` 上传生产 managed Registry/Object Store，也未生成不可变 Published Release、执行跨 Runtime/主机恢复、双 Chromium 同房消息交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
 
 ## 待决策清单
 

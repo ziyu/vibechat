@@ -55,11 +55,11 @@ describe("Space Template publication protocol", () => {
         verification: "official",
       });
       const expectedCurrentVersion = template.id === "space-default"
-        ? "0.1.4"
+        ? "0.1.5"
         : "0.1.2";
       expect(template.versions.map((item) => item.semanticVersion)).toEqual(
         template.id === "space-default"
-          ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4"]
+          ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5"]
           : ["0.1.0", "0.1.1", "0.1.2"],
       );
       expect(version).toMatchObject({
@@ -143,12 +143,12 @@ describe("Space Template publication protocol", () => {
           'from "@vibechat/space-app-components/chat/inline"',
         );
         expect(JSON.parse(project!.files["package.json"]).dependencies)
-          .toMatchObject({ "@vibechat/space-app-components": "0.6.0" });
+          .toMatchObject({ "@vibechat/space-app-components": "0.7.0" });
         expect(JSON.parse(
           project!.files["space-app-dependencies.json"],
         ).packages["@vibechat/space-app-components"]).toEqual({
-          version: "0.6.0",
-          integrity: "sha256:4187cc990c2ed9aea01fdd596535593e22460d77e28ca7b2d143ae7184be9b25",
+          version: "0.7.0",
+          integrity: "sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103",
         });
         expect(project!.files["src/vendor/space-app-components-chat.ts"])
           .toBeUndefined();
@@ -244,7 +244,7 @@ describe("Space Template publication protocol", () => {
   it("creates an App-published user Template with exactly the same protocol", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-4",
+      "tplv-space-default-0-1-5",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -319,7 +319,7 @@ describe("Space Template publication protocol", () => {
   it("enforces one ordered SemVer sequence without empty or skipped releases", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-4",
+      "tplv-space-default-0-1-5",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -508,13 +508,13 @@ describe("Space Template publication protocol", () => {
       const candidate = await createProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-4",
+        "tplv-space-default-0-1-5",
       );
       const stillReady = await loadProject(appId);
 
       expect(candidate.template).toMatchObject({
         id: "space-default",
-        versionId: "tplv-space-default-0-1-4",
+        versionId: "tplv-space-default-0-1-5",
       });
       expect(candidate.files["src/chat/client/bootstrap.ts"]).toContain(
         "createSpaceChatController",
@@ -523,7 +523,7 @@ describe("Space Template publication protocol", () => {
         "@vibechat/space-app-components/chat/inline",
       );
       expect(candidate.files["space-app-dependencies.json"]).toContain(
-        "sha256:4187cc990c2ed9aea01fdd596535593e22460d77e28ca7b2d143ae7184be9b25",
+        "sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103",
       );
       expect(candidate.files["src/vendor/space-app-components-chat.ts"])
         .toBeUndefined();
@@ -546,7 +546,7 @@ describe("Space Template publication protocol", () => {
       await initializeProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-4",
+        "tplv-space-default-0-1-5",
       );
       const stored = structuredClone(projectRecords.get(appId)) as {
         files: Record<string, string>;

@@ -231,11 +231,13 @@ export async function bootstrapChat(
     chat.beginReply(eventDetail<
       SpaceChatComponentEventDetailMap[typeof events.reply]
     >(event).messageId);
+    composer.focus();
   });
   timeline.addEventListener(events.edit, (event) => {
     chat.beginEdit(eventDetail<
       SpaceChatComponentEventDetailMap[typeof events.edit]
     >(event).messageId);
+    composer.focus();
   });
   timeline.addEventListener(events.delete, (event) => {
     void chat.delete(eventDetail<

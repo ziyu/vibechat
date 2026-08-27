@@ -44,8 +44,11 @@ export interface SpaceChatBubbleElement extends HTMLElement {
 
 export interface SpaceChatMessageElement extends HTMLElement {
   message: SpaceChatMessageView | null;
+  groupPosition: SpaceChatMessageGroupPosition;
   showReactions: boolean;
 }
+
+export type SpaceChatMessageGroupPosition = "single" | "first" | "middle" | "last";
 
 export interface SpaceTypingIndicatorElement extends HTMLElement {
   users: readonly SpaceChatAuthorView[];
@@ -76,6 +79,12 @@ const messageAttributes = [
   "status",
   "text",
 ] as const;
+
+function messageGroupPosition(value: string | null): SpaceChatMessageGroupPosition {
+  return value === "first" || value === "middle" || value === "last"
+    ? value
+    : "single";
+}
 
 function documentLocale(element: HTMLElement) {
   return element.getAttribute("locale")
@@ -238,7 +247,7 @@ export const spaceChatMessageMetaStyles = `
 
 function createSpaceChatMessageMetaElementClass() {
   return class VcSpaceChatMessageMetaElement extends HTMLElement implements SpaceChatMessageMetaElement {
-    static readonly observedAttributes = messageAttributes;
+    static readonly observedAttributes = [...messageAttributes, "group-position"];
     #message: SpaceChatMessageView | null = null;
 
     get message() { return this.#message; }
@@ -253,7 +262,7 @@ function createSpaceChatMessageMetaElementClass() {
     }
 
     attributeChangedCallback(name: string) {
-      if (this.isConnected && (name === "hide-reactions" || !this.#message)) {
+      if (this.isConnected && (name === "group-position" || !this.#message)) {
         this.render();
       }
     }
@@ -265,31 +274,40 @@ function createSpaceChatMessageMetaElementClass() {
       const locale = documentLocale(this);
       const translate = createSpaceComponentTranslator(locale);
       const formattedTime = formatMessageTime(message.createdAt, locale);
+      const groupPosition = messageGroupPosition(this.getAttribute("group-position"));
+      const showHeader = groupPosition === "single" || groupPosition === "first";
+      const showDelivery = message.isOwn && (
+        groupPosition === "single"
+        || groupPosition === "last"
+        || message.status !== "sent"
+      );
       const style = this.ownerDocument.createElement("style");
       style.textContent = spaceChatMessageMetaStyles;
       const meta = this.ownerDocument.createElement("div");
       meta.className = "meta";
       meta.setAttribute("part", "meta");
-      const author = this.ownerDocument.createElement("strong");
-      author.className = "author";
-      author.setAttribute("part", "author");
-      author.textContent = message.author.name;
-      meta.append(author);
-      if (message.isAgent) {
-        const badge = this.ownerDocument.createElement(spaceAgentBadgeElementName);
-        badge.setAttribute("part", "agent-badge");
-        meta.append(badge);
+      if (showHeader) {
+        const author = this.ownerDocument.createElement("strong");
+        author.className = "author";
+        author.setAttribute("part", "author");
+        author.textContent = message.author.name;
+        meta.append(author);
+        if (message.isAgent) {
+          const badge = this.ownerDocument.createElement(spaceAgentBadgeElementName);
+          badge.setAttribute("part", "agent-badge");
+          meta.append(badge);
+        }
+        const time = this.ownerDocument.createElement("time");
+        time.className = "time";
+        time.setAttribute("part", "time");
+        if (formattedTime) time.dateTime = message.createdAt;
+        time.textContent = formattedTime
+          || translate("space.components.chat.time.unknown");
+        meta.append(time);
       }
-      const time = this.ownerDocument.createElement("time");
-      time.className = "time";
-      time.setAttribute("part", "time");
-      if (formattedTime) time.dateTime = message.createdAt;
-      time.textContent = formattedTime
-        || translate("space.components.chat.time.unknown");
-      meta.append(time);
       const states = [
         message.edited ? translate("space.components.chat.edited") : "",
-        message.isOwn
+        showDelivery
           ? translate(`space.components.chat.delivery.${message.status}`)
           : "",
       ].filter(Boolean);
@@ -417,6 +435,10 @@ export const spaceChatBubbleStyles = `
   padding: var(--vc-space-chat-bubble-padding, .72rem .82rem);
   border: 1px solid var(--vc-space-color-border, #8a929a);
   border-radius: var(--vc-space-chat-bubble-radius, var(--vc-space-radius-card, .9rem));
+  border-start-start-radius: var(--vc-space-chat-bubble-group-start-radius);
+  border-start-end-radius: var(--vc-space-chat-bubble-group-start-radius);
+  border-end-start-radius: var(--vc-space-chat-bubble-group-end-radius);
+  border-end-end-radius: var(--vc-space-chat-bubble-group-end-radius);
   background: var(--vc-space-chat-bubble-background, var(--vc-space-color-surface-raised, #fff));
 }
 .body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.48; }
@@ -508,8 +530,11 @@ export const spaceChatMessageStyles = `
 }
 .message[data-own="true"] { grid-template-columns: minmax(0, 1fr); padding-inline-start: min(16%, 7rem); }
 .message[data-own="false"] { padding-inline-end: min(10%, 5rem); }
+.message[data-group="middle"], .message[data-group="last"] { align-items: start; }
 .avatar { align-self: end; margin-block-end: .18rem; }
 .content { display: grid; min-inline-size: 0; gap: .3rem; }
+.message[data-group="middle"] .content,
+.message[data-group="last"] .content { gap: 0; }
 .message[data-own="true"] .content { justify-items: end; }
 .message[data-own="true"] ${spaceChatMessageMetaElementName} { text-align: end; }
 .message[data-own="true"] ${spaceChatBubbleElementName} {
@@ -520,6 +545,14 @@ export const spaceChatMessageStyles = `
 }
 .message[data-agent="true"] ${spaceChatBubbleElementName} {
   --vc-space-chat-bubble-background: color-mix(in srgb, var(--vc-space-color-accent, #d95835) 12%, var(--vc-space-color-surface-raised, #fff));
+}
+.message[data-group="first"] ${spaceChatBubbleElementName},
+.message[data-group="middle"] ${spaceChatBubbleElementName} {
+  --vc-space-chat-bubble-group-end-radius: .42rem;
+}
+.message[data-group="middle"] ${spaceChatBubbleElementName},
+.message[data-group="last"] ${spaceChatBubbleElementName} {
+  --vc-space-chat-bubble-group-start-radius: .42rem;
 }
 .message[data-status="failed"] ${spaceChatBubbleElementName} {
   --vc-space-chat-bubble-background: color-mix(in srgb, var(--vc-space-color-negative, #a33b43) 8%, var(--vc-space-color-surface-raised, #fff));
@@ -586,7 +619,11 @@ function avatarForMessage(
 
 function createSpaceChatMessageElementClass() {
   return class VcSpaceChatMessageElement extends HTMLElement implements SpaceChatMessageElement {
-    static readonly observedAttributes = [...messageAttributes, "hide-reactions"];
+    static readonly observedAttributes = [
+      ...messageAttributes,
+      "group-position",
+      "hide-reactions",
+    ];
     #message: SpaceChatMessageView | null = null;
 
     get message() { return this.#message; }
@@ -598,14 +635,22 @@ function createSpaceChatMessageElementClass() {
     set showReactions(value) {
       this.toggleAttribute("hide-reactions", !value);
     }
+    get groupPosition() {
+      return messageGroupPosition(this.getAttribute("group-position"));
+    }
+    set groupPosition(value) {
+      this.setAttribute("group-position", messageGroupPosition(value));
+    }
 
     connectedCallback() {
       if (!this.shadowRoot) this.attachShadow({ mode: "open" });
       this.render();
     }
 
-    attributeChangedCallback() {
-      if (this.isConnected && !this.#message) this.render();
+    attributeChangedCallback(name: string) {
+      if (this.isConnected && (name === "group-position" || !this.#message)) {
+        this.render();
+      }
     }
 
     private render() {
@@ -619,6 +664,7 @@ function createSpaceChatMessageElementClass() {
       article.className = "message";
       article.dataset.own = String(message.isOwn);
       article.dataset.agent = String(message.isAgent);
+      article.dataset.group = this.groupPosition;
       article.dataset.status = message.status;
       article.setAttribute("data-testid", "chat-message");
       article.setAttribute("part", "message");
@@ -628,7 +674,10 @@ function createSpaceChatMessageElementClass() {
           author: message.author.name,
         }),
       );
-      if (!message.isOwn) {
+      if (
+        !message.isOwn
+        && (this.groupPosition === "single" || this.groupPosition === "last")
+      ) {
         const avatar = avatarForMessage(this, message);
         avatar.className = "avatar";
         avatar.setAttribute("part", "avatar");
@@ -647,6 +696,7 @@ function createSpaceChatMessageElementClass() {
         this.ownerDocument.createElement(spaceChatMessageMetaElementName) as SpaceChatMessageMetaElement,
         message,
       );
+      meta.setAttribute("group-position", this.groupPosition);
       const bubble = setMessageProperty(
         this.ownerDocument.createElement(spaceChatBubbleElementName) as SpaceChatBubbleElement,
         message,

@@ -228,6 +228,8 @@ P0 不在浏览器维护第二条消息数据库。分页、虚拟列表、富�
 
 Host 必须在 SDK snapshot 中显式提供 Chat permissions；空 snapshot 和缺失字段一律 fail closed。message view 只允许把全局 permission 与消息 ownership/status 组合成每条消息的 action availability，Template 和 presentational component 都不能通过 `isOwn`、`isAgent` 或 DOM 状态自行猜测 ACL。交互 Timeline 通过公开 property、typed event、稳定 test id 与 `::part` 组合 Actions/Reaction；只读 Timeline 保持默认呈现，消费方不得进入 Shadow DOM 添加控件或注入样式。
 
+交互 Timeline 的默认信息密度也属于公共行为契约：已有 Reaction 只保留一套可交互呈现，不与 Message 内只读 Reaction 重复；未使用的候选 Reaction、reply/edit/delete/retry 通过 compact MessageActions 渐进披露，Delete 必须使用危险语义和显式二次确认。compact 模式要同时覆盖桌面浮层、窄屏 action sheet、焦点进入/循环/恢复、Escape、外部点击、forced colors 与 reduced motion。独立 MessageActions 默认仍为 inline，以保持已有消费方兼容。相邻同作者且时间间隔不超过五分钟的消息可以组合为 `single/first/middle/last`，隐藏重复作者和时间，并只在组尾/单条保留非本人头像；分组只改变呈现，不改变 message key、timeline 顺序或 Chat Core 语义。
+
 ### 8.4 Agent
 
 | P0 组件/控制器 | 主要职责 |
@@ -357,7 +359,7 @@ Space 源码必须使用普通 package import 和精确 SemVer，并用独立 lo
 // package.json
 {
   "dependencies": {
-    "@vibechat/space-app-components": "0.6.0"
+    "@vibechat/space-app-components": "0.7.0"
   }
 }
 ```
@@ -368,8 +370,8 @@ Space 源码必须使用普通 package import 和精确 SemVer，并用独立 lo
   "schemaVersion": "vibechat.space-app-dependencies/v1",
   "packages": {
     "@vibechat/space-app-components": {
-      "version": "0.6.0",
-      "integrity": "sha256:4187cc990c2ed9aea01fdd596535593e22460d77e28ca7b2d143ae7184be9b25"
+      "version": "0.7.0",
+      "integrity": "sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103"
     }
   }
 }

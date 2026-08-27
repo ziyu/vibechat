@@ -6,6 +6,7 @@ import type {
 } from "@vibechat/space-app-sdk";
 import {
   createSpaceComponentContext,
+  createSpaceComponentTranslator,
   createSpaceSnapshotController,
 } from "@vibechat/space-app-components/core";
 import {
@@ -99,6 +100,20 @@ afterEach(() => {
 });
 
 describe("Space component context", () => {
+  it("ships localized progressive-disclosure action copy", () => {
+    const english = createSpaceComponentTranslator("en");
+    const chinese = createSpaceComponentTranslator("zh-CN");
+
+    expect(english("space.components.chat.action.menu"))
+      .toBe("More message actions");
+    expect(english("space.components.chat.reaction.choice", { emoji: "♥" }))
+      .toBe("React with ♥");
+    expect(chinese("space.components.chat.action.menu"))
+      .toBe("更多消息操作");
+    expect(chinese("space.components.chat.reaction.choice", { emoji: "♥" }))
+      .toBe("用 ♥ 回应");
+  });
+
   it("injects one SDK instance and disposes subscriptions exactly once", () => {
     const sdk = fakeSdk();
     const context = createSpaceComponentContext({ sdk: sdk.client });

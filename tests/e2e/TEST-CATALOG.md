@@ -1371,7 +1371,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 2026-08-23 第一版证据：
 
 - Host 浏览器 DOM 只有 Kernel Bar 与单一 iframe；差异化夜航电台 App 内提供自己的 Chat drawer，新建流程默认选择 Default Chat 且允许零联系人。
-- `chat-matrix-room.spec.ts` 2/2 通过，覆盖固定 Template Version Space 创建、ready snapshot 后挂载 App iframe、真实 Matrix 发送/回复/Reaction，以及刷新后历史唯一恢复。
+- `chat-matrix-room.spec.ts` 3/3 通过，覆盖固定 Template Version Space 创建、ready snapshot 后挂载 App iframe、真实 Matrix 发送/回复/Reaction、刷新后历史唯一恢复，以及独立 Default Chat compact More/390px action sheet 回归。
 - `chat-matrix-operations.spec.ts` 1/1 通过，覆盖两个真实用户在同一 Template App 内的 typing、发送/接收、编辑、撤回、附件、离线失败/重试和刷新恢复。
 - Space Template/Runtime/Product State 定向 unit 12/12 通过，覆盖五个不同 App Project、Default Chat App HTML 恢复、安全升级未修改内置 Project、自定义 Project 不覆盖；全仓 18/18 package/app `pnpm typecheck` 通过。
 - 本证据尚未覆盖双 Chromium 完整操作、媒体/typing/Mention、结构化 `@agent`、Candidate 失败、rollback 和发布固化，所以其余复选项保持未通过。
@@ -1379,7 +1379,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 2026-08-24 冷启动修正证据：
 
 - ready App target 状态机 unit 5/5 通过：首次 `building` 不生成 iframe URL，ready preview 与 `draftId` 精确匹配后挂载，同一 Space 构建/重连保留上一版，切换 Space 不串用旧 snapshot/target。
-- 本地 Synapse Chromium `chat-matrix-room.spec.ts` 2/2 通过；新建 Template Space 的首个 App 文档响应不包含 `x-vibechat-space-recovery: default-chat-app`，随后在同一 Template App 内完成真实发送、回复、Reaction 和刷新恢复。
+- 本地 Synapse Chromium `chat-matrix-room.spec.ts` 3/3 通过；新建 Template Space 的首个 App 文档响应不包含 `x-vibechat-space-recovery: default-chat-app`，随后在同一 Template App 内完成真实发送、回复、Reaction 和刷新恢复；独立 Default 用例覆盖桌面与 390px 渐进式消息操作。
 - 全仓 18/18 package/app `typecheck` 与 `build`、应用边界、文档链接和 `git diff --check` 通过。
 
 2026-08-24 App fallback 边界修正证据（尚不足以勾选 Candidate 双浏览器 E2E）：
@@ -1463,6 +1463,8 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 
 2026-08-27 Default 审计补丁 Spec/工程证据：Host snapshot 增加 fail-closed `chat.permissions`，message view 只从显式 permission + ownership/status 生成 reply/edit/delete/retry/react availability；交互 Timeline 自己组合 Actions/Reaction、导出稳定 `chat-message-entry` 与 action/reaction parts，并在交互 Reaction 可用时隐藏重复的只读 Reaction。`space-default@0.1.4` 固定本地签锁的 `@vibechat/space-app-components@0.6.0`（integrity `sha256:4187cc990c2ed9aea01fdd596535593e22460d77e28ca7b2d143ae7184be9b25`），不再读取 Timeline `shadowRoot`/私有 `data-message-id` 或注入样式；read receipt 只在 Chat 打开且 document 可见时按最新 message ID 去重发送，dock unread 增量累积。E2E 在恢复 Default 前保留 Campfire 旧 DOM 断言，恢复后改用 `chat-message-entry` 和 Reaction button accessible name。组件 source/browser hash 为 `sha256:23e09f9e83642f353849a832033dfac33faca5834fa3737bb4d072438df28565` / `sha256:7b9dcf2cc12de5fda6aa2f0eacc96f4bdbc73fc5faf12c641b0087c48c0a5b50`；Template source/manifest hash 为 `sha256:446fa544386fe4f1b95b8a6f6e99b1e3dc402f1544ea2b85eb2b9603610b09ce` / `sha256:b4384f73bac9a1bf48a57b1fd4146556f4f2596109c2615083eedc230916c691`。定向 5 files、30 tests 与 package/bundle 校验通过；生产 managed publish、真实 `0.1.4` ready Revision/Release、双 Chromium Matrix/a11y E2E 未执行，复合场景保持未勾选。
 
+2026-08-27 Default 操作密度修复最终证据：`@vibechat/space-app-components@0.7.0` 新增 standalone opt-in `MessageActions.compact/reactionChoices`、`getSpaceChatMessageGroupPositions()`、action menu/reaction choice parts 与英中内建文案；交互 Timeline 默认只组合真实 Reaction 和 compact More，不再合并 0-count 候选或保留 Message 内只读 Reaction。More 使用 authored SVG，覆盖焦点进入/循环/恢复、Escape、外部点击、关闭后 Delete 确认复位、viewport-aware 桌面浮层、390px action sheet/backdrop、forced colors 和 reduced motion；等价 snapshot 更新不移动既有 Timeline entry 或重建菜单。组件 source/browser hash 为 `sha256:c22df8454e0866229dd596c5b0938d3a255398a0ac37f60dc6cc0bc36745d7d7` / `sha256:60e66b2f9e2db6d595fa9c7bd66cd749624db7aa51ed3c43c3e65d76edc44c83`，integrity 为 `sha256:7640548144e75ce7305d893c26e43f2ae14d1c6adefdd099cd58af80d54e3103`，browser/chat gzip 为 25,431 / 21,804 bytes；Default source/manifest hash 为 `sha256:5e26e8fc2d6cf530bfff971b94029ba32d366cb90c8daf42d8115cc5ccce4449` / `sha256:8e3363f923328a46b9b668488d4a3753c6a8e214bd332b5a4646162a4f725dfa`。定向 unit 7 files、43 tests 和 `chat-matrix-room.spec.ts` 3/3 通过；当前本地验收 ready Revision 为 `04b4b51`。生产 managed publish、不可变 Release、双 Chromium 同房交互和完整 a11y 矩阵仍未执行。
+
 阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
 
 - [ ] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。
@@ -1488,6 +1490,9 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - [ ] Timeline 容器分别呈现 loading/empty/error/ready，消息增量更新保持既有节点和用户滚动位置；仅当用户接近底部时自动锚定新消息，typing/presence 更新不替换 timeline，错误状态不会伪装成 Kernel/Runtime/Candidate 诊断。
 - [ ] Attachment view 只接受经过安全 URL 处理的显式 metadata，非法协议不生成链接/图片；MessageActions 只按显式 `canReply/canEdit/canDelete/canRetry` view 显示原生按钮，不自行推断 ACL；Reaction 使用原生 button、明确 count/current-user 状态和 typed toggle event。
 - [ ] Host 对 SDK snapshot 下发显式 Chat permissions；交互 Timeline 只按 permission + ownership/status 组合 Actions/Reaction，并通过公开 property/event/part 扩展。Template 不读取 Shadow DOM；read receipt 在 Chat 打开且可见时随最新消息更新，同一消息不重复发送。
+- [x] 交互 Timeline 对每条消息只呈现一套 canonical Reaction；静止态不渲染 0-count 候选 Reaction，也不同时出现只读 pill 与交互 button。候选 Reaction、reply/edit/delete/retry 只在 compact More 展开后出现，Delete 使用危险语义并要求二次确认。
+- [ ] compact More 在桌面以不占整行宽度的气泡锚定浮层呈现，在 320/360/390px 使用带 backdrop 的底部 action sheet；打开后焦点进入操作面，Tab/Shift+Tab 循环，Escape/外部点击关闭并恢复到触发按钮，200% 字体下不产生横向溢出。
+- [ ] 相邻同作者、同方向且间隔不超过五分钟的消息形成 `single/first/middle/last`；后续消息不重复作者/时间，own delivery 只在组尾或异常状态保留，非 own avatar 只在组尾/单条显示，同时 message key、Matrix 顺序、reply/edited/failed 语义不变。
 - [ ] 所有交互元素以 bubbling/composed typed CustomEvent 暴露 submit、attachment、typing、mention query/select、reply/edit/delete/retry/reaction 与 dismiss-error 意图；组件不直接创建 SDK、不连接 Matrix/Backend/Agent provider，也不提供 `agent.invoke()`。
 - [ ] 迁移适配器可用同一个 controller snapshot 驱动 `vc-space-chat-timeline`、`vc-space-chat-composer`、`vc-space-mention-menu`、`vc-space-chat-attachment`、`vc-space-reaction-bar`、`vc-space-message-actions` 与 `vc-space-chat-error-state`；Default Chat 与抽屉 Template 只需保留布局、主题和场景组合代码。
 

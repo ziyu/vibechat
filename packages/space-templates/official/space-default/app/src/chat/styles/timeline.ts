@@ -84,7 +84,6 @@ vc-space-chat-timeline::part(status) {
 
 vc-space-chat-timeline::part(controls) {
   gap: 6px;
-  margin-inline-start: 42px;
 }
 
 vc-space-chat-timeline::part(message-actions),
@@ -92,16 +91,61 @@ vc-space-chat-timeline::part(reaction-bar) {
   gap: 4px;
 }
 
-vc-space-chat-timeline::part(message-action-reply),
-vc-space-chat-timeline::part(message-action-edit),
-vc-space-chat-timeline::part(message-action-delete),
-vc-space-chat-timeline::part(message-action-retry),
+vc-space-chat-timeline::part(message-action-more),
 vc-space-chat-timeline::part(reaction) {
   min-block-size: 44px;
   min-inline-size: 44px;
-  padding: 7px 10px;
+  padding: 7px 9px;
   border-radius: 8px;
+  border-color: color-mix(in srgb, var(--vcc-line) 82%, transparent);
+  background: rgba(255, 255, 255, 0.035);
+  color: #bbb9b2;
   font-size: 10px;
+}
+
+vc-space-chat-timeline::part(message-action-more):hover,
+vc-space-chat-timeline::part(reaction):hover {
+  border-color: color-mix(in srgb, var(--vcc-accent) 38%, var(--vcc-line));
+  background: color-mix(in srgb, var(--vcc-accent) 8%, #171916);
+  color: #f7f4ed;
+}
+
+vc-space-chat-timeline::part(message-action-menu) {
+  min-width: 224px;
+  border-color: rgba(255, 255, 255, 0.17);
+  background: #1b1d19;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.44);
+}
+
+vc-space-chat-timeline::part(message-action-menu-title) {
+  color: #aaa9a2;
+}
+
+vc-space-chat-timeline::part(message-action-menu-close) {
+  color: #c9c6be;
+}
+
+vc-space-chat-timeline::part(message-action-reply),
+vc-space-chat-timeline::part(message-action-edit),
+vc-space-chat-timeline::part(message-action-delete),
+vc-space-chat-timeline::part(message-action-retry) {
+  min-block-size: 42px;
+  padding: 9px 10px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 11px;
+}
+
+vc-space-chat-timeline::part(message-action-delete) {
+  color: #f0a292;
+}
+
+vc-space-chat-timeline::part(message-reaction-choice) {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  border-radius: 9px;
+  background: #171916;
 }
 
 .vcc-build {
@@ -141,9 +185,10 @@ vc-space-chat-timeline::part(reaction) {
   }
 }
 
-@media (max-width: 390px) {
-  vc-space-chat-timeline::part(controls) {
-    margin-inline-start: 0;
+@media (max-width: 480px) {
+  vc-space-chat-timeline::part(message-action-menu) {
+    min-width: 0;
+    border-radius: 16px;
   }
 }
 `;

@@ -96,7 +96,11 @@ if (
   throw new Error("Published component /chat/inline entry is not bound to the Chat bundle");
 }
 for (const [path, source] of Object.entries(files)) {
-  if (/\bhttps?:\/\//.test(source)) {
+  const networkInspectableSource = source.replaceAll(
+    "http://www.w3.org/2000/svg",
+    "",
+  );
+  if (/\bhttps?:\/\//.test(networkInspectableSource)) {
     throw new Error(`Space component browser bundle ${path} contains a remote URL`);
   }
   if (source.includes("/v1/space-app-sdk")) {

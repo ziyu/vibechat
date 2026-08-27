@@ -1,5 +1,12 @@
 # Vibe Chat
 
+## 0.1.5
+
+- Upgrade to `@vibechat/space-app-components@0.7.0` and replace the always-visible action grid with one canonical Reaction row plus progressively disclosed message actions.
+- Group adjacent messages from the same author, anchor controls to the bubble width, and suppress repeated author, time, delivery, and avatar chrome.
+- Present message actions as an accessible desktop menu and mobile action sheet with keyboard focus handling, localized copy, dangerous delete confirmation, and authored SVG iconography.
+- Focus the Composer after Reply or Edit so the selected action immediately continues into its expected task.
+
 ## 0.1.4
 
 - Consume `@vibechat/space-app-components@0.6.0` with Host-authorized message actions and Timeline-owned interaction composition.

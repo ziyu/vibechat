@@ -25,12 +25,14 @@ export {
   spaceTypingIndicatorStyles,
   type SpaceChatBubbleElement,
   type SpaceChatMessageElement,
+  type SpaceChatMessageGroupPosition,
   type SpaceChatMessageMetaElement,
   type SpaceReplyPreviewElement,
   type SpaceTypingIndicatorElement,
 } from "./elements.js";
 export {
   defineSpaceChatInteractiveElements,
+  getSpaceChatMessageGroupPositions,
   renderSpaceChatAttachment,
   spaceChatAttachmentElementName,
   spaceChatAttachmentStyles,
