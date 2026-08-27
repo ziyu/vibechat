@@ -5,6 +5,7 @@ import { Bot, CircleCheck, LoaderCircle, RefreshCw, Rocket } from 'lucide-react'
 import {
   spaceAppBridgeRequestSchema,
   type SpaceAppBridgeRequest,
+  type SpaceProjectRevisionSummary,
   type SpaceRuntimeSnapshot,
 } from '@vibechat/space-app-contracts'
 import type { ChatMessage } from '@vibechat/product-core'
@@ -30,6 +31,10 @@ export function useSpaceRuntime(roomId: string) {
   const [restoreError, setRestoreError] = useState(false)
   const [applyingTemplate, setApplyingTemplate] = useState(false)
   const [applyTemplateError, setApplyTemplateError] = useState(false)
+  const [revisions, setRevisions] = useState<SpaceProjectRevisionSummary[]>([])
+  const [revisionsLoading, setRevisionsLoading] = useState(false)
+  const [revisionsError, setRevisionsError] = useState(false)
+  const [restoringRevisionId, setRestoringRevisionId] = useState<string | null>(null)
   const [readyAppTarget, setReadyAppTarget] = useState<ReadySpaceAppTarget | null>(null)
   const mounted = useRef(true)
   const activeRoomId = useRef(roomId)
@@ -55,6 +60,10 @@ export function useSpaceRuntime(roomId: string) {
     setRestoreError(false)
     setApplyingTemplate(false)
     setApplyTemplateError(false)
+    setRevisions([])
+    setRevisionsLoading(false)
+    setRevisionsError(false)
+    setRestoringRevisionId(null)
     void refresh()
     const timer = window.setInterval(() => void refresh(), 1_500)
     const events = new EventSource(productApi.spaceEventsUrl(roomId), { withCredentials: true })
@@ -147,6 +156,44 @@ export function useSpaceRuntime(roomId: string) {
     }
   }, [refresh, roomId, snapshot?.project.draftId])
 
+  const loadRevisions = useCallback(async () => {
+    setRevisionsLoading(true)
+    setRevisionsError(false)
+    try {
+      const result = await productApi.getSpaceProjectRevisions(roomId)
+      if (mounted.current && activeRoomId.current === roomId) {
+        setRevisions(result.revisions)
+      }
+      return result.revisions
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsLoading(false)
+    }
+  }, [roomId])
+
+  const restoreRevision = useCallback(async (revisionId: string) => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
+    setRestoringRevisionId(revisionId)
+    setRevisionsError(false)
+    try {
+      await productApi.restoreSpaceApp(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        target: 'revision',
+        revisionId,
+        expectedReadyRevisionId,
+      })
+      await refresh()
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setRestoringRevisionId(null)
+    }
+  }, [refresh, roomId, snapshot?.project.draftId])
+
   const appUrl = readyAppTarget?.roomId === roomId ? readyAppTarget.url : null
 
   return {
@@ -158,9 +205,15 @@ export function useSpaceRuntime(roomId: string) {
     restoreError,
     applyingTemplate,
     applyTemplateError,
+    revisions,
+    revisionsLoading,
+    revisionsError,
+    restoringRevisionId,
     publish,
     restoreDefaultChat,
     applyTemplate,
+    loadRevisions,
+    restoreRevision,
     refresh,
     appUrl,
   }

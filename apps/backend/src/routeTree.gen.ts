@@ -63,6 +63,7 @@ import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/i
 import { Route as ApiAdminAgentsIndexRouteImport } from './routes/api/admin/agents/index'
 import { Route as V1SpacesInstancesRoomIdRouteImport } from './routes/v1/spaces/instances/$roomId'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
+import { Route as V1RoomsRoomIdRevisionsRouteImport } from './routes/v1/rooms/$roomId/revisions'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
 import { Route as V1RoomsRoomIdApplyTemplateRouteImport } from './routes/v1/rooms/$roomId/apply-template'
 import { Route as V1InternalSpaceRuntimeObjectsObjectHashRouteImport } from './routes/v1/internal/space-runtime-objects/$objectHash'
@@ -371,6 +372,11 @@ const V1SpacesSpaceIdFavoriteRoute = V1SpacesSpaceIdFavoriteRouteImport.update({
   path: '/v1/spaces/$spaceId/favorite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const V1RoomsRoomIdRevisionsRoute = V1RoomsRoomIdRevisionsRouteImport.update({
+  id: '/v1/rooms/$roomId/revisions',
+  path: '/v1/rooms/$roomId/revisions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const V1RoomsRoomIdPreferencesRoute =
   V1RoomsRoomIdPreferencesRouteImport.update({
     id: '/v1/rooms/$roomId/preferences',
@@ -610,6 +616,7 @@ export interface FileRoutesByFullPath {
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/rooms/$roomId/revisions': typeof V1RoomsRoomIdRevisionsRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/agents/': typeof ApiAdminAgentsIndexRoute
@@ -697,6 +704,7 @@ export interface FileRoutesByTo {
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/rooms/$roomId/revisions': typeof V1RoomsRoomIdRevisionsRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/agents': typeof ApiAdminAgentsIndexRoute
@@ -785,6 +793,7 @@ export interface FileRoutesById {
   '/v1/internal/space-runtime-objects/$objectHash': typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   '/v1/rooms/$roomId/apply-template': typeof V1RoomsRoomIdApplyTemplateRoute
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
+  '/v1/rooms/$roomId/revisions': typeof V1RoomsRoomIdRevisionsRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
   '/api/admin/agents/': typeof ApiAdminAgentsIndexRoute
@@ -874,6 +883,7 @@ export interface FileRouteTypes {
     | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
+    | '/v1/rooms/$roomId/revisions'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
     | '/api/admin/agents/'
@@ -961,6 +971,7 @@ export interface FileRouteTypes {
     | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
+    | '/v1/rooms/$roomId/revisions'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
     | '/api/admin/agents'
@@ -1048,6 +1059,7 @@ export interface FileRouteTypes {
     | '/v1/internal/space-runtime-objects/$objectHash'
     | '/v1/rooms/$roomId/apply-template'
     | '/v1/rooms/$roomId/preferences'
+    | '/v1/rooms/$roomId/revisions'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
     | '/api/admin/agents/'
@@ -1136,6 +1148,7 @@ export interface RootRouteChildren {
   V1InternalSpaceRuntimeObjectsObjectHashRoute: typeof V1InternalSpaceRuntimeObjectsObjectHashRoute
   V1RoomsRoomIdApplyTemplateRoute: typeof V1RoomsRoomIdApplyTemplateRoute
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
+  V1RoomsRoomIdRevisionsRoute: typeof V1RoomsRoomIdRevisionsRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
   V1SpacesInstancesRoomIdRoute: typeof V1SpacesInstancesRoomIdRouteWithChildren
   ApiAdminAgentsIndexRoute: typeof ApiAdminAgentsIndexRoute
@@ -1534,6 +1547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof V1SpacesSpaceIdFavoriteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v1/rooms/$roomId/revisions': {
+      id: '/v1/rooms/$roomId/revisions'
+      path: '/v1/rooms/$roomId/revisions'
+      fullPath: '/v1/rooms/$roomId/revisions'
+      preLoaderRoute: typeof V1RoomsRoomIdRevisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/rooms/$roomId/preferences': {
       id: '/v1/rooms/$roomId/preferences'
       path: '/v1/rooms/$roomId/preferences'
@@ -1843,6 +1863,7 @@ const rootRouteChildren: RootRouteChildren = {
     V1InternalSpaceRuntimeObjectsObjectHashRoute,
   V1RoomsRoomIdApplyTemplateRoute: V1RoomsRoomIdApplyTemplateRoute,
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
+  V1RoomsRoomIdRevisionsRoute: V1RoomsRoomIdRevisionsRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
   V1SpacesInstancesRoomIdRoute: V1SpacesInstancesRoomIdRouteWithChildren,
   ApiAdminAgentsIndexRoute: ApiAdminAgentsIndexRoute,

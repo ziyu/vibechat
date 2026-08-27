@@ -55,6 +55,7 @@ function dependencies(
 ): RestoreTurnProcessorDependencies {
   return {
     loadProject: vi.fn(async () => currentProject()),
+    loadRevision: vi.fn(async () => null),
     resolveTemplate: vi.fn(() => ({
       id: "space-default",
       versionId: "0.1.2",
@@ -237,7 +238,7 @@ describe("RestoreTurnProcessor", () => {
     expect(input.saveProject).not.toHaveBeenCalled();
     expect(input.complete).not.toHaveBeenCalled();
     expect(input.reportError).toHaveBeenCalledWith(
-      "Managed Template replacement failed",
+      "Managed Project recovery failed",
       failure,
     );
     expect(input.failTurn).toHaveBeenCalledWith({
@@ -301,6 +302,89 @@ describe("RestoreTurnProcessor", () => {
         recoveryTarget: "template",
         appliedTemplateId: "space-campfire",
         publishedReleaseId: "release-published",
+      }),
+    }));
+  });
+
+  it("restores an immutable historical Revision through Candidate validation", async () => {
+    const current = currentProject({ draftId: "bbbbbbbbbbbbbbbb" });
+    const historical = currentProject({
+      draftId: "aaaaaaaaaaaaaaaa",
+      sourceHash: `sha256:${"e".repeat(64)}`,
+      summary: "Historical App",
+      updatedAt: "2026-08-25T00:00:00.000Z",
+    });
+    const input = dependencies({
+      loadProject: vi.fn(async () => current),
+      loadRevision: vi.fn(async () => historical),
+      preparePreview: vi.fn(async () => ({
+        version: "aaaaaaaaaaaaaaaa",
+        updatedAt: "2026-08-28T01:00:00.000Z",
+        url: "http://space-dev.test/apps/space-instance-1/",
+      })),
+    });
+    const processor = new RestoreTurnProcessor(input);
+
+    await expect(processor.process({
+      spaceInstanceId: "space-instance-1",
+      turnId: "turn-revision-1",
+      recovery: {
+        target: "revision",
+        expectedReadyRevisionId: "bbbbbbbbbbbbbbbb",
+        revisionId: "aaaaaaaaaaaaaaaa",
+      },
+    })).resolves.toBe(true);
+
+    expect(input.resolveTemplate).not.toHaveBeenCalled();
+    expect(input.createProjectFromTemplate).not.toHaveBeenCalled();
+    expect(input.loadRevision).toHaveBeenCalledWith(
+      "space-instance-1",
+      "aaaaaaaaaaaaaaaa",
+    );
+    expect(input.saveProject).toHaveBeenCalledWith({
+      ...historical,
+      updatedAt: "2026-08-28T01:00:00.000Z",
+      draftId: "aaaaaaaaaaaaaaaa",
+      publishedDraftId: "revision-published",
+      releaseId: "release-published",
+    });
+    expect(input.complete).toHaveBeenCalledWith(expect.objectContaining({
+      message: "已恢复历史 Revision。",
+      event: expect.objectContaining({
+        recoveryTarget: "revision",
+        restoredRevisionId: "aaaaaaaaaaaaaaaa",
+        recoveredFromRevisionId: "bbbbbbbbbbbbbbbb",
+        publishedReleaseId: "release-published",
+      }),
+    }));
+  });
+
+  it("fails closed when a historical Candidate does not reproduce the requested Revision", async () => {
+    const input = dependencies({
+      loadProject: vi.fn(async () => currentProject({ draftId: "bbbbbbbbbbbbbbbb" })),
+      loadRevision: vi.fn(async () => currentProject({ draftId: "aaaaaaaaaaaaaaaa" })),
+      preparePreview: vi.fn(async () => ({
+        version: "cccccccccccccccc",
+        updatedAt: "2026-08-28T01:00:00.000Z",
+        url: "http://space-dev.test/apps/space-instance-1/",
+      })),
+    });
+    const processor = new RestoreTurnProcessor(input);
+
+    await expect(processor.process({
+      spaceInstanceId: "space-instance-1",
+      turnId: "turn-revision-mismatch",
+      recovery: {
+        target: "revision",
+        expectedReadyRevisionId: "bbbbbbbbbbbbbbbb",
+        revisionId: "aaaaaaaaaaaaaaaa",
+      },
+    })).resolves.toBe(false);
+
+    expect(input.saveProject).not.toHaveBeenCalled();
+    expect(input.failTurn).toHaveBeenCalledWith(expect.objectContaining({
+      error: expect.objectContaining({
+        message: "Historical Space Project Revision failed Candidate identity validation",
       }),
     }));
   });

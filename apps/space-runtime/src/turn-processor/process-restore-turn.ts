@@ -13,6 +13,7 @@ export interface RestoreTemplateRef {
 
 export interface RestoreTurnProcessorDependencies {
   loadProject(spaceInstanceId: string): Promise<StoredProject | null>;
+  loadRevision(spaceInstanceId: string, revisionId: string): Promise<StoredProject | null>;
   resolveTemplate(recovery: SpaceTurnRecovery): RestoreTemplateRef | null;
   createProjectFromTemplate(input: {
     spaceInstanceId: string;
@@ -92,24 +93,38 @@ export class RestoreTurnProcessor {
           current.draftId,
         );
       }
-      const template = this.#dependencies.resolveTemplate(input.recovery);
-      if (!template) {
-        throw new Error("Requested Space Template is unavailable");
-      }
-
       const isDefaultChat = input.recovery.target === "default-chat";
+      const isRevision = input.recovery.target === "revision";
       await relayProgress({
         type: "status",
         stage: "recovering",
-        message: isDefaultChat
-          ? "正在从官方 Template 准备 Default Chat App Candidate…"
-          : "正在准备 Space Template Candidate…",
+        message: isRevision
+          ? "正在验证历史 Revision Candidate…"
+          : isDefaultChat
+            ? "正在从官方 Template 准备 Default Chat App Candidate…"
+            : "正在准备 Space Template Candidate…",
       });
-      const candidate = await this.#dependencies.createProjectFromTemplate({
-        spaceInstanceId: input.spaceInstanceId,
-        templateId: template.id,
-        templateVersionId: template.versionId,
-      });
+      let candidate: StoredProject;
+      if (input.recovery.target === "revision") {
+        const historical = await this.#dependencies.loadRevision(
+          input.spaceInstanceId,
+          input.recovery.revisionId,
+        );
+        if (!historical) {
+          throw new Error("Requested Space Project Revision is unavailable");
+        }
+        candidate = historical;
+      } else {
+        const template = this.#dependencies.resolveTemplate(input.recovery);
+        if (!template) {
+          throw new Error("Requested Space Template is unavailable");
+        }
+        candidate = await this.#dependencies.createProjectFromTemplate({
+          spaceInstanceId: input.spaceInstanceId,
+          templateId: template.id,
+          templateVersionId: template.versionId,
+        });
+      }
       const preview = await this.#dependencies.preparePreview({
         spaceInstanceId: input.spaceInstanceId,
         files: candidate.files,
@@ -120,6 +135,12 @@ export class RestoreTurnProcessor {
             message: status,
           }),
       });
+      if (
+        input.recovery.target === "revision"
+        && preview.version !== input.recovery.revisionId
+      ) {
+        throw new Error("Historical Space Project Revision failed Candidate identity validation");
+      }
       const updatedAt = preview.updatedAt;
       await this.#dependencies.saveProject({
         ...candidate,
@@ -130,9 +151,11 @@ export class RestoreTurnProcessor {
           : {}),
         ...(current.releaseId ? { releaseId: current.releaseId } : {}),
       });
-      const message = isDefaultChat
-        ? "已恢复 Default Chat App。"
-        : "已应用 Space Template。";
+      const message = isRevision
+        ? "已恢复历史 Revision。"
+        : isDefaultChat
+          ? "已恢复 Default Chat App。"
+          : "已应用 Space Template。";
       await this.#dependencies.complete({
         spaceInstanceId: input.spaceInstanceId,
         turnId: input.turnId,
@@ -147,6 +170,9 @@ export class RestoreTurnProcessor {
           updatedAt,
           recoveredFromRevisionId: current.draftId,
           recoveryTarget: input.recovery.target,
+          ...(input.recovery.target === "revision"
+            ? { restoredRevisionId: input.recovery.revisionId }
+            : {}),
           appliedTemplateId: candidate.template?.id ?? null,
           appliedTemplateVersionId: candidate.template?.versionId ?? null,
           publishedReleaseId: current.releaseId ?? null,
@@ -154,7 +180,7 @@ export class RestoreTurnProcessor {
       });
       return true;
     } catch (error) {
-      this.#dependencies.reportError("Managed Template replacement failed", error);
+      this.#dependencies.reportError("Managed Project recovery failed", error);
       await this.#dependencies.failTurn({
         spaceInstanceId: input.spaceInstanceId,
         turnId: input.turnId,

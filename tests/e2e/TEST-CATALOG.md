@@ -1375,6 +1375,10 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 → 请求携带幂等 `requestId` 与当前 `expectedReadyRevisionId` → Backend 校验 Better Auth 与 Matrix membership → Runtime 将恢复作为不可合批的同 Space 顺序 Turn → 从官方 Default Chat Template 当前固定 Version/Artifact 生成 Candidate → Candidate ready 后原子保存为新的 ready Revision 并广播 → Published Release、Matrix timeline 与 App State 不变。相同 request ID 去重；revision 已变化、artifact 不存在或 Candidate 失败均不得覆盖当前 ready App；恢复不进入 Agent Adapter 或 credits 预留/结算。
 
+已有定制 Space 的 Revision 历史与 rollback 定向验收：Product DB 从 `0018` 迁移基线起为每次 ready pointer 更新登记不可变 Revision；Kernel 通过 `GET /v1/rooms/:roomId/revisions` 读取当前成员可见的 bounded 历史摘要，不返回源码或 Object Store key。成员选择历史 Revision 后提交固定 `revisionId`、幂等 `requestId` 与 `expectedReadyRevisionId`；Backend 重新校验 Better Auth 与实时 Matrix membership，Runtime 从 Product DB 权威 Revision 记录加载内容寻址对象，并把历史源码重新送入隔离 Candidate。只有 Candidate ready 且 expected-ready 屏障仍成立时才移动 ready pointer；Published Release、Matrix timeline、成员、App State、Template lineage 和 credits 均保持不变。相同 request ID 去重；未知/跨 Space Revision、非成员、stale ready、对象缺失/hash 不匹配、Candidate 失败和 fencing 失败都必须 fail closed。迁移前已失去 pointer 的旧对象不推断、不回填，历史能力明确从 `0018` 当前 ready 基线开始。
+
+自动化至少覆盖：PG 与 SQLite/D1 对称 schema/migration 回填、相同内容 Revision ID 在不同 Space 的复合主键、事务/D1 batch 下 pointer 与 Revision 同步写入、不可变记录不被 publish 的新 object key 覆盖、历史列表权限与敏感字段裁剪、revision rollback 的幂等/stale/hash/Candidate/fencing 失败保护，以及两个独立 Chromium Context 在已有定制 Space 中观察同一 ready Revision 切换且原 Release/Chat/App State 不变。
+
 完成证据必须包含 Default Chat App 源码、Custom Template App 源码、Host DOM 只有 Kernel Bar + iframe 的断言、两种 App 的 Chat Core contract suite、双 Chromium 实时 Revision 切换、Candidate 失败保护、结构化 `@agent` 去重和发布固化结果。
 
 2026-08-23 第一版证据：
@@ -1502,6 +1506,14 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - 本轮最终 A3 定向 unit 覆盖 contracts、product client、Room repository/service/Matrix adapter 和 Runtime HTTP/Restore/server/lease，共 10 个文件、45/45 通过；`boundaries:check` 检查 429 个活动源码文件，文档检查、Docs production build，以及 21/22 workspace 递归 typecheck/build 均通过。根 Turbo 包装命令因当前 macOS 无可用 Keychain 而在任务启动前失败，等价的逐 workspace 命令已实际跑齐。
 - 本证据只勾选空白 Space 的 Default Chat 首个 ready Revision，不代表已有复杂定制 Space 的双浏览器 Template 替换、历史 rollback 或真实 D1/R2/external Engine 跨宿主已经完成。
 
+2026-08-28 Revision 历史与 Kernel rollback 证据：
+
+- Product DB 新增 `space_runtime_project_revision`，以 `(space_instance_id, revision_id)` 为复合主键；PG 与 SQLite/D1 `0018` 为现有 Project 回填当前 ready Revision。`saveProject` 在同一事务或 D1 batch 中同步移动 pointer 与登记 Revision，首次 source object/hash/lineage 保持不可变。
+- 成员 API `GET /v1/rooms/:roomId/revisions` 通过 Better Auth 与实时 Matrix membership 后只返回 bounded 摘要；Kernel 固定历史 `revisionId`、幂等 `requestId` 和 `expectedReadyRevisionId`，Runtime 从 Product DB 权威记录读取并校验内容寻址对象，再经隔离 Candidate 移动 ready pointer。rollback 不调用 Agent、不消耗 credits，也不改变 Release、Chat、成员或 App State。
+- Revision 定向 unit 7 个文件、35/35，Space Runtime 相关全量 unit 31 个文件、138/138 通过。新增双 Chromium rollback E2E 1/1（2.9 分钟），完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）通过：两个独立 Context 在已有定制 Space 中收敛到同一历史 Revision，原 Matrix 消息、App State 和 64 位 Published Release 保持不变。
+- 全新隔离 Wrangler D1 从 `0000` 连续应用 19 个 migration 到 `0018_fair_white_queen.sql`，实际确认复合主键与最新 migration 记录；Workers `/api/health` 返回 200、database healthy，未登录 Revision API 返回 401。本地 SQLite migration、430 文件边界检查、20 个 package/app 逐 workspace typecheck，以及 packages/Runtime/Backend/Web/Site/Admin/Docs production build 均通过。
+- 本证据只覆盖 `0018` 基线后的历史；迁移前已失去 pointer 的对象不推断、不恢复。真实 R2/external Engine 跨宿主和完整 #40 继续保持未完成。
+
 `chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
 
 Agent Revision 用例必须由当前配置的真实 Pi/provider 修改完整 Project，并在两个 iframe 中观察相同的可见 marker；不能通过测试进程直接改 Project JSON。Candidate 失败用例使用仅在显式测试配置下启用的 provider-neutral fake Adapter 生成确定性的 TypeScript 语法错误，经正常 Matrix Mention、ACL、credits、Space turn、自动修复和 Dev Preview 链路失败；不得要求真实模型“故意写坏代码”，也不得直接覆盖 ready Project。失败后两个浏览器继续加载失败前的固定 revision、能够互发 Matrix Chat，刷新后 Draft/Release 仍不变。
@@ -1604,6 +1616,7 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-28 | Revision 历史 + Kernel rollback + Synapse + 双 Chromium | 3 | 0 | 0 | 新增 rollback 场景 1/1（2.9 分钟），完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）；Revision unit 35/35、Space Runtime 相关全量 unit 138/138 与 D1 `0018`/Workers preview 另行通过 |
 | 2026-08-27 | S5 完整 Chromium 回归尝试 | 39 | 8 | 3 | 另有 9 未运行；失败为 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 与 `SPACE_RUNTIME_UNAVAILABLE`，属于当前共享服务/数据环境事实，未声称回归全绿 |
 | 2026-08-27 | Space Runtime + disposable Rivet Engine + 独立 pool worker | 6 | 0 | 0 | Agent/build/serving 各两个独立 Node/Envoy 同时 active；停止一个 build 后为 `2/1/2`；这是 pool 进程隔离证据，不代表真实 D1/R2 + Synapse 跨宿主验收 |
 | 2026-08-27 | Space Agent S4 + Pi/fake + Synapse + 双 Chromium | 3 | 0 | 0 | 显式启用真实 Pi 与测试 Fake binding；幂等 Agent event、真实 Revision 双端 live 收敛、Candidate 三次 repair 失败保护均通过；不代表 S5 外部 Engine/双副本/pool 已完成 |

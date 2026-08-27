@@ -1,8 +1,10 @@
 import {
   spaceRuntimeLeaseSchema,
   spaceRuntimeProjectPointerSchema,
+  spaceRuntimeProjectRevisionSchema,
   type SpaceRuntimeLease,
   type SpaceRuntimeProjectPointer,
+  type SpaceRuntimeProjectRevision,
 } from '@vibechat/space-app-contracts'
 import {
   signSpaceRuntimeCredential,
@@ -16,6 +18,7 @@ const leaseTtlMs = 30_000
 
 export interface RemoteProjectStore {
   load(appId: string): Promise<StoredProject | null>
+  loadRevision(appId: string, revisionId: string): Promise<StoredProject | null>
   save(project: StoredProject): Promise<StoredProject>
 }
 
@@ -54,6 +57,47 @@ export class BackendRemoteProjectStore implements RemoteProjectStore {
       throw new Error(`Space Project object read returned ${response.status}`)
     }
     return JSON.parse(await response.text()) as StoredProject
+  }
+
+  async loadRevision(appId: string, revisionId: string) {
+    const response = await this.#control({
+      action: 'load_project_revision',
+      spaceInstanceId: appId,
+      revisionId,
+    })
+    if (!response.ok) {
+      throw new Error(`Space Project Revision pointer read returned ${response.status}`)
+    }
+    const body = await response.json() as { revision?: unknown }
+    if (!body.revision) return null
+    const revision = spaceRuntimeProjectRevisionSchema.parse(
+      body.revision,
+    ) as SpaceRuntimeProjectRevision
+    const objectHash = objectHashFromKey(revision.sourceObjectKey)
+    if (!objectHash) {
+      throw new Error(`Space Project Revision ${revisionId} has no valid source object`)
+    }
+    const objectResponse = await this.#fetch(
+      `/v1/internal/space-runtime-objects/${objectHash}`,
+      { method: 'GET' },
+    )
+    if (!objectResponse.ok) {
+      throw new Error(`Space Project Revision object read returned ${objectResponse.status}`)
+    }
+    const content = new Uint8Array(await objectResponse.arrayBuffer())
+    const actualObjectHash = await sha256Hex(content)
+    if (actualObjectHash !== objectHash) {
+      throw new Error(`Space Project Revision ${revisionId} failed object integrity validation`)
+    }
+    const project = JSON.parse(new TextDecoder().decode(content)) as StoredProject
+    if (
+      project.appId !== appId
+      || project.draftId !== revisionId
+      || project.sourceHash !== revision.sourceHash
+    ) {
+      throw new Error(`Space Project Revision ${revisionId} does not match its authority record`)
+    }
+    return project
   }
 
   async save(project: StoredProject) {

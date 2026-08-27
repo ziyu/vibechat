@@ -112,6 +112,59 @@ describe('ProductApiClient', () => {
     )
   })
 
+  it('loads bounded Space Project Revision summaries without internal object pointers', async () => {
+    const http = transport(Response.json({
+      revisions: [{
+        revisionId: '0123456789abcdef',
+        parentRevisionId: null,
+        sourceHash: `sha256:${'a'.repeat(64)}`,
+        createdAt: '2026-08-28T00:00:00.000Z',
+        template: { id: 'space-default', versionId: 'tplv-space-default-0-1-2' },
+        isReady: true,
+        isPublished: false,
+      }],
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await expect(client.getSpaceProjectRevisions('!space:localhost'))
+      .resolves.toMatchObject({
+        revisions: [{ revisionId: '0123456789abcdef', isReady: true }],
+      })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/rooms/!space%3Alocalhost/revisions',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
+  it('submits a fixed historical Revision for Kernel rollback', async () => {
+    const http = transport(Response.json({
+      accepted: true,
+      deduplicated: false,
+      turnId: 'restore-revision-turn-1',
+      queuePosition: 1,
+    }))
+    const client = new ProductApiClient({ transport: http })
+
+    await client.restoreSpaceApp('!space:localhost', {
+      requestId: 'restore-revision-request-1',
+      target: 'revision',
+      revisionId: 'fedcba9876543210',
+      expectedReadyRevisionId: '0123456789abcdef',
+    })
+    expect(http.fetch).toHaveBeenCalledWith(
+      '/v1/spaces/instances/!space%3Alocalhost/restore',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          requestId: 'restore-revision-request-1',
+          target: 'revision',
+          revisionId: 'fedcba9876543210',
+          expectedReadyRevisionId: '0123456789abcdef',
+        }),
+      }),
+    )
+  })
+
   it('submits a fixed Template Version for Kernel Template application', async () => {
     const http = transport(Response.json({
       accepted: true,

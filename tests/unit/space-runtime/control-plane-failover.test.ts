@@ -162,6 +162,29 @@ describe("durable Space Runtime control plane", () => {
       publishedRevisionId: "1111111111111111",
       releaseId: "release-m1",
     });
+    expect(await control.listProjectRevisions(instanceId)).toMatchObject([
+      {
+        revisionId: "2222222222222222",
+        parentRevisionId: "1111111111111111",
+        sourceObjectKey: "space-runtime/objects/source-m2",
+      },
+      {
+        revisionId: "1111111111111111",
+        parentRevisionId: null,
+        sourceObjectKey: "space-runtime/objects/source-m1",
+      },
+    ]);
+    await control.saveProject({
+      ...(await control.loadProject(instanceId))!,
+      sourceObjectKey: "space-runtime/objects/source-m2-publish-save",
+    }, leaseB!);
+    expect(await control.loadProjectRevision(
+      instanceId,
+      "2222222222222222",
+    )).toMatchObject({
+      sourceObjectKey: "space-runtime/objects/source-m2",
+      sourceHash: "sha256:source-m2",
+    });
     await control.completeTurn("turn-m2", leaseB!, "completed");
     await expect(control.releaseLease(leaseB!)).resolves.toBe(true);
     const leaseC = await control.claimLease(instanceId, "replica-c", 5_000);

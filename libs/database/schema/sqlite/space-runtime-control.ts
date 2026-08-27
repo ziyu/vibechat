@@ -1,5 +1,5 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const spaceRuntimeInstanceState = sqliteTable("space_runtime_instance_state", {
   spaceInstanceId: text("space_instance_id").primaryKey(),
@@ -24,6 +24,27 @@ export const spaceRuntimeProject = sqliteTable("space_runtime_project", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 }, (table) => [
   uniqueIndex("space_runtime_project_instance_idx").on(table.spaceInstanceId),
+]);
+
+export const spaceRuntimeProjectRevision = sqliteTable("space_runtime_project_revision", {
+  spaceInstanceId: text("space_instance_id").notNull(),
+  projectId: text("project_id").notNull(),
+  revisionId: text("revision_id").notNull(),
+  parentRevisionId: text("parent_revision_id"),
+  sourceObjectKey: text("source_object_key").notNull(),
+  sourceHash: text("source_hash").notNull(),
+  metadataJson: text("metadata_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
+  fencingToken: integer("fencing_token").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  primaryKey({
+    name: "space_runtime_project_revision_pk",
+    columns: [table.spaceInstanceId, table.revisionId],
+  }),
+  index("space_runtime_project_revision_history_idx").on(
+    table.spaceInstanceId,
+    table.createdAt,
+  ),
 ]);
 
 export const spaceRuntimeTurn = sqliteTable("space_runtime_turn", {
@@ -87,6 +108,8 @@ export type SpaceRuntimeInstanceStateRow = InferSelectModel<typeof spaceRuntimeI
 export type NewSpaceRuntimeInstanceStateRow = InferInsertModel<typeof spaceRuntimeInstanceState>;
 export type SpaceRuntimeProjectRow = InferSelectModel<typeof spaceRuntimeProject>;
 export type NewSpaceRuntimeProjectRow = InferInsertModel<typeof spaceRuntimeProject>;
+export type SpaceRuntimeProjectRevisionRow = InferSelectModel<typeof spaceRuntimeProjectRevision>;
+export type NewSpaceRuntimeProjectRevisionRow = InferInsertModel<typeof spaceRuntimeProjectRevision>;
 export type SpaceRuntimeTurnRow = InferSelectModel<typeof spaceRuntimeTurn>;
 export type NewSpaceRuntimeTurnRow = InferInsertModel<typeof spaceRuntimeTurn>;
 export type SpaceRuntimeLeaseRow = InferSelectModel<typeof spaceRuntimeLease>;

@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据；2026-08-28 已补齐空白 Space、Default Chat bootstrap、固定 Template 后应用和 Release/App State 保持的真实本地 E2E。真实 Cloudflare D1/R2 preview、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练、历史 rollback 和完整 #40 仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据；2026-08-28 已补齐空白 Space、Default Chat bootstrap、固定 Template 后应用、不可变 Revision 历史和 Kernel rollback 的真实本地 E2E，并完成全新 D1 migration 与 Workers preview。真实 R2/external Engine 跨宿主、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和完整 #40 仍是后续门槛。
 
 本次产品校正确认：
 
@@ -299,7 +299,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-26 当前新账号欢迎额度从 100 调整为 1000 credits；交易 ID、账本类型和幂等语义保持不变，部署仍可通过 `CREDITS_NEW_USER_GRANT` 覆盖或关闭。上面的 100 credits 保留为 2026-08-24 实际走查的历史账务证据。
 - 2026-08-27 在明确授权外发测试 Project 源码与 Prompt 后，`chat-space-agent-collaboration.spec.ts` 的真实 Pi/provider 场景 2/2 通过：双 Chromium 对同一幂等 Matrix Agent event 刷新后仍各保留一条；真实 Agent 修改完整 Project 后，双方 live App 收敛到同一新 ready Revision，Published Release 保持不变。完整 E2E 同轮为 56 通过、0 失败、3 个 Agent 开关场景跳过；Fake Candidate 失败隔离继续沿用 2026-08-25 的独立 1/1 证据。
 
-尚未完成：双 Chromium member Mention 与分页 contract、已有定制 Space 的模板替换/历史 rollback、真实 D1/R2 preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。空白 Space 后选模板、双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
+尚未完成：双 Chromium member Mention 与分页 contract、真实 R2/external Engine 跨宿主，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。空白 Space 后选模板、已有定制 Space 的历史 rollback、双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
 
@@ -337,6 +337,27 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 最终 A3 定向 unit 10 个文件、45/45，应用边界、文档检查、Docs production build，以及 21/22 workspace 递归 typecheck/build 均通过。根 Turbo 包装命令受当前 macOS Keychain/TLS 初始化问题影响未进入任务执行，逐 workspace 等价门禁已完成。
 
 该证据完成空白 Space 后选模板首版，不代表已有复杂定制 Project 的历史 rollback、双浏览器模板切换或生产 D1/R2/external Engine 跨宿主已经完成。
+
+### 5.0.6 2026-08-28 Revision 历史与 Kernel rollback（P0 切片已验证）
+
+本切片已收口以下实现边界；真实 R2/external Engine 跨宿主和完整 #40 仍保持 Active：
+
+1. Product DB 新增不可变 `space_runtime_project_revision` 权威记录，主键为 `(spaceInstanceId, revisionId)`；相同内容产生的 Revision ID 可以出现在多个 Space，不能使用全局单列主键。`0018` 为每个现有 Project 回填当前 ready Revision，迁移前已经失去 pointer 的更早 Object Store 对象不推断、不恢复，历史从该迁移基线开始。
+2. `saveProject` 移动 ready pointer 时必须在同一数据库事务或 D1 batch 中登记 Revision，并在写后重新读取 pointer、fencing token 与 Revision 失败关闭。Revision 首次登记的 source object、hash、lineage 与 metadata 不可被后续 publish/save 产生的新 object key 覆盖；同一 Revision 只允许相同 source hash。
+3. Backend 提供成员范围的 `GET /v1/rooms/:roomId/revisions`，沿用 Better Auth、`authorizeSpaceRuntimeRequest` 与实时 Matrix membership。响应只返回 bounded Revision 摘要、hash、Template lineage、创建时间、当前 ready/published 状态，不暴露源码、provider credential 或 Object Store key。
+4. Kernel rollback 扩展现有 Restore Turn 为 `target=revision`，请求固定 `revisionId`、幂等 `requestId` 与 `expectedReadyRevisionId`。Runtime 只从 Product DB Revision 记录加载历史内容寻址对象，校验 object hash 后重新经过隔离 Candidate；成功后只移动 ready pointer，保持 Published Release、Matrix timeline、成员、App State 与创建 Template lineage。
+5. rollback 不调用 Agent、不创建 Agent session、不预留或消费 AI credits。未知/跨 Space Revision、stale ready、对象缺失、hash 不匹配、Candidate 失败、lease/fencing 丢失和非成员访问全部 fail closed，且不得覆盖最后 ready App。
+6. Web Kernel 增加版本历史面板与恢复确认；中英文文案明确“恢复当前运行版本，不改变已发布版本”。两个独立 Chromium Context 必须在已有定制 Space 中收敛到同一恢复后 Revision，并验证原 Matrix 消息、App State 与 Published Release 不变。
+
+本轮验证证据：
+
+- Revision 定向 unit 7 个文件、35/35 通过；Space Runtime 相关全量 unit 31 个文件、138/138 通过，覆盖复合主键、PG/SQLite migration、事务/D1 batch pointer 与 Revision 同步写入、记录不可变、历史 API、成功/幂等 rollback，以及 stale/hash/Candidate/fencing 等失败保护。
+- Node 24.19.0、本地 SQLite、真实 Synapse、managed Rivet Engine、Backend `18102`、Web `18101` 与 Runtime `18107` 上，新增 rollback E2E 1/1（2.9 分钟）、完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）通过。两个独立 Chromium Context 在已有定制 Space 中收敛到同一历史 Revision；原 Matrix 消息、App State、成员和 64 位 Published Release 保持不变。
+- 全新隔离 Wrangler D1 从 `0000` 连续应用 19 个 migration 到 `0018_fair_white_queen.sql`；实际 schema 确认 `(space_instance_id, revision_id)` 复合主键，`d1_migrations` 最新记录为 `0018_fair_white_queen.sql`。基于同一 D1 binding 的 Workers preview `/api/health` 返回 200、database healthy，未登录 `/v1/rooms/example/revisions` 返回 401。本地 SQLite migration 也在 Node 24 环境重新执行成功。
+- `boundaries:check` 检查 430 个活动源码文件通过；`docs:check`、Docs production build、`git diff --check`、20 个 package/app 逐 workspace typecheck，以及 packages、Space Runtime、Backend、Web、Site、Admin、Docs production build 均通过。根 Turbo 包装命令仍在启动任务前受当前 macOS Keychain/TLS/Corepack fetch 问题影响，逐 workspace 等价门禁已实际跑齐；Backend Cloudflare build 仅保留 Wrangler 日志目录 `EPERM` warning，退出码为 0。
+- GitNexus 强制重建为 9,475 个 nodes、20,365 条 edges、300 条 flows；最终 staged 变更检测纳入 migration snapshot、新路由和新增测试后为 45 个文件、118 个 symbols、16 条 flows，风险级别 `CRITICAL`，主要命中 `SpacePage → ProductApiClient`、Project route/store 与 `createRuntime`。新路由局部 helper 的名称碰撞一度把流程误报为 84 条；改为唯一语义名称并重建索引后恢复为 16 条。相对 `main` 的长期分支范围更大，不能当成本切片单独风险；上述 138/138 unit、D1/Workers 与 3/3 E2E 用于收口当前实际影响面。
+
+该证据完成 `0018` 基线后的 Revision 历史和 Kernel rollback，不代表迁移前已丢失 pointer 的对象可恢复，也不代表真实 R2/external Engine 跨宿主或完整 #40 已完成。
 
 ### S0：兼容护栏与命名校正
 

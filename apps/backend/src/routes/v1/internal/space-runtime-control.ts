@@ -72,6 +72,19 @@ export const Route = createFileRoute('/v1/internal/space-runtime-control')({
               project: project ? { ...project, updatedAt: project.updatedAt.toISOString() } : null,
             })
           }
+          if (parsed.data.action === 'load_project_revision') {
+            const instance = await runtimeInstance(parsed.data.spaceInstanceId)
+            if (!instance) return notAllowed()
+            const revision = await control.loadProjectRevision(
+              parsed.data.spaceInstanceId,
+              parsed.data.revisionId,
+            )
+            return Response.json({
+              revision: revision
+                ? { ...revision, createdAt: revision.createdAt.toISOString() }
+                : null,
+            })
+          }
           if (parsed.data.action === 'save_project') {
             const instance = await runtimeInstance(parsed.data.project.spaceInstanceId)
             if (!instance || instance.projectId !== parsed.data.project.projectId) {

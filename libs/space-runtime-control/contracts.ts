@@ -28,6 +28,18 @@ export interface RuntimeProjectPointer {
   updatedAt: Date;
 }
 
+export interface RuntimeProjectRevision {
+  spaceInstanceId: string;
+  projectId: string;
+  revisionId: string;
+  parentRevisionId: string | null;
+  sourceObjectKey: string;
+  sourceHash: string;
+  metadata: Record<string, unknown>;
+  fencingToken: number;
+  createdAt: Date;
+}
+
 export type RuntimeTurnKind = "message" | "publish" | "restore";
 export type RuntimeTurnStatus = "queued" | "active" | "completed" | "failed";
 
@@ -110,6 +122,8 @@ export interface InstanceRepository {
 
 export interface ProjectRepository {
   loadProject(spaceInstanceId: string): Promise<RuntimeProjectPointer | null>;
+  loadProjectRevision(spaceInstanceId: string, revisionId: string): Promise<RuntimeProjectRevision | null>;
+  listProjectRevisions(spaceInstanceId: string, limit?: number): Promise<RuntimeProjectRevision[]>;
   saveProject(project: Omit<RuntimeProjectPointer, "fencingToken" | "updatedAt">, lease: RuntimeLease): Promise<RuntimeProjectPointer>;
   publishProject(input: {
     spaceInstanceId: string;

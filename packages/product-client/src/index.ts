@@ -45,6 +45,7 @@ import {
   type ImageGenerationInput,
   type VideoGenerationInput,
   spaceRuntimeSnapshotSchema,
+  spaceProjectRevisionListSchema,
   spaceAppBridgeResponseSchema,
   spaceTurnAcceptedSchema,
   type SpaceAppBridgeRequest,
@@ -52,6 +53,7 @@ import {
   type PublishSpaceAppRequest,
   type RestoreSpaceAppRequest,
   type ApplySpaceTemplateRequest,
+  type SpaceProjectRevisionList,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -233,6 +235,14 @@ export class ProductApiClient {
       `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}`,
       spaceRuntimeSnapshotSchema,
       'SPACE_RUNTIME_LOAD_FAILED',
+    )
+  }
+
+  getSpaceProjectRevisions(matrixRoomId: string): Promise<SpaceProjectRevisionList> {
+    return this.request(
+      `/v1/rooms/${encodeURIComponent(matrixRoomId)}/revisions`,
+      spaceProjectRevisionListSchema,
+      'SPACE_PROJECT_REVISIONS_LOAD_FAILED',
     )
   }
 

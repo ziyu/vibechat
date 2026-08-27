@@ -9,6 +9,7 @@ import {
   createProjectFromTemplate,
   initializeProjectFromTemplate,
   loadProject,
+  loadProjectRevision,
   saveProject,
 } from "../project-store.js";
 import {
@@ -130,7 +131,9 @@ export async function createRuntime(
   });
   const restoreTurnProcessor = new RestoreTurnProcessor({
     loadProject,
+    loadRevision: loadProjectRevision,
     resolveTemplate: (recovery) => {
+      if (recovery.target === "revision") return null;
       const templateId = recovery.target === "default-chat"
         ? config.defaultChatTemplateId
         : recovery.templateId;

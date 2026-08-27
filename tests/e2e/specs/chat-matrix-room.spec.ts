@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
+import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
 
 function chatFrame(page: Page) {
   return page.frameLocator('[data-testid="space-app-surface"] iframe')
@@ -63,7 +63,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     })
   })
 
-  test('creates a blank Space and applies a fixed Template without replacing Chat, App state, or Release', async ({
+  test('applies and rolls back a fixed Revision without replacing Chat, App state, or Release', async ({
     browser,
     page,
   }) => {
@@ -229,6 +229,13 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       await expect(outsiderApply.json()).resolves.toMatchObject({
         error: { code: 'SPACE_INSTANCE_NOT_FOUND' },
       })
+      const outsiderHistory = await outsider.request.get(
+        `/v1/rooms/${encodeURIComponent(created.matrixRoomId)}/revisions`,
+      )
+      expect(outsiderHistory.status()).toBe(404)
+      await expect(outsiderHistory.json()).resolves.toMatchObject({
+        error: { code: 'SPACE_INSTANCE_NOT_FOUND' },
+      })
     } finally {
       await outsiderContext.close()
     }
@@ -279,6 +286,105 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     })).json()
     expect(unchangedBlankState).toMatchObject({ startMode: 'blank' })
     expect(unchangedBlankState).not.toHaveProperty('templateId')
+
+    const afterApplyResponse = await page.request.get(runtimeUrl)
+    expect(afterApplyResponse.ok(), await afterApplyResponse.text()).toBeTruthy()
+    const afterApply = await afterApplyResponse.json()
+    const historyResponse = await page.request.get(
+      `/v1/rooms/${encodeURIComponent(created.matrixRoomId)}/revisions`,
+    )
+    expect(historyResponse.ok(), await historyResponse.text()).toBeTruthy()
+    const historyText = await historyResponse.text()
+    expect(historyText).not.toContain('sourceObjectKey')
+    expect(historyText).not.toContain('source_object_key')
+    const history = JSON.parse(historyText)
+    expect(history.revisions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        revisionId: initialSnapshot.project.draftId,
+        isReady: false,
+        isPublished: true,
+      }),
+      expect.objectContaining({
+        revisionId: afterApply.project.draftId,
+        isReady: true,
+      }),
+    ]))
+
+    const secondContext = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'http://localhost:8001',
+    })
+    try {
+      const secondPage = await secondContext.newPage()
+      const secondSignIn = await signInViaAPI(secondPage, {
+        email: `e2e-blank-space-${suffix}@example.com`,
+        password: 'VibeChat-e2e-password-2026!',
+      })
+      expect(secondSignIn.ok(), await secondSignIn.text()).toBeTruthy()
+      const secondBootstrap = await secondPage.request.get('/v1/session/bootstrap')
+      expect(secondBootstrap.ok(), await secondBootstrap.text()).toBeTruthy()
+      await secondPage.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+      await expect(secondPage.getByTestId('chat-app-shell')).toHaveAttribute(
+        'data-ready',
+        'true',
+      )
+      await expect(
+        (await openAppChat(secondPage, 90_000)).getByTestId('message-body')
+          .filter({ hasText: messageText }),
+      ).toHaveCount(1)
+
+      await page.getByRole('button', { name: 'Space 菜单' }).click()
+      await page.getByTestId('space-revision-history').click()
+      const revisionDialog = page.getByTestId('space-revision-history-dialog')
+      await expect(revisionDialog).toBeVisible()
+      await revisionDialog.getByTestId(
+        `space-revision-${initialSnapshot.project.draftId}`,
+      ).click()
+      const restoreResponsePromise = page.waitForResponse((response) =>
+        response.request().method() === 'POST'
+        && new URL(response.url()).pathname.endsWith('/restore'),
+      )
+      await revisionDialog.getByTestId('confirm-restore-space-revision').click()
+      const restoreResponse = await restoreResponsePromise
+      expect(restoreResponse.status(), await restoreResponse.text()).toBe(202)
+      expect(restoreResponse.request().postDataJSON()).toMatchObject({
+        target: 'revision',
+        revisionId: initialSnapshot.project.draftId,
+        expectedReadyRevisionId: afterApply.project.draftId,
+      })
+
+      await expect.poll(async () => {
+        const [first, second] = await Promise.all([
+          page.request.get(runtimeUrl),
+          secondPage.request.get(runtimeUrl),
+        ])
+        if (!first.ok() || !second.ok()) return null
+        const [firstSnapshot, secondSnapshot] = await Promise.all([
+          first.json(),
+          second.json(),
+        ])
+        return {
+          firstRevision: firstSnapshot.project.draftId,
+          secondRevision: secondSnapshot.project.draftId,
+          releaseId: firstSnapshot.project.releaseId,
+          secondReleaseId: secondSnapshot.project.releaseId,
+          appState: firstSnapshot.appState.state['e2e.template-preserved'],
+        }
+      }, { timeout: 120_000 }).toEqual({
+        firstRevision: initialSnapshot.project.draftId,
+        secondRevision: initialSnapshot.project.draftId,
+        releaseId: beforeApply.project.releaseId,
+        secondReleaseId: beforeApply.project.releaseId,
+        appState: stateValue,
+      })
+      await expect(
+        (await openAppChat(page)).getByTestId('message-body').filter({ hasText: messageText }),
+      ).toHaveCount(1)
+      await expect(
+        (await openAppChat(secondPage)).getByTestId('message-body').filter({ hasText: messageText }),
+      ).toHaveCount(1)
+    } finally {
+      await secondContext.close()
+    }
   })
 
   test('creates an indexed atmosphere room and sends a durable Matrix message', async ({ page }) => {

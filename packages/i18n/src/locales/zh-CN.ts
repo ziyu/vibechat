@@ -2260,7 +2260,17 @@ export const zhCN: Locale = {
       applyTemplateDescription: "系统会把固定模板版本作为隔离 Candidate 验证。在 Candidate 就绪前，Chat、成员、App State、当前 ready Revision 和已发布版本都保持不变。",
       applyTemplateConfirm: "应用模板",
       applyingTemplate: "正在应用…",
-      applyTemplateFailed: "模板请求未能启动，请刷新 Space 后重试。"
+      applyTemplateFailed: "模板请求未能启动，请刷新 Space 后重试。",
+      revisionHistory: "版本历史",
+      revisionHistoryTitle: "Space App 版本历史",
+      revisionHistoryDescription: "把已验证的历史 Revision 恢复为当前运行版本；已发布版本、Chat、成员和 App State 都不会改变。",
+      revisionHistoryLoading: "正在加载版本历史…",
+      revisionHistoryEmpty: "暂时还没有可用的历史 Revision。",
+      revisionHistoryFailed: "版本历史加载或恢复失败，请刷新 Space 后重试。",
+      revisionCurrent: "当前版本",
+      revisionPublished: "已发布",
+      revisionRestoreConfirm: "恢复此版本",
+      revisionRestoring: "正在恢复…"
     },
     newSpace: {
       peopleTitle: "谁属于这个 Space？",

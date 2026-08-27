@@ -5,6 +5,7 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowLeft,
   CheckCheck,
+  History,
   LayoutTemplate,
   MoreHorizontal,
   Pin,
@@ -61,6 +62,8 @@ export function SpacePage({ roomId }: { roomId: string }) {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [applyTemplateDialogOpen, setApplyTemplateDialogOpen] = useState(false)
   const [applyTemplateId, setApplyTemplateId] = useState('')
+  const [revisionHistoryDialogOpen, setRevisionHistoryDialogOpen] = useState(false)
+  const [selectedRevisionId, setSelectedRevisionId] = useState('')
   const room = state.rooms.find((candidate) => candidate.id === roomId)
   const runtime = useSpaceRuntime(roomId)
   const activeTemplateId = runtime.snapshot?.project.template?.id ?? room?.spaceId
@@ -213,6 +216,18 @@ export function SpacePage({ roomId }: { roomId: string }) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              data-testid="space-revision-history"
+              disabled={!runtime.snapshot?.project.draftId}
+              onSelect={() => {
+                setSelectedRevisionId('')
+                setRevisionHistoryDialogOpen(true)
+                void runtime.loadRevisions().catch(() => undefined)
+              }}
+            >
+              <History />
+              {t.chatApp.spaceRuntime.revisionHistory}
+            </DropdownMenuItem>
+            <DropdownMenuItem
               data-testid="apply-space-template"
               disabled={
                 !runtime.snapshot?.project.draftId
@@ -283,6 +298,109 @@ export function SpacePage({ roomId }: { roomId: string }) {
           onRetry={() => void runtime.refresh()}
         />
       </main>
+
+      <Dialog
+        open={revisionHistoryDialogOpen}
+        onOpenChange={(open) => {
+          if (!runtime.restoringRevisionId) setRevisionHistoryDialogOpen(open)
+        }}
+      >
+        <DialogContent
+          className="vc-space-recovery-dialog"
+          data-testid="space-revision-history-dialog"
+        >
+          <DialogHeader>
+            <span className="vc-space-recovery-symbol" aria-hidden="true">
+              <History />
+            </span>
+            <DialogTitle>{t.chatApp.spaceRuntime.revisionHistoryTitle}</DialogTitle>
+            <DialogDescription>
+              {t.chatApp.spaceRuntime.revisionHistoryDescription}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="vc-space-picker vc-space-revision-history">
+            {runtime.revisionsLoading ? (
+              <p className="vc-space-revision-empty">
+                {t.chatApp.spaceRuntime.revisionHistoryLoading}
+              </p>
+            ) : runtime.revisions.length === 0 ? (
+              <p className="vc-space-revision-empty">
+                {t.chatApp.spaceRuntime.revisionHistoryEmpty}
+              </p>
+            ) : runtime.revisions.map((revision) => {
+              const selected = revision.revisionId === selectedRevisionId
+              return (
+                <button
+                  key={revision.revisionId}
+                  type="button"
+                  className="vc-space-option"
+                  data-testid={`space-revision-${revision.revisionId}`}
+                  data-selected={selected || undefined}
+                  disabled={revision.isReady}
+                  onClick={() => setSelectedRevisionId(revision.revisionId)}
+                >
+                  <span className="vc-space-revision-icon" aria-hidden="true">
+                    <History size={14} />
+                  </span>
+                  <span>
+                    <strong>{revision.revisionId}</strong>
+                    <small>
+                      {new Date(revision.createdAt).toLocaleString(locale)}
+                      {' · '}
+                      {revision.template?.id ?? revision.sourceHash.slice(7, 19)}
+                    </small>
+                    <b className="vc-template-version">
+                      {revision.isReady
+                        ? t.chatApp.spaceRuntime.revisionCurrent
+                        : revision.isPublished
+                          ? t.chatApp.spaceRuntime.revisionPublished
+                          : revision.revisionId.slice(0, 7)}
+                    </b>
+                  </span>
+                  <i>{selected ? <CheckCheck size={14} /> : null}</i>
+                </button>
+              )
+            })}
+          </div>
+          {runtime.revisionsError ? (
+            <p className="vc-space-recovery-error" role="alert">
+              {t.chatApp.spaceRuntime.revisionHistoryFailed}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <button
+              type="button"
+              className="vc-space-recovery-cancel"
+              disabled={Boolean(runtime.restoringRevisionId)}
+              onClick={() => setRevisionHistoryDialogOpen(false)}
+            >
+              {t.actions.cancel}
+            </button>
+            <button
+              type="button"
+              className="vc-space-recovery-confirm"
+              data-testid="confirm-restore-space-revision"
+              disabled={
+                !selectedRevisionId
+                || Boolean(runtime.restoringRevisionId)
+                || Boolean(runtime.snapshot?.build)
+                || runtime.unavailable
+              }
+              onClick={() => {
+                if (!selectedRevisionId) return
+                void runtime.restoreRevision(selectedRevisionId)
+                  .then(() => setRevisionHistoryDialogOpen(false))
+                  .catch(() => undefined)
+              }}
+            >
+              <RotateCcw size={14} />
+              {runtime.restoringRevisionId
+                ? t.chatApp.spaceRuntime.revisionRestoring
+                : t.chatApp.spaceRuntime.revisionRestoreConfirm}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={restoreDialogOpen}

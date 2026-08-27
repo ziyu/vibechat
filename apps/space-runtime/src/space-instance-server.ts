@@ -110,6 +110,10 @@ export type SpaceTurnRecovery = {
   target: "default-chat";
   expectedReadyRevisionId: string;
 } | {
+  target: "revision";
+  expectedReadyRevisionId: string;
+  revisionId: string;
+} | {
   target: "template";
   expectedReadyRevisionId: string;
   templateId: string;
@@ -743,6 +747,10 @@ function isSpaceTurnRecovery(value: unknown): value is SpaceTurnRecovery {
     || !/^[a-f0-9]{16}$/.test(recovery.expectedReadyRevisionId)
   ) return false;
   if (recovery.target === "default-chat") return true;
+  if (recovery.target === "revision") {
+    return typeof recovery.revisionId === "string"
+      && /^[a-f0-9]{16}$/.test(recovery.revisionId);
+  }
   return recovery.target === "template"
     && typeof recovery.templateId === "string"
     && recovery.templateId.length > 0

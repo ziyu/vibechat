@@ -180,6 +180,42 @@ describe("Space Runtime HTTP composition", () => {
     expect(beginTurn).not.toHaveBeenCalled();
   });
 
+  it("queues an exact historical Revision through the Restore turn", async () => {
+    const path = "/api/apps/space-1/restore";
+    const credential = await runtimeCredential("POST", path);
+    const { runtime, beginTurn } = createRuntimeStub();
+    const response = await createHttpApp(runtime).request(path, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        requestId: "restore-revision-request-1",
+        target: "revision",
+        expectedReadyRevisionId: "0123456789abcdef",
+        revisionId: "fedcba9876543210",
+        clientId: "member-1",
+        authorName: "Alice",
+      }),
+    });
+
+    expect(response.status).toBe(202);
+    expect(beginTurn).toHaveBeenCalledWith("space-1", {
+      clientId: "member-1",
+      authorName: "Alice",
+      text: "恢复历史 Revision",
+      kind: "restore",
+      externalRequestId: "restore-revision-request-1",
+      agentId: "kernel",
+      recovery: {
+        target: "revision",
+        expectedReadyRevisionId: "0123456789abcdef",
+        revisionId: "fedcba9876543210",
+      },
+    });
+  });
+
   it("reports external Engine, replica, region, and declared pool boundaries", async () => {
     vi.stubEnv("PI_MODE", "agentos");
     vi.stubEnv("SPACE_RUNTIME_ENGINE_MODE", "external");

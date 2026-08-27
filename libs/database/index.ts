@@ -42,11 +42,13 @@ export type {
   NewSpaceRuntimeLeaseRow,
   NewSpaceRuntimeOutboxRow,
   NewSpaceRuntimeProjectRow,
+  NewSpaceRuntimeProjectRevisionRow,
   NewSpaceRuntimeTurnRow,
   SpaceRuntimeInstanceStateRow,
   SpaceRuntimeLeaseRow,
   SpaceRuntimeOutboxRow,
   SpaceRuntimeProjectRow,
+  SpaceRuntimeProjectRevisionRow,
   SpaceRuntimeTurnRow,
 } from './schema/pg/space-runtime-control'
 export type {
@@ -93,6 +95,7 @@ export {
   spaceRuntimeLease,
   spaceRuntimeOutbox,
   spaceRuntimeProject,
+  spaceRuntimeProjectRevision,
   spaceRuntimeTurn,
 } from './schema/space-runtime-control'
 export { roomUserPreference, spaceFavorite, userPreference } from './schema/product-state'
@@ -123,6 +126,7 @@ import {
   spaceRuntimeLease as _spaceRuntimeLease,
   spaceRuntimeOutbox as _spaceRuntimeOutbox,
   spaceRuntimeProject as _spaceRuntimeProject,
+  spaceRuntimeProjectRevision as _spaceRuntimeProjectRevision,
   spaceRuntimeTurn as _spaceRuntimeTurn,
 } from './schema/space-runtime-control'
 import {
@@ -153,6 +157,7 @@ const _schema = {
   roomIndex: _roomIndex,
   spaceRuntimeInstanceState: _spaceRuntimeInstanceState,
   spaceRuntimeProject: _spaceRuntimeProject,
+  spaceRuntimeProjectRevision: _spaceRuntimeProjectRevision,
   spaceRuntimeTurn: _spaceRuntimeTurn,
   spaceRuntimeLease: _spaceRuntimeLease,
   spaceRuntimeOutbox: _spaceRuntimeOutbox,

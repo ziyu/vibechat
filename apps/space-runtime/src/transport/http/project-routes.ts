@@ -127,13 +127,14 @@ export function registerProjectRoutes(
       expectedReadyRevisionId?: unknown;
       templateId?: unknown;
       templateVersionId?: unknown;
+      revisionId?: unknown;
     };
     const member = parseMember(body.clientId, body.authorName);
     if (typeof body.requestId !== "string" || !body.requestId.trim()) {
       return context.json({ error: "requestId is required" }, 400);
     }
     if (
-      (body.target !== "default-chat" && body.target !== "template") ||
+      !["default-chat", "template", "revision"].includes(String(body.target)) ||
       typeof body.expectedReadyRevisionId !== "string" ||
       !/^[a-f0-9]{16}$/.test(body.expectedReadyRevisionId)
     ) {
@@ -141,6 +142,15 @@ export function registerProjectRoutes(
         { error: "a valid restore target and ready revision are required" },
         400,
       );
+    }
+    if (
+      body.target === "revision"
+      && (
+        typeof body.revisionId !== "string"
+        || !/^[a-f0-9]{16}$/.test(body.revisionId)
+      )
+    ) {
+      return context.json({ error: "revisionId is required" }, 400);
     }
     if (
       body.target === "template"
@@ -163,14 +173,24 @@ export function registerProjectRoutes(
           templateId: body.templateId as string,
           templateVersionId: body.templateVersionId as string,
         }
-      : {
+      : body.target === "revision"
+        ? {
+            target: "revision" as const,
+            expectedReadyRevisionId: body.expectedReadyRevisionId,
+            revisionId: body.revisionId as string,
+          }
+        : {
           target: "default-chat" as const,
           expectedReadyRevisionId: body.expectedReadyRevisionId,
-        };
+          };
     const turn = await runtime.spaces.beginTurn(appId, {
       clientId: member.clientId,
       authorName: member.name,
-      text: body.target === "template" ? "应用 Space Template" : "恢复默认 Chat App",
+      text: body.target === "template"
+        ? "应用 Space Template"
+        : body.target === "revision"
+          ? "恢复历史 Revision"
+          : "恢复默认 Chat App",
       kind: "restore",
       externalRequestId: body.requestId,
       agentId: "kernel",

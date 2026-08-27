@@ -127,6 +127,13 @@
       "when": 1787841221343,
       "tag": "0017_public_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1787849424628,
+      "tag": "0018_fair_white_queen",
+      "breakpoints": true
     }
   ]
 }

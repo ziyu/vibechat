@@ -48,10 +48,11 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `GET` | `/v1/spaces/instances/:roomId` | Read the unified SpaceInstance, Template lineage, Dev/Live pointers, and Agent state after Matrix membership authorization |
 | `GET` | `/v1/spaces/instances/:roomId/events` | Subscribe to member, App state, Agent, and build events for the Space |
 | `GET` | `/v1/spaces/instances/:roomId/app?channel=dev\|live&version=<readyRevision>` | Load a fixed ready Revision or immutable Live App in an opaque iframe; Runtime non-2xx responses stay intact and never synthesize a Default Chat page |
+| `GET` | `/v1/rooms/:roomId/revisions` | List up to 50 immutable Revision summaries visible to a current Matrix member; source files and Object Store keys are never returned |
 | `POST` | `/v1/spaces/instances/:roomId/bridge` | Proxy SDK commands allowed by the presence/state/event allowlist |
 | `POST` | `/v1/spaces/instances/:roomId/turns` | Submit an explicit request with a Matrix event ID and structured Agent mention; the Backend re-reads the event and verifies its sender and target before billing and enqueueing it |
 | `POST` | `/v1/spaces/instances/:roomId/publish` | Explicitly publish a fixed Dev draft as an immutable Live release |
-| `POST` | `/v1/spaces/instances/:roomId/restore` | Atomically restore the Space through Kernel to a new ready Revision built from the official Default Chat artifact; the request carries an idempotency key and expected ready Revision and preserves the published Release, Matrix timeline, and App State |
+| `POST` | `/v1/spaces/instances/:roomId/restore` | Restore through the trusted Kernel either from the official Default Chat artifact or an immutable historical Revision; the request fixes an idempotency key and expected ready Revision, rebuilds an isolated Candidate, and preserves the published Release, Matrix timeline, members, and App State |
 | `GET` | `/api/credits/status`, `/api/credits/transactions` | Current user's balance and ledger |
 | `GET` | `/api/orders`, `/api/subscription/status` | Current user's purchases and entitlement |
 | `GET/POST` | `/api/affiliate/*`, `/api/withdrawal/*` | Referral attribution, commissions and KYC-gated withdrawal |
@@ -60,6 +61,8 @@ Unauthenticated requests return `401 AUTH_SESSION_REQUIRED`. A Matrix access tok
 | `POST` | `/api/upload` | Authenticated image upload with type and size limits |
 
 Payment success/cancel pages are presentation only. Payment fulfillment comes from verified provider callbacks. AI task and ledger endpoints are owner-scoped; request IDs must be stable across a retry. New accounts receive 1000 welcome credits through an idempotent ledger transaction by default, so they can start an Agent conversation in a Space immediately. Deployments can change or disable the grant with `CREDITS_NEW_USER_GRANT`. Agent requests reserve credits first, settle against the Runtime's actual token usage, and use a stable transaction ID for failure refunds.
+
+Revision history begins with the current ready Revision recorded by database migration `0018`; objects that had already lost their Product DB pointer before that baseline are not inferred. Restoring a historical Revision does not call an Agent or consume AI credits. The Runtime reloads the content-addressed source, verifies its object and Project hashes, and promotes it only after the isolated Candidate is ready and the expected-ready concurrency barrier still matches.
 
 ## Product state example
 

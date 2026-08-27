@@ -69,6 +69,18 @@ export const spaceRuntimeProjectPointerSchema = z.object({
   updatedAt: z.string().datetime(),
 })
 
+export const spaceRuntimeProjectRevisionSchema = z.object({
+  spaceInstanceId: z.string().min(1).max(255),
+  projectId: z.string().min(1).max(255),
+  revisionId: z.string().regex(/^[a-f0-9]{16}$/),
+  parentRevisionId: z.string().regex(/^[a-f0-9]{16}$/).nullable(),
+  sourceObjectKey: z.string().min(1).max(512),
+  sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  metadata: z.record(z.string(), z.unknown()),
+  fencingToken: z.number().int().nonnegative(),
+  createdAt: z.string().datetime(),
+})
+
 export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('claim_lease'),
@@ -88,6 +100,11 @@ export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('load_project'),
     spaceInstanceId: z.string().min(1).max(255),
+  }),
+  z.object({
+    action: z.literal('load_project_revision'),
+    spaceInstanceId: z.string().min(1).max(255),
+    revisionId: z.string().regex(/^[a-f0-9]{16}$/),
   }),
   z.object({
     action: z.literal('save_project'),
@@ -282,10 +299,36 @@ export const publishSpaceAppRequestSchema = z.object({
   expectedReadyRevisionId: z.string().regex(/^[a-f0-9]{16}$/),
 })
 
-export const restoreSpaceAppRequestSchema = z.object({
+const restoreSpaceAppRequestBaseSchema = z.object({
   requestId: z.string().min(1).max(255),
-  target: z.literal('default-chat'),
   expectedReadyRevisionId: z.string().regex(/^[a-f0-9]{16}$/),
+})
+
+export const restoreSpaceAppRequestSchema = z.discriminatedUnion('target', [
+  restoreSpaceAppRequestBaseSchema.extend({
+    target: z.literal('default-chat'),
+  }).strict(),
+  restoreSpaceAppRequestBaseSchema.extend({
+    target: z.literal('revision'),
+    revisionId: z.string().regex(/^[a-f0-9]{16}$/),
+  }).strict(),
+])
+
+export const spaceProjectRevisionSummarySchema = z.object({
+  revisionId: z.string().regex(/^[a-f0-9]{16}$/),
+  parentRevisionId: z.string().regex(/^[a-f0-9]{16}$/).nullable(),
+  sourceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  createdAt: z.string().datetime(),
+  template: z.object({
+    id: z.string().min(1).max(128),
+    versionId: z.string().min(1).max(255),
+  }).nullable(),
+  isReady: z.boolean(),
+  isPublished: z.boolean(),
+})
+
+export const spaceProjectRevisionListSchema = z.object({
+  revisions: z.array(spaceProjectRevisionSummarySchema).max(50),
 })
 
 export const applySpaceTemplateRequestSchema = z.object({
@@ -325,6 +368,7 @@ export type SpaceAgentReplyMetadata = z.infer<typeof spaceAgentReplyMetadataSche
 export type SpaceRuntimeStateCallback = z.infer<typeof spaceRuntimeStateCallbackSchema>
 export type SpaceRuntimeLease = z.infer<typeof spaceRuntimeLeaseSchema>
 export type SpaceRuntimeProjectPointer = z.infer<typeof spaceRuntimeProjectPointerSchema>
+export type SpaceRuntimeProjectRevision = z.infer<typeof spaceRuntimeProjectRevisionSchema>
 export type SpaceRuntimeControlRequest = z.infer<typeof spaceRuntimeControlRequestSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>
@@ -333,6 +377,8 @@ export type SpaceAgentTurnCancellation = z.infer<typeof spaceAgentTurnCancellati
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>
 export type PublishSpaceAppRequest = z.infer<typeof publishSpaceAppRequestSchema>
 export type RestoreSpaceAppRequest = z.infer<typeof restoreSpaceAppRequestSchema>
+export type SpaceProjectRevisionSummary = z.infer<typeof spaceProjectRevisionSummarySchema>
+export type SpaceProjectRevisionList = z.infer<typeof spaceProjectRevisionListSchema>
 export type ApplySpaceTemplateRequest = z.infer<typeof applySpaceTemplateRequestSchema>
 export type SpaceAppBridgeRequest = z.infer<typeof spaceAppBridgeRequestSchema>
 export type SpaceAppBridgeResponse = z.infer<typeof spaceAppBridgeResponseSchema>

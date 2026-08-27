@@ -2253,7 +2253,17 @@ export const en: Locale = {
       applyTemplateDescription: "The fixed Template version will be validated as an isolated candidate. Chat, members, App state, the current ready revision, and the published release stay intact until the candidate is ready.",
       applyTemplateConfirm: "Apply Template",
       applyingTemplate: "Applying…",
-      applyTemplateFailed: "The Template request could not start. Refresh the Space and try again."
+      applyTemplateFailed: "The Template request could not start. Refresh the Space and try again.",
+      revisionHistory: "Version history",
+      revisionHistoryTitle: "Space App version history",
+      revisionHistoryDescription: "Restore a validated historical revision as the current running version. The published release, Chat, members, and App state will not change.",
+      revisionHistoryLoading: "Loading version history…",
+      revisionHistoryEmpty: "No historical revisions are available yet.",
+      revisionHistoryFailed: "Version history could not be loaded or restored. Refresh the Space and try again.",
+      revisionCurrent: "Current",
+      revisionPublished: "Published",
+      revisionRestoreConfirm: "Restore version",
+      revisionRestoring: "Restoring…"
     },
     newSpace: {
       peopleTitle: "Who belongs in this Space?",
