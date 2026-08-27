@@ -1,5 +1,10 @@
 # Pixel Saturday
 
+## 0.1.3
+
+- Pin `@vibechat/space-app-components@0.7.4` through the managed dependency lock and replace the duplicated drawer Chat renderer, Composer, Mention, message actions, and state machine with the shared Chat controller and elements.
+- Preserve the Pixel Saturday badge collection, shared signal, presence, theme, drawer transform, backdrop blur, and responsive layout while adding canonical unread, visible-only read receipts, compact actions, and structured Mention behavior.
+
 ## 0.1.2
 
 - Refactor the App and default Chat UI into type-checked, responsibility-focused modules.

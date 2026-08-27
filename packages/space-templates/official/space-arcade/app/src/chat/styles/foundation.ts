@@ -1,14 +1,28 @@
 export const chatFoundationStyles = `
 .vcc-root {
   --vcc-accent: var(--space-accent, #ff5a3d);
-  --vcc-line: var(--space-border, rgba(255, 255, 255, 0.13));
-  --vcc-muted: var(--space-muted, #96958e);
+  --vcc-line: var(--space-border, rgba(255, 255, 255, 0.16));
+  --vcc-muted: var(--space-muted, #aaa9a2);
+  --vc-space-color-text: var(--space-text, #f7f4ed);
+  --vc-space-color-text-muted: var(--vcc-muted);
+  --vc-space-color-surface: #171916;
+  --vc-space-color-surface-raised: #1d1f1c;
+  --vc-space-color-border: var(--vcc-line);
+  --vc-space-color-accent: var(--vcc-accent);
+  --vc-space-color-accent-contrast: #11120f;
+  --vc-space-color-negative: #f0a292;
+  --vc-space-color-focus: #ff8a75;
+  --vc-space-font-body: "Avenir Next", "Noto Sans SC", sans-serif;
+  --vc-space-radius-card: 14px;
+  --vc-space-radius-control: 10px;
+  --vc-space-chat-bubble-radius: 4px 14px 14px;
+  --vc-space-chat-bubble-padding: 10px 12px;
   position: fixed;
   inset: 0;
   z-index: 70;
   pointer-events: none;
-  color: var(--space-text, #f7f4ed);
-  font: 13px/1.45 "Avenir Next", "Noto Sans SC", sans-serif;
+  color: var(--vc-space-color-text);
+  font: 13px/1.45 var(--vc-space-font-body);
 }
 
 .vcc-launch {
@@ -56,7 +70,7 @@ export const chatFoundationStyles = `
   background: rgba(16, 18, 15, 0.96);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.54);
   transform: translateX(calc(100% + 36px));
-  transition: transform 240ms ease;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
   pointer-events: auto;
   backdrop-filter: blur(26px);
 }
@@ -141,8 +155,8 @@ export const chatFoundationStyles = `
 
 .vcc-icon {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   place-items: center;
   border: 0;
@@ -158,9 +172,8 @@ export const chatFoundationStyles = `
 }
 
 .vcc-icon:focus-visible,
-.vcc-send:focus-visible,
 .vcc-launch:focus-visible {
-  outline: 2px solid var(--vcc-accent);
+  outline: 2px solid var(--vc-space-color-focus);
   outline-offset: 2px;
 }
 
