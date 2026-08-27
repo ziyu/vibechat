@@ -1512,6 +1512,12 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - 真实 Pi Project Revision 场景再次通过，两个 live App surface 收敛到同一 ready Revision，Published Release 未被隐式移动。本证据不覆盖 S4 cancel/session restore，也不把本地 managed Engine 解释为 S5 生产区域部署。
 - 账户、Admin 和认证页面断言改为稳定 surface/test id、结构与 ARIA role，不依赖当前中英文文案；未修改产品行为。本文保留 2026-08-25 “当时未授权、未执行”的历史事实，本条记录后续授权和实际通过证据。
 
+2026-08-27 S4 contracts-first 证据：
+
+- 新增 provider-neutral lifecycle 端口与 strict session summary、restore/rebuild、cancel schema；cancel identity 同时固定 Space、Agent、session generation 与 Turn，不能只按进程内 Agent ID 隔离。
+- Fake Adapter 通过可复用 contract suite，覆盖版本化事件、单调 sequence、唯一 terminal、chat/revision/usage、标准失败、usage 缺失、幂等 cancel、AbortSignal、summary、restore/rebuild 及跨 Space/Agent/session 隔离；定向 3 个文件、13/13 通过，contracts 与 Runtime typecheck 通过。
+- 本证据只建立 S4 Adapter 合约基线；Pi、生产 Turn processor、Product DB session/event/cancel 持久化尚未切换，不勾选场景 6，也不替代真实 Synapse/AgentOS E2E。
+
 ---
 
 ### Backlog 优先级汇总

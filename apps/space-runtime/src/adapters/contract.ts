@@ -1,5 +1,14 @@
 import type { AgentUsage } from "../agent-usage.js";
 import type { ProjectFiles } from "../project-store.js";
+import type {
+  AgentDefinitionSnapshot,
+  AgentEventV1,
+  AgentSessionRefV1,
+  AgentSessionRestoreResultV1,
+  AgentSessionSummaryV1,
+  AgentTurnInputV1,
+  CancelAgentTurnInputV1,
+} from "@vibechat/space-agent-contracts";
 
 export interface GeneratedRevision {
   files: ProjectFiles;
@@ -47,3 +56,54 @@ export interface SpaceAgentAdapter {
   runProjectTurn(input: SpaceAgentTurnInput): Promise<ProjectTurnResult>;
   reviseProject(input: SpaceAgentTurnInput): Promise<GeneratedRevision>;
 }
+
+export interface BeginAgentSessionInput {
+  definition: AgentDefinitionSnapshot;
+  session: AgentSessionRefV1;
+  requestedAt: string;
+}
+
+export interface SummarizeAgentSessionInput {
+  session: AgentSessionRefV1;
+  sourceTurnId: string;
+  maxSummaryCharacters: number;
+  requestedAt: string;
+}
+
+export interface RestoreAgentSessionInput {
+  definition: AgentDefinitionSnapshot;
+  session: AgentSessionRefV1;
+  requestedAt: string;
+}
+
+/**
+ * Provider-neutral S4 lifecycle port. Runtime consumers migrate to this only
+ * after the fake contract suite is stable; the legacy adapter remains the S3
+ * execution path until Pi is migrated in a later slice.
+ */
+export interface SpaceAgentLifecycleAdapter {
+  readonly adapterKey: string;
+  readonly adapterVersion: string;
+  beginSession(
+    input: BeginAgentSessionInput,
+    signal: AbortSignal,
+  ): Promise<AgentSessionRefV1>;
+  runTurn(
+    input: AgentTurnInputV1,
+    signal: AbortSignal,
+  ): AsyncIterable<AgentEventV1>;
+  summarize(
+    input: SummarizeAgentSessionInput,
+    signal: AbortSignal,
+  ): Promise<AgentSessionSummaryV1>;
+  cancel(
+    input: CancelAgentTurnInputV1,
+    signal: AbortSignal,
+  ): Promise<void>;
+  restore(
+    input: RestoreAgentSessionInput,
+    signal: AbortSignal,
+  ): Promise<AgentSessionRestoreResultV1>;
+}
+
+export type CompleteSpaceAgentAdapter = SpaceAgentAdapter & SpaceAgentLifecycleAdapter;

@@ -55,6 +55,7 @@
 - [x] Node 24.19.0 下 Space Runtime 22 个测试文件、73 个测试通过，Space Runtime typecheck/build、应用边界检查、文档检查与 docs app 直接生产构建通过；最终 GitNexus、根门禁和 E2E 环境边界记录见 Agent 实施结构计划的 S1 完成证据。
 - [x] S2 已完成：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段已落地。Wrangler 本地 D1 `0000 → 0014`、PostgreSQL 17 单独 `0014` 与恢复 journal 后的完整 `0000 → 0014` migration 均已验证，D1/PG repository contract 各 1/1 通过。S3 invoke/enqueue 固定 snapshot 仍未开始。
 - [x] S3 已完成：Backend invoke 已提取为可测试 application service，Definition/Binding/session policy 成为调用权威；新建 Space 幂等写默认 Pi binding，现有 Turn 固定 Definition/Adapter/session/policy/Project/reservation snapshot，Runtime snapshot 与 Matrix v2 state 输出公开 Agent view，callback 优先按固定字段 fencing。默认仍只开放 Pi；真实 Synapse + Pi/provider 双 Chromium E2E 2/2 通过，完整 Adapter cancel/restore 和生产 Engine 继续属于 S4/S5。
+- [ ] S4 Active：provider-neutral `beginSession/runTurn/summarize/cancel/restore` 端口、session summary/restore/cancel schema 与 Fake 可复用 contract suite 已落地，定向 13/13 通过；旧 S3 Adapter/Registry/Turn processor 仍是生产路径。Pi lifecycle、session/event/cancel 持久化与 usage 缺失退款尚未完成，因此本项保持未勾选。
 
 尚未完成：
 
@@ -62,7 +63,7 @@
 - 真实 Cloudflare D1/R2 migration/preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。
 - member Mention、分页、历史 rollback 和其余 #40 浏览器验收。
 - 用户 Template 发布、审核与撤销。
-- Agent binding 权威切换、enqueue 固定 Definition/session/policy snapshot、完整 begin/stream/summarize/cancel/restore Adapter 合约与第二真实 Adapter。
+- Pi 的完整 begin/stream/summarize/cancel/restore lifecycle、session/event/cancel 持久化、usage 缺失退款与第二真实 Adapter。
 - 区域级外部共享 AgentOS/Rivet Engine，以及 Agent execution、App build/dev、Release serving 的独立 worker pool、credential、quota 和生产 Runbook。
 
 ## 3. 状态定义

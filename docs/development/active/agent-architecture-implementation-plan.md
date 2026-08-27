@@ -428,7 +428,7 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | S1 | Space Runtime 结构拆分和自动边界检查 | 无行为变化 | Complete（2026-08-26） |
 | S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Complete（2026-08-27） |
 | S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Complete（2026-08-27） |
-| S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Pending |
+| S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Active（contracts-first） |
 | S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Pending |
 | S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Pending |
 
@@ -520,6 +520,15 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 3. 将 AgentOS VM 具体类型完全收回 `agent-runtime/agentos`。
 4. 持久化 session generation、summary/ref、restore result 和 bounded audit。
 5. 增加中断、取消、session rebuild、跨 Space/Agent 隔离和 usage 缺失退款测试。
+
+#### S4 首切片记录（2026-08-27）
+
+- [x] 新增 provider-neutral lifecycle 端口，固定 `beginSession/runTurn/summarize/cancel/restore`；`runTurn` 只输出版本化 `AgentEventV1`，旧 S3 Adapter 接口暂时并行，生产 Registry、Pi 与 Turn processor 尚未切换。
+- [x] Contracts 新增 strict 的 session summary、restore/rebuild result 与带 `Space/Agent/session generation` 隔离键的 cancel input；公共类型不包含 Pi、AgentOS、provider credential、prompt、源码或 provider-native event。
+- [x] Fake Adapter 同时实现旧接口与完整 lifecycle，覆盖确定性 chat/revision/usage、标准失败、真正缺失 usage、AbortSignal、幂等 cancel、summary hash/ref 和 restore/rebuild。
+- [x] 建立可复用 lifecycle contract suite：严格事件 schema、单调 sequence、唯一 terminal、chat/revision/usage、cancel/AbortSignal、summarize、restore/rebuild 及跨 Space/Agent/session 隔离均通过；该 suite 将由后续 Pi lifecycle 复用。
+- [x] Node 24.19.0 下 contracts 与 Runtime typecheck 通过；contracts、旧 Adapter 兼容与 Fake lifecycle 定向测试 3 个文件、13/13 通过。Fake 仍只在显式测试开关下注册，不能成为产品成功 fallback。
+- [ ] 下一切片迁移 Pi lifecycle 并接入 session event/cancel/restore 持久化；在此之前旧 S3 执行路径继续是生产权威，不能把本切片标为 S4 Complete。
 
 ### 9.5 S5：生产共享 AgentOS
 

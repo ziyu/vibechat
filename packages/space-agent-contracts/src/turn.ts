@@ -45,5 +45,25 @@ export const agentTurnInputV1Schema = z.object({
   requestedAt: z.string().datetime(),
 }).strict()
 
+export const agentTurnCancelReasonSchema = z.enum([
+  'user_requested',
+  'lease_lost',
+  'timeout',
+  'runtime_shutdown',
+])
+
+export const cancelAgentTurnInputV1Schema = z.object({
+  schemaVersion: z.literal('vibechat.agent-turn-cancel/v1'),
+  turnId: agentTurnIdSchema,
+  spaceInstanceId: z.string().trim().min(1).max(255),
+  agentId: spaceAgentIdSchema,
+  sessionId: agentSessionIdSchema,
+  sessionGeneration: z.number().int().positive(),
+  reason: agentTurnCancelReasonSchema,
+  requestedAt: z.string().datetime(),
+}).strict()
+
 export type AgentPolicySnapshotV1 = z.infer<typeof agentPolicySnapshotV1Schema>
 export type AgentTurnInputV1 = z.infer<typeof agentTurnInputV1Schema>
+export type CancelAgentTurnInputV1 = z.infer<typeof cancelAgentTurnInputV1Schema>
+export type AgentTurnCancelReason = z.infer<typeof agentTurnCancelReasonSchema>
