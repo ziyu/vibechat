@@ -12,6 +12,8 @@ The package sits above `@vibechat/space-app-sdk` and below Space Templates. It p
 - `/agent`: provider-neutral Agent view model、AgentAvatar、Badge、Status 与 Card。
 - `/chat`: Matrix timeline view、只读/可写 controller、Composer/Mention/Attachment/Reaction/Actions/Error/Timeline elements。
 - `/chat/inline`: 仅供返回自包含 HTML 的 `agentos-app-v1` Project 使用的预构建 Chat 浏览器模块；普通浏览器构建使用 `/chat`。
+- `/recipes`: `DefaultChatRecipe` / `ChatDrawerRecipe` 的装配与 lifecycle；只连接注入 context、标准 Chat elements 和 Template copy，不拥有主题、launcher markup 或场景状态。
+- `/recipes/inline`: 供自包含 HTML Project 使用的预构建 Recipe 浏览器模块；与 `/recipes` 共享同一公开 API、package version 和 artifact integrity。
 - `/register` 与 `/register/foundation|user|agent|chat`: 显式的 Custom Element 自动注册入口，也是 package 中仅有的 side-effect exports。
 - `/styles`: 可由 Template 覆盖的 semantic component token 与示例主题。
 - `/manifest`: bundle manifest types and validation.
@@ -37,6 +39,14 @@ import {
 } from "@vibechat/space-app-components/chat/inline"
 ```
 
+使用完整装配 recipe 的同类 Project 改用 `/recipes/inline`；普通 bundler 仍从 `/recipes` tree-shake：
+
+```ts
+import {
+  spaceRecipesInlineModule,
+} from "@vibechat/space-app-components/recipes/inline"
+```
+
 同时在 `package.json` 使用精确版本，并在 `space-app-dependencies.json` 固定 managed package integrity。Runtime 通过 `@vibechat/space-app-dependencies` 和注入的 Registry 校验 name/version/integrity，把已发布 package 复制到隔离的 prepared build，且只在该 build 的 `package.json` 中改写为 revision-local `file:` 依赖。可编辑 Project 源码始终保持普通 package specifier；生产浏览器、Dev Preview 和 Release 都不会访问 npm 或 CDN。
 
 ## 构建与发布
@@ -50,6 +60,15 @@ pnpm --filter @vibechat/space-app-components release:pack
 ```
 
 `release:prepare` 生成 `dist/package` 的标准 ESM package 并签锁当前 metadata；`release:pack` 生成可发布 tarball。Release job 必须把 tarball 上传 VibeChat managed Registry/Object Store，再登记不可变的 `name + version + integrity + objectKey`。公共 npm 不是线上 Runtime 的必要条件，但每个供 Space 使用的版本都必须经过这次 managed publish；npm-compatible Registry 或公共 npm 只能作为同一 package 的分发/mirror。
+
+本地开发 Registry 使用 gitignored `dist/managed-registry/<version>/package` 保存多个已验证版本，Runtime 始终按 Project lock 中的 exact version 与 integrity 解析；构建当前版本不会覆盖旧版本。历史版本没有本地缓存时，可以从已经持久化且通过校验的 prepared Project 恢复：
+
+```bash
+pnpm --filter @vibechat/space-app-components \
+  registry:import-prepared -- /absolute/path/to/prepared-project-object.json
+```
+
+导入脚本只接受 `vibechat.prepared-space-app-project/v1`，重新计算 package artifact integrity，并在与 Project lock 一致后写入对应版本缓存。该缓存仅用于本地开发和冷启动恢复，不提交 Git，也不替代生产 managed Registry/Object Store publish。
 
 Space Projects must inject the existing SDK client:
 
@@ -174,6 +193,28 @@ window.addEventListener("pagehide", () => {
 
 Composer 的 Enter/Shift+Enter/IME、附件 input 和结构化 Mention 均由组件统一处理；Template adapter 只连接 typed event 与 controller。Host 通过 `snapshot.chat.permissions` 明确下发 Chat 能力，message view 再结合 ownership/status 生成 `actions`；Timeline 在 `interactive` 模式内正式组合 `MessageActions` 和 `ReactionBar`，Template 不读取 Shadow DOM，也不自行猜测 ACL。Agent 请求只能随 `chat.send({ mentionIds })` 进入 Matrix，组件库不提供 `agent.invoke()`。
 
+Recipe 在相同边界上进一步收敛重复装配。Template 仍显式创建 context、解析标准元素并提供自身 copy；全屏和抽屉只选择不同 mount 函数：
+
+```ts
+import { createSpaceComponentContext } from "@vibechat/space-app-components/core"
+import {
+  mountChatDrawerRecipe,
+  resolveSpaceChatRecipeElements,
+} from "@vibechat/space-app-components/recipes"
+
+const context = createSpaceComponentContext({ sdk: space })
+const recipe = mountChatDrawerRecipe({
+  context,
+  elements: resolveSpaceChatRecipeElements(document, "My Space Chat"),
+  copy: () => getChatCopy(space.locale),
+})
+
+await recipe.ready
+window.addEventListener("pagehide", () => context.dispose(), { once: true })
+```
+
+Recipe 统一 controller snapshot、typed events、增量 render、unread/read receipt 和幂等 dispose；主题、launcher DOM、场景 App State、文案来源与页面布局仍由 Template 维护。
+
 `0.5.0` 保留 `0.4.1` 的 controller/element API，并建立 publishable ESM package、语义化 `/foundation|user|agent|chat` subpath、显式 `/register/*` side-effect entry、`/chat/inline` 自包含 HTML adapter 与 managed Registry provider。该版本把 Space 的正式消费方式从 Template 内相对 vendor 路径切换为普通 package specifier；组件交互语义、CSS token、Custom Element、typed event 和稳定 `data-testid` 不变。
 
 `0.6.0` 增加 Host 显式 Chat permissions、message action availability、Composer 的 `sendDisabled` / `attachmentDisabled`、Timeline 的 `interactive` / `interactionDisabled` / `reactionChoices` 公共 property、`chat-message-entry` test id 与嵌套 action/reaction `::part`。`vc-space-chat-message.showReactions`（对应 `hide-reactions` attribute）允许交互 Timeline 隐藏重复的只读 Reaction；`markRead()` 是去重且不占全局 command pending 的非阻塞命令。以上均为新增 API；旧的只读 Timeline 默认行为保持不变。
@@ -181,6 +222,8 @@ Composer 的 Enter/Shift+Enter/IME、附件 input 和结构化 Mention 均由组
 `0.7.0` 收敛交互 Timeline 的消息操作密度：已有 Reaction 只由一套可交互 `ReactionBar` 呈现，候选 Reaction 与 reply/edit/delete/retry 进入 `MessageActions.compact` 的渐进式操作面；独立使用 `vc-space-message-actions` 时仍保持原有 inline 默认。compact 操作面使用原生 button、焦点循环、Escape/外部点击关闭、危险删除二次确认、桌面浮层和窄屏 action sheet，并通过 `reactionChoices` 与既有 bubbling/composed typed events 保持 controller 解耦。Timeline 还通过 `getSpaceChatMessageGroupPositions()` 按相邻作者和五分钟窗口生成 `single/first/middle/last`，压缩重复 identity/time/delivery，组尾保留非本人头像；交互 Timeline 始终关闭 Message 内的只读 Reaction，避免两套 UI 重复。
 
 `0.7.4` 将 compact MessageActions 菜单提升到原生 Popover top layer，避免 Space Template 的 `transform`、`filter`、`backdrop-filter` 或 `overflow` 创建 containing block 后裁切、错位或触发渲染器异常。支持 Popover API 的浏览器只使用原生 light dismiss、`toggle` 与 `::backdrop`；不支持时才安装 document pointer fallback，并继续使用 viewport fixed 菜单和显式 backdrop。两条路径都保留 Escape、外部点击、关闭后焦点恢复、窄屏全宽 action sheet 与二次删除确认；指针关闭会在点击默认动作完成后的下一帧恢复 trigger 焦点，因此 Template 无需为了菜单修改自身布局或视觉效果。
+
+`0.8.1` 新增 side-effect-free `/recipes` 与 `/recipes/inline`，公开 `mountDefaultChatRecipe`、`mountChatDrawerRecipe` 和 `resolveSpaceChatRecipeElements`。Recipe 只把五个官方 Template 已验证的 Chat 装配与 lifecycle 收敛到 package；既有 `/chat`、`/chat/inline`、Custom Element、typed event、token、part 和默认交互保持兼容。App 必须显式升级 exact version 并生成新 Revision，既有 Template/Space/Release 不自动切换。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 

@@ -19,6 +19,10 @@ import {
   spaceReactionBarStyles,
 } from "@vibechat/space-app-components/chat";
 import { createSpaceComponentContext } from "@vibechat/space-app-components/core";
+import {
+  mountChatDrawerRecipe,
+  type SpaceChatRecipeElements,
+} from "@vibechat/space-app-components/recipes";
 
 function chatMessage(
   id: string,
@@ -141,6 +145,84 @@ function interactiveSdk() {
     enumerable: true,
   });
   return { client, chat, snapshot, listeners };
+}
+
+class RecipeTestElement extends EventTarget {
+  readonly dataset: Record<string, string> = {};
+  readonly attributes = new Map<string, string>();
+  ownerDocument!: Document;
+  textContent = "";
+  title = "";
+  hidden = false;
+  state = "loading";
+  error: unknown = null;
+  messages: readonly unknown[] = [];
+  typingUsers: readonly unknown[] = [];
+  draft = "";
+  mentionIds: readonly string[] = [];
+  pending = false;
+  sendDisabled = false;
+  attachmentDisabled = false;
+  interactionDisabled = false;
+  interactive = false;
+  reactionChoices: readonly string[] = [];
+  context: unknown = null;
+  targets: readonly unknown[] = [];
+  focus = vi.fn();
+  insertMention = vi.fn();
+
+  setAttribute(name: string, value: string) {
+    this.attributes.set(name, String(value));
+  }
+}
+
+function recipeFixture() {
+  const documentTarget = new EventTarget() as Document & {
+    visibilityState: DocumentVisibilityState;
+    defaultView: Window | null;
+    documentElement: { lang: string };
+    title: string;
+  };
+  documentTarget.visibilityState = "visible";
+  documentTarget.defaultView = null;
+  documentTarget.documentElement = { lang: "" };
+  documentTarget.title = "";
+  const element = () => {
+    const value = new RecipeTestElement();
+    value.ownerDocument = documentTarget;
+    return value;
+  };
+  const elements = {
+    root: element(),
+    launch: element(),
+    launchLabel: element(),
+    shell: element(),
+    close: element(),
+    unread: element(),
+    mark: element(),
+    roomName: element(),
+    memberCount: element(),
+    opening: element(),
+    openingMark: element(),
+    openingTitle: element(),
+    openingSummary: element(),
+    openingAgent: element(),
+    build: element(),
+    buildTitle: element(),
+    buildStage: element(),
+    hint: element(),
+    timeline: element(),
+    composer: element(),
+    mentions: element(),
+    error: element(),
+  } as unknown as SpaceChatRecipeElements;
+  return { document: documentTarget, elements };
+}
+
+function recipeEvent<T>(type: string, detail: T) {
+  const event = new Event(type);
+  Object.defineProperty(event, "detail", { value: detail });
+  return event;
 }
 
 describe("Space Chat migration-ready controller", () => {
@@ -266,6 +348,74 @@ describe("Space Chat migration-ready controller", () => {
     await controller.markRead();
     expect(sdk.chat.markRead).toHaveBeenCalledTimes(2);
     controller.dispose();
+    context.dispose();
+  });
+});
+
+describe("Space Chat recipes", () => {
+  it("mounts one drawer lifecycle, tracks unread/read state, and removes every listener", async () => {
+    const sdk = interactiveSdk();
+    const fixture = recipeFixture();
+    const context = createSpaceComponentContext({ sdk: sdk.client });
+    const recipe = mountChatDrawerRecipe({
+      context,
+      elements: fixture.elements,
+      copy: () => ({
+        connected: "connected",
+        members: "members",
+        empty: "Empty",
+        hint: "Type a message",
+        working: "is working",
+        title: "Chat",
+        open: "Open Chat",
+        close: "Close Chat",
+        region: "Space Chat",
+        timeline: "Message timeline",
+      }),
+    });
+    await recipe.ready;
+
+    expect(recipe.mode).toBe("dock");
+    expect(recipe.open).toBe(false);
+    expect(sdk.chat.markRead).not.toHaveBeenCalled();
+    fixture.elements.launch.dispatchEvent(new Event("click"));
+    await Promise.resolve();
+    expect(recipe.open).toBe(true);
+    expect(sdk.chat.markRead).toHaveBeenCalledTimes(1);
+    await recipe.controller.markRead();
+
+    fixture.elements.close.dispatchEvent(new Event("click"));
+    sdk.snapshot.chat.messages.push(chatMessage("new-message", "bob", "New note"));
+    for (const listener of sdk.listeners.get("messages") ?? []) listener(undefined);
+    expect(recipe.unreadCount).toBe(1);
+    expect(fixture.elements.unread.textContent).toBe("1");
+
+    fixture.document.visibilityState = "hidden";
+    recipe.show();
+    await Promise.resolve();
+    expect(sdk.chat.markRead).toHaveBeenCalledTimes(1);
+    fixture.document.visibilityState = "visible";
+    recipe.show();
+    await Promise.resolve();
+    expect(sdk.chat.markRead).toHaveBeenCalledTimes(2);
+
+    fixture.elements.composer.dispatchEvent(recipeEvent(spaceChatEventNames.submit, {
+      text: "Recipe message",
+      mentionIds: [],
+    }));
+    await Promise.resolve();
+    expect(sdk.chat.send).toHaveBeenCalledTimes(1);
+
+    recipe.dispose();
+    recipe.dispose();
+    fixture.elements.composer.dispatchEvent(recipeEvent(spaceChatEventNames.submit, {
+      text: "Must not send",
+      mentionIds: [],
+    }));
+    await Promise.resolve();
+    expect(recipe.disposed).toBe(true);
+    expect(sdk.chat.send).toHaveBeenCalledTimes(1);
+    expect([...sdk.listeners.values()].every((handlers) => handlers.size === 0)).toBe(true);
     context.dispose();
   });
 });

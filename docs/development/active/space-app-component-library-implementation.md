@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：`@vibechat/space-app-components`、组件 bundle/manifest、Space Project materialization、官方 Template 迁移和验收
 > 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 > 组件设计：[Space App 基础组件库设计](../space-app-component-library-design.md)
@@ -22,6 +22,8 @@
 
 当前基线已推进到 `@vibechat/space-app-components@0.7.4`：Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6`、Arcade `0.1.3` 与 Postcard `0.1.3` 固定同一 exact version/integrity。compact More 在支持 Popover API 时使用 top layer、native light-dismiss 和 `::backdrop`，不支持时保留 fixed/backdrop/document fallback；移动 action sheet 显式占用 `100vw - 1.5rem`，指针关闭在下一帧恢复 trigger 焦点。四个差异化 Template 均保留抽屉原有 `transform` 与 `backdrop-filter`，真实 E2E 证明公共组件不依赖 Template CSS workaround。五个官方 Template 已完成共享 Chat controller/elements 迁移，并分别保留全屏 Chat、夜航电台、共享便签、像素徽章和暖纸明信片场景。生产 publish、不可变 Release、双 Chromium 和完整 a11y 矩阵仍未执行，因此 C1/C3/C5 继续保持 Active。
 
+2026-08-28 新增 `@vibechat/space-app-components@0.8.1` 的 side-effect-free `/recipes` 和自包含 `/recipes/inline`。`mountDefaultChatRecipe` / `mountChatDrawerRecipe` 统一 controller snapshot、typed events、增量 render、unread/read receipt 与幂等 dispose；Template 继续拥有 copy、markup、主题、launcher 和场景状态。Default/Focus 以相邻 development `0.1.7` 分别验证 full/dock 消费；Campfire/Arcade/Postcard 仍固定 `0.7.4`。真实 E2E 首轮发现 inline bundle 未注册 Custom Element 后，改由专用 browser entry 生成，并增加四个关键 Chat element 的 bundle 防回归检查。随后又发现本地 Registry 只接受当前版本，已改为 gitignored `dist/managed-registry/<version>/package` exact-version 缓存；`0.7.4` 与 `0.8.1` 可同时解析且 integrity 漂移 fail closed，不需要修改旧 Template 或既有 Revision。该本地缓存不替代生产 Registry/Object Store publish。
+
 ## 状态定义
 
 | 状态 | 含义 | 证据要求 |
@@ -36,19 +38,19 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.7.4` tracked managed release lock、exact version/integrity、注入式 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.8.1` tracked managed release、exact version/integrity、`0.7.4`/`0.8.1` 本地多版本 Registry、不可变 build 校验 | 生产 managed Registry/Object Store publish 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 同锁 `0.7.4`；单 Chromium 真实 Matrix 6/6 覆盖五种布局、场景状态、消息操作、恢复和移动布局 | 建立 recipe，并完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus 使用 `0.8.1` Recipe，其他三个继续固定 `0.7.4`；单 Chromium 真实 Matrix 6/6 | 完成双浏览器 Matrix、不可变 Release、生产 publish 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
-Postcard 最后一个官方 Template 迁移切片已完成：`0.1.3` 保留 `postcard.messages`、最多十张卡片、暖纸张主题、寄出表单与 presence，只将抽屉内重复的 Chat renderer、Composer、Mention 和消息操作切换到 exact `@vibechat/space-app-components@0.7.4`。五个官方 Template 迁移完成不等于 C5 Complete；下一切片继续建立设计中尚缺的 `DefaultChatRecipe` / `ChatDrawerRecipe`，并补齐双浏览器 Matrix、不可变 Release、生产 managed publish 与完整 a11y 矩阵。
+Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot → Timeline/Composer/Mention/Error 装配、typed event、unread/read receipt 和 lifecycle 已收敛到语义化 `/recipes` 公共入口。Recipe 只接收注入 context、Template copy 和既有标准元素，不拥有主题、launcher markup、场景状态、Matrix/Agent 权威或 Kernel 操作。Default 全屏和 Focus 抽屉以相邻 development `0.1.7` 固定 exact `0.8.1`/integrity；另外三个 Template 与既有版本继续固定 `0.7.4`，由本地多版本 Registry 和 prepared artifact 保持可运行。下一切片仍需双浏览器 Matrix、不可变 Release、生产 managed publish 与完整 a11y 矩阵，C1/C3/C5 继续保持 Active。
 
 ### 目标
 
-在不读取全局 SDK、不过度固定视觉布局的前提下，让五个官方 Template 固定并组合完整、provider-neutral 的 Chat controller/elements。Template 只保留 SDK 注入、布局、主题、场景和薄事件适配；Matrix timeline 仍是唯一消息源，Agent 只通过结构化 Mention Chat event 触发，不把 Agent build/progress 伪装成消息。下一步把已经在全屏与抽屉布局中重复验证的组合收敛为公开 recipe，但不把 Template 场景视觉或业务状态移入组件库。
+在不读取全局 SDK、不过度固定视觉布局的前提下，让五个官方 Template 固定并组合完整、provider-neutral 的 Chat controller/elements。Template 只保留 SDK 注入、布局、主题和场景；Matrix timeline 仍是唯一消息源，Agent 只通过结构化 Mention Chat event 触发，不把 Agent build/progress 伪装成消息。本切片把全屏与抽屉布局中重复验证的组合收敛为公开 recipe，同时保持 Template 场景视觉和业务状态在组件库之外。
 
 ### 任务
 
@@ -78,6 +80,10 @@ Postcard 最后一个官方 Template 迁移切片已完成：`0.1.3` 保留 `pos
 - [x] 将 Campfire 升到 development `0.1.5` 并迁移共享 Chat controller/elements；Default/Focus 分别升到 `0.1.6`，三者固定同一 exact `0.7.4` 与 managed integrity，既有中间版本锁不改写。
 - [x] 将 Arcade 升到 development `0.1.3` 并固定 exact `0.7.4`/managed integrity；保留像素徽章、共享 signal、presence、主题及原抽屉 transform/blur，删除重复 Chat renderer/composer/state machine，且不改写 `0.1.2` lock。
 - [x] 将 Postcard 升到 development `0.1.3` 并固定 exact `0.7.4`/managed integrity；保留卡片状态、最多十张限制、寄出表单、presence、暖纸张主题及原抽屉 transform/blur，删除重复 Chat renderer/composer/state machine，且不改写 `0.1.2` lock。
+- [x] 以向后兼容 minor 版本新增 `/recipes` 与 `/recipes/inline`，保留 `/chat`、`/chat/inline` 和已有公开 API；recipe bundle 继续满足 Chat gzip 预算、SSR import-safe、无远程 runtime import。
+- [x] 实现 `mountDefaultChatRecipe` / `mountChatDrawerRecipe` 与幂等 handle：统一完整 typed event 装配、增量 render、unread、可见时 read receipt 和 dispose，不读取全局 SDK，不固定 Template 主题、launcher markup 或场景状态。
+- [x] 将 Default/Focus 升到相邻 development `0.1.7` 并固定新的 exact component version/integrity；删除两份重复 `bootstrapChat` 主体，保留各自 copy、markup、主题、全屏/抽屉模式和既有历史 lock。
+- [x] 用 unit/package/bundle/Template TypeScript、Catalog/hash 和真实 Matrix 全文件 E2E 证明 full/dock 两种 recipe 消费；未迁移 Campfire/Arcade/Postcard 继续固定 `0.7.4`，既有 Space/Revision/Release 不自动升级。
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
@@ -94,7 +100,7 @@ Postcard 最后一个官方 Template 迁移切片已完成：`0.1.3` 保留 `pos
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
-- `0.7.4`、`space-default@0.1.6`、`space-campfire@0.1.5`、`space-focus@0.1.6`、`space-arcade@0.1.3` 与 `space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
+- `0.8.1` Recipe、`space-default@0.1.7`、`space-focus@0.1.7` 与继续固定 `0.7.4` 的 `space-campfire@0.1.5`、`space-arcade@0.1.3`、`space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
 
 ## 2026-08-26 验证记录
 
@@ -254,11 +260,25 @@ Postcard `0.1.3` 的 source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd
 
 本轮没有生成不可变 Published Release，也未执行生产 managed publish、双 Chromium 同房交互、Existing custom Project 端到端不升级或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 仍保持 Active。五个官方 Template 的共享 Chat 源码迁移已完成，下一步进入 recipe 与剩余生产化/可访问性验证。
 
+### 2026-08-28 Chat Recipe 与多版本 Registry 验证
+
+`@vibechat/space-app-components@0.8.1` source/browser artifact hash 为 `sha256:9383001b8b7262f9258a8965313654fe99796912fdaea281050079cc07133d73` / `sha256:4d776ed99e9062571daf71bdb432314b1ff952dd872f8f661530afc6e453a905`，本地 managed package integrity 为 `sha256:6d980005ca07a1a9ac76dad9c18524bb3e1885261616252f949d9787af996dc2`。Default `0.1.7` source/manifest hash 为 `sha256:2773c71af78fadc791978669d30d8ed5ed2aaa3b2e10448efff3a5f3b0b66651` / `sha256:466f81bb1feabdc3b8d31358cc73905846f5e53760e4f86b8dc41720ed16cc47`；Focus `0.1.7` 为 `sha256:93daabc0d3e9c199d27912b0f11ac19f46e93c291df79e028db5f7a87cb31c3e` / `sha256:ebbdf498767ab5b83f707cd510348caa69a6e68067e86a00ec11482f95719ee3`。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| Recipe API/lifecycle | 通过 | `/recipes`、`/recipes/inline`、full/dock mount 与标准 element resolver；unit 覆盖事件只装配一次、unread、不可见时不 mark read、恢复可见后补发、dispose 幂等及 listener 全释放 |
+| inline 注册 | 通过 | `/recipes` 保持 side-effect-free；`/recipes/inline` 使用专用 browser entry 注册 Timeline/Composer/Mention/Error，bundle gate 明确检查四个 element name，防止再次出现“只有壳没有输入框” |
+| bundle/package | 通过 | recipes gzip `23,059` bytes，低于 Chat `35 KiB` 预算；semantic exports、SSR-safe 普通入口、无远程 runtime import、managed integrity 与 Catalog locks 一致 |
+| 多版本 Registry | 通过 | gitignored `dist/managed-registry/<version>/package` 同时按 exact version 提供 `0.7.4` 与 `0.8.1`；历史缓存从已有 prepared Project 按 dependency lock/integrity 恢复，错误 integrity fail closed；Git 未新增版本化编译目录 |
+| 定向 unit/TypeScript | 通过 | components/dependencies/templates 共 7 files、45/45；组件、Default/Focus App TypeScript 与 Catalog lock 通过 |
+| 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 6/6；Default/Focus 断言 `0.8.1` full/dock Recipe，Campfire/Arcade/Postcard 继续断言 `0.7.4`，覆盖创建、发送、回复、Reaction、刷新、恢复、unread、Popover/action sheet、场景状态和 390px 布局 |
+
+本轮本地 Registry cache 只模拟 managed Registry 的 exact-version 语义，不是生产发布渠道。`0.7.4`/`0.8.1` 仍未上传生产 Registry/Object Store，也没有生成本轮不可变 Published Release、完成双 Chromium 同房交互或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 继续保持 Active。
+
 ## 待决策清单
 
 1. catalog 在阶段 1 继续作为离线构建产物，还是增加只读 Preview route。
 2. 何时为大型媒体/recipe artifact 增加 revision-local hashed asset route。
-3. `DefaultChatRecipe` / `ChatDrawerRecipe` 的最小公开配置是否只收敛装配与 lifecycle，继续把文案、主题、launcher 和场景状态留给 Template。
 
 ## 进度更新规则
 

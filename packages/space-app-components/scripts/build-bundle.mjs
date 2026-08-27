@@ -40,6 +40,8 @@ const publishedExports = {
   "./agent": packageEntry("agent/index"),
   "./chat": packageEntry("chat/index"),
   "./chat/inline": packageEntry("chat/inline"),
+  "./recipes": packageEntry("recipes/index"),
+  "./recipes/inline": packageEntry("recipes/inline"),
   "./register": packageEntry("browser"),
   "./register/foundation": packageEntry("foundation/browser"),
   "./register/user": packageEntry("user/browser"),
@@ -101,6 +103,21 @@ async function copyPublishedModules() {
   }
 }
 
+async function cachePublishedPackage() {
+  const cacheRoot = join(
+    distRoot,
+    "managed-registry",
+    packageJson.version,
+    "package",
+  );
+  await rm(cacheRoot, { recursive: true, force: true });
+  for (const [path, source] of Object.entries(await readTree(publishedPackageRoot))) {
+    const output = join(cacheRoot, path);
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, source, "utf8");
+  }
+}
+
 async function readSourceFiles() {
   const files = Object.fromEntries(
     Object.entries(await readTree(sourceRoot)).map(([path, source]) => [
@@ -123,6 +140,7 @@ const browserEntries = {
   "user.js": join(sourceRoot, "user/browser.ts"),
   "agent.js": join(sourceRoot, "agent/browser.ts"),
   "chat.js": join(sourceRoot, "chat/browser.ts"),
+  "recipes.js": join(sourceRoot, "recipes/browser.ts"),
 };
 const bundleFiles = {};
 for (const [name, entryPoint] of Object.entries(browserEntries)) {
@@ -164,24 +182,30 @@ await writeFile(
   "utf8",
 );
 
-const chatInlineModule = {
-  schemaVersion: "vibechat.space-component-inline-module/v1",
-  packageVersion: bundle.manifest.packageVersion,
-  sdkRange: bundle.manifest.sdkRange,
-  projectFormat: bundle.manifest.projectFormats[0],
-  sourceHash: bundle.manifest.sourceHash,
-  bundleHash: bundle.manifest.artifactHash,
-  source: bundle.files["chat.js"],
-};
-await mkdir(join(publishedPackageRoot, "chat"), { recursive: true });
-await writeFile(
-  join(publishedPackageRoot, "chat", "inline.js"),
-  `export const spaceChatInlineModule = Object.freeze(${JSON.stringify(chatInlineModule, null, 2)});\n`,
-  "utf8",
-);
-await writeFile(
-  join(publishedPackageRoot, "chat", "inline.d.ts"),
-  `export interface SpaceChatInlineModule {
+async function writeInlineModule({
+  directory,
+  exportName,
+  interfaceName,
+  bundlePath,
+}) {
+  const inlineModule = {
+    schemaVersion: "vibechat.space-component-inline-module/v1",
+    packageVersion: bundle.manifest.packageVersion,
+    sdkRange: bundle.manifest.sdkRange,
+    projectFormat: bundle.manifest.projectFormats[0],
+    sourceHash: bundle.manifest.sourceHash,
+    bundleHash: bundle.manifest.artifactHash,
+    source: bundle.files[bundlePath],
+  };
+  await mkdir(join(publishedPackageRoot, directory), { recursive: true });
+  await writeFile(
+    join(publishedPackageRoot, directory, "inline.js"),
+    `export const ${exportName} = Object.freeze(${JSON.stringify(inlineModule, null, 2)});\n`,
+    "utf8",
+  );
+  await writeFile(
+    join(publishedPackageRoot, directory, "inline.d.ts"),
+    `export interface ${interfaceName} {
   readonly schemaVersion: "vibechat.space-component-inline-module/v1";
   readonly packageVersion: string;
   readonly sdkRange: string;
@@ -190,10 +214,24 @@ await writeFile(
   readonly bundleHash: \`sha256:\${string}\`;
   readonly source: string;
 }
-export declare const spaceChatInlineModule: Readonly<SpaceChatInlineModule>;
+export declare const ${exportName}: Readonly<${interfaceName}>;
 `,
-  "utf8",
-);
+    "utf8",
+  );
+}
+
+await writeInlineModule({
+  directory: "chat",
+  exportName: "spaceChatInlineModule",
+  interfaceName: "SpaceChatInlineModule",
+  bundlePath: "chat.js",
+});
+await writeInlineModule({
+  directory: "recipes",
+  exportName: "spaceRecipesInlineModule",
+  interfaceName: "SpaceRecipesInlineModule",
+  bundlePath: "recipes.js",
+});
 
 const managedPackage = createSpaceAppManagedPackageArtifact({
   name: packageJson.name,
@@ -289,6 +327,7 @@ await writeFile(
 
 if (writeRelease) await writeTrackedRelease();
 await assertTrackedRelease();
+await cachePublishedPackage();
 
 process.stdout.write(
   `Built publishable Space component package ${bundle.manifest.packageVersion} (${bundle.manifest.artifactHash}); managed package ${managedPackage.integrity}\n`,

@@ -1,6 +1,6 @@
 {
   "name": "@vibechat/space-app-components",
-  "version": "0.7.4",
+  "version": "0.8.1",
   "private": false,
   "description": "Framework-neutral User, Chat, and Agent UI components for VibeChat Space Apps",
   "license": "MIT",
@@ -27,6 +27,11 @@
     "./foundation": "./src/foundation/index.ts",
     "./manifest": "./src/manifest.ts",
     "./node": "./src/node.ts",
+    "./recipes": "./src/recipes/index.ts",
+    "./recipes/inline": {
+      "types": "./src/recipes/inline.d.ts",
+      "default": "./dist/package/recipes/inline.js"
+    },
     "./register": "./src/browser.ts",
     "./register/agent": "./src/agent/browser.ts",
     "./register/chat": "./src/chat/browser.ts",
@@ -44,6 +49,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs",
     "check:bundle": "node --import tsx scripts/check-bundle.mjs",
+    "registry:import-prepared": "node --import tsx scripts/import-managed-package-from-prepared.mjs",
     "release:prepare": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs --write-release",
     "release:pack": "pnpm build && pnpm pack ./dist/package --pack-destination ../releases",
     "typecheck": "tsc --noEmit"

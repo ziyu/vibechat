@@ -2,8 +2,8 @@
   "schemaVersion": "vibechat.space-app-dependencies/v1",
   "packages": {
     "@vibechat/space-app-components": {
-      "version": "0.7.4",
-      "integrity": "sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201"
+      "version": "0.8.1",
+      "integrity": "sha256:6d980005ca07a1a9ac76dad9c18524bb3e1885261616252f949d9787af996dc2"
     }
   }
 }

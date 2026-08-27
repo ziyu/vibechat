@@ -1,3 +1,7 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -5,8 +9,10 @@ import {
   createSpaceAppComponentManagedRegistry,
   createSpaceComponentBundle,
   getCurrentSpaceAppComponentManagedRelease,
+  loadSpaceAppComponentManagedPackage,
   materializeSpaceComponentBundle,
   SpaceComponentBundleIntegrityError,
+  SpaceComponentManagedReleaseIntegrityError,
 } from "@vibechat/space-app-components/node";
 import { createSpaceAppManagedPackageArtifact } from "@vibechat/space-app-dependencies";
 import { renderSpaceComponentCatalogDocument } from "@vibechat/space-app-components/testing";
@@ -94,10 +100,14 @@ describe("Space component bundle", () => {
           exports: {
             "./chat": "./chat/index.js",
             "./chat/inline": "./chat/inline.js",
+            "./recipes": "./recipes/index.js",
+            "./recipes/inline": "./recipes/inline.js",
           },
         }),
         "chat/index.js": "export const chat = 'semantic';\n",
         "chat/inline.js": "export const spaceChatInlineModule = {};\n",
+        "recipes/index.js": "export const recipe = 'semantic';\n",
+        "recipes/inline.js": "export const spaceRecipesInlineModule = {};\n",
       },
     });
     const resolved = await createSpaceAppComponentManagedRegistry(
@@ -109,10 +119,57 @@ describe("Space component bundle", () => {
       projectFormat: "agentos-app-v1",
     });
 
-    expect(release.version).toBe("0.7.4");
+    expect(release.version).toBe("0.8.1");
     expect(release.packageFormat).toBe("npm-package-v1");
     expect(resolved?.files["chat/inline.js"]).toContain(
       "spaceChatInlineModule",
     );
+  });
+
+  it("resolves an exact historical package and rejects integrity drift", async () => {
+    const cacheRoot = await mkdtemp(join(tmpdir(), "vibechat-component-registry-"));
+    try {
+      const artifact = createSpaceAppManagedPackageArtifact({
+        name: "@vibechat/space-app-components",
+        version: "0.7.4",
+        projectFormats: ["agentos-app-v1"],
+        files: {
+          "package.json": JSON.stringify({
+            name: "@vibechat/space-app-components",
+            version: "0.7.4",
+            type: "module",
+            exports: { "./chat": "./chat/index.js" },
+          }),
+          "chat/index.js": "export const chat = 'historical';\n",
+        },
+      });
+      for (const [path, source] of Object.entries(artifact.files)) {
+        const output = join(cacheRoot, path);
+        await mkdir(dirname(output), { recursive: true });
+        await writeFile(output, source, "utf8");
+      }
+
+      const loaded = await loadSpaceAppComponentManagedPackage(
+        "0.7.4",
+        cacheRoot,
+      );
+      expect(loaded).toEqual(artifact);
+
+      const registry = createSpaceAppComponentManagedRegistry(async () => loaded);
+      await expect(registry.resolve({
+        name: artifact.name,
+        version: artifact.version,
+        integrity: `sha256:${"0".repeat(64)}`,
+        projectFormat: "agentos-app-v1",
+      })).rejects.toBeInstanceOf(SpaceComponentManagedReleaseIntegrityError);
+      await expect(registry.resolve({
+        name: artifact.name,
+        version: artifact.version,
+        integrity: artifact.integrity,
+        projectFormat: "agentos-app-v1",
+      })).resolves.toEqual(artifact);
+    } finally {
+      await rm(cacheRoot, { recursive: true, force: true });
+    }
   });
 });

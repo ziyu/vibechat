@@ -2,6 +2,7 @@ export * from "./agent/index.js";
 export * from "./chat/index.js";
 export * from "./core/index.js";
 export * from "./manifest.js";
+export * from "./recipes/index.js";
 export * from "./styles/index.js";
 export * from "./user/index.js";
 export { defineSpaceElements } from "./elements.js";

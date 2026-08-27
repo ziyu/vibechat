@@ -34,6 +34,8 @@ const requiredSemanticExports = [
   "./agent",
   "./chat",
   "./chat/inline",
+  "./recipes",
+  "./recipes/inline",
   "./register",
   "./register/foundation",
   "./register/user",
@@ -95,6 +97,40 @@ if (
 ) {
   throw new Error("Published component /chat/inline entry is not bound to the Chat bundle");
 }
+const recipesModule = await import(
+  pathToFileURL(join(publishedPackageRoot, "recipes", "index.js"))
+);
+for (const requiredExport of [
+  "mountDefaultChatRecipe",
+  "mountChatDrawerRecipe",
+  "resolveSpaceChatRecipeElements",
+]) {
+  if (!(requiredExport in recipesModule)) {
+    throw new Error(`Published component /recipes entry is missing ${requiredExport}`);
+  }
+}
+const recipesInlineModule = await import(
+  pathToFileURL(join(publishedPackageRoot, "recipes", "inline.js"))
+);
+if (
+  recipesInlineModule.spaceRecipesInlineModule?.packageVersion !== managedRelease.version
+  || recipesInlineModule.spaceRecipesInlineModule?.bundleHash !== manifest.artifactHash
+  || recipesInlineModule.spaceRecipesInlineModule?.source !== files["recipes.js"]
+) {
+  throw new Error("Published component /recipes/inline entry is not bound to the Recipe bundle");
+}
+for (const requiredElementName of [
+  "vc-space-chat-timeline",
+  "vc-space-chat-composer",
+  "vc-space-mention-menu",
+  "vc-space-chat-error-state",
+]) {
+  if (!recipesInlineModule.spaceRecipesInlineModule.source.includes(requiredElementName)) {
+    throw new Error(
+      `Published component /recipes/inline does not register ${requiredElementName}`,
+    );
+  }
+}
 for (const [path, source] of Object.entries(files)) {
   const networkInspectableSource = source.replaceAll(
     "http://www.w3.org/2000/svg",
@@ -117,6 +153,7 @@ const budgets = {
   "user.js": 20 * 1024,
   "agent.js": 20 * 1024,
   "chat.js": 35 * 1024,
+  "recipes.js": 35 * 1024,
 };
 const sizes = Object.fromEntries(Object.entries(files).map(([path, source]) => [
   path,

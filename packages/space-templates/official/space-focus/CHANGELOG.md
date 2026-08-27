@@ -1,5 +1,9 @@
 # Moss Studio
 
+## 0.1.7
+
+- Upgrade to exact `@vibechat/space-app-components@0.8.1` and replace the remaining docked Chat bootstrap body with `ChatDrawerRecipe` while preserving the shared-note scene, launcher, drawer theme, Matrix behavior, and historical release locks.
+
 ## 0.1.6
 
 - Upgrade to `@vibechat/space-app-components@0.7.4` and restore the drawer's original transform and backdrop-filter; shared action menus now remain independent through the browser Popover top layer.

@@ -355,6 +355,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(page.getByTestId('chat-app-shell'))
       .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
     const chat = await openAppChat(page)
+    await expect(chat.locator('script[data-vibechat-components="0.8.1"]')).toHaveCount(1)
     const messageText = `Default action menu ${Date.now()}`
     await chat.getByTestId('message-input').fill(messageText)
     await chat.getByTestId('send-message').click()
@@ -439,7 +440,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const created = await createdResponse.json()
     expect(created).toMatchObject({
       spaceId: 'space-focus',
-      spaceVersionId: 'tplv-space-focus-0-1-6',
+      spaceVersionId: 'tplv-space-focus-0-1-7',
       status: 'active',
     })
 
@@ -451,6 +452,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const root = frame.locator('#vcc-root')
     await expect(frame.getByRole('heading', { name: '苔原共创室' }))
       .toBeVisible({ timeout: 20_000 })
+    await expect(frame.locator('script[data-vibechat-components="0.8.1"]')).toHaveCount(1)
     await expect(frame.locator('#note')).toBeVisible()
     await expect(root).toHaveAttribute('data-mode', 'dock')
     await expect(root).toHaveAttribute('data-open', 'false')

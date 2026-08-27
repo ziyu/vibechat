@@ -70,6 +70,11 @@ function findPackageRoot(moduleUrl: string) {
 const packageRoot = findPackageRoot(import.meta.url);
 const managedReleasePath = join(packageRoot, "managed-release.json");
 const localPublishedPackageRoot = join(packageRoot, "dist", "package");
+const localManagedRegistryRoot = join(
+  packageRoot,
+  "dist",
+  "managed-registry",
+);
 
 function assertSpaceAppComponentManagedRelease(
   value: unknown,
@@ -132,25 +137,44 @@ export function getCurrentSpaceAppComponentManagedRelease() {
 
 export async function loadSpaceAppComponentManagedPackage(
   version: string,
-  publishedPackageRoot = localPublishedPackageRoot,
+  publishedPackageRoot?: string,
 ): Promise<SpaceAppManagedPackageArtifact> {
   if (!exactVersionPattern.test(version)) {
     throw new TypeError(`Invalid Space App component version: ${version}`);
   }
   const release = getCurrentSpaceAppComponentManagedRelease();
   assertSpaceAppComponentManagedRelease(release);
-  if (release.version !== version) {
-    const error = new Error(`Space App component package ${version} is not installed locally`);
-    Object.assign(error, { code: "ENOENT" });
-    throw error;
+  const packageRoot = publishedPackageRoot
+    ?? (release.version === version
+      ? localPublishedPackageRoot
+      : join(localManagedRegistryRoot, version, "package"));
+  const files = await readManagedPackageFiles(packageRoot);
+  let packageMetadata: { name?: unknown; version?: unknown };
+  try {
+    packageMetadata = JSON.parse(files["package.json"] ?? "null") as {
+      name?: unknown;
+      version?: unknown;
+    };
+  } catch {
+    throw new TypeError(`Space App component package ${version} has invalid metadata`);
+  }
+  if (
+    packageMetadata?.name !== spaceAppComponentsPackageName
+    || packageMetadata.version !== version
+  ) {
+    throw new TypeError(`Space App component package ${version} has mismatched metadata`);
   }
   const artifact = createSpaceAppManagedPackageArtifact({
-    name: release.name,
-    version: release.version,
-    projectFormats: release.projectFormats,
-    files: await readManagedPackageFiles(publishedPackageRoot),
+    name: spaceAppComponentsPackageName,
+    version,
+    projectFormats: ["agentos-app-v1"],
+    files,
   });
-  if (artifact.integrity !== release.integrity) {
+  if (
+    version === release.version
+    && publishedPackageRoot === undefined
+    && artifact.integrity !== release.integrity
+  ) {
     throw new SpaceComponentManagedReleaseIntegrityError(
       release.integrity,
       artifact.integrity,
@@ -171,7 +195,14 @@ export function createSpaceAppComponentManagedRegistry(
         || input.projectFormat !== "agentos-app-v1"
       ) return null;
       try {
-        return await loadPackage(input.version);
+        const artifact = await loadPackage(input.version);
+        if (artifact.integrity !== input.integrity) {
+          throw new SpaceComponentManagedReleaseIntegrityError(
+            input.integrity,
+            artifact.integrity,
+          );
+        }
+        return artifact;
       } catch (error) {
         if (
           error
