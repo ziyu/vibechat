@@ -93,7 +93,7 @@ Workers uploads require:
 1. `r2_buckets` binding (`R2_BUCKET`) in `wrangler.jsonc`
 2. A real HTTPS custom domain in `R2_PUBLIC_URL` (`.dev.vars` locally, Wrangler vars/secrets in deploy). Placeholder `example.com` URLs are rejected before upload.
 
-Space Runtime always uses the existing `R2_BUCKET` binding for private, content-addressed `space-runtime/objects/<sha256>` source objects. Product DB stores only Project/Revision/Release pointers, Instance snapshots, Turn/Lease/Fencing and Outbox rows; deploy `libs/database/drizzle-sqlite/0013_needy_master_mold.sql` for D1 before starting Space Runtime. The local Node Backend uses ignored `.data/space-runtime-objects` instead of R2 while preserving the same HTTP/Object Store contract.
+Space Runtime always uses the existing `R2_BUCKET` binding for private, content-addressed `space-runtime/objects/<sha256>` source objects. Product DB stores Project/Revision/Release pointers, Instance snapshots, Turn/Lease/Fencing and Outbox rows, plus Agent Definition/Binding/Session/Audit metadata; migrate D1 through the latest journal entry, currently `libs/database/drizzle-sqlite/0014_rainy_moira_mactaggert.sql`, before starting Space Runtime or enabling Agent domain reads. The local Node Backend uses ignored `.data/space-runtime-objects` instead of R2 while preserving the same HTTP/Object Store contract.
 
 ### 7. D1 transactions and credit ledger writes
 

@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-26
+> 更新日期：2026-08-27
 > 维护范围：VibeChat MVP 产品与技术设计的实施、验收与决策闭环
 > 稳定来源：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 > Agent 稳定来源：[Agent 架构与 AgentOS 部署设计](../../stable/designs/agent-architecture-and-agentos-deployment.md)
@@ -53,7 +53,7 @@
 - [x] `composition/` 已接管配置、依赖组装和 Runtime 启动，`transport/http/` 已接管 health、instance、project、turn 和 App proxy routes；`server.ts` 只创建 Runtime/Hono app 并监听端口。新增 HTTP composition 测试覆盖内部鉴权、Agent message dispatch 与 Template bootstrap。
 - [x] `boundaries:check` 已从过渡白名单收紧为目录规则：阻止 concrete 目录外的 AgentOS/Pi import、`deployApp()`/`vm.getOrCreate()` 越界、Adapter 依赖 Backend/credits/Matrix/DB，以及新 Runtime core `appId` 参数。
 - [x] Node 24.19.0 下 Space Runtime 22 个测试文件、73 个测试通过，Space Runtime typecheck/build、应用边界检查、文档检查与 docs app 直接生产构建通过；最终 GitNexus、根门禁和 E2E 环境边界记录见 Agent 实施结构计划的 S1 完成证据。
-- [ ] S2 已进入 Active：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段也已落地。真实 PG/D1 migration 与 S3 invoke/enqueue 固定 snapshot 尚未完成。
+- [x] S2 已完成：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段已落地。Wrangler 本地 D1 `0000 → 0014`、PostgreSQL 17 单独 `0014` 与恢复 journal 后的完整 `0000 → 0014` migration 均已验证，D1/PG repository contract 各 1/1 通过。S3 invoke/enqueue 固定 snapshot 仍未开始。
 
 尚未完成：
 
@@ -61,7 +61,7 @@
 - 真实 Cloudflare D1/R2 migration/preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。
 - member Mention、分页、历史 rollback 和其余 #40 浏览器验收。
 - 用户 Template 发布、审核与撤销。
-- 数据库化 Agent Registry/Space binding、`Space × Agent` session persistence、完整 begin/stream/summarize/cancel/restore Adapter 合约与第二真实 Adapter。
+- Agent binding 权威切换、enqueue 固定 Definition/session/policy snapshot、完整 begin/stream/summarize/cancel/restore Adapter 合约与第二真实 Adapter。
 - 区域级外部共享 AgentOS/Rivet Engine，以及 Agent execution、App build/dev、Release serving 的独立 worker pool、credential、quota 和生产 Runbook。
 
 ## 3. 状态定义

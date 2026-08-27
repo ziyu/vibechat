@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-12
+> 更新日期：2026-08-27
 > 维护范围：PostgreSQL、SQLite 与 D1
 
 Vibe Chat 支持多种数据库方言，通过 `DB_DIALECT` 环境变量在部署时切换，无需修改业务代码。
@@ -85,6 +85,8 @@ pnpm db:studio         # 打开 Drizzle Studio 可视化管理
 pnpm db:generate       # 生成迁移文件
 pnpm db:migrate        # 应用迁移
 ```
+
+迁移必须严格按 `libs/database/drizzle/meta/_journal.json` 的顺序执行。journal 中引用的每个 SQL 文件都必须随仓库提交；缺失历史文件会让全新数据库无法从 `0000` 初始化，即使已有数据库能够继续应用最新 migration。修改 schema 后应在一个全新 PostgreSQL 数据库上完整执行 `pnpm db:migrate`，并在升级数据库上单独验证最新 migration 的兼容与幂等性。
 
 ### 推荐的数据库服务
 
@@ -194,6 +196,15 @@ pnpm --dir apps/backend deploy:cf
 - `d1` 用于 Cloudflare Workers 生产部署
 - 在本地开发时使用 `sqlite` 方言，可以验证 D1 兼容性
 
+新增或修改领域 schema 时，PG 与 SQLite/D1 migration 必须在同一变更中生成并验证：
+
+1. 对比两套 schema 的表、字段、索引、默认值和 nullable 语义。
+2. 在全新 PostgreSQL 上按 PG journal 从 `0000` 迁移到最新版本，并在升级库单独执行最新 migration。
+3. 用 Wrangler 本地 D1 按 SQLite journal 从 `0000` 迁移到最新版本；仅运行 `better-sqlite3` 不等于验证 D1 request binding。
+4. 对 PG 与 D1 request binding 运行相同的 repository contract，确认领域读写语义一致。
+
+当前 Agent 数据基线是 PostgreSQL `libs/database/drizzle/0014_nebulous_surge.sql` 与 SQLite/D1 `libs/database/drizzle-sqlite/0014_rainy_moira_mactaggert.sql`。它们增加 Agent Definition、Space binding、session、audit，以及现有 Runtime Turn 的固定 snapshot 字段；部署 Agent 数据能力前必须迁移到至少 `0014`。
+
 ## Schema 管理命令
 
 | 命令 | PostgreSQL | SQLite |
@@ -205,7 +216,7 @@ pnpm --dir apps/backend deploy:cf
 | 填充数据 | `pnpm db:seed` | `pnpm db:seed:sqlite` |
 | 可视化管理 | `pnpm db:studio` | `pnpm db:studio:sqlite` |
 
-> 修改 schema 后，需要分别为 PG 和 SQLite 生成迁移（两套 schema 定义需保持同步）。
+> 修改 schema 后，需要分别为 PG 和 SQLite 生成迁移（两套 schema 定义需保持同步），并确认两份 journal 引用的所有历史 SQL 文件都存在。
 
 ## 方言之间的差异
 
