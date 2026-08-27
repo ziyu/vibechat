@@ -36,6 +36,10 @@ import { useTranslation } from '@/hooks/use-translation'
 import { useChat } from './chat-store'
 import { AvatarStack, SpaceGlyph } from './chat-primitives'
 import {
+  parseSpaceChatHistoryOptions,
+  partitionSpaceChatMentions,
+} from './space-chat-command'
+import {
   SpaceAppSurface,
   SpaceKernelControls,
   useSpaceRuntime,
@@ -48,6 +52,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
     state,
     markRoomRead,
     sendMessage,
+    loadRoomMessages,
     requestSpaceAgent,
     sendAttachment,
     editMessage,
@@ -83,9 +88,17 @@ export function SpacePage({ roomId }: { roomId: string }) {
       case 'chat.send': {
         const text = requiredText(payload.text, 4_000)
         const replyToId = optionalId(payload.replyToId)
-        const mentionIds = stringIds(payload.mentionIds)
+        const availableAgentIds =
+          (runtime.snapshot?.availableAgents ?? [])
+            .filter((candidate) => candidate.available)
+            .map((candidate) => candidate.id)
+        const mentions = partitionSpaceChatMentions(
+          payload.mentionIds,
+          room?.memberIds ?? [],
+          availableAgentIds,
+        )
         const agent = runtime.snapshot?.availableAgents.find(
-          (candidate) => candidate.available && mentionIds.includes(candidate.id),
+          (candidate) => candidate.available && candidate.id === mentions.agentId,
         )
         const agentMention = agent
           ? { type: 'agent' as const, id: agent.id }
@@ -95,6 +108,7 @@ export function SpacePage({ roomId }: { roomId: string }) {
           text,
           replyToId,
           agentMention ? [agentMention] : [],
+          mentions.memberIds,
         )
         await requestSpaceAgent(roomId, eventId, text, agentMention)
         return { eventId }
@@ -112,6 +126,13 @@ export function SpacePage({ roomId }: { roomId: string }) {
         return toggleReaction(requiredId(payload.messageId), requiredText(payload.emoji, 32))
       case 'chat.retry':
         return retryMessage(requiredId(payload.messageId))
+      case 'chat.recent': {
+        const options = parseSpaceChatHistoryOptions(
+          payload,
+          new Set(messages.map((message) => message.id)),
+        )
+        return loadRoomMessages(roomId, options)
+      }
       case 'chat.typing':
         setTyping(roomId, payload.isTyping === true)
         return { ok: true }
@@ -124,9 +145,12 @@ export function SpacePage({ roomId }: { roomId: string }) {
   }, [
     deleteMessage,
     editMessage,
+    loadRoomMessages,
     markRoomRead,
+    messages,
     requestSpaceAgent,
     retryMessage,
+    room?.memberIds,
     roomId,
     runtime.snapshot?.availableAgents,
     sendAttachment,
@@ -563,11 +587,6 @@ function requiredId(value: unknown) {
 
 function optionalId(value: unknown) {
   return value === undefined || value === null ? undefined : requiredId(value)
-}
-
-function stringIds(value: unknown) {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
 }
 
 function requiredText(value: unknown, maximumLength: number) {

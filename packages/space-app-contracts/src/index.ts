@@ -350,6 +350,7 @@ export const spaceAppBridgeRequestSchema = z.object({
     'chat.delete',
     'chat.reaction.toggle',
     'chat.retry',
+    'chat.recent',
     'chat.typing',
     'chat.markRead',
     'theme.set',

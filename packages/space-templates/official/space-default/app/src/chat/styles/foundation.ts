@@ -49,7 +49,7 @@ export const chatFoundationStyles = `
   inset: 14px 14px 14px auto;
   display: grid;
   width: min(430px, calc(100vw - 28px));
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--vcc-line);
   border-radius: 20px;
@@ -68,7 +68,7 @@ export const chatFoundationStyles = `
 .vcc-root[data-mode="full"] .vcc-shell {
   inset: 0;
   width: auto;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   border: 0;
   border-radius: 0;
   background:

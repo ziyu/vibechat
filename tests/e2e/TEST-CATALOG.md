@@ -1358,7 +1358,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
 - [x] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
 - [ ] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
-- [x] App 通过 SDK 查询平台结构化 agent Mention；普通消息不调度 Agent，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue。member Mention 的完整双浏览器覆盖仍待补齐。
+- [x] App 通过 SDK 查询平台结构化 member/agent Mention；member Mention 写入标准 Matrix metadata 且不调度 Agent/credits，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue；受管 Agent Matrix user 不进入 member target。
 - [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
 - [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
 - [ ] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
@@ -1378,6 +1378,17 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 已有定制 Space 的 Revision 历史与 rollback 定向验收：Product DB 从 `0018` 迁移基线起为每次 ready pointer 更新登记不可变 Revision；Kernel 通过 `GET /v1/rooms/:roomId/revisions` 读取当前成员可见的 bounded 历史摘要，不返回源码或 Object Store key。成员选择历史 Revision 后提交固定 `revisionId`、幂等 `requestId` 与 `expectedReadyRevisionId`；Backend 重新校验 Better Auth 与实时 Matrix membership，Runtime 从 Product DB 权威 Revision 记录加载内容寻址对象，并把历史源码重新送入隔离 Candidate。只有 Candidate ready 且 expected-ready 屏障仍成立时才移动 ready pointer；Published Release、Matrix timeline、成员、App State、Template lineage 和 credits 均保持不变。相同 request ID 去重；未知/跨 Space Revision、非成员、stale ready、对象缺失/hash 不匹配、Candidate 失败和 fencing 失败都必须 fail closed。迁移前已失去 pointer 的旧对象不推断、不回填，历史能力明确从 `0018` 当前 ready 基线开始。
 
 自动化至少覆盖：PG 与 SQLite/D1 对称 schema/migration 回填、相同内容 Revision ID 在不同 Space 的复合主键、事务/D1 batch 下 pointer 与 Revision 同步写入、不可变记录不被 publish 的新 object key 覆盖、历史列表权限与敏感字段裁剪、revision rollback 的幂等/stale/hash/Candidate/fencing 失败保护，以及两个独立 Chromium Context 在已有定制 Space 中观察同一 ready Revision 切换且原 Release/Chat/App State 不变。
+
+member Mention 与历史分页定向验收：Default Chat App 与至少一个差异化 Template 使用相同 `space.chat`/`space.mention` contract。成员从 App Mention picker 选择同 Room 的另一成员 → Host 校验当前 Room member → Matrix 人类消息写入标准 `m.mentions.user_ids`，双方投影的 `mentionedUserIds` 一致，且不产生 Agent Turn、credits reservation 或受管 Agent member 泄漏。App 调用 `chat.recent({ limit, before })` 时，`limit` 为 1–50、`before` 只能引用当前已知消息；Host 只对当前已加入 Matrix Room scrollback，返回 bounded messages、App 级 next cursor 与 `hasMore`，不返回 homeserver token。SDK 按 event ID 幂等 prepend 并广播，重复页、关系事件与刷新不得产生重复消息；分页失败保持当前 timeline。
+
+自动化必须发送超过 Matrix initial sync window 的消息，并用两个独立 Chromium Context 分别在 Default Chat 与差异化 Template 中取回窗口外消息；同时覆盖非法 limit、未知 cursor、非当前 Room member mention、重复分页，以及 member Mention 不触发 Agent/credits 的数据库/API 断言。
+
+2026-08-28 member Mention 与历史分页证据：
+
+- `chat-member-history.spec.ts` 在 Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Backend `18102`、Web `18101`、Space Runtime `18107` 和 external Rivet Engine `16520` 上 1/1 通过（2.5 分钟）。两个独立 Chromium Context 在同一真实 Matrix member 关系上验证标准 `m.mentions.user_ids`、双方 `mentionedUserIds` 和 Mention 高亮；Space Turn 数、credits 交易数/余额均不变，room 外 member 和受管 Agent member 不可伪造或泄漏。
+- Default Chat 与 Campfire 分别写入 35 条窗口历史，新浏览器确认最早消息不在 initial sync 30 条内，再通过相同 `space.chat.recent({ limit, before })` 取回；prepend 滚动位置、非法 limit/未知 cursor、重复分页、SDK event ID 去重、分页失败保留 timeline 和刷新唯一性均有自动化或 unit 证据。五个官方 Template 均包含相同分页入口和状态处理，差异化 App Surface 保持各自源码。
+- 相关 unit 9 个文件、26/26，现有 `chat-matrix-operations.spec.ts` 1/1，五个 Template App typecheck、Template codegen/lock、边界检查、20 个 package/app typecheck 和完整 build 范围通过。根 Turbo 受本机 Keychain/TLS 问题影响未进入任务，逐 workspace 等价命令全部执行。
+- 既有 `chat-matrix-room.spec.ts` 同轮没有全绿：Runtime 热重载/首次 snapshot 竞态导致 `SPACE_RUNTIME_UNAVAILABLE`，稳定重跑中的 publish turn 又因 Release Build VM `npm install failed with exit code 1` 失败；完整结果保留在实施记录，不作为本切片通过证据。
 
 完成证据必须包含 Default Chat App 源码、Custom Template App 源码、Host DOM 只有 Kernel Bar + iframe 的断言、两种 App 的 Chat Core contract suite、双 Chromium 实时 Revision 切换、Candidate 失败保护、结构化 `@agent` 去重和发布固化结果。
 

@@ -21,6 +21,10 @@ export interface ChatCopy {
   typing: string;
   hint: string;
   working: string;
+  loadEarlier: string;
+  loadingHistory: string;
+  noEarlier: string;
+  historyFailed: string;
 }
 
 export function getChatCopy(space: SpaceSdk): ChatCopy {
@@ -46,6 +50,10 @@ export function getChatCopy(space: SpaceSdk): ChatCopy {
       typing: "is typing…",
       hint: "Enter to send · type @ to mention a member or Agent",
       working: "is handling your request",
+      loadEarlier: "Load earlier messages",
+      loadingHistory: "Loading earlier messages…",
+      noEarlier: "No earlier messages",
+      historyFailed: "Earlier messages could not be loaded. Try again.",
     },
     zh: {
       connected: "实时连接",
@@ -68,6 +76,10 @@ export function getChatCopy(space: SpaceSdk): ChatCopy {
       typing: "正在输入…",
       hint: "Enter 发送 · 输入 @ 提及成员或 Agent",
       working: "正在处理你的请求",
+      loadEarlier: "加载更早消息",
+      loadingHistory: "正在加载更早消息…",
+      noEarlier: "没有更早消息了",
+      historyFailed: "更早消息加载失败，请重试。",
     },
   };
 

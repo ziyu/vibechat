@@ -194,6 +194,24 @@ function acceptEvent(event) {
   }
 }
 
+function mergeChatMessages(messages) {
+  const merged = new Map(
+    (Array.isArray(currentSnapshot.chat.messages)
+      ? currentSnapshot.chat.messages
+      : []).map((message) => [message.id, message]),
+  );
+  for (const message of Array.isArray(messages) ? messages : []) {
+    if (!message || typeof message !== "object" || typeof message.id !== "string") continue;
+    merged.set(message.id, clone(message));
+  }
+  currentSnapshot.chat.messages = [...merged.values()].sort((left, right) =>
+    String(left.createdAt).localeCompare(String(right.createdAt)) ||
+    String(left.id).localeCompare(String(right.id))
+  );
+  currentSnapshot.messages = clone(currentSnapshot.chat.messages);
+  dispatch("messages", currentSnapshot.messages);
+}
+
 function stateUpdate(event = {}) {
   return {
     revision: currentSnapshot.app.revision,
@@ -357,6 +375,19 @@ export const space = Object.freeze({
     },
     retry(messageId) {
       return command("chat.retry", { messageId });
+    },
+    async recent(options = {}) {
+      const page = await command("chat.recent", options);
+      if (
+        !page ||
+        !Array.isArray(page.messages) ||
+        typeof page.hasMore !== "boolean" ||
+        (page.nextBefore !== null && typeof page.nextBefore !== "string")
+      ) {
+        throw new Error("Space Chat history returned an invalid page");
+      }
+      mergeChatMessages(page.messages);
+      return clone(page);
     },
     setTyping(isTyping) {
       return command("chat.typing", { isTyping });

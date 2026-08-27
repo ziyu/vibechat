@@ -55,6 +55,7 @@ export function renderMessageHtml(
     ? findMember(space, replied.agentId || replied.senderId)
     : null;
   const attachment = message.attachment;
+  const mentioned = (message.mentionedUserIds || []).includes(space.self?.id || "");
   const safe = escapeHtml;
 
   const reactionHtml = (message.reactions || []).map((reaction) => `
@@ -112,6 +113,7 @@ export function renderMessageHtml(
       data-testid="chat-message"
       data-own="${String(own)}"
       data-agent="${String(Boolean(message.agent))}"
+      data-mentioned="${String(mentioned)}"
     >
       ${own ? "" : `<span class="vcc-avatar">${safe(sender.initials || sender.name?.slice(0, 2) || "?")}</span>`}
       <div class="vcc-main">

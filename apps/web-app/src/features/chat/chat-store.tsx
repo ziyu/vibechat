@@ -13,6 +13,7 @@ import {
   type ChatState,
   type ChatLocale,
   type ChatMessage,
+  type ChatMessagePage,
   type ChatPerson,
   type ChatRoom,
   type CreateRoomInput,
@@ -52,7 +53,12 @@ interface ChatContextValue {
     text: string,
     replyToId?: string,
     agentMentions?: SpaceAgentMention[],
+    memberMentionIds?: string[],
   ) => Promise<string>
+  loadRoomMessages: (
+    roomId: string,
+    options?: { limit?: number; before?: string },
+  ) => Promise<ChatMessagePage>
   requestSpaceAgent: (
     roomId: string,
     matrixEventId: string,
@@ -504,6 +510,7 @@ export function ChatProvider({
           transactionId,
           message.replyToId,
           message.agentMentions,
+          message.mentionedUserIds,
         )
         pendingTransactionIdsRef.current.delete(transactionId)
         optimisticMessagesRef.current.delete(transactionId)
@@ -547,6 +554,7 @@ export function ChatProvider({
       text: string,
       replyToId?: string,
       agentMentions: SpaceAgentMention[] = [],
+      memberMentionIds: string[] = [],
     ) => {
       const client = matrixClientRef.current
       const matrixRuntime = runtimeModuleRef.current
@@ -562,6 +570,7 @@ export function ChatProvider({
         createdAt: new Date().toISOString(),
         status: 'sending',
         replyToId,
+        ...(memberMentionIds.length > 0 ? { mentionedUserIds: memberMentionIds } : {}),
         ...(agentMentions.length > 0 ? { agentMentions } : {}),
         reactions: [],
       }
@@ -571,6 +580,23 @@ export function ChatProvider({
     },
     [deliverOptimisticMessage, state.currentUserId],
   )
+
+  const loadRoomMessages = useCallback(async (
+    roomId: string,
+    options: { limit?: number; before?: string } = {},
+  ) => {
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (!client || !matrixRuntime) throw new Error('MATRIX_NOT_READY')
+    const page = await matrixRuntime.loadMatrixRoomMessages(
+      client,
+      roomId,
+      options,
+      pendingTransactionIdsRef.current,
+    )
+    refreshMatrixState()
+    return page
+  }, [refreshMatrixState])
 
   const requestSpaceAgent = useCallback(async (
     roomId: string,
@@ -824,6 +850,7 @@ export function ChatProvider({
     toggleRoomPinned: (roomId) => updateRoomPreference(roomId, 'pinned'),
     toggleRoomMuted: (roomId) => updateRoomPreference(roomId, 'muted'),
     sendMessage,
+    loadRoomMessages,
     requestSpaceAgent,
     sendAttachment,
     editMessage,
@@ -859,6 +886,7 @@ export function ChatProvider({
     rejectRoomInvite,
     retryConnection,
     sendMessage,
+    loadRoomMessages,
     requestSpaceAgent,
     sendAttachment,
     editMessage,

@@ -105,14 +105,14 @@
       },
       "lock": {
         "schemaVersion": "vibechat.space-template-version-lock/v1",
-        "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
-        "manifestHash": "sha256:b60df96e08f669f04846c0c05f24bd421f80e57736c6b0e82a9a1e4bb91bec55"
+        "sourceHash": "sha256:033cee630fcf408955f093d8ccca28ef60b9ff6620c59df8dfbe4db1d8c2680a",
+        "manifestHash": "sha256:8c06d1b9eabff62b3e2a31388ed87a9007d150912107fb0a7a1e424e08d4f13b"
       },
       "artifact": {
         "schemaVersion": "vibechat.space-template-artifact/v1",
-        "id": "tpla-7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
+        "id": "tpla-033cee630fcf408955f093d8ccca28ef60b9ff6620c59df8dfbe4db1d8c2680a",
         "format": "agentos-app-v1",
-        "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5"
+        "sourceHash": "sha256:033cee630fcf408955f093d8ccca28ef60b9ff6620c59df8dfbe4db1d8c2680a"
       }
     }
   ]

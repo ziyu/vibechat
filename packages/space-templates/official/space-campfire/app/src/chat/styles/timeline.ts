@@ -1,4 +1,37 @@
 export const chatTimelineStyles = `
+.vcc-history-bar {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 16px 0;
+}
+
+.vcc-history-bar button {
+  padding: 6px 11px;
+  border: 1px solid var(--vcc-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vcc-muted);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.vcc-history-bar button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vcc-accent) 55%, transparent);
+  color: #fff;
+}
+
+.vcc-history-bar button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.vcc-history-bar span {
+  color: #f09a8c;
+  font-size: 9px;
+}
+
 .vcc-timeline {
   min-height: 0;
   overflow-y: auto;
@@ -128,6 +161,10 @@ export const chatTimelineStyles = `
 .vcc-message[data-agent="true"] .vcc-bubble {
   border-color: color-mix(in srgb, var(--vcc-accent) 28%, transparent);
   background: color-mix(in srgb, var(--vcc-accent) 9%, rgba(255, 255, 255, 0.04));
+}
+
+.vcc-message[data-mentioned="true"] .vcc-bubble {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vcc-accent) 46%, transparent);
 }
 
 .vcc-bubble p {

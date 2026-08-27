@@ -8,7 +8,39 @@ import {
   updateComposerMentions,
 } from "./composer.js";
 import { closestDataTarget, getChatElements } from "./dom.js";
+import { getAllMessages } from "./messages.js";
 import { createChatState, renderChat } from "./render.js";
+
+export async function loadEarlierMessages(
+  space: SpaceSdk,
+  elements: ReturnType<typeof getChatElements>,
+  state: ReturnType<typeof createChatState>,
+) {
+  if (state.historyLoading || !state.historyHasMore) return;
+  const before = getAllMessages(space)[0]?.id;
+  if (!before) {
+    state.historyHasMore = false;
+    renderChat(space, elements, state);
+    return;
+  }
+
+  state.historyLoading = true;
+  state.historyError = false;
+  renderChat(space, elements, state);
+  state.historyAnchor = {
+    scrollHeight: elements.timeline.scrollHeight,
+    scrollTop: elements.timeline.scrollTop,
+  };
+  try {
+    const page = await space.chat.recent({ limit: 30, before });
+    state.historyHasMore = page.hasMore;
+  } catch {
+    state.historyError = true;
+  } finally {
+    state.historyLoading = false;
+    renderChat(space, elements, state);
+  }
+}
 
 export async function bootstrapChat(
   space: SpaceSdk,
@@ -29,6 +61,9 @@ export async function bootstrapChat(
     elements.root.dataset.open = "false";
   });
   elements.attach.addEventListener("click", () => elements.file.click());
+  elements.history.addEventListener("click", () => {
+    void loadEarlierMessages(space, elements, state);
+  });
   elements.timeline.addEventListener("click", (event) => {
     void handleTimelineAction(space, elements, state, event);
   });

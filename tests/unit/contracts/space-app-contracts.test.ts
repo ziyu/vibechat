@@ -3,6 +3,7 @@ import {
   applySpaceTemplateRequestSchema,
   cancelSpaceAgentTurnRequestSchema,
   spaceAgentTurnCancellationSchema,
+  spaceAppBridgeRequestSchema,
   spaceRuntimeControlRequestSchema,
 } from '../../../packages/space-app-contracts/src'
 
@@ -109,5 +110,15 @@ describe('Space App S4 control contracts', () => {
       turnId: 'turn-1',
       cancelRequestedAt: '2026-08-27T12:02:00.000Z',
     })).toMatchObject({ accepted: true, turnId: 'turn-1' })
+  })
+
+  it('accepts Chat history through the versioned Space App bridge', () => {
+    expect(spaceAppBridgeRequestSchema.parse({
+      action: 'chat.recent',
+      payload: { limit: 20, before: '$message-1' },
+    })).toEqual({
+      action: 'chat.recent',
+      payload: { limit: 20, before: '$message-1' },
+    })
   })
 })

@@ -30,6 +30,7 @@ export interface SpaceMessage {
   text: string;
   createdAt: string | number;
   replyToId?: string;
+  mentionedUserIds?: string[];
   attachment?: SpaceAttachment;
   reactions?: SpaceReaction[];
   status?: "sending" | "sent" | "failed" | string;
@@ -37,6 +38,12 @@ export interface SpaceMessage {
   deleted?: boolean;
   agent?: boolean;
   agentId?: string;
+}
+
+export interface SpaceMessagePage {
+  messages: SpaceMessage[];
+  nextBefore: string | null;
+  hasMore: boolean;
 }
 
 export interface SpaceAgentMessage {
@@ -68,6 +75,7 @@ export interface SpaceSdk {
     delete(messageId: string): Promise<unknown>;
     toggleReaction(messageId: string, emoji?: string): Promise<unknown>;
     retry(messageId: string): Promise<unknown>;
+    recent(options?: { limit?: number; before?: string }): Promise<SpaceMessagePage>;
     attach(file: File): Promise<unknown>;
     markRead(): Promise<unknown> | void;
     setTyping(value: boolean): Promise<unknown> | void;

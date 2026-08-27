@@ -11,6 +11,10 @@ export const chatMarkup = `<div class="vcc-root" id="vcc-root">
         <button class="vcc-icon vcc-close" id="vcc-close" type="button" aria-label="Close Chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
       </span>
     </header>
+    <div class="vcc-history-bar">
+      <button id="vcc-history" type="button" data-testid="load-earlier-messages">Load earlier messages</button>
+      <span id="vcc-history-status" role="status" hidden></span>
+    </div>
     <div class="vcc-timeline" id="vcc-timeline" data-testid="message-timeline"></div>
     <div class="vcc-compose-wrap">
       <div class="vcc-mentions" id="vcc-mentions"></div>
