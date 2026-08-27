@@ -1475,6 +1475,10 @@ Arcade 迁移切片 Spec：`space-arcade@0.1.3` 必须固定 exact `@vibechat/sp
 
 2026-08-27 Arcade 迁移证据：`space-arcade@0.1.3` source/artifact hash 为 `sha256:6cfd57f84f9972b3f1081817c70dba189ef1e96cdd3fcd899a1ecc5ebb12dd6e`，manifest hash 为 `sha256:46366ddea6e8e441bd9d25fb5e9252ccfbee9f3b632dbbe7b26e96a96d03cc69`，固定 exact `0.7.4` 与 integrity `sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201`；`0.1.2` lock 未改写。Template 已删除自有 composer/dom/messages/render，真实单 Chromium 场景覆盖徽章写入/刷新恢复、共享 Chat 发送/回复/Reaction、抽屉 unread、历史恢复、组件版本标记、active transform + `blur(26px)` 和 390px 全视口。`chat-matrix-room.spec.ts` 整文件 5/5，Catalog unit 9/9，Template/Arcade TypeScript 通过，Impeccable detector 返回空结果。生产 managed publish、不可变 Release、双 Chromium、Existing custom Project 端到端不升级和完整 a11y 矩阵仍未执行，因此 C5 保持 Active，下一迁移目标为 Postcard。
 
+Postcard 迁移切片 Spec：`space-postcard@0.1.3` 必须固定 exact `@vibechat/space-app-components@0.7.4` 与同一 managed integrity，保留 `postcard.messages`、最多十张卡片、寄出表单、presence、暖纸张主题和原抽屉 transform/`blur(26px)`；Template 自有 renderer/Composer/Mention/message state machine 必须删除。真实 iframe 验收覆盖写入一张明信片及刷新恢复、共享 Chat 发送/回复/Reaction、抽屉 unread、刷新后 Matrix 历史唯一恢复、组件版本标记和 390px 可用视口；`0.1.2` lock 与既有 Space 不得被原地改写。这些证据齐全前不得把 Postcard 或 C5 标记 Complete。
+
+2026-08-27 Postcard 迁移证据：`space-postcard@0.1.3` source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd5a69bfbdf6ed1ca5f3922211ddc5f2c3c28360`，manifest hash 为 `sha256:0ecadc2d72e2464d57995e731e96ae18de940bbf186a5b0f19c7a2dd5954fad4`，固定 exact `0.7.4` 与 integrity `sha256:4a7d7296653b0164005283b5d836788300504e1d7590f803bbd2ba52fd15e201`；`0.1.2` lock 未改写。Template 已删除自有 composer/dom/messages/render，真实单 Chromium 场景覆盖卡片写入/刷新恢复、共享 Chat 发送/回复/Reaction、抽屉 unread、历史恢复、组件版本标记、active transform + `blur(26px)` 和 390px 全视口。`chat-matrix-room.spec.ts` 整文件 6/6，Catalog unit 9/9，Template/Postcard TypeScript 通过，Impeccable detector 返回空结果。生产 managed publish、不可变 Release、双 Chromium、Existing custom Project 端到端不升级和完整 a11y 矩阵仍未执行，因此 C5 保持 Active；五个官方 Template 的共享 Chat 源码迁移已完成。
+
 阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
 
 - [ ] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。
@@ -1594,6 +1598,7 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-27 | Space App Components + five official Templates + Matrix | 6 | 0 | 0 | `chat-matrix-room.spec.ts` 全文件 6/6；Postcard 独立场景覆盖卡片状态、共享 Chat、抽屉 unread、历史恢复和 390px 布局；另通过 Catalog 9/9、Template/App TypeScript 与 Impeccable detector |
 | 2026-08-24 | Space Runtime managed Engine + Published Release recovery | 33 | 0 | 0 | Runtime/Template/Product 定向 unit 31/31；真实 Matrix Space Chromium 2/2；完整停止/重启后 Alice 的同一 Release 冷启动与热请求均为 200；另通过全仓 18/18 typecheck/build、Docs build、边界和文档检查 |
 | 2026-08-24 | Space Kernel recovery + Template 0.1.1 + AgentOS Release + Synapse | 35 | 0 | 0 | Runtime/Template/Web/Product Client 定向 unit 33/33；真实 Matrix Space Chromium 2/2；Alice 现有 Space 恢复到 `space-default@0.1.1` 后成功固化 64 位 Release；另通过五个官方 App + Runtime seed 独立 TypeScript、全仓 18/18 typecheck/build、边界和文档检查 |
 | 2026-08-24 | Space Template version governance + Market + Web + Synapse | 24 | 0 | 0 | SemVer/兼容 alias/Room/Market 定向 unit 15/15；真实 Product State Chromium 9/9；创建流程五个官方 Template 均显示 v0.1.0；另通过 19 个 workspace project 递归 typecheck/build、Docs build、边界和文档检查 |

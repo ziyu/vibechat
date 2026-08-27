@@ -20,7 +20,7 @@
 
 本轮没有改写任何既有 Published Release。托管依赖解析、Registry 缺失/漂移 fail closed、旧 Space 后加依赖、prepared 缓存冷启动和 source/artifact 分离已有 unit 证据；`space-default@0.1.3` 也已在真实本地 Rivet/AgentOS Dev VM 中生成 ready Revision，并在完整开发栈冷启动后从同一 prepared artifact 恢复。首个抽屉式 Template `space-focus@0.1.3` 已固定 `@vibechat/space-app-components@0.7.0`，保留共享便签桌面并删除 Template 自有 Chat renderer/composer/state machine；单 Chromium 真实 Matrix iframe 已覆盖发送、回复、Reaction、抽屉 unread、刷新恢复和 390px 布局。生产 Object Store publish、不可变 Release、真实 Matrix 双浏览器和完整交互/a11y 矩阵仍未执行，因此 C1/C3/C5 与“可供所有生产 Space 使用”都不能标记 Complete。
 
-当前基线已推进到 `@vibechat/space-app-components@0.7.4`：Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6` 与 Arcade `0.1.3` 固定同一 exact version/integrity。compact More 在支持 Popover API 时使用 top layer、native light-dismiss 和 `::backdrop`，不支持时保留 fixed/backdrop/document fallback；移动 action sheet 显式占用 `100vw - 1.5rem`，指针关闭在下一帧恢复 trigger 焦点。Campfire/Focus/Arcade 均保留抽屉原有 `transform` 与 `backdrop-filter`，真实 E2E 证明公共组件不依赖 Template CSS workaround。Campfire 与 Arcade 已完成共享 Chat controller/elements 迁移，分别保留夜航电台和像素徽章场景、presence、主题及 launcher。生产 publish、不可变 Release、双 Chromium 和完整 a11y 矩阵仍未执行，因此 C1/C3/C5 继续保持 Active。
+当前基线已推进到 `@vibechat/space-app-components@0.7.4`：Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6`、Arcade `0.1.3` 与 Postcard `0.1.3` 固定同一 exact version/integrity。compact More 在支持 Popover API 时使用 top layer、native light-dismiss 和 `::backdrop`，不支持时保留 fixed/backdrop/document fallback；移动 action sheet 显式占用 `100vw - 1.5rem`，指针关闭在下一帧恢复 trigger 焦点。四个差异化 Template 均保留抽屉原有 `transform` 与 `backdrop-filter`，真实 E2E 证明公共组件不依赖 Template CSS workaround。五个官方 Template 已完成共享 Chat controller/elements 迁移，并分别保留全屏 Chat、夜航电台、共享便签、像素徽章和暖纸明信片场景。生产 publish、不可变 Release、双 Chromium 和完整 a11y 矩阵仍未执行，因此 C1/C3/C5 继续保持 Active。
 
 ## 状态定义
 
@@ -40,13 +40,15 @@
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | Default `0.1.6`、Campfire `0.1.5`、Focus `0.1.6` 与 Arcade `0.1.3` 同锁 `0.7.4`；单 Chromium 真实 Matrix 5/5 覆盖四种布局、场景状态、消息操作、恢复和移动布局 | 迁移 Postcard，并完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 同锁 `0.7.4`；单 Chromium 真实 Matrix 6/6 覆盖五种布局、场景状态、消息操作、恢复和移动布局 | 建立 recipe，并完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
+Postcard 最后一个官方 Template 迁移切片已完成：`0.1.3` 保留 `postcard.messages`、最多十张卡片、暖纸张主题、寄出表单与 presence，只将抽屉内重复的 Chat renderer、Composer、Mention 和消息操作切换到 exact `@vibechat/space-app-components@0.7.4`。五个官方 Template 迁移完成不等于 C5 Complete；下一切片继续建立设计中尚缺的 `DefaultChatRecipe` / `ChatDrawerRecipe`，并补齐双浏览器 Matrix、不可变 Release、生产 managed publish 与完整 a11y 矩阵。
+
 ### 目标
 
-在不读取全局 SDK、不过度固定视觉布局的前提下，让首个官方 Default Chat 固定并组合完整、provider-neutral 的 Chat controller/elements。Template 只保留 SDK 注入、全屏布局、主题和事件适配；Matrix timeline 仍是唯一消息源，Agent 只通过结构化 Mention Chat event 触发，不把 Agent build/progress 伪装成消息。
+在不读取全局 SDK、不过度固定视觉布局的前提下，让五个官方 Template 固定并组合完整、provider-neutral 的 Chat controller/elements。Template 只保留 SDK 注入、布局、主题、场景和薄事件适配；Matrix timeline 仍是唯一消息源，Agent 只通过结构化 Mention Chat event 触发，不把 Agent build/progress 伪装成消息。下一步把已经在全屏与抽屉布局中重复验证的组合收敛为公开 recipe，但不把 Template 场景视觉或业务状态移入组件库。
 
 ### 任务
 
@@ -75,6 +77,7 @@
 - [x] 将组件升级到 `0.7.4`，让 compact More 在支持 Popover 时进入 top layer，并为无 Popover 浏览器保留 fixed/backdrop fallback；覆盖 390px 全宽 action sheet、native light-dismiss、Escape、外部点击和确定性焦点恢复。
 - [x] 将 Campfire 升到 development `0.1.5` 并迁移共享 Chat controller/elements；Default/Focus 分别升到 `0.1.6`，三者固定同一 exact `0.7.4` 与 managed integrity，既有中间版本锁不改写。
 - [x] 将 Arcade 升到 development `0.1.3` 并固定 exact `0.7.4`/managed integrity；保留像素徽章、共享 signal、presence、主题及原抽屉 transform/blur，删除重复 Chat renderer/composer/state machine，且不改写 `0.1.2` lock。
+- [x] 将 Postcard 升到 development `0.1.3` 并固定 exact `0.7.4`/managed integrity；保留卡片状态、最多十张限制、寄出表单、presence、暖纸张主题及原抽屉 transform/blur，删除重复 Chat renderer/composer/state machine，且不改写 `0.1.2` lock。
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
@@ -91,7 +94,7 @@
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
-- `0.7.4`、`space-default@0.1.6`、`space-campfire@0.1.5`、`space-focus@0.1.6` 与 `space-arcade@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
+- `0.7.4`、`space-default@0.1.6`、`space-campfire@0.1.5`、`space-focus@0.1.6`、`space-arcade@0.1.3` 与 `space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
 
 ## 2026-08-26 验证记录
 
@@ -235,13 +238,27 @@ Arcade `0.1.3` 的 source/artifact hash 为 `sha256:6cfd57f84f9972b3f1081817c70d
 | 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 5/5；Arcade 独立场景覆盖徽章写入/刷新恢复、组件版本标记、发送、回复、Reaction、抽屉 unread、Matrix 历史恢复与 390px 布局 |
 | UI 静态检查 | 通过 | Impeccable detector 对 Arcade 共享 Chat adapter、markup 和四个样式分区返回空结果 |
 
-本轮没有生成不可变 Published Release，也未执行生产 managed publish、双 Chromium 同房交互、Existing custom Project 端到端不升级或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 仍保持 Active，下一 Template 为 Postcard。
+本轮没有生成不可变 Published Release，也未执行生产 managed publish、双 Chromium 同房交互、Existing custom Project 端到端不升级或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 仍保持 Active；Postcard 已在下一节完成最后一个官方 Template 源码迁移切片。
+
+### 2026-08-27 Postcard 共享 Chat 迁移验证
+
+Postcard `0.1.3` 的 source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd5a69bfbdf6ed1ca5f3922211ddc5f2c3c28360`，manifest hash 为 `sha256:0ecadc2d72e2464d57995e731e96ae18de940bbf186a5b0f19c7a2dd5954fad4`；既有 `0.1.2` lock 保持 `sha256:16ed93f878e3acc0b455ee78495c74edf423605d7276b2684b6e56b1d01b7e97` / `sha256:448fc8da2a9802ef6cdc617f3d1b05d74df525a55b3517c7442a7457aea73c47`，未被原地重签。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| 依赖与重复实现 | 通过 | exact `@vibechat/space-app-components@0.7.4` + managed integrity；删除 Postcard 自有 composer/dom/messages/render，保留 Template App controller、markup/theme 与语义化 `/chat/inline` import |
+| 场景与布局 | 通过 | `postcard.messages`、最多十张卡片、寄出表单、presence、暖纸张主题和 `dock` launcher 保持；抽屉继续使用 active transform 与 `blur(26px)`，390px 打开后占满可用 iframe 视口 |
+| 定向 unit/TypeScript | 通过 | Catalog 1 file、9 tests；Space Templates package 与 Postcard App TypeScript 通过，`0.1.3` source/manifest/artifact lock 与 managed dependency contract 一致 |
+| 真实 Matrix E2E | 通过 | `chat-matrix-room.spec.ts` 整文件 6/6；Postcard 独立场景覆盖卡片写入/刷新恢复、组件版本标记、发送、回复、Reaction、抽屉 unread、Matrix 历史恢复与 390px 布局 |
+| UI 静态检查 | 通过 | Impeccable detector 对 Postcard 共享 Chat adapter、markup 和四个样式分区返回空结果 |
+
+本轮没有生成不可变 Published Release，也未执行生产 managed publish、双 Chromium 同房交互、Existing custom Project 端到端不升级或完整 screen-reader/high-contrast/200% 字体矩阵，因此 C1/C3/C5 仍保持 Active。五个官方 Template 的共享 Chat 源码迁移已完成，下一步进入 recipe 与剩余生产化/可访问性验证。
 
 ## 待决策清单
 
 1. catalog 在阶段 1 继续作为离线构建产物，还是增加只读 Preview route。
 2. 何时为大型媒体/recipe artifact 增加 revision-local hashed asset route。
-3. 首个抽屉式迁移选择 Campfire，还是选择结构差异更大的另一 Template。
+3. `DefaultChatRecipe` / `ChatDrawerRecipe` 的最小公开配置是否只收敛装配与 lifecycle，继续把文案、主题、launcher 和场景状态留给 Template。
 
 ## 进度更新规则
 

@@ -62,7 +62,7 @@ describe("Space Template publication protocol", () => {
           ? "0.1.5"
           : template.id === "space-arcade"
             ? "0.1.3"
-          : "0.1.2";
+          : "0.1.3";
       expect(template.versions.map((item) => item.semanticVersion)).toEqual(
         template.id === "space-default"
           ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6"]
@@ -72,7 +72,7 @@ describe("Space Template publication protocol", () => {
             ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5"]
             : template.id === "space-arcade"
               ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3"]
-            : ["0.1.0", "0.1.1", "0.1.2"],
+            : ["0.1.0", "0.1.1", "0.1.2", "0.1.3"],
       );
       expect(version).toMatchObject({
         id: expect.stringMatching(
@@ -111,14 +111,7 @@ describe("Space Template publication protocol", () => {
       expect(Object.keys(project!.files)).toEqual(
         expect.arrayContaining([...spaceTemplateRequiredProjectPaths]),
       );
-      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(
-          template.id === "space-default"
-          || template.id === "space-focus"
-          || template.id === "space-campfire"
-          || template.id === "space-arcade"
-          ? 20
-          : 24,
-      );
+      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(20);
       expect(project!.files["src/index.ts"].length).toBeLessThan(1_000);
       expect(project!.files["src/index.ts"]).toContain("./runtime.js");
       expect(project!.files["src/index.ts"]).toContain("./page.js");
@@ -154,6 +147,7 @@ describe("Space Template publication protocol", () => {
         || template.id === "space-focus"
         || template.id === "space-campfire"
         || template.id === "space-arcade"
+        || template.id === "space-postcard"
       ) {
         expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
           "createSpaceChatController",
@@ -189,6 +183,7 @@ describe("Space Template publication protocol", () => {
           template.id === "space-focus"
           || template.id === "space-campfire"
           || template.id === "space-arcade"
+          || template.id === "space-postcard"
         ) {
           expect(project!.files["src/chat/client.ts"]).toContain(
             'bootstrapChat(space, components, "dock")',
@@ -210,6 +205,14 @@ describe("Space Template publication protocol", () => {
           );
           expect(project!.files["src/app/controller.ts"]).toContain(
             'space.updatePresence({ scene: "arcade", status: "playing" })',
+          );
+        }
+        if (template.id === "space-postcard") {
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.state.get<unknown>("postcard.messages")',
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.updatePresence({ scene: "postcard", status: "writing" })',
           );
         }
       } else {

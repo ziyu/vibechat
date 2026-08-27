@@ -1,5 +1,11 @@
 # Tomorrow Postcard
 
+## 0.1.3
+
+- Replace the Template-owned Chat renderer, Composer, Mention, message actions, and state machine with exact `@vibechat/space-app-components@0.7.4` package imports.
+- Preserve postcard writing, shared card state, presence, warm paper theme, dock launcher, unread behavior, and responsive drawer layout.
+- Add the managed package integrity lock and declare the complete Chat capability set used by the shared controller.
+
 ## 0.1.2
 
 - Refactor the App and default Chat UI into type-checked, responsibility-focused modules.
