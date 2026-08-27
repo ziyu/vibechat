@@ -11,6 +11,9 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 - `SPACE_RUNTIME_INTERNAL_TOKEN`：Backend 与 Runtime 共享的内部签名密钥；必须使用长随机值，不能作为 bearer token 直接发送。
 - `SPACE_RUNTIME_CALLBACK_ORIGIN`：积分结算回调的 Backend origin，本地默认 `http://localhost:8002`；部署时必须显式配置为 Runtime 可访问的内部 Backend origin。
 - `SPACE_AGENT_DEFAULT_ID`：首版默认 `pi`，但公共 API 和队列不依赖 Pi。
+- `SPACE_AGENT_MAX_CONCURRENCY`：跨 Space 同时执行的 Agent Turn 上限，默认 `2`，限制为 `1..8`；同一 Space 内仍由单独队列串行执行。
+- `SPACE_TURN_BATCH_WINDOW_MS`：同一 Space Turn 的批处理窗口，默认 `350ms`，限制为 `0..2000ms`。
+- `PI_MAX_CONCURRENCY` / `PI_BATCH_WINDOW_MS`：上述平台变量缺失时使用的旧名 fallback，仅保留一个兼容周期；新配置优先。
 - `PI_MODE`：默认 `auto`；存在本机 Pi CLI 会话时走 `host`，具备 AgentOS provider credential 时可设为 `agentos`。
 - `PI_BIN`：可选的 Host Pi 可执行文件绝对路径。根目录 `pnpm dev` 会忽略仓库 `node_modules/.bin` 中的旧版依赖并自动解析仓库外的系统 Pi；部署时建议显式配置和固定版本。
 - `SPACE_RUNTIME_TMP_DIR`：可选的 agentOS Apps 工作目录。未指定时使用短且按进程隔离的 `/tmp/vc-space-runtime-<pid>`，避免 macOS Unix socket 路径超限。
@@ -21,6 +24,29 @@ Node 22–24、TypeScript ESM 与 Hono 服务。首版从 `chat-app-server` 移�
 本服务依赖的 `isolated-vm` 尚不支持 Node 26；开发和构建使用仓库约定的 Node 22–24。仅有 Claude Code credential 而没有 AgentOS provider credential 时，使用 Host Pi 模式。
 
 本地启动器拒绝复用占用 `6420` 的未知 Engine，避免把 Space Release 意外写入另一个项目的数据库。正常退出 `pnpm dev` 会同时停止它拥有的 Engine，Synapse 容器则继续保留以便复用。单独执行 `pnpm dev:space-runtime` 且未配置 endpoint 时，Space Runtime 仍会使用 RivetKit managed mode 启动 Engine。
+
+Agent 与 App 执行使用独立的 Runtime 接口：Agent execution runtime 负责按 `Space × Agent` 取得 session VM；App execution runtime 负责 Revision Dev VM 与不可变 Release 部署。当前默认实现都连接同一环境/区域级 AgentOS/Rivet Engine，但业务编排不再直接依赖 AgentOS client/deploy API，后续可以分别配置 worker pool、credential 和 quota。Pi 继续使用原有 `space-<spaceId>` actor key，Dev Revision actor key 和 Release scaling 也保持兼容。
+
+## S1 代码结构与维护边界
+
+Space Runtime 的 S1 结构拆分已完成。`server.ts` 只创建 Runtime、创建 HTTP app 和监听端口；后续功能不得重新把路由、Turn 或 provider 逻辑堆回入口。
+
+```text
+server.ts
+├── composition/        # concrete dependency 组装、配置和错误归一化
+├── transport/http/     # health、instance、project、turn、App proxy 路由
+├── scheduler/          # claim、batch、并发和 Turn dispatch
+├── turn-processor/     # Agent、Publish、Restore 三类 Turn
+├── adapters/           # provider-neutral contract/registry 与 Pi/fake 实现
+├── agent-runtime/      # Agent execution port 与 AgentOS concrete runtime
+├── app-runtime/        # Candidate/Release port 与 AgentOS concrete runtime
+├── release-manager/    # Dev Preview、Release policy 和部署编排
+└── infrastructure/     # AgentOS actor/registry 启动基础设施
+```
+
+维护时遵循以下方向：HTTP route 只做输入/输出适配；composition root 是唯一同时装配应用接口与 Pi/AgentOS concrete 实现的位置；Turn processor 只通过注入端口调用 Adapter、Project、Release、SpaceInstance 和 control plane；Adapter 不读取 Backend、credits、Matrix 或数据库实现。`@rivet-dev/agentos*` 与 `@agentos-software/*` 只能出现在 `agent-runtime/agentos/`、`app-runtime/agentos/` 和 `infrastructure/actors.ts`。Runtime 应用核心统一使用 `spaceInstanceId`，HTTP/AgentOS Apps 兼容边界才保留 `appId`。
+
+旧入口 `agent-adapter.ts`、`agent-execution-runtime.ts`、`app-execution-runtime.ts`、`dev-preview.ts`、`generator.ts` 和 `actors.ts` 只作兼容 re-export；新代码直接引用上述责任目录。`pnpm boundaries:check` 会阻止 AgentOS import/invocation、Adapter 产品域依赖和新的核心 `appId` 参数越界。
 
 ## 请求链路
 

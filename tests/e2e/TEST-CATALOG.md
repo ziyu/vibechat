@@ -66,7 +66,7 @@
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
 | 1 | 首页加载 | 打开 `/` → 验证页面标题不含 error/500/404 → 验证精简 Header、单一品牌介绍区和 Footer 可见 → 验证首页不再渲染功能矩阵、统计、评价或购买 CTA |
-| 2 | 登录页加载 | 打开 `/signin` → 验证默认 Email OTP 表单 → 切换“Use password instead” → 验证密码输入框和提交按钮可见 |
+| 2 | 登录页加载 | 打开 `/signin` → 验证默认 Email OTP 表单 → 通过稳定的登录方式切换控件进入密码模式 → 验证密码输入框和提交按钮可见；断言不依赖当前语言文案 |
 | 3 | 注册页加载 | 打开 `/signup` → 验证姓名输入框（`#name`）、邮箱输入框、密码输入框、提交按钮均可见 |
 | 4 | 忘记密码页加载 | 打开 `/forgot-password` → 验证邮箱输入框可见 → 验证表单内按钮可见 |
 | 5 | 定价页加载 | 打开 `/pricing` → 验证标题不含错误 → 验证至少有一个含 ¥ 或 $ 价格的元素可见 |
@@ -92,9 +92,9 @@
 
 | # | 测试名称 | 具体流程 |
 |---|---------|---------|
-| 3 | UI 表单登录 | 打开登录页 → 填写邮箱/密码 → 点击提交 → 等待 URL 离开 `/signin` |
+| 3 | UI 表单登录 | 打开登录页 → 通过稳定的登录方式切换控件进入密码模式 → 填写邮箱/密码 → 点击提交 → 等待 URL 离开 `/signin`；断言不依赖当前语言文案 |
 | 4 | API 登录 | 通过 `POST /api/auth/sign-in/email` 登录 → 验证返回 200 |
-| 5 | 登出后无法访问产品 | 先 API 登录 → 访问 `/spaces` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/spaces` → 验证被重定向到 `/signin` |
+| 5 | 登出后无法访问产品 | 先 API 登录 → 使用规范绝对路径 `/spaces` 确认可进入 onboarding 或产品 → 调用 API 登出 → 再次访问 `/spaces` → 验证被重定向到 `/signin`；不得把两个根路径字符串拼成协议相对 URL |
 | 6 | 已登录用户访问 /signin 重定向到 /spaces | API 登录 → 访问 `/signin` → 验证被自动重定向到 `/spaces` |
 | 7 | 已登录用户访问 /signup 重定向到 /spaces | API 登录 → 访问 `/signup` → 验证被自动重定向到 `/spaces` |
 
@@ -1265,10 +1265,10 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
 | 1 | 独立宿主 | 打开 `http://localhost:8005/admin` → Admin 壳层和运营导航可见 → Admin 可独立 typecheck/build，不进入 Web 产品 route tree |
-| 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → 转到本地化登录引导 → 管理 API 返回 `401`，不泄露统计或用户数据 |
+| 2 | 未登录守卫 | 清空 Cookie 后访问 Admin 页面 → Admin 的短暂本地引导自动跳转到 Web `/signin?returnTo=<Admin URL>` → Web 登录卡可见且回跳目标仍属于 Admin origin → 管理 API 返回 `401`，不泄露统计或用户数据 |
 | 3 | 非管理员拒绝 | 普通真实用户访问 Admin 页面 → 显示无权限状态 → 管理 API 返回 `403`，前端篡改角色不能绕过 Backend |
 | 4 | 管理员会话 | seeded Admin 通过 Web 密码登录并提交 `callbackURL=http://localhost:8005/admin` → Better Auth 接受受信 Admin 回跳 → 共享 localhost session 生效 → Dashboard 读取真实用户、订阅、订单和收入统计 |
-| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 每个同源 API 禁止重定向并返回 JSON → 页面等待对应请求成功后呈现空状态或数据态，不使用 fixture，也不能用页面标题掩盖加载失败 |
+| 5 | 运营读取 | 用户、订阅、订单、积分、定价、Blog、佣金和提现页面分别请求真实 Backend API → 每个同源 API 禁止重定向并返回 JSON → 页面以稳定 surface 标识等待对应请求成功后呈现空状态或数据态，不依赖当前语言标题、不使用 fixture，也不能用页面标题掩盖加载失败 |
 | 6 | 用户管理 mutation | Admin 打开测试用户详情并修改可恢复字段或角色 → Backend 校验管理员权限与输入 → 刷新后数据库值一致，再恢复原值 |
 | 7 | 定价与内容写入边界 | 管理定价或 Blog 的创建/更新/排序/删除操作通过 Backend 完成 → 非管理员执行同请求仍被拒绝 |
 | 8 | App 与 libs 边界 | Admin 不导入 database、server Auth、payment/AI provider、storage 或 Backend 内部领域库 → 无活动消费者的旧库被删除 → 保留库均有引用证据 |
@@ -1284,13 +1284,13 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 
 | # | 验收场景 | 具体流程 |
 |---|---------|---------|
-| 1 | 账户中心 | 用户登录 → 查看真实资料、订单、订阅、积分与安全状态 → 修改密码/账户操作经过 Better Auth → 不显示其他用户数据 |
+| 1 | 账户中心 | 用户登录 → 查看真实资料、订单、订阅、积分与安全状态 → 通过稳定的账户标签结构进入安全面板并确认 credential account/password controls，不依赖当前语言文案 → 修改密码经过 Better Auth，并通过安全面板中的状态角色确认成功，不依赖当前语言提示 → 推荐注册以新用户欢迎积分为基线，按 API 返回的双方奖励配置验证各增加一次，不写死可配置积分 → 账户操作不显示其他用户数据 |
 | 2 | 定价与上传 | 公共定价读取活动计划 → 登录用户发起购买 → 金额由服务端计划决定；通用媒体上传校验类型/大小/数量并复用 storage |
 | 3 | 积分账本 | 查询自己的余额/流水 → 并发扣减不透支 → 增加/扣减与账本原子 → AI/provider 失败退款且只退款一次 |
 | 4 | 推荐与提现 | 推荐码归因 → 领取奖励幂等 → 支付佣金只生成一次 → 用户只能查看自己记录并申请提现 → 管理拒绝只退款一次 |
 | 5 | 六支付 Provider | Stripe、PayPal、Creem、Dodo、微信、支付宝各自创建支付 → 验证回调/Webhook → 订单/订阅/积分入账 → 重复通知不重复履约 |
-| 6 | AI 对话 | 有积分用户发起对话 → Backend 选择允许的 provider/model → 流式或完整响应 → 账单元数据可对账；无 key/失败时明确错误并退款 |
-| 7 | 图片与视频 | 服务端校验模型、尺寸、时长和输入 → 创建生成任务 → 查询真实状态/结果 → 失败退款，不以浏览器轮询作为账务权威 |
+| 6 | AI 对话 | 有积分用户进入稳定 AI Chat surface 并通过其中的输入控件发起对话，UI 断言不依赖当前语言 placeholder → Backend 选择允许的 provider/model → 流式或完整响应 → 账单元数据可对账；无 key/失败时明确错误并退款 |
+| 7 | 图片与视频 | 用户进入各自稳定生成 surface 并确认必填 prompt 控件，UI 断言不依赖当前语言 placeholder → 服务端校验模型、尺寸、时长和输入 → 创建生成任务 → 查询真实状态/结果 → 失败退款，不以浏览器轮询作为账务权威 |
 | 8 | Admin 深度运营 | 用户/订阅/订单/积分筛选、定价 CRUD、Blog CRUD、佣金/提现处理通过真实 Backend；非管理员全部拒绝 |
 | 9 | Legacy 清理 | 活动路由、API、领域服务、测试和文档均有 owner → 默认构建/E2E 覆盖恢复能力 → 删除不再是唯一实现的 legacy 快照 |
 
@@ -1499,6 +1499,12 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - 修正 Runtime bootstrap 的幂等边界：只有当前进程的 Preview 状态为 `idle` 时才从持久化 Draft 完成真实冷启动；快照轮询在 `building`、`ready` 或 `failed` 时只读取现状，不再用旧 Draft 的重复 `prepare` 抹掉 Candidate 失败状态。
 - Space Runtime 定向 unit 12/12、Google Chrome Candidate 失败隔离 E2E 1/1、全仓 18/18 package/app `typecheck` 与 `build`、`docs:check`、Docs production build 和 `git diff --check` 均通过。真实 Pi Revision 自动化代码已经就绪，但本轮没有获得把测试 Space Project 源码与 Prompt 发往外部 DeepSeek 的明确授权，因此没有执行，也没有把“双浏览器成功切换 ready Revision”标为完成。
 
+2026-08-27 真实 Pi/provider 与全量回归后续证据：
+
+- 在用户明确授权发送测试 Space Project 源码与 Prompt 后，以 `E2E_SPACE_AGENT_EXPECT_READY=1` 运行 `chat-space-agent-collaboration.spec.ts`：两条真实 Pi/provider 用例 2/2 通过。双 Chromium Context 在真实 Synapse Space 中只保留一个幂等 Agent Matrix event，刷新后双方仍各见一条；真实 Agent 修改完整 Project 后，两个 live App surface 收敛到同一新 ready Revision，Published Release 未被隐式改写。未启用 `SPACE_AGENT_FAKE_ENABLED` / `E2E_SPACE_FAKE_AGENT_READY`，因此确定性 Candidate 失败用例按设计跳过；其 2026-08-25 的独立 1/1 证据仍有效。
+- 使用 SQLite、本地 Synapse、受管 Rivet Engine 和 Node 24.15.0 运行完整 TanStack Chromium E2E：56 通过、0 失败、3 跳过，跳过项均为需要显式 Agent 开关的 collaboration 用例。账户定向 spec 另为 13/13 通过；推荐流程显式启用 `AFFILIATE_ENABLED=true`，以注册后真实余额为基线并按 `/api/affiliate/stats` 返回的双方奖励配置验证各增加一次，不再写死欢迎积分或推荐奖励。
+- 账户、Admin 和认证页面断言改为稳定 surface/test id、结构与 ARIA role，不依赖当前中英文文案；未修改产品行为。本文保留 2026-08-25 “当时未授权、未执行”的历史事实，本条记录后续授权和实际通过证据。
+
 ---
 
 ### Backlog 优先级汇总
@@ -1532,6 +1538,8 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-27 | Space Agent + Pi/provider + Synapse + 双 Chromium | 2 | 0 | 1 | 显式启用真实 Agent 验收；幂等 Matrix Agent event 与真实 Project Revision 双端 live 切换均通过；Fake Candidate 故障注入未启用，按设计跳过 |
+| 2026-08-27 | TanStack + Web + Backend + Admin + Site + Space Runtime + Synapse | 56 | 0 | 3 | 完整 Chromium 回归 4.0 分钟；三个 Agent collaboration 场景因全量运行未显式开启真实/fake Agent 开关而跳过；账户定向 13/13 另行通过；19/19 typecheck/build、Docs production build、文档和 diff 检查均通过 |
 | 2026-08-24 | Space Runtime managed Engine + Published Release recovery | 33 | 0 | 0 | Runtime/Template/Product 定向 unit 31/31；真实 Matrix Space Chromium 2/2；完整停止/重启后 Alice 的同一 Release 冷启动与热请求均为 200；另通过全仓 18/18 typecheck/build、Docs build、边界和文档检查 |
 | 2026-08-24 | Space Kernel recovery + Template 0.1.1 + AgentOS Release + Synapse | 35 | 0 | 0 | Runtime/Template/Web/Product Client 定向 unit 33/33；真实 Matrix Space Chromium 2/2；Alice 现有 Space 恢复到 `space-default@0.1.1` 后成功固化 64 位 Release；另通过五个官方 App + Runtime seed 独立 TypeScript、全仓 18/18 typecheck/build、边界和文档检查 |
 | 2026-08-24 | Space Template version governance + Market + Web + Synapse | 24 | 0 | 0 | SemVer/兼容 alias/Room/Market 定向 unit 15/15；真实 Product State Chromium 9/9；创建流程五个官方 Template 均显示 v0.1.0；另通过 19 个 workspace project 递归 typecheck/build、Docs build、边界和文档检查 |

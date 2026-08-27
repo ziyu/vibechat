@@ -3,6 +3,7 @@
 本目录保存已经启动、正在持续推进的开发工作。`active` 是“开发中”生命周期里的工作状态视图，不是新的生命周期，也不是新的文档类型。
 
 - [VibeChat MVP 产品与技术设计实施跟踪](./product-and-technical-implementation.md)
+- [Agent 架构实施结构计划](./agent-architecture-implementation-plan.md)
 - [Space App 设计演进与实施记录](./space-app-design-transition.md)
 - [CircleCI CI/CD 迁移实施记录](./circleci-ci-cd-migration.md)
 

@@ -41,7 +41,38 @@ const activeRoots = [
 ]
 const files = (await Promise.all(activeRoots.map(sourceFiles))).flat()
 const failures = []
-const importPattern = /(?:from\s*|import\s*\()\s*['"]([^'"]+)['"]/g
+const importPattern = /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)['"]([^'"]+)['"]/g
+const agentOsProviderRoots = [
+  'apps/space-runtime/src/agent-runtime/agentos/',
+  'apps/space-runtime/src/app-runtime/agentos/',
+]
+const agentOsInfrastructureFiles = new Set([
+  'apps/space-runtime/src/infrastructure/actors.ts',
+])
+const spaceRuntimeForbiddenImports = [
+  '@libs/database',
+  '@libs/credits',
+  '@libs/ai',
+  '@libs/rooms',
+  '@libs/identity',
+  '@vibechat/matrix-client',
+  'matrix-js-sdk',
+]
+const adapterForbiddenImports = [
+  '@libs/database',
+  '@libs/credits',
+  '@vibechat/matrix-client',
+  'matrix-js-sdk',
+]
+const runtimeCoreRoots = [
+  'apps/space-runtime/src/adapters/',
+  'apps/space-runtime/src/agent-runtime/',
+  'apps/space-runtime/src/app-runtime/contract.ts',
+  'apps/space-runtime/src/composition/',
+  'apps/space-runtime/src/release-manager/',
+  'apps/space-runtime/src/scheduler/',
+  'apps/space-runtime/src/turn-processor/',
+]
 const serverOnlyClientImports = [
   '@libs/database',
   '@libs/payment',
@@ -86,10 +117,30 @@ function packageNameFor(file) {
   return match ? `@vibechat/${match[1]}` : null
 }
 
+function isAgentOsProviderFile(file) {
+  return agentOsInfrastructureFiles.has(file)
+    || agentOsProviderRoots.some((prefix) => file.startsWith(prefix))
+}
+
 for (const file of files) {
   const source = await readFile(path.join(root, file), 'utf8')
   for (const match of source.matchAll(importPattern)) {
     const specifier = match[1]
+    const isAgentOsImport = specifier.startsWith('@rivet-dev/agentos')
+      || specifier.startsWith('@agentos-software/')
+    if (isAgentOsImport && !isAgentOsProviderFile(file)) {
+      failures.push(`${file}: AgentOS import is outside the S1 provider boundary (${specifier})`)
+    }
+    if (file.startsWith('apps/space-runtime/')
+      && spaceRuntimeForbiddenImports.some((prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`))) {
+      failures.push(`${file}: Space Runtime imports a forbidden product or Matrix provider module (${specifier})`)
+    }
+    if (file.startsWith('apps/space-runtime/src/adapters/')
+      && (adapterForbiddenImports.some((prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`))
+        || specifier.includes('/backend/')
+        || specifier.includes('/database/schema'))) {
+      failures.push(`${file}: Agent Adapter imports Backend, credits, Matrix, or database implementation (${specifier})`)
+    }
     if (specifier.includes('/apps/') || specifier.startsWith('apps/')) {
       failures.push(`${file}: app-to-app import is forbidden (${specifier})`)
     }
@@ -119,6 +170,18 @@ for (const file of files) {
         failures.push(`${file}: client host must use @vibechat/matrix-client (${specifier})`)
       }
     }
+  }
+  if (!isAgentOsProviderFile(file)) {
+    if (/\bdeployApp\s*\(/.test(source)) {
+      failures.push(`${file}: deployApp() is outside the concrete App runtime boundary`)
+    }
+    if (/\.vm\.getOrCreate\s*\(/.test(source)) {
+      failures.push(`${file}: vm.getOrCreate() is outside a concrete runtime boundary`)
+    }
+  }
+  if (runtimeCoreRoots.some((prefix) => file === prefix || file.startsWith(prefix))
+    && /\bappId\s*[?:]?\s*:\s*(?:string|unknown)\b/.test(source)) {
+    failures.push(`${file}: Runtime core must use spaceInstanceId instead of appId parameters`)
   }
 }
 

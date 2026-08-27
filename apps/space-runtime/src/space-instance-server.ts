@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { GenerationProgress } from "./generator.js";
+import type { GenerationProgress } from "./adapters/contract.js";
 import { assertAppId } from "./app-id.js";
 import type { ProjectFiles } from "./project-store.js";
 import type { DurableSpaceControl } from "./durable-space-control.js";

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createFakeAgentAdapter,
-  SpaceAgentRegistry,
-} from '../../../apps/space-runtime/src/agent-adapter'
+} from '../../../apps/space-runtime/src/adapters/fake/adapter'
+import {
+  SpaceAgentAdapterRegistry,
+} from '../../../apps/space-runtime/src/adapters/registry'
 
 const project = {
   'package.json': '{}',
@@ -13,7 +15,7 @@ const project = {
 describe('Space Agent Adapter contract', () => {
   it('registers provider-neutral adapters and rejects duplicate ids', () => {
     const adapter = createFakeAgentAdapter()
-    const registry = new SpaceAgentRegistry([adapter])
+    const registry = new SpaceAgentAdapterRegistry([adapter])
 
     expect(registry.get('fake')).toBe(adapter)
     expect(registry.list()).toEqual([{
@@ -21,7 +23,7 @@ describe('Space Agent Adapter contract', () => {
       name: 'Fake Agent',
       available: true,
     }])
-    expect(() => new SpaceAgentRegistry([adapter, adapter])).toThrow(
+    expect(() => new SpaceAgentAdapterRegistry([adapter, adapter])).toThrow(
       'Duplicate Agent Adapter id: fake',
     )
   })
@@ -34,7 +36,7 @@ describe('Space Agent Adapter contract', () => {
     const onProgress = vi.fn()
 
     await expect(adapter.runProjectTurn({
-      appId: 'space-1',
+      spaceInstanceId: 'space-1',
       request: 'hello',
       files: project,
       onProgress,
@@ -44,7 +46,7 @@ describe('Space Agent Adapter contract', () => {
       usage: { totalTokens: 13 },
     })
     await expect(adapter.runProjectTurn({
-      appId: 'space-1',
+      spaceInstanceId: 'space-1',
       request: '[fake:revision] add a note',
       files: project,
     })).resolves.toMatchObject({
@@ -53,7 +55,7 @@ describe('Space Agent Adapter contract', () => {
       files: { 'src/fake-agent-note.ts': expect.stringContaining('add a note') },
     })
     await expect(adapter.runProjectTurn({
-      appId: 'space-1',
+      spaceInstanceId: 'space-1',
       request: '[fake:failure] exercise Candidate isolation',
       files: project,
     })).resolves.toMatchObject({
@@ -66,7 +68,7 @@ describe('Space Agent Adapter contract', () => {
       },
     })
     await expect(adapter.reviseProject({
-      appId: 'space-1',
+      spaceInstanceId: 'space-1',
       request: 'repair',
       diagnostics: 'type error',
       files: project,

@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-26
+> 更新日期：2026-08-27
 > 维护范围：当前实现事实、近期主线和跨应用工程约束
 > 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -11,6 +11,8 @@
 仓库已完成 VibeChat 产品 Web 宿主、A2 真实聊天闭环，以及账户、定价、积分、推荐、提现、支付和 AI 能力迁移。Email OTP、产品 profile、Matrix identity/device、session revoke、真实 Matrix room/timeline、社交邀请、完整消息操作、Space 市场基础、产品状态和多应用/package 边界均有测试或浏览器证据。
 
 2026-08-23 产品设计进一步确认：**Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场**。顶部 Kernel Bar 是唯一固定宿主界面；其下全部由 Space App Project 渲染，默认 Chat UI 也只是可定制的 Default Chat App 代码。不可修改的是平台 Chat Core：Matrix timeline、成员、消息操作、Mention 与 `@agent` 调度始终通过 Space SDK 正常调用。Space 保留市场与模板创建，Pi 只是首个候选 Agent Adapter。Space Runtime 继续采用与 `chat-app-server` 同构的 Node/Hono、实例服务器、SSE/command、串行 Turn、ProjectStore、agentOS Apps 持续更新/Release 和 SDK 技术链。设计依据、demo 核验和差距见 [Space App 设计演进与实施记录](./active/space-app-design-transition.md)。
+
+2026-08-26 Agent 部署边界进一步确认：AgentOS/Rivet Engine 默认按环境与区域共享部署，Space 是逻辑 App/actor 与单写队列单位，Agent session 按 `Space × Agent` 隔离，Dev/Candidate 按 `Space × Revision` 隔离，Release 按不可变 artifact 独立扩缩容；不为每个 Space 部署完整 AgentOS，也不使用全球唯一单体。长期约束见 [Agent 架构与 AgentOS 部署设计](../stable/designs/agent-architecture-and-agentos-deployment.md)，当前 Registry/session/生产 Engine 差距继续由 [Active 实施跟踪](./active/product-and-technical-implementation.md)维护，后续代码结构与阶段顺序固定在 [Agent 架构实施结构计划](./active/agent-architecture-implementation-plan.md)。
 
 当前主线是 A3/A4 首版切片验证和生产化：
 
@@ -30,6 +32,8 @@
 - Matrix 是当前 Space membership 和 Chat timeline 权威；底层实现和兼容 API 仍使用 Matrix Room/`roomId`。
 - 当前 `room_index` 的每条记录已经是统一 SpaceInstance 的物理基础；`POST /v1/rooms`、Discover、官方 Space 目录、收藏、`spaceId/spaceVersionId` 和 `io.vibechat.space.instance.v1` 都是必须保持的活动行为。
 - `apps/space-runtime`、Space App contracts/SDK、Backend membership gateway、通用 Agent Adapter、ready Revision/Release 与 Web Kernel/App 已形成可运行的首版纵向切片。`/spaces/:spaceId` 只固定顶部 Kernel Bar，其下单一 iframe 包含 Default Chat 或定制 App；Host 不再渲染 Chat timeline/composer。
+- Space Runtime 已将 Agent session VM 与 App Dev/Release 执行拆为独立 Runtime 接口；Pi 继续沿用现有 actor key，其他 Agent 的执行 key 按 `Space × Agent` 稳定隔离，Dev Revision key 与 Release scaling 不变。跨 Space 并发和 Turn 批处理配置已迁移为 `SPACE_AGENT_MAX_CONCURRENCY` / `SPACE_TURN_BATCH_WINDOW_MS`，旧 `PI_*` 名称仅保留一个兼容周期的 fallback。默认实现当前仍连接同一环境/区域级 AgentOS/Rivet Engine，独立 worker pool、credential 与 quota 尚未生产化。
+- Agent 架构 S1 已完成：scheduler、claimed-turn executor 与 Agent/Publish/Restore processor 已拆出；Dev Preview、Release policy 与 provider-neutral App runtime 已归入 `release-manager/` 和 `app-runtime/`；Adapter contract/registry、Pi Host/AgentOS runner、fake 实现与 provider-neutral Agent runtime 已按责任目录拆分；`composition/` 负责 concrete 依赖组装，`transport/http/` 负责路由，`server.ts` 只启动服务。AgentOS import 只允许出现在 concrete runtime 与 infrastructure，Runtime 新核心统一使用 `spaceInstanceId`。S2 的 Agent contracts、领域表、binding/session 持久化与完整事件协议仍为 Pending，不能把 S1 结构完成误写成多 Agent 或生产共享 Engine 已完成。
 - 官方目录现有 Default Chat 与四个差异化模板，共五个 `agentos-app-v1` Project；每个 Template 在仓库只维护一份普通的多文件 `app/` 工作项目和一个扁平 `releases.json`。当前有序序列为 `0.1.0 → 0.1.1 → 0.1.2`：`0.1.1` 修正 AgentOS 不可变 Release 的 `registry` 入口，`0.1.2` 修正全屏 Chat Header/Composer 并把浏览器 SDK 视图、消息渲染、Composer、启动订阅、Template controller 和 CSS 分区拆成可类型检查的职责模块；两者都不改变 SDK、权限、App State 或 Chat Core 语义。`src/index.ts` 仍只负责 Runtime/handler 装配；Artifact/Space Revision/Dev Preview/Agent 编辑均识别并校验完整项目树。Version 只引用按 hash 寻址的不可变 artifact，历史源码不按版本复制；独立发布/部署从统一 Registry/Object Store 取 artifact。共享协议与 codegen 强制首版、相邻 SemVer、最高 current、非空升版和最新源码 hash 一致；旧 `builtin` v1–v5 与误用的 `5.0.0` ID 仅作开发数据读取 alias。
 - Alice 的现有定制 Space 已按同一 Project 协议迁移到 `space-default@0.1.2` 的模块化 Chat 基线；迁移保留其 App 自有深蓝动态视觉和 Published Release，只在 Runtime Candidate ready 后切换当前 ready Revision。
 - 官方与用户 Template 的版本和市场协议已经统一：官方标记来自 `publisher.verification=official`，来源为 `repository`；App 来源用户样本使用同一结构和 `origin=app`。`/v1/spaces`、创建、收藏、Matrix snapshot、Runtime 与 Discover 不再依赖 `builtin` 类型。用户发布 API、审核与生产存储仍待实现。
@@ -40,7 +44,7 @@
 - 默认 `pnpm dev` 以仓库 `.node-version` 声明 Node 24.19.0，并在当前 shell 不兼容时自动切换本机 Node，不要求开发者修改 `PATH`；启动前会自愈 `better-sqlite3` ABI 不一致，并按最新 SQLite snapshot 检查表与列、自动补齐 schema、仅对全新空库 seed。随后初始化/启动本地 Synapse、Rivet Engine、Backend、Web、Site、Admin 与 Space Runtime；真实 Synapse Bootstrap、Matrix Room 创建和持久消息定向 E2E 已通过。
 - 默认开发启动器现同时拥有本地 Rivet Engine 生命周期；Runtime 已删除本地 JSON Project/Instance/Turn adapter 和 `SPACE_RUNTIME_CONTROL_MODE` 开关，Project source 始终进入内容寻址 Object Store，pointer/snapshot/turn/lease/outbox 始终进入 Product DB，并由 Runtime 周期扫描、续租、接管和触发 reconciler。单元测试使用显式内存 adapter，不进入生产构建。Alice 的既有 Release 重启恢复仍是本地 Actor 证据；真实跨宿主 AgentOS artifact 恢复尚未验证。
 - 仓库级 CI/CD 配置已迁移到 CircleCI：所有构建分支执行文档、类型、产品构建、文档站和 Web Docker 验证；`main` 通过人工批准后可部署 Backend Cloudflare Workers。CircleCI 项目接入、生产 Context 和首次真实部署证据仍在 [Active 迁移记录](./active/circleci-ci-cd-migration.md)中跟踪。
-- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；单浏览器真实服务走查已覆盖结构化 `@pi`、欢迎积分、Host Pi 回复、真实 usage 结算和 ready Revision 更新。双 Chromium Candidate 失败保护已通过；真实 Synapse 的 member kick/leave 安全 E2E 也已覆盖全部八类 Runtime Gateway，并确认 Product DB 成员投影陈旧时仍以 Matrix 为权威。Publish expected-revision 屏障、生产 control plane 和双 server takeover 已有代码与 unit 证据，但真实双进程/D1/R2/AgentOS 演练、空白 Space、历史 rollback 与完整 #40 未完成，因此 A3/A4 保持 Active。
+- 真实 Matrix Template Space 的 iframe Chat E2E 已覆盖发送、回复、Reaction 和刷新历史恢复；结构化 `@pi`、欢迎积分、Host Pi 回复、真实 usage 结算和 ready Revision 更新先有单浏览器运行证据，2026-08-27 又以真实 Pi/provider 和双 Chromium 自动化覆盖幂等 Matrix Agent event、刷新唯一恢复及双方 live App 收敛到同一新 ready Revision，Published Release 未被隐式改写。双 Chromium Candidate 失败保护已通过；真实 Synapse 的 member kick/leave 安全 E2E 也已覆盖全部八类 Runtime Gateway，并确认 Product DB 成员投影陈旧时仍以 Matrix 为权威。完整 Chromium 回归同轮为 56 通过、0 失败、3 个显式 Agent 开关场景跳过；Publish expected-revision 屏障、生产 control plane 和双 server takeover 已有代码与 unit 证据，但真实双进程/D1/R2/AgentOS 演练、空白 Space、历史 rollback 与完整 #40 未完成，因此 A3/A4 保持 Active。
 
 ## 当前约束
 

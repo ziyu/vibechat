@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：实施记录
 > 状态：Active
-> 更新日期：2026-08-26
+> 更新日期：2026-08-27
 > 维护范围：Space 语义、市场与模板、Kernel Bar/Chat Core/Space App、Agent Adapter、Runtime、数据/API/UI/E2E 演进
 > 对应稳定设计：[VibeChat MVP 产品与技术设计](../../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；真实 Cloudflare D1/R2 preview、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和完整 #40 仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据。真实 Cloudflare D1/R2 preview、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和完整 #40 仍是后续门槛。
 
 本次产品校正确认：
 
@@ -297,8 +297,9 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-24 新账号欢迎积分与真实 Agent 链路完成首个运行切片：注册账号通过幂等 `signup:welcome:<userId>` 交易获得默认 100 credits；Alice 的 Default Chat App 把结构化 `@pi` metadata 与人类消息写入真实 Synapse，Backend 复读精确 event 后完成 ACL/credits/queue，系统 Host Pi 以确定性 UUID session 和 `deepseek/deepseek-v4-pro` 回复“积分与 Agent 对话都已打通。”。该 chat-only turn 上报 4,839 tokens，账本先预留 4 credits、再补扣 1 credit，余额从 100 变为 95；失败 turn 各自只退款一次。完整 App 修改走查进一步让 Pi 把背景改为 `#07162b` 并保留 Chat Core，ready Revision 从 `2d68a0defce3aac1` 实时切到 `46f337b6b99d8f27`，`publishedDraftId` 与 Release 保持不变；该 turn 上报 29,856 tokens并结算 30 credits。定向 unit 覆盖欢迎积分幂等、Matrix event content、产品 turn contract、Pi session UUID 和批次 usage 分摊。
 
 - 2026-08-26 当前新账号欢迎额度从 100 调整为 1000 credits；交易 ID、账本类型和幂等语义保持不变，部署仍可通过 `CREDITS_NEW_USER_GRANT` 覆盖或关闭。上面的 100 credits 保留为 2026-08-24 实际走查的历史账务证据。
+- 2026-08-27 在明确授权外发测试 Project 源码与 Prompt 后，`chat-space-agent-collaboration.spec.ts` 的真实 Pi/provider 场景 2/2 通过：双 Chromium 对同一幂等 Matrix Agent event 刷新后仍各保留一条；真实 Agent 修改完整 Project 后，双方 live App 收敛到同一新 ready Revision，Published Release 保持不变。完整 E2E 同轮为 56 通过、0 失败、3 个 Agent 开关场景跳过；Fake Candidate 失败隔离继续沿用 2026-08-25 的独立 1/1 证据。
 
-尚未完成：双 Chromium member Mention 与分页 contract、空白 Space 后选模板、历史 rollback、真实 D1/R2 preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
+尚未完成：双 Chromium member Mention 与分页 contract、空白 Space 后选模板、历史 rollback、真实 D1/R2 preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。双 Chromium 的完整 Matrix 消息操作、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
 

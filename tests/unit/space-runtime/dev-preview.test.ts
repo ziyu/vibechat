@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   DevPreviewManager,
   draftVersion,
-  type DevPreviewVmFactory,
 } from '../../../apps/space-runtime/src/dev-preview'
+import type {
+  AppCandidateHandle,
+  AppExecutionRuntime,
+} from '../../../apps/space-runtime/src/app-runtime/contract'
 import type { ProjectFiles } from '../../../apps/space-runtime/src/project-store'
 
 const encoder = new TextEncoder()
@@ -23,7 +26,7 @@ function project(label: string): ProjectFiles {
   }
 }
 
-class FakeDevVm {
+class FakeCandidateHandle implements AppCandidateHandle {
   readonly killed: number[] = []
   readonly pid: number
   version = ''
@@ -33,30 +36,29 @@ class FakeDevVm {
     this.pid = pid
   }
 
-  readonly filesystem = {
-    mkdir: async (_path: string, _options: unknown) => undefined,
-    writeFiles: async (_files: unknown) => undefined,
+  async makeDirectory(_path: string) {}
+
+  async writeFiles(_files: Array<{ path: string; content: string }>) {}
+
+  async start(input: {
+    entryPath: string
+    cwd: string
+    env: Record<string, string>
+  }) {
+    if (this.failSpawn) throw new Error('candidate failed before startup')
+    this.version = input.env.SPACE_DEV_VERSION ?? ''
+    return { processId: this.pid }
   }
 
-  readonly javascript = {
-    spawnFile: async (
-      _path: string,
-      options: { env?: Record<string, string> },
-    ) => {
-      if (this.failSpawn) throw new Error('candidate failed before startup')
-      this.version = options.env?.SPACE_DEV_VERSION ?? ''
-      return { pid: this.pid }
-    },
+  async stop(processId: number) {
+    this.killed.push(processId)
   }
 
-  readonly process = {
-    kill: async (pid: number) => {
-      this.killed.push(pid)
-    },
-    readOutput: async (_pid: number) => ({ events: [] }),
+  async readOutput(_processId: number) {
+    return ''
   }
 
-  async vmFetch(_port: number, url: string, _request?: unknown) {
+  async fetch(_port: number, url: string, _request?: unknown) {
     const body = url.includes('/__space_dev_health')
       ? this.version
       : `${this.actorKey}:${this.version}`
@@ -71,25 +73,30 @@ class FakeDevVm {
 }
 
 function fakeVms(failingVersions: Set<string>) {
-  const instances = new Map<string, FakeDevVm>()
-  const factory: DevPreviewVmFactory = (actorKey) => {
-    let instance = instances.get(actorKey)
-    if (!instance) {
-      instance = new FakeDevVm(actorKey, instances.size + 100)
-      instance.failSpawn = [...failingVersions].some((version) =>
-        actorKey.endsWith(`-${version}`),
-      )
-      instances.set(actorKey, instance)
-    }
-    return instance as unknown as ReturnType<DevPreviewVmFactory>
+  const instances = new Map<string, FakeCandidateHandle>()
+  const runtime: AppExecutionRuntime = {
+    openCandidate(actorKey) {
+      let instance = instances.get(actorKey)
+      if (!instance) {
+        instance = new FakeCandidateHandle(actorKey, instances.size + 100)
+        instance.failSpawn = [...failingVersions].some((version) =>
+          actorKey.endsWith(`-${version}`),
+        )
+        instances.set(actorKey, instance)
+      }
+      return instance
+    },
+    async deployRelease() {
+      throw new Error('release deployment is not used by Dev Preview tests')
+    },
   }
-  return { factory, instances }
+  return { runtime, instances }
 }
 
 describe('Space Dev ready Revision isolation', () => {
   it('routes each ready Revision to its own preview instance', async () => {
     const vms = fakeVms(new Set())
-    const manager = new DevPreviewManager(vms.factory)
+    const manager = new DevPreviewManager(vms.runtime)
     const first = await manager.prepare('space-preview-test', project('first'))
     const second = await manager.prepare('space-preview-test', project('second'))
 
@@ -112,7 +119,7 @@ describe('Space Dev ready Revision isolation', () => {
   it('keeps the last ready Revision callable when a Candidate fails', async () => {
     const failingVersions = new Set<string>()
     const vms = fakeVms(failingVersions)
-    const manager = new DevPreviewManager(vms.factory)
+    const manager = new DevPreviewManager(vms.runtime)
     const readyFiles = project('ready')
     const ready = await manager.prepare('space-preview-failure', readyFiles)
     const candidateFiles = project('broken-candidate')
