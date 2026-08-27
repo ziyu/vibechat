@@ -4,6 +4,7 @@ import {
   DatabaseSpaceRuntimeControlPlane,
   RuntimeFencingError,
   type RuntimeLease,
+  type RuntimeTurnRecord,
 } from '@libs/space-runtime-control'
 import {
   spaceRuntimeControlRequestSchema,
@@ -182,21 +183,10 @@ function serializeLease(lease: RuntimeLease) {
   return { ...lease, expiresAt: lease.expiresAt.toISOString() }
 }
 
-function serializeTurn(turn: {
-  turnId: string
-  spaceInstanceId: string
-  externalRequestId: string
-  kind: string
-  status: string
-  payload: Record<string, unknown>
-  attempt: number
-  ownerId: string | null
-  fencingToken: number
-  createdAt: Date
-  updatedAt: Date
-}) {
+function serializeTurn(turn: RuntimeTurnRecord) {
   return {
     ...turn,
+    cancelRequestedAt: turn.cancelRequestedAt?.toISOString() || null,
     createdAt: turn.createdAt.toISOString(),
     updatedAt: turn.updatedAt.toISOString(),
   }

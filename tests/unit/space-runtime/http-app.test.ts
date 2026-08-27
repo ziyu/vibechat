@@ -8,6 +8,7 @@ import { SpaceAgentAdapterRegistry } from "../../../apps/space-runtime/src/adapt
 import { createHttpApp } from "../../../apps/space-runtime/src/composition/create-http-app";
 import type { SpaceRuntimeDependencies } from "../../../apps/space-runtime/src/composition/dependencies";
 import { createSpaceRuntimeConfig } from "../../../apps/space-runtime/src/composition/runtime-config";
+import { defaultPiDefinition } from "../../../libs/space-agents/bootstrap";
 
 const signingSecret = "test-space-runtime-signing-secret-32";
 
@@ -60,6 +61,37 @@ describe("Space Runtime HTTP composition", () => {
       externalRequestId: "event-1",
       agentId: "fake",
     });
+  });
+
+  it("accepts a versioned Agent Turn snapshot with a Backend-generated Turn ID", async () => {
+    const path = "/api/apps/space-1/messages";
+    const credential = await runtimeCredential("POST", path);
+    const { runtime, beginTurn } = createRuntimeStub();
+    const agentTurn = createAgentTurn();
+    const response = await createHttpApp(runtime).request(path, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        turnId: agentTurn.turnId,
+        message: agentTurn.requestText,
+        matrixEventId: "event-pinned-1",
+        clientId: "member-1",
+        authorName: "Alice",
+        agentId: "fake",
+        agentTurn,
+      }),
+    });
+
+    expect(response.status).toBe(202);
+    expect(beginTurn).toHaveBeenCalledWith("space-1", expect.objectContaining({
+      turnId: "turn-pinned-1",
+      externalRequestId: "event-pinned-1",
+      agentId: "fake",
+      agentTurn,
+    }));
   });
 
   it("keeps template bootstrap idempotency behind the composition service", async () => {
@@ -129,4 +161,48 @@ async function runtimeCredential(method: string, path: string) {
     ttlSeconds: 30,
     credentialId: `test-${method}-${path}`,
   });
+}
+
+function createAgentTurn() {
+  return {
+    schemaVersion: "vibechat.agent-turn-input/v1" as const,
+    turnId: "turn-pinned-1",
+    spaceInstanceId: "space-1",
+    agentId: "fake",
+    sessionId: "session-fake-1",
+    sessionGeneration: 1,
+    definition: {
+      ...defaultPiDefinition,
+      definitionId: "agent-definition-fake-v1",
+      agentId: "fake",
+      adapterKey: "fake",
+      adapterVersion: "1.0.0",
+      provider: "fake",
+      model: "fake",
+      displayName: "Fake",
+    },
+    policy: {
+      schemaVersion: "vibechat.agent-policy/v1" as const,
+      policySnapshotHash: `sha256:${"b".repeat(64)}`,
+      permissionPolicyId: "permissions-default",
+      toolPolicyId: "tools-default",
+      pricingPolicyId: "pricing-default",
+      maxCredits: 10,
+      maxInputTokens: 1_000,
+      maxOutputTokens: 500,
+      allowedTools: [],
+    },
+    context: {
+      matrixEventIds: ["event-pinned-1"],
+      messageWindowRef: null,
+      summaryRef: null,
+    },
+    project: {
+      projectId: "project-1",
+      revisionId: "revision-1",
+      sourceHash: `sha256:${"a".repeat(64)}`,
+    },
+    requestText: "Build a scoreboard",
+    requestedAt: "2026-08-27T00:00:00.000Z",
+  };
 }

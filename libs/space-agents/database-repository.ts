@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import {
   agentDefinitionSnapshotSchema,
   agentSessionRefV1Schema,
@@ -89,6 +89,13 @@ export class DatabaseSpaceAgentRepository implements
       .orderBy(desc(spaceAgentBinding.updatedAt))
       .limit(1)
     return row ? toBinding(row) : null
+  }
+
+  async listBindings(spaceInstanceId: string) {
+    const rows = await db.select().from(spaceAgentBinding)
+      .where(eq(spaceAgentBinding.spaceInstanceId, spaceInstanceId))
+      .orderBy(desc(spaceAgentBinding.isDefault), asc(spaceAgentBinding.agentId))
+    return rows.map(toBinding)
   }
 
   async upsertBinding(binding: SpaceAgentBindingSnapshot) {

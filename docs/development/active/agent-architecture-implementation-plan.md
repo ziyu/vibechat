@@ -427,7 +427,7 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | S0 | Agent/App runtime 首版封装、平台配置命名 | 无用户可见变化 | Complete（当前工作树） |
 | S1 | Space Runtime 结构拆分和自动边界检查 | 无行为变化 | Complete（2026-08-26） |
 | S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Complete（2026-08-27） |
-| S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Pending |
+| S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Complete（2026-08-27） |
 | S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Pending |
 | S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Pending |
 | S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Pending |
@@ -500,6 +500,18 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 3. Enqueue 时保存固定 Definition/version、Adapter version、policy hash、session generation 和 reservation ID。
 4. Snapshot/Matrix v2 state 输出 Agent 公开视图；旧客户端继续得到 default Agent。
 5. 多 Agent allowlist 先 feature flag，默认仅 Pi；没有第二 Adapter 证据前不开放 UI 管理。
+
+#### S3 完成记录（2026-08-27）
+
+- [x] Backend Turn route 已缩减为 HTTP/auth 适配，Mention、Definition/Binding 解析、credits reservation、budget policy、Project Revision、session generation、Runtime enqueue 与失败退款集中到可注入的 `SpaceAgentInvocationService`。调用顺序继续要求 Better Auth + 实时 Matrix membership、精确 Matrix event Mention 与稳定 eventId 计费键；默认 feature flag 仅允许 Pi，未开放多 Agent UI。
+- [x] invoke 权威已经切到 Product DB Definition/Binding/session：显式 disabled、未绑定、Definition unavailable/frozen/version mismatch 均 fail closed，不能回退到旧 `room_index.default_agent_id`。新建 Space 在 Room 创建成功后幂等写入默认 Pi Definition/binding；相同创建请求遇到已有 disabled binding 时不重新启用。旧 Pi Space 在兼容期仍可从 legacy pointer/bootstrap 读取。
+- [x] Backend 生成 `AgentTurnInputV1`，固定 Definition ID/version、Adapter key/version、session ID/generation、policy hash 与预算、授权 Matrix event 引用、Project ID/ready Revision/source hash 和请求时间；Runtime HTTP 边界复核 Turn/Space/Agent identity 后，将 snapshot 与 reservation transaction ID 写入现有 `space_runtime_turn` nullable 字段。重复 Matrix event 继续返回原 Turn，repository contract 断言重试不能覆盖最初 snapshot；没有新增第二条 queue。
+- [x] Runtime snapshot 与 Matrix `io.vibechat.space.instance.v2` state 已输出只含公开 Definition/Binding 字段的 Agent view，同时保留兼容 `defaultAgentId` 与 `availableAgents`。provider/model、prompt、credential、预算和 policy 细节不会进入公开 view；billing/completion callback 优先按 Turn 固定 reservation/Agent fencing，历史 Turn 继续读取 payload/default Agent fallback。
+- [x] service、binding provisioning/resolution、region/budget policy、callback fencing、public snapshot、Runtime HTTP、SQLite/D1 repository 和 control-plane 定向测试均通过；Node 24.15.0 下 Agent + Runtime + contracts 为 31 个文件、109 个测试通过。完整 unit 为 266 通过、3 个既有失败、2 个 integration skip；失败仍是 `validators/user` 1 个与缺少默认邮件 provider key 的 `email/cloudflare` 2 个，skip 为未配置 PostgreSQL/Synapse integration，与 S3 无关。
+- [x] 21/22 workspace project 的递归 TypeScript 与 build 全部通过，覆盖 21 个有脚本的 workspace；docs app、Backend Workers、Web/Site/Admin、Space Runtime 和 packages 均完成 production build。根 Turbo typecheck 仍在 task 启动前受 macOS Keychain/TLS 初始化失败阻断，因此使用相同 pnpm 9.4/Node 24.15.0 逐 workspace 执行；Backend build 保留既有 Wrangler 日志目录权限和 bundle warning，但构建退出码为 0。`pnpm docs:check`、412 文件边界检查和 `git diff --check` 通过。
+- [x] GitNexus 增量索引已刷新为 8,782 nodes / 18,737 edges / 300 flows；最终 staged `detect-changes` 映射 41 个文件、105 个符号和 1 条 `CreateRuntime → BackendDurableSpaceControl` 流程，风险 MEDIUM。该流程由 Runtime 全量测试、SQLite control-plane 固定 snapshot/重试不覆盖断言和真实 E2E 收口；没有 HIGH/CRITICAL 风险。
+- [x] 允许启动本地 Engine/Chromium 后，以真实 Synapse、managed Rivet Engine、Host Pi/provider 和两个独立 Chromium Context 运行 `chat-space-agent-collaboration.spec.ts`：2 通过、0 失败、1 个未启用 Fake Adapter 的故障注入场景按设计跳过。首个场景新增断言 Product DB Agent public view 同时出现在 Runtime snapshot 与 Matrix v2 state，并继续验证唯一幂等 Agent Matrix event；第二场景验证真实 Pi Project Revision 在两个 live App surface 收敛且不隐式 Publish。
+- [x] S3 没有实现完整 versioned Adapter event stream、cancel/session restore、生产区域共享 Engine 或第二真实 Adapter；这些边界继续属于 S4–S6。
 
 ### 9.4 S4：完整 Adapter 与 Session
 

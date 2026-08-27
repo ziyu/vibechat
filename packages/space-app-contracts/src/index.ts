@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { spaceAgentIdSchema } from '@vibechat/space-agent-contracts'
+import {
+  spaceAgentIdSchema,
+  spaceAgentPublicViewSchema,
+} from '@vibechat/space-agent-contracts'
 
 export {
   spaceAgentBillingCallbackSchema,
@@ -111,6 +114,15 @@ export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
       spaceInstanceId: z.string().min(1).max(255),
       externalRequestId: z.string().min(1).max(255),
       kind: z.enum(['message', 'publish', 'restore']),
+      agentId: spaceAgentIdSchema.optional(),
+      agentDefinitionId: z.string().min(1).max(255).optional(),
+      agentDefinitionVersion: z.string().min(1).max(64).optional(),
+      adapterKey: z.string().min(1).max(64).optional(),
+      adapterVersion: z.string().min(1).max(64).optional(),
+      sessionGeneration: z.number().int().positive().optional(),
+      policySnapshotHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+      reservationTransactionId: z.string().min(1).max(255).optional(),
+      payloadSchemaVersion: z.string().min(1).max(128).optional(),
       payload: z.record(z.string(), z.unknown()),
     }),
   }),
@@ -154,6 +166,7 @@ export const spaceRuntimeSnapshotSchema = z.object({
     name: z.string().min(1),
     available: z.boolean(),
   })),
+  agents: z.array(spaceAgentPublicViewSchema).optional(),
   project: z.object({
     exists: z.boolean(),
     draftId: z.string().nullable(),

@@ -12,6 +12,7 @@ import type {
   RuntimeLease,
   RuntimeOutboxEvent,
   RuntimeProjectPointer,
+  RuntimeTurnEnqueue,
   RuntimeTurnRecord,
   SpaceRuntimeControlPlane,
 } from "./contracts";
@@ -143,7 +144,7 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
   }
 
   async enqueueTurn(
-    turn: Omit<RuntimeTurnRecord, "status" | "attempt" | "ownerId" | "fencingToken" | "createdAt" | "updatedAt">,
+    turn: RuntimeTurnEnqueue,
   ) {
     const createdAt = this.now();
     await db.insert(spaceRuntimeTurn).values({
@@ -152,7 +153,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       externalRequestId: turn.externalRequestId,
       kind: turn.kind,
       status: "queued",
+      agentId: turn.agentId ?? null,
+      agentDefinitionId: turn.agentDefinitionId ?? null,
+      agentDefinitionVersion: turn.agentDefinitionVersion ?? null,
+      adapterKey: turn.adapterKey ?? null,
+      adapterVersion: turn.adapterVersion ?? null,
+      sessionGeneration: turn.sessionGeneration ?? null,
+      policySnapshotHash: turn.policySnapshotHash ?? null,
+      reservationTransactionId: turn.reservationTransactionId ?? null,
+      payloadSchemaVersion: turn.payloadSchemaVersion ?? null,
       payloadJson: turn.payload,
+      resultSchemaVersion: turn.resultSchemaVersion ?? null,
+      resultJson: turn.result ?? null,
+      cancelRequestedAt: turn.cancelRequestedAt ?? null,
       attempt: 0,
       fencingToken: 0,
       createdAt,
@@ -467,7 +480,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       externalRequestId: row.externalRequestId,
       kind: row.kind as RuntimeTurnRecord["kind"],
       status: row.status as RuntimeTurnRecord["status"],
+      agentId: row.agentId,
+      agentDefinitionId: row.agentDefinitionId,
+      agentDefinitionVersion: row.agentDefinitionVersion,
+      adapterKey: row.adapterKey,
+      adapterVersion: row.adapterVersion,
+      sessionGeneration: row.sessionGeneration,
+      policySnapshotHash: row.policySnapshotHash,
+      reservationTransactionId: row.reservationTransactionId,
+      payloadSchemaVersion: row.payloadSchemaVersion,
       payload: row.payloadJson,
+      resultSchemaVersion: row.resultSchemaVersion,
+      result: row.resultJson,
+      cancelRequestedAt: row.cancelRequestedAt,
       attempt: row.attempt,
       ownerId: row.ownerId,
       fencingToken: row.fencingToken,

@@ -87,8 +87,14 @@ export const spaceAgentBindingPublicSnapshotSchema = spaceAgentBindingSnapshotSc
   updatedAt: true,
 }).strict()
 
+export const spaceAgentPublicViewSchema = z.object({
+  binding: spaceAgentBindingPublicSnapshotSchema,
+  definition: agentDefinitionPublicSnapshotSchema.nullable(),
+}).strict()
+
 export type AgentDefinitionSnapshot = z.infer<typeof agentDefinitionSnapshotSchema>
 export type AgentDefinitionPublicSnapshot = z.infer<typeof agentDefinitionPublicSnapshotSchema>
 export type SpaceAgentBindingSnapshot = z.infer<typeof spaceAgentBindingSnapshotSchema>
 export type SpaceAgentBindingPublicSnapshot = z.infer<typeof spaceAgentBindingPublicSnapshotSchema>
+export type SpaceAgentPublicView = z.infer<typeof spaceAgentPublicViewSchema>
 export type AgentBudgetPolicySnapshot = z.infer<typeof agentBudgetPolicySnapshotSchema>

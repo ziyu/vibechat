@@ -3,6 +3,7 @@ import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
 import { spaceAgentBillingCallbackSchema } from '@vibechat/space-agent-contracts'
 import { withCfDb } from '@/lib/with-request-db'
 import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
+import { acceptsSpaceAgentBillingCallback } from '@/lib/space-agent-callbacks'
 import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'
 
 export const Route = createFileRoute('/v1/internal/space-agent-billing')({
@@ -16,11 +17,7 @@ export const Route = createFileRoute('/v1/internal/space-agent-billing')({
         if (!parsed.success) return Response.json({ error: 'invalid_callback' }, { status: 400 })
         const control = new DatabaseSpaceRuntimeControlPlane()
         const turn = await control.getTurn(parsed.data.turnId)
-        if (
-          !turn
-          || turn.spaceInstanceId !== parsed.data.spaceInstanceId
-          || turn.status !== parsed.data.status
-        ) {
+        if (!acceptsSpaceAgentBillingCallback(turn, parsed.data)) {
           return Response.json({ error: 'space_agent_callback_fenced' }, { status: 409 })
         }
         const outbox = await control.enqueueOutbox({

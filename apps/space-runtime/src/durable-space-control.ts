@@ -106,6 +106,19 @@ class BackendDurableSpaceControl implements DurableSpaceControl {
         spaceInstanceId,
         externalRequestId: request.externalRequestId,
         kind: request.kind,
+        ...(request.agentTurn ? {
+          agentId: request.agentTurn.agentId,
+          agentDefinitionId: request.agentTurn.definition.definitionId,
+          agentDefinitionVersion: request.agentTurn.definition.version,
+          adapterKey: request.agentTurn.definition.adapterKey,
+          adapterVersion: request.agentTurn.definition.adapterVersion,
+          sessionGeneration: request.agentTurn.sessionGeneration,
+          policySnapshotHash: request.agentTurn.policy.policySnapshotHash,
+          payloadSchemaVersion: request.agentTurn.schemaVersion,
+        } : {}),
+        ...(request.billing ? {
+          reservationTransactionId: request.billing.transactionId,
+        } : {}),
         payload: request,
       },
     })

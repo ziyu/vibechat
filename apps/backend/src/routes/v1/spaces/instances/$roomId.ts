@@ -6,6 +6,7 @@ import {
   fetchSpaceRuntime,
 } from '@/lib/space-runtime'
 import { productApiError } from '@/lib/product-api'
+import { loadSpaceAgentPublicView } from '@/lib/space-agent-public-view'
 import { withCfDb } from '@/lib/with-request-db'
 
 export const Route = createFileRoute('/v1/spaces/instances/$roomId')({
@@ -28,15 +29,15 @@ export const Route = createFileRoute('/v1/spaces/instances/$roomId')({
             )
           }
           const raw = await response.json() as Record<string, any>
+          const agentView = await loadSpaceAgentPublicView(access.instance)
           const project = raw.project as Record<string, unknown> | null
           const template = project?.template as Record<string, unknown> | undefined
           return Response.json(spaceRuntimeSnapshotSchema.parse({
             spaceInstanceId: access.instance.spaceInstanceId,
             matrixRoomId: access.instance.matrixRoomId,
-            defaultAgentId: access.instance.defaultAgentId,
-            availableAgents: Array.isArray(raw.availableAgents)
-              ? raw.availableAgents
-              : [{ id: access.instance.defaultAgentId, name: access.instance.defaultAgentId, available: false }],
+            defaultAgentId: agentView.defaultAgentId,
+            availableAgents: agentView.availableAgents,
+            agents: agentView.agents,
             project: {
               exists: Boolean(raw.exists),
               draftId: typeof project?.draftId === 'string' ? project.draftId : null,

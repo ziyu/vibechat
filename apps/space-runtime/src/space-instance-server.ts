@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import {
+  agentTurnInputV1Schema,
+  type AgentTurnInputV1,
+} from "@vibechat/space-agent-contracts";
 import type { GenerationProgress } from "./adapters/contract.js";
 import { assertAppId } from "./app-id.js";
 import type { ProjectFiles } from "./project-store.js";
@@ -87,12 +91,14 @@ interface LocalSpace {
 }
 
 interface BeginTurnInput {
+  turnId?: string;
   clientId: string;
   authorName: string;
   text: string;
   kind?: SpaceTurnKind;
   externalRequestId: string;
   agentId: string;
+  agentTurn?: AgentTurnInputV1;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
   publication?: SpaceTurnPublication;
@@ -118,6 +124,7 @@ export interface SpaceTurnRequest {
   createdAt: string;
   externalRequestId: string;
   agentId: string;
+  agentTurn?: AgentTurnInputV1;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
   publication?: SpaceTurnPublication;
@@ -333,7 +340,7 @@ export class SpaceInstanceServer {
     if (completed) {
       return { turnId: completed.turnId, queuePosition: 0, deduplicated: true };
     }
-    const turnId = randomUUID();
+    const turnId = input.turnId || randomUUID();
     const createdAt = new Date().toISOString();
     const turnRequest: SpaceTurnRequest = {
       turnId,
@@ -344,6 +351,7 @@ export class SpaceInstanceServer {
       createdAt,
       externalRequestId: input.externalRequestId,
       agentId: input.agentId,
+      ...(input.agentTurn ? { agentTurn: input.agentTurn } : {}),
       ...(input.billing ? { billing: input.billing } : {}),
       ...(input.recovery ? { recovery: input.recovery } : {}),
       ...(input.publication ? { publication: input.publication } : {}),
@@ -709,6 +717,11 @@ function isSpaceTurnRequest(value: unknown): value is SpaceTurnRequest {
     typeof request.createdAt === "string" &&
     typeof request.externalRequestId === "string" &&
     typeof request.agentId === "string" &&
+    (!request.agentTurn || (
+      agentTurnInputV1Schema.safeParse(request.agentTurn).success &&
+      request.agentTurn.turnId === request.turnId &&
+      request.agentTurn.agentId === request.agentId
+    )) &&
     (request.kind !== "restore" || (
       request.recovery?.target === "default-chat" &&
       typeof request.recovery.expectedReadyRevisionId === "string" &&

@@ -53,6 +53,7 @@ describePostgres('DatabaseSpaceAgentRepository on PostgreSQL', () => {
     )
     await repository.upsertBinding(binding)
     await expect(repository.findDefaultBinding('space-pg-contract')).resolves.toEqual(binding)
+    await expect(repository.listBindings('space-pg-contract')).resolves.toEqual([binding])
 
     await repository.saveSession({
       schemaVersion: 'vibechat.agent-session-ref/v1',

@@ -1472,6 +1472,7 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 | 16 | 基础能力无回归 | #26–#39 与 #40 一起运行 → 认证、资料、联系人、邀请、Chat、Discover、分类、详情、收藏、模板版本、账户和 Admin 全绿 → 不删除 `/v1/spaces` 或模板创建 |
 | 17 | 官方/用户 Template 统一发布 | 每个官方 Template 在仓库只维护一个普通的多文件 `app/` 工作源码树和扁平 `releases.json` 元数据；`src/index.ts` 只负责导出/启动 Runtime registry 与 App handler 装配，页面、样式、浏览器交互和 Chat 调用按职责拆分，Chat 浏览器状态机、消息渲染、Composer 交互与样式分区必须是可单独阅读和类型检查的模块，不能以压缩后的巨型字符串或单文件状态机代替项目结构，也不按版本复制源码 → Artifact 递归包含并校验整个受支持项目树，任一嵌套源码变化都会产生新 source hash → 官方从 Git revision、用户从固定 ready Revision 构建按 hash 寻址的不可变 artifact → 两者进入同一 Registry/Object Store 和市场查询并拥有相同 Template/Version/Artifact/Market schema → 仅 Publisher verification/provenance 不同 → 收藏、创建、Runtime bootstrap、升级、撤销走同一服务 → 用户源码完成隐私清理且不能伪造官方标记 |
 | 18 | Template 有序版本治理 | 新 Template 必须从 `0.1.0` 开始 → 仅不可变 Project/能力/兼容契约变化允许按 SemVer 单步升 patch/minor/major → 跳号、倒序、重复版本、空内容升级和非规范版本被拒绝 → `currentVersionId` 始终指向最高版本 → Template schema、SDK/Runtime、Space Revision/Release 版本不与 Template 版本联动 |
+| 19 | Agent Definition/Binding 权威切换 | 新建 Space 幂等写入默认 Pi Definition/binding，重试不重新启用 disabled binding → Runtime snapshot 与 Matrix v2 state 同时保留兼容 `defaultAgentId` 并输出不含 provider secret、prompt、预算细节的公开 Agent view → 精确 Mention 复核后按 binding/Definition version/policy/session generation/Project Revision 预留积分 → 现有 Turn queue 固定完整 snapshot 与 reservation transaction ID → disabled、Definition version mismatch、余额不足和预算超限在入队前拒绝，Runtime 失败只退款一次，重复 Matrix event 不重复扣费或覆盖原 snapshot |
 
 `chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
 
@@ -1503,6 +1504,12 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 - 在用户明确授权发送测试 Space Project 源码与 Prompt 后，以 `E2E_SPACE_AGENT_EXPECT_READY=1` 运行 `chat-space-agent-collaboration.spec.ts`：两条真实 Pi/provider 用例 2/2 通过。双 Chromium Context 在真实 Synapse Space 中只保留一个幂等 Agent Matrix event，刷新后双方仍各见一条；真实 Agent 修改完整 Project 后，两个 live App surface 收敛到同一新 ready Revision，Published Release 未被隐式改写。未启用 `SPACE_AGENT_FAKE_ENABLED` / `E2E_SPACE_FAKE_AGENT_READY`，因此确定性 Candidate 失败用例按设计跳过；其 2026-08-25 的独立 1/1 证据仍有效。
 - 使用 SQLite、本地 Synapse、受管 Rivet Engine 和 Node 24.15.0 运行完整 TanStack Chromium E2E：56 通过、0 失败、3 跳过，跳过项均为需要显式 Agent 开关的 collaboration 用例。账户定向 spec 另为 13/13 通过；推荐流程显式启用 `AFFILIATE_ENABLED=true`，以注册后真实余额为基线并按 `/api/affiliate/stats` 返回的双方奖励配置验证各增加一次，不再写死欢迎积分或推荐奖励。
+
+2026-08-27 S3 Definition/Binding 权威切换 E2E 复验：
+
+- 以真实 Synapse、managed Rivet Engine、Host Pi/provider、SQLite `0014` 和两个独立 Chromium Context 重新运行 `chat-space-agent-collaboration.spec.ts`，结果为 2 通过、0 失败、1 个未启用 Fake Adapter 的 Candidate 故障注入场景按设计跳过。
+- 幂等 Agent Matrix event 场景新增验证：新建 Space 的 Product DB 默认 Pi binding 同时投影到 Runtime snapshot 与 Matrix `io.vibechat.space.instance.v2` state；两处继续保留 `defaultAgentId=pi`，公开 view 只包含 Binding/Definition 公共字段。真实 Agent 回复在双方与刷新后仍各唯一一条。
+- 真实 Pi Project Revision 场景再次通过，两个 live App surface 收敛到同一 ready Revision，Published Release 未被隐式移动。本证据不覆盖 S4 cancel/session restore，也不把本地 managed Engine 解释为 S5 生产区域部署。
 - 账户、Admin 和认证页面断言改为稳定 surface/test id、结构与 ARIA role，不依赖当前中英文文案；未修改产品行为。本文保留 2026-08-25 “当时未授权、未执行”的历史事实，本条记录后续授权和实际通过证据。
 
 ---

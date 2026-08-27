@@ -1,8 +1,12 @@
 import type {
   AgentDefinitionSnapshot,
+  SpaceAgentPublicView,
   SpaceAgentBindingSnapshot,
 } from '@vibechat/space-agent-contracts'
-import { defaultPiAgentId } from '../bootstrap'
+import {
+  createDefaultPiBinding,
+  defaultPiAgentId,
+} from '../bootstrap'
 import type { SpaceAgentRegistryService } from '../registry/service'
 import type { SpaceAgentBindingRepository } from './repository'
 
@@ -47,7 +51,12 @@ export class SpaceAgentBindingService {
         agentId: binding.agentId,
         definitionId: binding.definitionId,
       })
-      if (!definition || definition.status !== 'active') {
+      if (
+        !definition
+        || definition.status !== 'active'
+        || definition.availability === 'unavailable'
+        || definition.version !== binding.definitionVersion
+      ) {
         return {
           status: 'denied',
           reason: 'definition_unavailable',
@@ -74,7 +83,11 @@ export class SpaceAgentBindingService {
     }
 
     const definition = await this.registry.resolveDefinition({ agentId: fallbackAgentId })
-    if (!definition || definition.status !== 'active') {
+    if (
+      !definition
+      || definition.status !== 'active'
+      || definition.availability === 'unavailable'
+    ) {
       return {
         status: 'denied',
         reason: 'definition_unavailable',
@@ -88,5 +101,95 @@ export class SpaceAgentBindingService {
       definition,
       binding: null,
     }
+  }
+
+  async getPublicSnapshot(input: {
+    spaceInstanceId: string
+    legacyDefaultAgentId?: string | null
+    now?: Date
+  }): Promise<{
+    defaultAgentId: string
+    agents: SpaceAgentPublicView[]
+  }> {
+    let bindings = await this.bindings.listBindings(input.spaceInstanceId)
+    if (
+      bindings.length === 0
+      && (!input.legacyDefaultAgentId || input.legacyDefaultAgentId === defaultPiAgentId)
+    ) {
+      bindings = [createDefaultPiBinding(input.spaceInstanceId, input.now || new Date())]
+    }
+
+    const agents = await Promise.all(bindings.map(async (binding) => {
+      const definition = await this.registry.resolveDefinition({
+        agentId: binding.agentId,
+        definitionId: binding.definitionId,
+      })
+      return {
+        binding: publicBinding(binding),
+        definition: definition && definition.version === binding.definitionVersion
+          ? publicDefinition(definition)
+          : null,
+      }
+    }))
+    return {
+      defaultAgentId: bindings.find((binding) => binding.isDefault)?.agentId
+        || input.legacyDefaultAgentId
+        || defaultPiAgentId,
+      agents,
+    }
+  }
+}
+
+function publicBinding(binding: SpaceAgentBindingSnapshot): SpaceAgentPublicView['binding'] {
+  const {
+    bindingId,
+    spaceInstanceId,
+    agentId,
+    definitionId,
+    definitionVersion,
+    isDefault,
+    status,
+    createdAt,
+    updatedAt,
+  } = binding
+  return {
+    bindingId,
+    spaceInstanceId,
+    agentId,
+    definitionId,
+    definitionVersion,
+    isDefault,
+    status,
+    createdAt,
+    updatedAt,
+  }
+}
+
+function publicDefinition(
+  definition: AgentDefinitionSnapshot,
+): SpaceAgentPublicView['definition'] {
+  const {
+    definitionId,
+    agentId,
+    version,
+    capabilities,
+    displayName,
+    description,
+    status,
+    availability,
+    createdAt,
+    updatedAt,
+  } = definition
+  return {
+    definitionId,
+    agentId,
+    version,
+    capabilities,
+    displayName,
+    description,
+    status,
+    availability,
+    createdAt,
+    updatedAt,
   }
 }

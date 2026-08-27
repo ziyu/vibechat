@@ -54,6 +54,7 @@
 - [x] `boundaries:check` 已从过渡白名单收紧为目录规则：阻止 concrete 目录外的 AgentOS/Pi import、`deployApp()`/`vm.getOrCreate()` 越界、Adapter 依赖 Backend/credits/Matrix/DB，以及新 Runtime core `appId` 参数。
 - [x] Node 24.19.0 下 Space Runtime 22 个测试文件、73 个测试通过，Space Runtime typecheck/build、应用边界检查、文档检查与 docs app 直接生产构建通过；最终 GitNexus、根门禁和 E2E 环境边界记录见 Agent 实施结构计划的 S1 完成证据。
 - [x] S2 已完成：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段已落地。Wrangler 本地 D1 `0000 → 0014`、PostgreSQL 17 单独 `0014` 与恢复 journal 后的完整 `0000 → 0014` migration 均已验证，D1/PG repository contract 各 1/1 通过。S3 invoke/enqueue 固定 snapshot 仍未开始。
+- [x] S3 已完成：Backend invoke 已提取为可测试 application service，Definition/Binding/session policy 成为调用权威；新建 Space 幂等写默认 Pi binding，现有 Turn 固定 Definition/Adapter/session/policy/Project/reservation snapshot，Runtime snapshot 与 Matrix v2 state 输出公开 Agent view，callback 优先按固定字段 fencing。默认仍只开放 Pi；真实 Synapse + Pi/provider 双 Chromium E2E 2/2 通过，完整 Adapter cancel/restore 和生产 Engine 继续属于 S4/S5。
 
 尚未完成：
 

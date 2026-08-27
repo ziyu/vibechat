@@ -28,6 +28,55 @@ afterAll(() => {
 });
 
 describe("durable Space Runtime control plane", () => {
+  it("persists the pinned Agent snapshot and does not overwrite it on event retry", async () => {
+    const original = await control.enqueueTurn({
+      turnId: "turn-pinned-snapshot",
+      spaceInstanceId: "space-instance-pinned-snapshot",
+      externalRequestId: "matrix-pinned-snapshot",
+      kind: "message",
+      agentId: "pi",
+      agentDefinitionId: "agent-definition-pi-v1",
+      agentDefinitionVersion: "1.0.0",
+      adapterKey: "pi",
+      adapterVersion: "0.2.7",
+      sessionGeneration: 3,
+      policySnapshotHash: `sha256:${"a".repeat(64)}`,
+      reservationTransactionId: "ai-chat:reservation-fixed",
+      payloadSchemaVersion: "vibechat.agent-turn-input/v1",
+      payload: { requestText: "original" },
+    });
+    const duplicate = await control.enqueueTurn({
+      turnId: "turn-pinned-snapshot-duplicate",
+      spaceInstanceId: "space-instance-pinned-snapshot",
+      externalRequestId: "matrix-pinned-snapshot",
+      kind: "message",
+      agentId: "other-agent",
+      agentDefinitionId: "other-definition",
+      agentDefinitionVersion: "9.9.9",
+      adapterKey: "other",
+      adapterVersion: "9.9.9",
+      sessionGeneration: 99,
+      policySnapshotHash: `sha256:${"b".repeat(64)}`,
+      reservationTransactionId: "other-reservation",
+      payloadSchemaVersion: "other-schema/v9",
+      payload: { requestText: "duplicate" },
+    });
+
+    expect(duplicate.turnId).toBe(original.turnId);
+    expect(await control.getTurn(original.turnId)).toMatchObject({
+      agentId: "pi",
+      agentDefinitionId: "agent-definition-pi-v1",
+      agentDefinitionVersion: "1.0.0",
+      adapterKey: "pi",
+      adapterVersion: "0.2.7",
+      sessionGeneration: 3,
+      policySnapshotHash: `sha256:${"a".repeat(64)}`,
+      reservationTransactionId: "ai-chat:reservation-fixed",
+      payloadSchemaVersion: "vibechat.agent-turn-input/v1",
+      payload: { requestText: "original" },
+    });
+  });
+
   it("preserves M1/P/M2 ordering, fences the old owner, and deduplicates takeover effects", async () => {
     const instanceId = "space-instance-failover";
     const leaseA = await control.claimLease(instanceId, "replica-a", 5_000);

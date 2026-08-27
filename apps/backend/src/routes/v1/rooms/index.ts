@@ -13,6 +13,7 @@ import {
 import { SocialServiceError } from '@libs/social'
 import { withCfDb } from '@/lib/with-request-db'
 import { socialServiceErrorResponse } from '@/lib/social-api'
+import { ensureDefaultSpaceAgentBinding } from '@/lib/space-agent-binding-provisioning'
 
 function getRequestId(request: Request) {
   return request.headers.get('x-request-id') || globalThis.crypto.randomUUID()
@@ -84,6 +85,7 @@ export const Route = createFileRoute('/v1/rooms/')({
             accessToken: credentials.accessToken,
             ...parsed.data,
           })
+          await ensureDefaultSpaceAgentBinding(room)
           const response = roomBootstrapSchema.parse({
             matrixRoomId: room.matrixRoomId,
             spaceInstanceId: room.spaceInstanceId,

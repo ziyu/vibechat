@@ -224,6 +224,36 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
       )
       expect(beforeResponse.ok(), await beforeResponse.text()).toBeTruthy()
       const before = await beforeResponse.json()
+      expect(before).toMatchObject({
+        defaultAgentId: 'pi',
+        availableAgents: [{ id: 'pi', name: 'Pi', available: true }],
+        agents: [{
+          binding: {
+            agentId: 'pi',
+            isDefault: true,
+            status: 'active',
+          },
+          definition: {
+            agentId: 'pi',
+            displayName: 'Pi',
+            status: 'active',
+            availability: 'available',
+          },
+        }],
+      })
+      const matrixV2StateResponse = await first.page.request.get(
+        `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(room.matrixRoomId)}/state/${encodeURIComponent('io.vibechat.space.instance.v2')}/`,
+        { headers: { authorization: `Bearer ${first.bootstrap.matrix.accessToken}` } },
+      )
+      expect(matrixV2StateResponse.ok(), await matrixV2StateResponse.text()).toBeTruthy()
+      await expect(matrixV2StateResponse.json()).resolves.toMatchObject({
+        schemaVersion: 'vibechat.space-instance/v2',
+        defaultAgentId: 'pi',
+        agents: [{
+          binding: { agentId: 'pi', isDefault: true, status: 'active' },
+          definition: { agentId: 'pi', displayName: 'Pi', availability: 'available' },
+        }],
+      })
       const replyToken = `AGENT_MATRIX_${suffix.replaceAll('-', '_')}`
       const agentPrompt = `@pi 请只回复 ${replyToken}，不要修改任何 App 代码。`
       await firstChat.getByTestId('message-input').fill(agentPrompt)

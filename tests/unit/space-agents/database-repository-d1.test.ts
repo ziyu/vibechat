@@ -49,6 +49,7 @@ describe('DatabaseSpaceAgentRepository on a D1 request binding', () => {
       )
       await repository.upsertBinding(bindingSnapshot)
       await expect(repository.findBinding('space-d1-1', 'pi')).resolves.toEqual(bindingSnapshot)
+      await expect(repository.listBindings('space-d1-1')).resolves.toEqual([bindingSnapshot])
 
       await repository.saveSession({
         schemaVersion: 'vibechat.agent-session-ref/v1',

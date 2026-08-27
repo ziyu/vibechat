@@ -47,6 +47,10 @@ describe('DatabaseSpaceAgentRepository on SQLite', () => {
       ...binding,
       updatedAt: '2026-08-27T02:00:00.000Z',
     })
+    await expect(repository.listBindings('space-repository-1')).resolves.toEqual([{
+      ...binding,
+      updatedAt: '2026-08-27T02:00:00.000Z',
+    }])
   })
 
   it('persists a single Space-Agent session generation and bounded audit metadata', async () => {

@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { agentTurnInputV1Schema } from "@vibechat/space-agent-contracts";
 import { assertAppId } from "../../app-id.js";
 import type { SpaceRuntimeDependencies } from "../../composition/dependencies.js";
 import { errorMessage } from "../../composition/errors.js";
@@ -30,6 +31,8 @@ export function registerTurnRoutes(
       matrixEventId?: unknown;
       agentId?: unknown;
       billing?: unknown;
+      turnId?: unknown;
+      agentTurn?: unknown;
     };
     const message = body.message;
     if (
@@ -62,13 +65,35 @@ export function registerTurnRoutes(
     if (body.billing && !billing) {
       return context.json({ error: "billing callback is invalid" }, 400);
     }
+    const agentTurn = body.agentTurn
+      ? agentTurnInputV1Schema.safeParse(body.agentTurn)
+      : null;
+    if (body.agentTurn && !agentTurn?.success) {
+      return context.json({ error: "agent turn snapshot is invalid" }, 400);
+    }
+    if (agentTurn?.success && (
+      typeof body.turnId !== "string" || !body.turnId.trim()
+    )) {
+      return context.json({ error: "agent turn id is required with a snapshot" }, 400);
+    }
+    if (agentTurn?.success && (
+      agentTurn.data.spaceInstanceId !== appId ||
+      agentTurn.data.agentId !== agentId ||
+      (typeof body.turnId === "string" && agentTurn.data.turnId !== body.turnId)
+    )) {
+      return context.json({ error: "agent turn snapshot does not match the request" }, 400);
+    }
     const turn = await runtime.spaces.beginTurn(appId, {
+      ...(typeof body.turnId === "string" && body.turnId.trim()
+        ? { turnId: body.turnId.trim() }
+        : {}),
       clientId: member.clientId,
       authorName: member.name,
       text: message.trim(),
       kind: "message",
       externalRequestId: body.matrixEventId,
       agentId,
+      ...(agentTurn?.success ? { agentTurn: agentTurn.data } : {}),
       ...(billing ? { billing } : {}),
     });
     return context.json({ accepted: true, ...turn }, 202);

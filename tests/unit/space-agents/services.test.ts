@@ -49,6 +49,12 @@ class MemoryRepository implements
     )) || null
   }
 
+  async listBindings(spaceInstanceId: string) {
+    return [...this.bindings.values()].filter((binding) => (
+      binding.spaceInstanceId === spaceInstanceId
+    ))
+  }
+
   async upsertBinding(binding: SpaceAgentBindingSnapshot) {
     this.bindings.set(`${binding.spaceInstanceId}:${binding.agentId}`, binding)
   }
@@ -122,6 +128,94 @@ describe('Space Agent domain services', () => {
       status: 'denied',
       reason: 'agent_not_bound',
       agentId: 'other-agent',
+    })
+  })
+
+  it('rejects a binding whose pinned Definition version is no longer resolvable', async () => {
+    const repository = new MemoryRepository()
+    const binding = {
+      ...createDefaultPiBinding('space-version', new Date('2026-08-27T00:00:00.000Z')),
+      definitionVersion: '0.9.0',
+    }
+    await repository.upsertDefinition(defaultPiDefinition)
+    await repository.upsertBinding(binding)
+    const service = new SpaceAgentBindingService(
+      repository,
+      new SpaceAgentRegistryService(repository),
+    )
+
+    await expect(service.resolveForInvocation({
+      spaceInstanceId: 'space-version',
+      requestedAgentId: 'pi',
+      legacyDefaultAgentId: 'pi',
+    })).resolves.toEqual({
+      status: 'denied',
+      reason: 'definition_unavailable',
+      agentId: 'pi',
+    })
+  })
+
+  it('publishes only public binding and Definition fields with binding default authority', async () => {
+    const repository = new MemoryRepository()
+    const binding = createDefaultPiBinding('space-public', new Date('2026-08-27T00:00:00.000Z'))
+    await repository.upsertDefinition(defaultPiDefinition)
+    await repository.upsertBinding(binding)
+    const service = new SpaceAgentBindingService(
+      repository,
+      new SpaceAgentRegistryService(repository),
+    )
+
+    const snapshot = await service.getPublicSnapshot({
+      spaceInstanceId: 'space-public',
+      legacyDefaultAgentId: 'legacy-agent',
+    })
+
+    expect(snapshot.defaultAgentId).toBe('pi')
+    expect(snapshot.agents).toEqual([{
+      binding: {
+        bindingId: binding.bindingId,
+        spaceInstanceId: 'space-public',
+        agentId: 'pi',
+        definitionId: defaultPiDefinition.definitionId,
+        definitionVersion: defaultPiDefinition.version,
+        isDefault: true,
+        status: 'active',
+        createdAt: binding.createdAt,
+        updatedAt: binding.updatedAt,
+      },
+      definition: {
+        definitionId: defaultPiDefinition.definitionId,
+        agentId: 'pi',
+        version: defaultPiDefinition.version,
+        capabilities: defaultPiDefinition.capabilities,
+        displayName: 'Pi',
+        description: defaultPiDefinition.description,
+        status: 'active',
+        availability: 'available',
+        createdAt: defaultPiDefinition.createdAt,
+        updatedAt: defaultPiDefinition.updatedAt,
+      },
+    }])
+    expect(snapshot.agents[0]?.definition).not.toHaveProperty('provider')
+    expect(snapshot.agents[0]?.binding).not.toHaveProperty('budgetPolicy')
+  })
+
+  it('keeps a Pi public projection during the legacy compatibility window', async () => {
+    const service = new SpaceAgentBindingService(
+      new MemoryRepository(),
+      new SpaceAgentRegistryService(new MemoryRepository()),
+    )
+
+    await expect(service.getPublicSnapshot({
+      spaceInstanceId: 'space-bootstrap',
+      legacyDefaultAgentId: 'pi',
+      now: new Date('2026-08-27T00:00:00.000Z'),
+    })).resolves.toMatchObject({
+      defaultAgentId: 'pi',
+      agents: [{
+        binding: { agentId: 'pi', isDefault: true, status: 'active' },
+        definition: { agentId: 'pi', displayName: 'Pi', availability: 'available' },
+      }],
     })
   })
 
