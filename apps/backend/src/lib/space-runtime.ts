@@ -106,7 +106,7 @@ export async function proxySpaceRuntimeAppResponse(response: Response) {
   headers.set('cache-control', 'private, no-store')
   headers.set(
     'content-security-policy',
-    "default-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'none'; media-src 'self' data: blob:",
+    "default-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'none'; media-src 'self' data: blob:",
   )
   const contentType = headers.get('content-type') || ''
   const body = response.ok && contentType.includes('text/html')

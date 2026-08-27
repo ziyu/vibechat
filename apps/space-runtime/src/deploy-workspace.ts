@@ -1,5 +1,6 @@
 import { deployApp } from "@rivet-dev/agentos-apps";
 import { assertAppId } from "./app-id.js";
+import { prepareProjectDependencies } from "./project-dependencies.js";
 import { loadProject, saveProject } from "./project-store.js";
 
 const sourceAppId = process.argv[2];
@@ -17,10 +18,11 @@ process.env.RIVET_ENDPOINT ??=
 const project = await loadProject(sourceAppId);
 if (!project) throw new Error(`No saved project found for ${sourceAppId}`);
 const files = project.files;
+const prepared = await prepareProjectDependencies(files, project.prepared);
 
 const deployment = await deployApp({
   appId,
-  files,
+  files: prepared.files,
   scaling: { minReplicas: 0, maxReplicas: 16, targetConcurrency: 4 },
 });
 await saveProject({
@@ -29,5 +31,6 @@ await saveProject({
   summary: `${project.summary}\n\n已从本地项目快照重新发布。`,
   updatedAt: new Date().toISOString(),
   releaseId: deployment.release,
+  prepared,
 });
 console.log(JSON.stringify(deployment, null, 2));

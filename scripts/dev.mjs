@@ -218,6 +218,11 @@ async function ensureCompatibleNativeDependencies() {
   }
 }
 
+function ensureLocalSpaceAppComponentPackage() {
+  console.log('[dev] Building the local published Space App component package')
+  runPnpm(['--filter', '@vibechat/space-app-components', 'build'])
+}
+
 async function ensureLocalDatabase() {
   if (developmentEnvironment.DB_DIALECT !== 'sqlite') return
 
@@ -387,6 +392,7 @@ async function stopManagedRivetEngine(engine) {
 }
 
 await ensurePackageManagerShim()
+ensureLocalSpaceAppComponentPackage()
 await ensureCompatibleNativeDependencies()
 await ensureLocalDatabase()
 await ensureLocalSynapse()

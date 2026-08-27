@@ -1,0 +1,178 @@
+# `@vibechat/space-app-components`
+
+Framework-neutral UI building blocks for code running inside a VibeChat Space App iframe.
+
+The package sits above `@vibechat/space-app-sdk` and below Space Templates. It provides injected SDK context, headless controllers, `vc-space-*` Web Components, SSR-safe render helpers, an offline component catalog, and immutable bundle metadata. It does not own identity, Matrix messages, permissions, Agent dispatch, billing, publishing or recovery.
+
+## Runtime boundary
+
+- `.` and `/core`: browser-safe APIs with no top-level browser-global access.
+- `/foundation`: Avatar、StatusDot、IconButton 与基础样式。
+- `/user`: member view model、UserAvatar、UserName 与 UserInfoCard。
+- `/agent`: provider-neutral Agent view model、AgentAvatar、Badge、Status 与 Card。
+- `/chat`: Matrix timeline view、只读/可写 controller、Composer/Mention/Attachment/Reaction/Actions/Error/Timeline elements。
+- `/chat/inline`: 仅供返回自包含 HTML 的 `agentos-app-v1` Project 使用的预构建 Chat 浏览器模块；普通浏览器构建使用 `/chat`。
+- `/register` 与 `/register/foundation|user|agent|chat`: 显式的 Custom Element 自动注册入口，也是 package 中仅有的 side-effect exports。
+- `/styles`: 可由 Template 覆盖的 semantic component token 与示例主题。
+- `/manifest`: bundle manifest types and validation.
+- `/node`: 仅供 VibeChat workspace/Runtime 使用的 Node package 构建、hash 与本地 Registry helper；不进入发布给 Space 的 package。
+- `/testing`: Node-side deterministic catalog/harness generation.
+
+## Space 中的稳定依赖方式
+
+Space 源码使用普通、语义化的 package import，不读取仓库路径，也不直接 vendor 组件源码。具备浏览器 bundler 的 App 直接使用领域入口：
+
+```ts
+import {
+  createSpaceChatController,
+  defineSpaceChatElements,
+} from "@vibechat/space-app-components/chat"
+```
+
+当前由 fetch handler 返回自包含 HTML 的官方 `agentos-app-v1` Template 使用专用 inline delivery entry；它仍然是同一个发布包的语义化 subpath，不是 Registry artifact 路径：
+
+```ts
+import {
+  spaceChatInlineModule,
+} from "@vibechat/space-app-components/chat/inline"
+```
+
+同时在 `package.json` 使用精确版本，并在 `space-app-dependencies.json` 固定 managed package integrity。Runtime 通过 `@vibechat/space-app-dependencies` 和注入的 Registry 校验 name/version/integrity，把已发布 package 复制到隔离的 prepared build，且只在该 build 的 `package.json` 中改写为 revision-local `file:` 依赖。可编辑 Project 源码始终保持普通 package specifier；生产浏览器、Dev Preview 和 Release 都不会访问 npm 或 CDN。
+
+## 构建与发布
+
+仓库只提交 `src/`、构建脚本、package metadata 和当前 `managed-release.json` integrity lock；`dist/`、package tarball 和逐版本编译产物全部 gitignored。不存在 `releases/<version>/package` 源码目录。`managed-release.json` 是仓库端发布锁，不是发布 package 内的公共文件。
+
+```bash
+pnpm --filter @vibechat/space-app-components release:prepare
+pnpm --filter @vibechat/space-app-components check:bundle
+pnpm --filter @vibechat/space-app-components release:pack
+```
+
+`release:prepare` 生成 `dist/package` 的标准 ESM package 并签锁当前 metadata；`release:pack` 生成可发布 tarball。Release job 必须把 tarball 上传 VibeChat managed Registry/Object Store，再登记不可变的 `name + version + integrity + objectKey`。公共 npm 不是线上 Runtime 的必要条件，但每个供 Space 使用的版本都必须经过这次 managed publish；npm-compatible Registry 或公共 npm 只能作为同一 package 的分发/mirror。
+
+Space Projects must inject the existing SDK client:
+
+```ts
+import { space } from "/v1/space-app-sdk"
+import {
+  createSpaceComponentContext,
+  createSpaceSnapshotController,
+} from "@vibechat/space-app-components/core"
+
+await space.ready
+const context = createSpaceComponentContext({ sdk: space })
+const controller = createSpaceSnapshotController(context)
+
+window.addEventListener("pagehide", () => {
+  controller.dispose()
+  context.dispose()
+}, { once: true })
+```
+
+Identity element 通过安全 attribute 支持 SSR/declarative document，通过 typed property 接收完整对象：
+
+```ts
+import { defineSpaceElements } from "@vibechat/space-app-components"
+import {
+  createSpaceUserIdentityView,
+  type SpaceUserInfoCardElement,
+} from "@vibechat/space-app-components/user"
+
+defineSpaceElements()
+
+const card = document.querySelector<SpaceUserInfoCardElement>(
+  "vc-space-user-info-card",
+)
+const member = space.members[0]
+
+if (card && member) {
+  card.user = createSpaceUserIdentityView(member)
+}
+```
+
+Chat 只接收注入的 SDK。完整 controller 分别订阅 message、typing 与身份相关事件，typing/presence-only 更新不会重建 messages view；所有命令仍委托给同一个 `SpaceAppClient`：
+
+```ts
+import {
+  createSpaceChatController,
+  spaceChatEventNames,
+  type SpaceChatComposerElement,
+  type SpaceChatTimelineElement,
+  type SpaceMentionMenuElement,
+} from "@vibechat/space-app-components/chat"
+import type { SpaceMentionTarget } from "@vibechat/space-app-sdk"
+
+const chat = createSpaceChatController(context)
+await chat.ready
+
+const timeline = document.querySelector<SpaceChatTimelineElement>(
+  "vc-space-chat-timeline",
+)
+const composer = document.querySelector<SpaceChatComposerElement>(
+  "vc-space-chat-composer",
+)
+const mentions = document.querySelector<SpaceMentionMenuElement>(
+  "vc-space-mention-menu",
+)
+
+function renderChat() {
+  const state = chat.getSnapshot()
+  if (timeline) {
+    timeline.state = state.ready ? "ready" : "loading"
+    timeline.messages = state.messages
+    timeline.typingUsers = state.typingUsers
+  }
+  if (composer) {
+    composer.draft = state.draft
+    composer.pending = state.pending !== null
+    composer.context = state.context && {
+      kind: state.context.kind,
+      messageId: state.context.message.id,
+      author: state.context.message.author.name,
+      text: state.context.message.text,
+    }
+  }
+  if (mentions) mentions.targets = state.mentionTargets
+}
+
+const unsubscribe = chat.subscribe(renderChat)
+renderChat()
+
+composer?.addEventListener(spaceChatEventNames.submit, (event) => {
+  const { text, mentionIds } = (event as CustomEvent<{
+    text: string
+    mentionIds: readonly string[]
+  }>).detail
+  chat.setDraft(text, mentionIds)
+  void chat.send()
+})
+composer?.addEventListener(spaceChatEventNames.typing, (event) => {
+  void chat.setTyping((event as CustomEvent<{ isTyping: boolean }>).detail.isTyping)
+})
+composer?.addEventListener(spaceChatEventNames.mentionQuery, (event) => {
+  const query = (event as CustomEvent<{ query: string | null }>).detail.query
+  if (query !== null) chat.searchMentions(query)
+})
+mentions?.addEventListener(spaceChatEventNames.mentionSelect, (event) => {
+  const target = (event as CustomEvent<{ target: SpaceMentionTarget }>).detail.target
+  chat.selectMention(target)
+  composer?.insertMention(target)
+})
+
+window.addEventListener("pagehide", () => {
+  unsubscribe()
+  chat.dispose()
+  context.dispose()
+}, { once: true })
+```
+
+Composer 的 Enter/Shift+Enter/IME、附件 input 和结构化 Mention 均由组件统一处理；Template adapter 只连接 typed event 与 controller。`MessageActions` 的 `canReply/canEdit/canDelete/canRetry` 必须来自 Template 已有的显式权限 view，组件不会猜测 ACL。Agent 请求只能随 `chat.send({ mentionIds })` 进入 Matrix，组件库不提供 `agent.invoke()`。
+
+`0.5.0` 保留 `0.4.1` 的 controller/element API，并建立 publishable ESM package、语义化 `/foundation|user|agent|chat` subpath、显式 `/register/*` side-effect entry、`/chat/inline` 自包含 HTML adapter 与 managed Registry provider。该版本把 Space 的正式消费方式从 Template 内相对 vendor 路径切换为普通 package specifier；组件交互语义、CSS token、Custom Element、typed event 和稳定 `data-testid` 不变。
+
+主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
+
+Browser bundles are built without network imports. 聚合、Foundation、User、Agent 与 Chat bundle 分别接受 gzip 预算检查；发布 package 自身保留未合并 ESM module boundary 和 `sideEffects` metadata，使普通 `/chat` 等领域入口可以继续由消费方 tree-shake。`dist/manifest.json` 将浏览器 bundle 绑定到同一个 package version、source/bundle hash、SDK range、Project format 与 CSS token version；`managed-release.json` 再把这些字段绑定到发布 package integrity，但不保存或引用 Git 内版本化编译目录。
+
+See the [development design](../../docs/development/space-app-component-library-design.md) and [Active implementation record](../../docs/development/active/space-app-component-library-implementation.md).

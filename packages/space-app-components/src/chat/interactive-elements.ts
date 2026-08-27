@@ -1,0 +1,972 @@
+import type { SpaceMentionTarget } from "@vibechat/space-app-sdk";
+import { createSpaceComponentTranslator } from "../core/context.js";
+import { defineSpaceElement, type SpaceElementRegistry } from "../foundation/element.js";
+import {
+  escapeSpaceAttribute,
+  sanitizeSpaceMediaUrl,
+} from "../foundation/safety.js";
+import type {
+  SpaceChatCommand,
+  SpaceChatCommandError,
+} from "./controller.js";
+import type {
+  SpaceChatAttachmentView,
+  SpaceChatAuthorView,
+  SpaceChatMessageView,
+  SpaceChatReactionView,
+} from "./view.js";
+
+export const spaceChatTimelineElementName = "vc-space-chat-timeline" as const;
+export const spaceChatComposerElementName = "vc-space-chat-composer" as const;
+export const spaceMentionMenuElementName = "vc-space-mention-menu" as const;
+export const spaceChatAttachmentElementName = "vc-space-chat-attachment" as const;
+export const spaceReactionBarElementName = "vc-space-reaction-bar" as const;
+export const spaceMessageActionsElementName = "vc-space-message-actions" as const;
+export const spaceChatErrorStateElementName = "vc-space-chat-error-state" as const;
+
+export const spaceChatEventNames = Object.freeze({
+  submit: "vc-space-chat-submit",
+  attach: "vc-space-chat-attach",
+  typing: "vc-space-chat-typing",
+  mentionQuery: "vc-space-mention-query",
+  mentionSelect: "vc-space-mention-select",
+  mentionDismiss: "vc-space-mention-dismiss",
+  cancelContext: "vc-space-chat-cancel-context",
+  reply: "vc-space-chat-reply",
+  edit: "vc-space-chat-edit",
+  delete: "vc-space-chat-delete",
+  retry: "vc-space-chat-retry",
+  reaction: "vc-space-chat-reaction",
+  dismissError: "vc-space-chat-dismiss-error",
+} as const);
+
+export interface SpaceMentionRange {
+  readonly start: number;
+  readonly end: number;
+}
+
+export interface SpaceChatComponentEventDetailMap {
+  [spaceChatEventNames.submit]: { text: string; mentionIds: readonly string[] };
+  [spaceChatEventNames.attach]: { file: File };
+  [spaceChatEventNames.typing]: { isTyping: boolean };
+  [spaceChatEventNames.mentionQuery]: {
+    query: string | null;
+    range: SpaceMentionRange | null;
+  };
+  [spaceChatEventNames.mentionSelect]: { target: SpaceMentionTarget };
+  [spaceChatEventNames.mentionDismiss]: Record<string, never>;
+  [spaceChatEventNames.cancelContext]: Record<string, never>;
+  [spaceChatEventNames.reply]: { messageId: string };
+  [spaceChatEventNames.edit]: { messageId: string };
+  [spaceChatEventNames.delete]: { messageId: string };
+  [spaceChatEventNames.retry]: { messageId: string };
+  [spaceChatEventNames.reaction]: { messageId: string; emoji: string };
+  [spaceChatEventNames.dismissError]: { command: SpaceChatCommand };
+}
+
+export type SpaceChatComponentEventName = keyof SpaceChatComponentEventDetailMap;
+export type SpaceChatComponentEvent<Name extends SpaceChatComponentEventName> =
+  CustomEvent<SpaceChatComponentEventDetailMap[Name]>;
+
+export interface SpaceChatComposerContext {
+  readonly kind: "reply" | "edit";
+  readonly messageId: string;
+  readonly author: string;
+  readonly text: string;
+}
+
+export interface SpaceMessageActionsView {
+  readonly messageId: string;
+  readonly canReply: boolean;
+  readonly canEdit: boolean;
+  readonly canDelete: boolean;
+  readonly canRetry: boolean;
+  readonly disabled?: boolean;
+}
+
+export type SpaceChatTimelineState = "loading" | "ready" | "error";
+
+export interface SpaceChatTimelineElement extends HTMLElement {
+  messages: readonly SpaceChatMessageView[];
+  typingUsers: readonly SpaceChatAuthorView[];
+  state: SpaceChatTimelineState;
+  error: string | null;
+}
+
+export interface SpaceChatComposerElement extends HTMLElement {
+  draft: string;
+  mentionIds: readonly string[];
+  context: SpaceChatComposerContext | null;
+  disabled: boolean;
+  pending: boolean;
+  insertMention(target: SpaceMentionTarget, range?: SpaceMentionRange | null): void;
+  focus(): void;
+}
+
+export interface SpaceMentionMenuElement extends HTMLElement {
+  targets: readonly SpaceMentionTarget[];
+  focusFirst(): void;
+}
+
+export interface SpaceChatAttachmentElement extends HTMLElement {
+  attachment: SpaceChatAttachmentView | null;
+}
+
+export interface SpaceReactionBarElement extends HTMLElement {
+  messageId: string;
+  reactions: readonly SpaceChatReactionView[];
+  disabled: boolean;
+}
+
+export interface SpaceMessageActionsElement extends HTMLElement {
+  actions: SpaceMessageActionsView | null;
+}
+
+export interface SpaceChatErrorStateElement extends HTMLElement {
+  error: SpaceChatCommandError | null;
+}
+
+function localeFor(element: HTMLElement) {
+  return element.getAttribute("locale")
+    || element.ownerDocument.documentElement.lang
+    || "en";
+}
+
+function emit<Name extends SpaceChatComponentEventName>(
+  element: HTMLElement,
+  name: Name,
+  detail: SpaceChatComponentEventDetailMap[Name],
+) {
+  return element.dispatchEvent(new CustomEvent(name, {
+    bubbles: true,
+    composed: true,
+    detail,
+  }));
+}
+
+function mentionRange(value: string, caret = value.length): SpaceMentionRange | null {
+  const prefix = value.slice(0, Math.max(0, caret));
+  const match = prefix.match(/(?:^|\s)@([^\s@]*)$/);
+  if (!match) return null;
+  const marker = prefix.lastIndexOf("@");
+  return marker < 0 ? null : { start: marker, end: caret };
+}
+
+function queryAt(value: string, range: SpaceMentionRange | null) {
+  return range ? value.slice(range.start + 1, range.end) : null;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export const spaceChatComposerStyles = `
+:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.context { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-block-end:.45rem; padding:.48rem .62rem; border-inline-start:.2rem solid var(--vc-space-color-accent,#d95835); border-radius:var(--vc-space-radius-control,.55rem); color:var(--vc-space-color-text-muted,#5d6670); background:var(--vc-space-color-surface,#f5f2eb); font-size:var(--vc-space-text-caption-size,.76rem); }
+.context[hidden] { display:none; }
+.context-copy { min-inline-size:0; overflow-wrap:anywhere; }
+.context button,.attach,.send { min-inline-size:2.75rem; min-block-size:2.75rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-control,.65rem); color:inherit; background:var(--vc-space-color-surface-raised,#fff); font:700 .78rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; }
+form { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:end; gap:.45rem; padding:.45rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-chat-composer-radius,1rem); background:var(--vc-space-color-surface-raised,#fff); }
+textarea { box-sizing:border-box; inline-size:100%; min-inline-size:0; min-block-size:2.75rem; max-block-size:8rem; resize:none; overflow-y:auto; padding:.7rem .35rem .48rem; border:0; outline:0; color:inherit; background:transparent; font:inherit; line-height:1.45; }
+textarea::placeholder { color:var(--vc-space-color-text-muted,#5d6670); }
+.send { border-color:var(--vc-space-color-accent,#d95835); color:var(--vc-space-color-accent-contrast,#fff); background:var(--vc-space-color-accent,#d95835); }
+button:disabled,textarea:disabled { cursor:not-allowed; opacity:.55; }
+button:focus-visible,textarea:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+@media (max-width:24rem) { form { gap:.25rem; padding:.35rem; } .attach,.send { min-inline-size:2.75rem; padding-inline:.4rem; } }
+@media (forced-colors:active),(prefers-contrast:more) { form,.context,.context button,.attach,.send { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+`;
+
+function createSpaceChatComposerElementClass() {
+  return class VcSpaceChatComposerElement extends HTMLElement implements SpaceChatComposerElement {
+    static readonly observedAttributes = ["disabled", "locale", "maxlength", "pending", "placeholder"];
+    #draft = "";
+    #mentionIds: string[] = [];
+    #mentionHandles = new Map<string, string>();
+    #context: SpaceChatComposerContext | null = null;
+    #composing = false;
+    #textarea: HTMLTextAreaElement | null = null;
+    #send: HTMLButtonElement | null = null;
+    #contextNode: HTMLElement | null = null;
+
+    get draft() { return this.#draft; }
+    set draft(value) {
+      this.#draft = String(value ?? "");
+      if (this.#textarea && this.#textarea.value !== this.#draft) {
+        this.#textarea.value = this.#draft;
+      }
+      this.resize();
+      this.syncDisabled();
+    }
+    get mentionIds() { return Object.freeze([...this.#mentionIds]); }
+    set mentionIds(value) {
+      this.#mentionIds = [...new Set(value ?? [])];
+    }
+    get context() { return this.#context; }
+    set context(value) {
+      this.#context = value;
+      this.renderContext();
+    }
+    get disabled() { return this.hasAttribute("disabled"); }
+    set disabled(value) { this.toggleAttribute("disabled", Boolean(value)); }
+    get pending() { return this.hasAttribute("pending"); }
+    set pending(value) { this.toggleAttribute("pending", Boolean(value)); }
+
+    connectedCallback() {
+      if (!this.shadowRoot) this.build();
+      this.syncAttributes();
+      this.renderContext();
+    }
+
+    attributeChangedCallback() {
+      if (this.isConnected) this.syncAttributes();
+    }
+
+    focus() { this.#textarea?.focus(); }
+
+    insertMention(target: SpaceMentionTarget, range?: SpaceMentionRange | null) {
+      if (!target?.id || !target.handle || target.available === false) return;
+      const textarea = this.#textarea;
+      const resolved = range ?? mentionRange(
+        this.#draft,
+        textarea?.selectionStart ?? this.#draft.length,
+      );
+      if (!resolved) return;
+      const replacement = `@${target.handle} `;
+      this.#draft = `${this.#draft.slice(0, resolved.start)}${replacement}${this.#draft.slice(resolved.end)}`;
+      this.#mentionIds = [...new Set([...this.#mentionIds, target.id])];
+      this.#mentionHandles.set(target.id, target.handle);
+      if (textarea) {
+        textarea.value = this.#draft;
+        const caret = resolved.start + replacement.length;
+        textarea.setSelectionRange(caret, caret);
+        textarea.focus();
+      }
+      this.resize();
+      this.syncDisabled();
+      emit(this, spaceChatEventNames.mentionQuery, { query: null, range: null });
+    }
+
+    private build() {
+      const root = this.attachShadow({ mode: "open" });
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceChatComposerStyles;
+      const context = this.ownerDocument.createElement("div");
+      context.className = "context";
+      context.hidden = true;
+      context.setAttribute("part", "context");
+      context.setAttribute("data-testid", "chat-context");
+      const contextCopy = this.ownerDocument.createElement("span");
+      contextCopy.className = "context-copy";
+      contextCopy.setAttribute("part", "context-copy");
+      const cancel = this.ownerDocument.createElement("button");
+      cancel.type = "button";
+      cancel.setAttribute("part", "cancel-context");
+      cancel.addEventListener("click", () => emit(
+        this,
+        spaceChatEventNames.cancelContext,
+        {},
+      ));
+      context.append(contextCopy, cancel);
+      const form = this.ownerDocument.createElement("form");
+      form.setAttribute("part", "form");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        this.submit();
+      });
+      const attach = this.ownerDocument.createElement("button");
+      attach.className = "attach";
+      attach.type = "button";
+      attach.setAttribute("part", "attach");
+      const file = this.ownerDocument.createElement("input");
+      file.type = "file";
+      file.hidden = true;
+      file.tabIndex = -1;
+      file.setAttribute("data-testid", "attachment-input");
+      attach.addEventListener("click", () => file.click());
+      file.addEventListener("change", () => {
+        const selected = file.files?.[0];
+        if (selected) emit(this, spaceChatEventNames.attach, { file: selected });
+        file.value = "";
+      });
+      const textarea = this.ownerDocument.createElement("textarea");
+      textarea.rows = 1;
+      textarea.setAttribute("part", "input");
+      textarea.setAttribute("data-testid", "message-input");
+      textarea.addEventListener("compositionstart", () => { this.#composing = true; });
+      textarea.addEventListener("compositionend", () => { this.#composing = false; });
+      textarea.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing && !this.#composing) {
+          event.preventDefault();
+          this.submit();
+        }
+      });
+      textarea.addEventListener("input", () => {
+        this.#draft = textarea.value;
+        for (const [id, handle] of this.#mentionHandles) {
+          const token = new RegExp(`(^|\\s)@${escapeRegExp(handle)}(?=\\s|$)`, "i");
+          if (!token.test(this.#draft)) {
+            this.#mentionHandles.delete(id);
+            this.#mentionIds = this.#mentionIds.filter((value) => value !== id);
+          }
+        }
+        this.resize();
+        this.syncDisabled();
+        emit(this, spaceChatEventNames.typing, {
+          isTyping: Boolean(this.#draft.trim()),
+        });
+        const range = mentionRange(this.#draft, textarea.selectionStart);
+        emit(this, spaceChatEventNames.mentionQuery, {
+          query: queryAt(this.#draft, range),
+          range,
+        });
+      });
+      const send = this.ownerDocument.createElement("button");
+      send.className = "send";
+      send.type = "submit";
+      send.setAttribute("part", "send");
+      send.setAttribute("data-testid", "send-message");
+      form.append(attach, file, textarea, send);
+      root.replaceChildren(style, context, form);
+      this.#textarea = textarea;
+      this.#send = send;
+      this.#contextNode = context;
+    }
+
+    private submit() {
+      const text = this.#draft.trim();
+      if (!text || this.disabled || this.pending) return;
+      emit(this, spaceChatEventNames.submit, {
+        text,
+        mentionIds: Object.freeze([...this.#mentionIds]),
+      });
+      emit(this, spaceChatEventNames.typing, { isTyping: false });
+    }
+
+    private resize() {
+      const textarea = this.#textarea;
+      if (!textarea) return;
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+    }
+
+    private syncAttributes() {
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const textarea = this.#textarea;
+      const send = this.#send;
+      const attach = this.shadowRoot?.querySelector<HTMLButtonElement>(".attach");
+      if (textarea) {
+        textarea.disabled = this.disabled;
+        textarea.maxLength = Math.max(1, Number(this.getAttribute("maxlength")) || 4000);
+        textarea.placeholder = this.getAttribute("placeholder")
+          || translate("space.components.chat.composer.placeholder");
+        textarea.setAttribute("aria-label", textarea.placeholder);
+      }
+      if (attach) {
+        attach.disabled = this.disabled || this.pending;
+        attach.textContent = translate("space.components.chat.composer.attach");
+        attach.setAttribute("aria-label", translate("space.components.chat.composer.attach"));
+      }
+      if (send) {
+        send.textContent = this.pending
+          ? translate("space.components.chat.composer.pending")
+          : translate("space.components.chat.composer.send");
+        send.setAttribute("aria-label", send.textContent);
+      }
+      this.syncDisabled();
+    }
+
+    private syncDisabled() {
+      if (this.#send) {
+        this.#send.disabled = this.disabled || this.pending || !this.#draft.trim();
+      }
+    }
+
+    private renderContext() {
+      const container = this.#contextNode;
+      if (!container) return;
+      const copy = container.querySelector<HTMLElement>(".context-copy");
+      const cancel = container.querySelector<HTMLButtonElement>("button");
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      container.hidden = !this.#context;
+      if (copy && this.#context) {
+        copy.textContent = translate(
+          `space.components.chat.context.${this.#context.kind}`,
+          { author: this.#context.author, text: this.#context.text },
+        );
+      }
+      if (cancel) {
+        cancel.textContent = translate("space.components.chat.context.cancel");
+        cancel.setAttribute("aria-label", cancel.textContent);
+      }
+    }
+  };
+}
+
+export const spaceMentionMenuStyles = `
+:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.menu { display:grid; max-block-size:13rem; overflow:auto; gap:.18rem; padding:.35rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface-raised,#fff); box-shadow:0 .8rem 2.2rem color-mix(in srgb,var(--vc-space-color-text,#172026) 18%,transparent); }
+.menu[hidden] { display:none; }
+button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.75rem; align-items:center; min-block-size:2.75rem; padding:.55rem .7rem; border:1px solid transparent; border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:transparent; text-align:start; cursor:pointer; }
+button:hover,button:focus-visible { border-color:var(--vc-space-color-accent,#d95835); outline:2px solid transparent; background:var(--vc-space-color-surface,#f5f2eb); }
+button:disabled { cursor:not-allowed; opacity:.55; }
+.identity { display:grid; min-inline-size:0; }
+.name,.handle { min-inline-size:0; overflow-wrap:anywhere; }
+.handle,.kind { color:var(--vc-space-color-text-muted,#5d6670); font-size:var(--vc-space-text-caption-size,.75rem); }
+.kind { text-align:end; }
+@media (forced-colors:active),(prefers-contrast:more) { .menu,button:focus-visible { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+`;
+
+function createSpaceMentionMenuElementClass() {
+  return class VcSpaceMentionMenuElement extends HTMLElement implements SpaceMentionMenuElement {
+    static readonly observedAttributes = ["locale"];
+    #targets: readonly SpaceMentionTarget[] = Object.freeze([]);
+    get targets() { return this.#targets; }
+    set targets(value) {
+      this.#targets = Object.freeze([...(value ?? [])]);
+      if (this.isConnected) this.render();
+    }
+    connectedCallback() {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      this.render();
+    }
+    attributeChangedCallback() {
+      if (this.isConnected) this.render();
+    }
+    focusFirst() {
+      this.shadowRoot?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+    }
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceMentionMenuStyles;
+      const menu = this.ownerDocument.createElement("div");
+      menu.className = "menu";
+      menu.hidden = this.targets.length === 0;
+      menu.setAttribute("part", "menu");
+      menu.setAttribute("role", "listbox");
+      menu.setAttribute("aria-label", translate("space.components.chat.mention.label"));
+      const focusAt = (current: HTMLButtonElement, offset: number) => {
+        const buttons = Array.from(
+          menu.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+        );
+        const index = Math.max(0, buttons.indexOf(current));
+        buttons[(index + offset + buttons.length) % buttons.length]?.focus();
+      };
+      for (const target of this.targets) {
+        const button = this.ownerDocument.createElement("button");
+        button.type = "button";
+        button.disabled = target.available === false;
+        button.setAttribute("role", "option");
+        button.setAttribute("part", "option");
+        const identity = this.ownerDocument.createElement("span");
+        identity.className = "identity";
+        const name = this.ownerDocument.createElement("strong");
+        name.className = "name";
+        name.textContent = target.name;
+        const handle = this.ownerDocument.createElement("span");
+        handle.className = "handle";
+        handle.textContent = `@${target.handle}`;
+        identity.append(name, handle);
+        const kind = this.ownerDocument.createElement("span");
+        kind.className = "kind";
+        kind.textContent = target.available === false
+          ? translate("space.components.chat.mention.unavailable")
+          : translate(`space.components.chat.mention.${target.type}`);
+        button.append(identity, kind);
+        const select = () => emit(this, spaceChatEventNames.mentionSelect, { target });
+        button.addEventListener("click", select);
+        button.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            focusAt(button, event.key === "ArrowDown" ? 1 : -1);
+          } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            const buttons = Array.from(
+              menu.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+            );
+            buttons[event.key === "Home" ? 0 : buttons.length - 1]?.focus();
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            emit(this, spaceChatEventNames.mentionDismiss, {});
+          }
+        });
+        menu.append(button);
+      }
+      root.replaceChildren(style, menu);
+    }
+  };
+}
+
+function attachmentFromAttributes(element: HTMLElement): SpaceChatAttachmentView | null {
+  const name = element.getAttribute("name")?.trim();
+  if (!name) return null;
+  const kind = element.getAttribute("kind") === "image" ? "image" : "file";
+  const rawSize = Number(element.getAttribute("size"));
+  return {
+    name,
+    kind,
+    mediaType: element.getAttribute("media-type")?.trim() || null,
+    size: Number.isFinite(rawSize) && rawSize >= 0 ? Math.floor(rawSize) : null,
+    downloadUrl: sanitizeSpaceMediaUrl(element.getAttribute("download-url")),
+    previewUrl: kind === "image"
+      ? sanitizeSpaceMediaUrl(element.getAttribute("preview-url"))
+      : null,
+  };
+}
+
+function formatBytes(size: number | null, locale: string) {
+  if (size === null) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  let value = size;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: index ? 1 : 0 }).format(value)} ${units[index]}`;
+}
+
+export const spaceChatAttachmentStyles = `
+:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.attachment { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:.7rem; min-block-size:2.75rem; padding:.55rem .65rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-control,.65rem); color:inherit; background:var(--vc-space-color-surface,#f5f2eb); text-decoration:none; }
+.preview { inline-size:4rem; block-size:3.25rem; border-radius:.45rem; object-fit:cover; background:var(--vc-space-color-surface-raised,#fff); }
+.mark { display:grid; inline-size:2.75rem; block-size:2.75rem; place-items:center; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:.45rem; font-weight:800; }
+.copy { display:grid; min-inline-size:0; gap:.15rem; }
+.name,.meta { min-inline-size:0; overflow-wrap:anywhere; }
+.meta { color:var(--vc-space-color-text-muted,#5d6670); font-size:var(--vc-space-text-caption-size,.75rem); }
+a:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+@media (forced-colors:active),(prefers-contrast:more) { .attachment,.mark { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+`;
+
+function createSpaceChatAttachmentElementClass() {
+  return class VcSpaceChatAttachmentElement extends HTMLElement implements SpaceChatAttachmentElement {
+    static readonly observedAttributes = [
+      "download-url",
+      "kind",
+      "locale",
+      "media-type",
+      "name",
+      "preview-url",
+      "size",
+    ];
+    #attachment: SpaceChatAttachmentView | null = null;
+    get attachment() { return this.#attachment; }
+    set attachment(value) {
+      this.#attachment = value;
+      if (this.isConnected) this.render();
+    }
+    connectedCallback() {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      this.render();
+    }
+    attributeChangedCallback() {
+      if (this.isConnected && !this.#attachment) this.render();
+    }
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const attachment = this.#attachment ?? attachmentFromAttributes(this);
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceChatAttachmentStyles;
+      if (!attachment) {
+        root.replaceChildren(style);
+        return;
+      }
+      const url = sanitizeSpaceMediaUrl(attachment.downloadUrl);
+      const container = this.ownerDocument.createElement(url ? "a" : "div");
+      container.className = "attachment";
+      container.setAttribute("part", "attachment");
+      container.setAttribute("data-testid", "message-attachment");
+      if (container instanceof HTMLAnchorElement && url) {
+        container.href = url;
+        container.target = "_blank";
+        container.rel = "noopener noreferrer";
+      }
+      const previewUrl = attachment.kind === "image"
+        ? sanitizeSpaceMediaUrl(attachment.previewUrl || url)
+        : null;
+      if (previewUrl) {
+        const image = this.ownerDocument.createElement("img");
+        image.className = "preview";
+        image.src = previewUrl;
+        image.alt = attachment.name;
+        image.loading = "lazy";
+        image.setAttribute("part", "preview");
+        image.addEventListener("error", () => image.remove(), { once: true });
+        container.append(image);
+      } else {
+        const mark = this.ownerDocument.createElement("span");
+        mark.className = "mark";
+        mark.textContent = attachment.kind === "image" ? "IMG" : "FILE";
+        mark.setAttribute("aria-hidden", "true");
+        mark.setAttribute("part", "mark");
+        container.append(mark);
+      }
+      const copy = this.ownerDocument.createElement("span");
+      copy.className = "copy";
+      const name = this.ownerDocument.createElement("strong");
+      name.className = "name";
+      name.textContent = attachment.name;
+      const meta = this.ownerDocument.createElement("span");
+      meta.className = "meta";
+      meta.textContent = [
+        attachment.mediaType,
+        formatBytes(attachment.size, localeFor(this)),
+      ].filter(Boolean).join(" · ");
+      copy.append(name, meta);
+      container.append(copy);
+      root.replaceChildren(style, container);
+    }
+  };
+}
+
+export const spaceReactionBarStyles = `
+:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.bar { display:flex; min-inline-size:0; flex-wrap:wrap; gap:.35rem; }
+button { min-inline-size:2.75rem; min-block-size:2.75rem; padding:.45rem .7rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:999px; color:var(--vc-space-color-text-muted,#5d6670); background:var(--vc-space-color-surface,#f5f2eb); font:700 .78rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; overflow-wrap:anywhere; }
+button[aria-pressed="true"] { border-width:2px; color:var(--vc-space-color-text,#172026); background:color-mix(in srgb,var(--vc-space-color-accent,#d95835) 14%,var(--vc-space-color-surface,#f5f2eb)); }
+button:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+button:disabled { cursor:not-allowed; opacity:.55; }
+@media (forced-colors:active),(prefers-contrast:more) { button,button[aria-pressed="true"] { border:2px solid CanvasText; background:Canvas; color:CanvasText; } button[aria-pressed="true"] { outline:1px solid CanvasText; } }
+`;
+
+function createSpaceReactionBarElementClass() {
+  return class VcSpaceReactionBarElement extends HTMLElement implements SpaceReactionBarElement {
+    static readonly observedAttributes = ["disabled", "locale", "message-id"];
+    #messageId = "";
+    #reactions: readonly SpaceChatReactionView[] | null = null;
+    get messageId() { return this.#messageId || this.getAttribute("message-id") || ""; }
+    set messageId(value) { this.#messageId = value; if (this.isConnected) this.render(); }
+    get reactions() { return this.#reactions ?? []; }
+    set reactions(value) { this.#reactions = Object.freeze([...(value ?? [])]); if (this.isConnected) this.render(); }
+    get disabled() { return this.hasAttribute("disabled"); }
+    set disabled(value) { this.toggleAttribute("disabled", Boolean(value)); }
+    connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: "open" }); this.render(); }
+    attributeChangedCallback() { if (this.isConnected) this.render(); }
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceReactionBarStyles;
+      const bar = this.ownerDocument.createElement("div");
+      bar.className = "bar";
+      bar.setAttribute("part", "bar");
+      bar.setAttribute("aria-label", translate("space.components.chat.reactions.label"));
+      for (const reaction of this.reactions) {
+        const button = this.ownerDocument.createElement("button");
+        button.type = "button";
+        button.disabled = this.disabled;
+        button.setAttribute("part", "reaction");
+        button.setAttribute("aria-pressed", String(reaction.reactedBySelf));
+        button.setAttribute("aria-label", translate("space.components.chat.reaction.button", {
+          emoji: reaction.emoji,
+          count: reaction.count,
+          current: reaction.reactedBySelf
+            ? translate("space.components.chat.reaction.current")
+            : translate("space.components.chat.reaction.not-current"),
+        }));
+        button.textContent = `${reaction.emoji} ${reaction.count}`;
+        button.addEventListener("click", () => emit(
+          this,
+          spaceChatEventNames.reaction,
+          { messageId: this.messageId, emoji: reaction.emoji },
+        ));
+        bar.append(button);
+      }
+      root.replaceChildren(style, bar);
+    }
+  };
+}
+
+export const spaceMessageActionsStyles = `
+:host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.actions { display:flex; flex-wrap:wrap; gap:.35rem; }
+.actions[hidden] { display:none; }
+button { min-block-size:2.75rem; padding:.45rem .7rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:var(--vc-space-color-surface,#f5f2eb); font:700 .76rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; }
+button:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+button:disabled { cursor:not-allowed; opacity:.55; }
+@media (forced-colors:active),(prefers-contrast:more) { button { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+`;
+
+function createSpaceMessageActionsElementClass() {
+  return class VcSpaceMessageActionsElement extends HTMLElement implements SpaceMessageActionsElement {
+    #actions: SpaceMessageActionsView | null = null;
+    get actions() { return this.#actions; }
+    set actions(value) { this.#actions = value; if (this.isConnected) this.render(); }
+    connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: "open" }); this.render(); }
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceMessageActionsStyles;
+      const container = this.ownerDocument.createElement("div");
+      container.className = "actions";
+      container.setAttribute("part", "actions");
+      const actions = this.#actions;
+      const definitions = actions ? [
+        ["reply", actions.canReply, spaceChatEventNames.reply],
+        ["edit", actions.canEdit, spaceChatEventNames.edit],
+        ["delete", actions.canDelete, spaceChatEventNames.delete],
+        ["retry", actions.canRetry, spaceChatEventNames.retry],
+      ] as const : [];
+      container.hidden = !actions || !definitions.some(([, allowed]) => allowed);
+      for (const [action, allowed, eventName] of definitions) {
+        if (!allowed || !actions) continue;
+        const button = this.ownerDocument.createElement("button");
+        button.type = "button";
+        button.disabled = actions.disabled === true;
+        button.setAttribute("part", action);
+        if (action === "retry") {
+          button.setAttribute("data-testid", "retry-message");
+        }
+        button.textContent = translate(`space.components.chat.action.${action}`);
+        button.addEventListener("click", () => emit(
+          this,
+          eventName,
+          { messageId: actions.messageId },
+        ));
+        container.append(button);
+      }
+      root.replaceChildren(style, container);
+    }
+  };
+}
+
+export const spaceChatErrorStateStyles = `
+:host { display:block; color:var(--vc-space-color-negative,#a33b43); font-family:var(--vc-space-font-body,sans-serif); }
+.error { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.6rem .7rem; border:1px solid currentColor; border-radius:var(--vc-space-radius-control,.65rem); background:color-mix(in srgb,var(--vc-space-color-negative,#a33b43) 8%,var(--vc-space-color-surface-raised,#fff)); }
+.error[hidden] { display:none; }
+.copy { min-inline-size:0; overflow-wrap:anywhere; }
+button { min-inline-size:2.75rem; min-block-size:2.75rem; border:1px solid currentColor; border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:transparent; font:700 .76rem/1 var(--vc-space-font-body,sans-serif); cursor:pointer; }
+button:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+@media (forced-colors:active),(prefers-contrast:more) { .error,button { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
+`;
+
+function createSpaceChatErrorStateElementClass() {
+  return class VcSpaceChatErrorStateElement extends HTMLElement implements SpaceChatErrorStateElement {
+    #error: SpaceChatCommandError | null = null;
+    get error() { return this.#error; }
+    set error(value) { this.#error = value; if (this.isConnected) this.render(); }
+    connectedCallback() {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      this.setAttribute("role", "alert");
+      this.setAttribute("aria-live", "assertive");
+      this.render();
+    }
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceChatErrorStateStyles;
+      const container = this.ownerDocument.createElement("div");
+      container.className = "error";
+      container.hidden = !this.#error;
+      container.setAttribute("part", "error");
+      const copy = this.ownerDocument.createElement("span");
+      copy.className = "copy";
+      copy.textContent = this.#error?.message || "";
+      copy.setAttribute("part", "message");
+      const dismiss = this.ownerDocument.createElement("button");
+      dismiss.type = "button";
+      dismiss.textContent = translate("space.components.chat.error.dismiss");
+      dismiss.setAttribute("part", "dismiss");
+      dismiss.addEventListener("click", () => {
+        if (this.#error) emit(this, spaceChatEventNames.dismissError, {
+          command: this.#error.command,
+        });
+      });
+      container.append(copy, dismiss);
+      root.replaceChildren(style, container);
+    }
+  };
+}
+
+export const spaceChatTimelineStyles = `
+:host { display:block; min-block-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
+.viewport { min-block-size:12rem; max-block-size:var(--vc-space-chat-timeline-max-height,40rem); overflow:auto; overscroll-behavior:contain; padding:.75rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface,#f5f2eb); scrollbar-gutter:stable; }
+.status { display:grid; min-block-size:9rem; place-items:center; padding:1.5rem; color:var(--vc-space-color-text-muted,#5d6670); text-align:center; overflow-wrap:anywhere; }
+.status[hidden],.list[hidden] { display:none; }
+.list { display:grid; min-inline-size:0; gap:.9rem; }
+.entry { display:grid; min-inline-size:0; gap:.45rem; }
+.entry ${spaceChatAttachmentElementName} { margin-inline-start:2.6rem; max-inline-size:34rem; }
+.typing { margin-block-start:.65rem; }
+.viewport:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
+@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName} { margin-inline-start:0; } }
+@media (forced-colors:active),(prefers-contrast:more) { .viewport { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .status { color:CanvasText; } }
+`;
+
+interface TimelineEntry {
+  readonly wrapper: HTMLElement;
+  readonly messageElement: HTMLElement & { message: SpaceChatMessageView | null };
+  message: SpaceChatMessageView;
+}
+
+function createSpaceChatTimelineElementClass() {
+  return class VcSpaceChatTimelineElement extends HTMLElement implements SpaceChatTimelineElement {
+    static readonly observedAttributes = ["error", "locale", "state"];
+    #messages: readonly SpaceChatMessageView[] = Object.freeze([]);
+    #typingUsers: readonly SpaceChatAuthorView[] = Object.freeze([]);
+    #state: SpaceChatTimelineState = "loading";
+    #error: string | null = null;
+    #viewport: HTMLElement | null = null;
+    #status: HTMLElement | null = null;
+    #list: HTMLElement | null = null;
+    #typing: HTMLElement & { users?: readonly SpaceChatAuthorView[] } | null = null;
+    #entries = new Map<string, TimelineEntry>();
+
+    get messages() { return this.#messages; }
+    set messages(value) { this.#messages = Object.freeze([...(value ?? [])]); if (this.isConnected) this.update(); }
+    get typingUsers() { return this.#typingUsers; }
+    set typingUsers(value) { this.#typingUsers = Object.freeze([...(value ?? [])]); if (this.isConnected) this.updateTyping(); }
+    get state() { return this.#state; }
+    set state(value) { this.#state = value === "error" || value === "ready" ? value : "loading"; if (this.isConnected) this.update(); }
+    get error() { return this.#error; }
+    set error(value) { this.#error = value?.trim() || null; if (this.isConnected) this.update(); }
+
+    connectedCallback() {
+      if (!this.shadowRoot) this.build();
+      this.syncAttributes();
+      this.update();
+    }
+    attributeChangedCallback() { if (this.isConnected) { this.syncAttributes(); this.update(); } }
+
+    private build() {
+      const root = this.attachShadow({ mode: "open" });
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceChatTimelineStyles;
+      const viewport = this.ownerDocument.createElement("div");
+      viewport.className = "viewport";
+      viewport.tabIndex = 0;
+      viewport.setAttribute("part", "viewport");
+      viewport.setAttribute("role", "log");
+      viewport.setAttribute("aria-live", "polite");
+      viewport.setAttribute("aria-relevant", "additions text");
+      const status = this.ownerDocument.createElement("div");
+      status.className = "status";
+      status.setAttribute("part", "status");
+      const list = this.ownerDocument.createElement("div");
+      list.className = "list";
+      list.setAttribute("part", "list");
+      const typing = this.ownerDocument.createElement("vc-space-typing-indicator") as HTMLElement & { users?: readonly SpaceChatAuthorView[] };
+      typing.className = "typing";
+      typing.setAttribute("part", "typing");
+      typing.setAttribute("data-testid", "typing-indicator");
+      viewport.append(status, list, typing);
+      root.replaceChildren(style, viewport);
+      this.#viewport = viewport;
+      this.#status = status;
+      this.#list = list;
+      this.#typing = typing;
+    }
+
+    private syncAttributes() {
+      const state = this.getAttribute("state");
+      if (state) this.#state = state === "error" || state === "ready" ? state : "loading";
+      if (!this.#error) this.#error = this.getAttribute("error")?.trim() || null;
+    }
+
+    private update() {
+      const viewport = this.#viewport;
+      const status = this.#status;
+      const list = this.#list;
+      if (!viewport || !status || !list) return;
+      const nearBottom = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 64;
+      const previousCount = this.#entries.size;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      const error = this.#state === "error" || this.#error;
+      const empty = this.#state === "ready" && this.#messages.length === 0 && !error;
+      status.hidden = this.#state === "ready" && !empty && !error;
+      status.textContent = error
+        ? this.#error || translate("space.components.chat.timeline.error")
+        : empty
+          ? translate("space.components.chat.timeline.empty")
+          : translate("space.components.chat.timeline.loading");
+      list.hidden = this.#state !== "ready" || Boolean(error) || empty;
+      viewport.setAttribute("aria-busy", String(this.#state === "loading"));
+      const nextIds = new Set(this.#messages.map((message) => message.id));
+      for (const [id, entry] of this.#entries) {
+        if (!nextIds.has(id)) {
+          entry.wrapper.remove();
+          this.#entries.delete(id);
+        }
+      }
+      if (!list.hidden) {
+        for (const message of this.#messages) {
+          let entry = this.#entries.get(message.id);
+          if (!entry) {
+            const wrapper = this.ownerDocument.createElement("div");
+            wrapper.className = "entry";
+            wrapper.dataset.messageId = message.id;
+            wrapper.setAttribute("part", "entry");
+            const messageElement = this.ownerDocument.createElement("vc-space-chat-message") as HTMLElement & { message: SpaceChatMessageView | null };
+            wrapper.append(messageElement);
+            entry = { wrapper, messageElement, message };
+            this.#entries.set(message.id, entry);
+          }
+          if (entry.message !== message) {
+            entry.message = message;
+            entry.messageElement.message = message;
+          } else if (!entry.messageElement.message) {
+            entry.messageElement.message = message;
+          }
+          const existingAttachment = entry.wrapper.querySelector<SpaceChatAttachmentElement>(spaceChatAttachmentElementName);
+          if (message.attachment) {
+            const attachment = existingAttachment
+              || this.ownerDocument.createElement(spaceChatAttachmentElementName) as SpaceChatAttachmentElement;
+            attachment.attachment = message.attachment;
+            if (!existingAttachment) entry.wrapper.append(attachment);
+          } else {
+            existingAttachment?.remove();
+          }
+          list.append(entry.wrapper);
+        }
+      }
+      this.updateTyping();
+      if (nearBottom || previousCount === 0) {
+        Promise.resolve().then(() => {
+          if (this.#viewport) this.#viewport.scrollTop = this.#viewport.scrollHeight;
+        });
+      }
+    }
+
+    private updateTyping() {
+      if (this.#typing) this.#typing.users = this.#typingUsers;
+    }
+  };
+}
+
+export function renderSpaceChatAttachment(attachment: SpaceChatAttachmentView) {
+  const attributes = [
+    `name="${escapeSpaceAttribute(attachment.name)}"`,
+    `kind="${attachment.kind}"`,
+  ];
+  const optional = {
+    "media-type": attachment.mediaType,
+    size: attachment.size,
+    "download-url": sanitizeSpaceMediaUrl(attachment.downloadUrl),
+    "preview-url": sanitizeSpaceMediaUrl(attachment.previewUrl),
+  };
+  for (const [name, value] of Object.entries(optional)) {
+    if (value !== null) attributes.push(`${name}="${escapeSpaceAttribute(String(value))}"`);
+  }
+  return `<${spaceChatAttachmentElementName} ${attributes.join(" ")}></${spaceChatAttachmentElementName}>`;
+}
+
+export function defineSpaceChatInteractiveElements(
+  registry: SpaceElementRegistry | undefined = globalThis.customElements,
+) {
+  if (!registry || typeof globalThis.HTMLElement !== "function") return false;
+  defineSpaceElement(registry, spaceChatComposerElementName, createSpaceChatComposerElementClass);
+  defineSpaceElement(registry, spaceMentionMenuElementName, createSpaceMentionMenuElementClass);
+  defineSpaceElement(registry, spaceChatAttachmentElementName, createSpaceChatAttachmentElementClass);
+  defineSpaceElement(registry, spaceReactionBarElementName, createSpaceReactionBarElementClass);
+  defineSpaceElement(registry, spaceMessageActionsElementName, createSpaceMessageActionsElementClass);
+  defineSpaceElement(registry, spaceChatErrorStateElementName, createSpaceChatErrorStateElementClass);
+  defineSpaceElement(registry, spaceChatTimelineElementName, createSpaceChatTimelineElementClass);
+  return true;
+}

@@ -723,12 +723,14 @@ async function restoreDefaultChatProject(
         stage: "recovering",
         message: status,
       }),
+      candidate.prepared,
     );
     const updatedAt = preview.updatedAt;
     const saved = await saveProject({
       ...candidate,
       updatedAt,
       draftId: preview.version,
+      prepared: preview.prepared,
       ...(current.publishedDraftId
         ? { publishedDraftId: current.publishedDraftId }
         : {}),
@@ -845,6 +847,7 @@ async function processTurn(
           summary: revision.summary,
           updatedAt,
           draftId: preview.version,
+          prepared: preview.prepared,
           ...(existing?.publishedDraftId
             ? { publishedDraftId: existing.publishedDraftId }
             : {}),
@@ -934,7 +937,12 @@ async function bootstrapTemplateProject(
     };
   }
 
-  let preview = await devPreviews.prepare(appId, project.files);
+  let preview = await devPreviews.prepare(
+    appId,
+    project.files,
+    undefined,
+    project.prepared,
+  );
 
   // An Agent revision may have landed while a first template preview was
   // building. Always prepare and persist the latest files, never restore the
@@ -942,13 +950,22 @@ async function bootstrapTemplateProject(
   const latest = await loadProject(appId);
   if (latest && latest.updatedAt !== project.updatedAt) {
     project = latest;
-    preview = await devPreviews.prepare(appId, project.files);
+    preview = await devPreviews.prepare(
+      appId,
+      project.files,
+      undefined,
+      project.prepared,
+    );
   }
-  if (project.draftId !== preview.version) {
+  if (
+    project.draftId !== preview.version
+    || project.prepared?.artifactHash !== preview.prepared.artifactHash
+  ) {
     project = {
       ...project,
       draftId: preview.version,
       updatedAt: preview.updatedAt,
+      prepared: preview.prepared,
     };
     project = await saveProject(project);
   }
@@ -1005,6 +1022,7 @@ async function publishCurrentProject(
           stage: "developing",
           message: status,
         }),
+      project.prepared,
     );
     if (preview.version !== expectedReadyRevisionId) {
       throw new SpaceReadyRevisionChangedError(
@@ -1022,7 +1040,7 @@ async function publishCurrentProject(
 
     const deployment = await deployRevision(
       appId,
-      project.files,
+      preview.prepared.files,
       relayProgress,
     );
     const updatedAt = new Date().toISOString();
@@ -1032,6 +1050,7 @@ async function publishCurrentProject(
       draftId: preview.version,
       publishedDraftId: preview.version,
       releaseId: deployment.release,
+      prepared: preview.prepared,
     });
     await spaces.complete(appId, turnId, "当前开发版本已正式发布。", {
       type: "deployed",

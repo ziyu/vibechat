@@ -1446,6 +1446,50 @@ Kernel 显式恢复的定向验收：成员从可信 Kernel 菜单确认恢复 �
 - Alice 的定制 Project 以 `space-default@0.1.2` 为基线保留原有深蓝动态 App 代码，经 Runtime Candidate 构建成功后将 ready Revision 从 `644b173f6420e62d` 切换为 `b942d96a821f9542`；Published Revision `2d68a0defce3aac1` 和 Release 均未变化。
 - 定向 unit 13/13、五个 App Project 严格 TypeScript、Catalog codegen、全仓 typecheck/build 18/18、Docs production build、文档链接、应用边界和 `git diff --check` 通过。浏览器视觉走查被本地 URL 安全策略拒绝，场景 3/4 的最终视觉确认不据此标为自动化通过。
 
+### 40.3 Space App 基础组件库（P1，Active）
+
+- [x] `@vibechat/space-app-components` 是独立 workspace/package release unit，拥有显式 `/foundation|user|agent|chat`、`/chat/inline`、`/register/*` 与 manifest exports、独立依赖和构建门槛；仅 registrar 是 side-effect entry，普通领域入口保留 ESM module boundary 供 tree-shake。组件只接收注入的 `SpaceAppClient`，不创建第二个 SDK 或连接 Matrix/Backend/Agent provider。
+- [x] 构建生成 `vibechat.space-component-bundle/v1` manifest，固定 package version、SDK range、Project format、exports、CSS token version、source hash 与 artifact hash；browser bundle 和离线 catalog 不依赖 npm/CDN 或新增 Host capability URL。
+- [x] `@vibechat/space-app-dependencies` 通过 exact package version + `space-app-dependencies.json` integrity + 注入式 Registry 生成 prepared artifact；stored source 保持普通 package import，generated vendor/resolved manifest 只存在于 build artifact，内容漂移会 fail closed。
+- [x] Runtime Dev、Publish、手工 deploy 与 cold start 共用 prepared artifact；source/prepared 分别使用 `sourceObjectKey/sourceHash` 和 `artifactObjectKey/artifactHash`，旧无 lock Space 保持原 Revision ID 算法，任意现有 Space 可在后续 Revision 添加依赖。
+- [x] 相同 component artifact 在本地真实 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中保持同一 hash/ready Revision。
+- [ ] 相同 component artifact 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中保持同一 hash；Registry 缺失或 hash 不匹配时 Candidate 失败且最后 ready Revision 不变。
+- [ ] Default Chat 与至少一个抽屉式 Template 固定同一组件版本，只保留各自布局、主题和场景代码；Chat Core contract、双浏览器 Matrix timeline 与 Existing custom Project 不静默升级。
+- [ ] User/Agent identity 和 Chat 组件覆盖 keyboard、IME、screen reader、200% 字体、high contrast、reduced motion、长文案、图片失败、空/错/disabled/权限拒绝状态。
+
+2026-08-27 Default Chat package/Registry 迁移证据：`space-default@0.1.3` 已改用语义化 `@vibechat/space-app-components/chat/inline` import、exact `0.5.0` dependency 和 managed integrity `sha256:9754fd6cb4b084c3c23c7f945a4e8784192ed04aa2b1b3fb8517bc8b4e780049`，相对 vendor module 已删除。组件 source/browser artifact hash 为 `sha256:5152dfc65729876657a2fa3eece6665081091562feb25653395b79d177e16be5` / `sha256:5470312b1b770ef19e7dcd3c6655219b23a17711f4b2fffdce211a9a1213954d`；Template source/artifact hash 为 `sha256:a3c634456525b7aab93ff3ade653e49832adb10eb05ba99c7dcde3a5a9211526`，manifest hash 为 `sha256:7a614d15d2d7c7ab07e93cad8b5a034ebfad78e91f8d5341dace417f9f1c2bca`。定向 10 files、49 tests 覆盖 exact lock、旧 Space 后加依赖、Registry/hash/path fail closed、Dev import materialization、冷启动缓存、prepared tamper、source/artifact Object Store 分离和最后 ready Revision 保留；Node 24 下完整 Runtime unit 为 14 files、38 tests。此前 mock SDK 单 Chromium 的 1280px、390px、200% 等效 640px、结构化 Mention、44px touch target和无溢出/console error 证据保持有效。Git 不保存逐版本 package，生产 Object Store publish、真实 Synapse 双浏览器、AgentOS Dev/Release/重启和完整 screen-reader/high-contrast/reduced-motion 尚未执行，因此上方真实复合场景保持未勾选。
+
+2026-08-27 本地真实 Runtime 验收补充：Alice 通过 Web 与真实 Synapse 创建 Default Chat Space；Rivet/AgentOS Dev VM 用 prepared artifact `sha256:2548105d1ea72db86dbe3c9eec6960698de3e05e18ca51552771b29a5d4aca40` 生成 ready Revision `2548105d1ea72db8`，完整停止并重启 `pnpm dev` 后恢复同一 revision。响应实际包含组件版本 `0.5.0`；单 Chromium iframe 中 `vc-space-chat-composer` 已注册为 open Shadow DOM，Timeline、附件、textarea 与发送按钮可见，空文本发送禁用且重载后无新 console error。本轮修复了 prepared `.d.ts` 被错误送入 emitter、以及 CSP 未允许既有 `/chat/inline` Blob ESM 两个缺口，回归测试 2 files、9 tests 通过。没有发送消息，也没有生成不可变 Release；生产 Object Store、跨 Runtime、双 Chromium Matrix 交互和完整 screen-reader/high-contrast/reduced-motion 仍未验证，因此其余复合场景保持未勾选。
+
+阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
+
+- [ ] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。
+- [ ] UserInfoCard 的长 display name/handle 在 390px 与 200% 根字体下不产生页面横向溢出；图片加载失败后保留 initials 与可访问名称。
+- [ ] IconButton 是原生 button 语义，具有可见 focus、44×44 touch target、disabled/loading 状态和非空 accessible name；键盘 Enter/Space 不依赖自定义 click 模拟。
+- [ ] User presence 与 Agent idle/queued/working/unavailable/failed 均同时提供文本和视觉信号；Agent badge 明确区分成员与 Agent，不暴露 provider、模型、积分或 Kernel 操作。
+- [ ] 所有 identity element 可重复注册、SSR import-safe；Custom Element disconnect/reconnect 不创建 SDK、timer、observer 或泄漏 listener，high contrast/reduced motion 有显式 CSS fallback。
+
+阶段 2 Chat timeline 第一切片 DOM/API 验收场景（先写 Spec，再实现 selector）：
+
+- [ ] `createSpaceChatMessageViews(snapshot)` 只按 `snapshot.chat.messages` 的既有顺序投影 Matrix timeline，不合并 `snapshot.agent.messages`；unknown member、Agent identity、缺失/已删除 reply、edited、sending/sent/failed 与 reaction count 均有稳定只读 view model。
+- [ ] `createSpaceChatTimelineController(context)` 分别订阅 messages、typing、members、mentions 与 agent；typing 或仅 presence 变化不替换 messages 数组引用，identity 变化才重新投影 author，`dispose()` 幂等释放全部 listener。
+- [ ] 同一份 `vc-space-chat-message` DOM 在 dark signal 与 light field-note 容器中组合 `vc-space-chat-message-meta`、`vc-space-reply-preview`、`vc-space-chat-bubble` 与只读 reaction；组件只通过 typed property 或安全 attribute 接收内容，所有用户文本写入 `textContent`，不接受 HTML。
+- [ ] own/member/Agent、long message、缺失 reply、deleted、edited 与 failed delivery 在 390px 和 200% 根字体下不产生页面横向溢出；作者、时间、Agent 类型、reply fallback 和 delivery 不能只靠颜色表达。
+- [ ] `vc-space-typing-indicator` 使用 SDK typing member IDs 投影的身份文本并提供 `role=status`/live region；typing 更新不得重建完整 timeline，unknown typing member 有稳定 fallback。
+- [ ] Chat elements 使用 open Shadow DOM，公开 `::part`，可重复注册且 SSR import-safe；forced colors、more contrast 与 reduced motion 有显式 fallback，离线 bundle/catalog 不请求 npm、CDN 或 Host capability。
+
+阶段 2 Chat Template 迁移就绪 DOM/API 验收场景（先写 Spec，再迁移官方 Template）：
+
+- [ ] `createSpaceChatController(context)` 复用注入的 `SpaceAppClient` 并覆盖 `send/attach/edit/delete/toggleReaction/retry/setTyping/markRead`；每个命令暴露确定性的 pending/error 状态，失败后保留 draft/context 并可清错重试，`dispose()` 会停止 typing timer、发送一次 `setTyping(false)` 并释放全部 listener。
+- [ ] Composer 使用原生 form/textarea/file/button 语义；textarea 自动扩展但不遮挡 timeline，Enter 发送、Shift+Enter 换行、IME composition Enter 不发送，空白/command pending/disabled 状态不提交重复命令，附件选择通过 typed event 传递原始 `File`。
+- [ ] Mention 由 `space.mention.search(query)` 的结构化 target 驱动；选择时保存明确 `mentionIds` 并传给 `chat.send`，member/Agent 类型和 unavailable 状态有文字语义，ArrowUp/ArrowDown/Enter/Escape 可完整操作，不扫描 draft 中的 `@handle` 猜测 Agent 调度。
+- [ ] Timeline 容器分别呈现 loading/empty/error/ready，消息增量更新保持既有节点和用户滚动位置；仅当用户接近底部时自动锚定新消息，typing/presence 更新不替换 timeline，错误状态不会伪装成 Kernel/Runtime/Candidate 诊断。
+- [ ] Attachment view 只接受经过安全 URL 处理的显式 metadata，非法协议不生成链接/图片；MessageActions 只按显式 `canReply/canEdit/canDelete/canRetry` view 显示原生按钮，不自行推断 ACL；Reaction 使用原生 button、明确 count/current-user 状态和 typed toggle event。
+- [ ] 所有交互元素以 bubbling/composed typed CustomEvent 暴露 submit、attachment、typing、mention query/select、reply/edit/delete/retry/reaction 与 dismiss-error 意图；组件不直接创建 SDK、不连接 Matrix/Backend/Agent provider，也不提供 `agent.invoke()`。
+- [ ] 迁移适配器可用同一个 controller snapshot 驱动 `vc-space-chat-timeline`、`vc-space-chat-composer`、`vc-space-mention-menu`、`vc-space-chat-attachment`、`vc-space-reaction-bar`、`vc-space-message-actions` 与 `vc-space-chat-error-state`；Default Chat 与抽屉 Template 只需保留布局、主题和场景组合代码。
+
+组件库 E2E 必须从真实 Template artifact 构建 iframe DOM，不使用独立 catalog 代替产品验收。断言至少包含 component artifact hash、Template source/artifact hash、ready Revision、Published Release 和两端 Matrix event ID。组件 package/build/unit 只能完成前三项的工程基线，不能勾选 Runtime、双 Template 或可访问性浏览器场景。
+
 **文件：** `specs/chat-matrix-room.spec.ts`、`specs/chat-matrix-operations.spec.ts`、`specs/chat-social-invite.spec.ts`、`specs/chat-space-agent-collaboration.spec.ts`、`specs/space-runtime-membership-revocation.spec.ts` 与对应 unit/contract suites ｜ **优先级：** P0 ｜ **状态：** Active ｜ **Web / Backend / Space Runtime / SQLite / 本地 Synapse / 双 Chromium Context**
 
 本组场景验收 2026-08-23 校正后的 Space App 设计。Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场。顶部 Kernel Bar 是唯一固定宿主界面，其下全部由 App Project 渲染；Default Chat UI 也是 App 代码。不可修改的是 Chat Core、Mention 和 Agent 调度语义。Space 市场、分类、收藏、版本和模板创建保持不变；Agent 使用 provider-neutral Adapter，Pi 只是首个候选示例。Space Runtime 继续采用 `chat-app-server` 同构技术链。现有房间与多人 Space 映射同一 SpaceInstance；ready Revision 实时更新当前 Space，Publish 固化不可变 Release。

@@ -70,6 +70,12 @@ importers:
       '@vibechat/product-core':
         specifier: workspace:*
         version: link:packages/product-core
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:packages/space-app-components
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:packages/space-app-dependencies
       '@vibechat/space-templates':
         specifier: workspace:*
         version: link:packages/space-templates
@@ -555,9 +561,15 @@ importers:
       '@rivet-dev/agentos-apps':
         specifier: 0.2.15
         version: 0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:../../packages/space-app-components
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:../../packages/space-app-dependencies
       '@vibechat/space-runtime-auth':
         specifier: workspace:*
         version: link:../../packages/space-runtime-auth
@@ -941,11 +953,43 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/space-app-components:
+    dependencies:
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:../space-app-dependencies
+      '@vibechat/space-app-sdk':
+        specifier: workspace:*
+        version: link:../space-app-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^22.16.0
+        version: 22.20.1
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/space-app-contracts:
     dependencies:
       zod:
         specifier: 4.2.1
         version: 4.2.1
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/space-app-dependencies:
+    dependencies:
+      '@noble/hashes':
+        specifier: 2.0.1
+        version: 2.0.1
     devDependencies:
       typescript:
         specifier: ^5.8.3

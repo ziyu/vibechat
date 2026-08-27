@@ -45,55 +45,52 @@ class BackendRemoteProjectStore implements RemoteProjectStore {
   async load(appId: string) {
     const loaded = await this.#loadPointer(appId)
     if (!loaded.project) return null
-    const objectHash = objectHashFromKey(loaded.project.sourceObjectKey)
-    if (!objectHash) throw new Error(`Space Project ${appId} has no valid source object`)
-    const response = await this.#fetch(
-      `/v1/internal/space-runtime-objects/${objectHash}`,
-      { method: 'GET' },
+    const source = await this.#readObject(
+      loaded.project.sourceObjectKey,
+      `Space Project ${appId} source`,
     )
-    if (!response.ok) {
-      throw new Error(`Space Project object read returned ${response.status}`)
+    const project = JSON.parse(source) as StoredProject
+    if (loaded.project.artifactObjectKey || loaded.project.artifactHash) {
+      if (!loaded.project.artifactObjectKey || !loaded.project.artifactHash) {
+        throw new Error(`Space Project ${appId} has an incomplete prepared artifact pointer`)
+      }
+      const artifact = JSON.parse(await this.#readObject(
+        loaded.project.artifactObjectKey,
+        `Space Project ${appId} prepared artifact`,
+      )) as NonNullable<StoredProject['prepared']>
+      if (artifact.artifactHash !== loaded.project.artifactHash) {
+        throw new Error(`Space Project ${appId} prepared artifact hash does not match its pointer`)
+      }
+      return { ...project, prepared: artifact }
     }
-    return JSON.parse(await response.text()) as StoredProject
+    return project
   }
 
   async save(project: StoredProject) {
     if (!project.sourceHash) throw new Error('Space Project source hash is required')
     const loaded = await this.#loadPointer(project.appId)
     const lease = await this.#lease(project.appId)
-    const content = new TextEncoder().encode(`${JSON.stringify(project)}\n`)
-    const objectHash = await sha256Hex(content)
-    const objectResponse = await this.#fetch(
-      `/v1/internal/space-runtime-objects/${objectHash}`,
-      {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json; charset=utf-8' },
-        body: content,
-      },
-    )
-    if (!objectResponse.ok) {
-      throw new Error(`Space Project object write returned ${objectResponse.status}`)
-    }
-    const object = await objectResponse.json() as { objectKey?: unknown }
-    if (typeof object.objectKey !== 'string') {
-      throw new Error('Space Project object write returned an invalid pointer')
-    }
+    const { prepared, ...sourceProject } = project
+    const sourceObjectKey = await this.#writeObject(sourceProject)
+    const artifactObjectKey = prepared
+      ? await this.#writeObject(prepared)
+      : null
     const controlResponse = await this.#control({
       action: 'save_project',
       lease,
       project: {
         projectId: loaded.projectId,
         spaceInstanceId: project.appId,
-        sourceObjectKey: object.objectKey,
+        sourceObjectKey,
         sourceHash: project.sourceHash,
-        artifactObjectKey: loaded.project?.artifactObjectKey ?? null,
-        artifactHash: loaded.project?.artifactHash ?? null,
+        artifactObjectKey,
+        artifactHash: prepared?.artifactHash ?? null,
         readyRevisionId: project.draftId ?? null,
         publishedRevisionId: project.publishedDraftId ?? null,
         releaseId: project.releaseId ?? null,
         metadata: {
           format: 'vibechat.stored-project/v1',
-          sourceBlobHash: `sha256:${objectHash}`,
+          sourceBlobHash: `sha256:${objectHashFromKey(sourceObjectKey)}`,
           summary: project.summary,
           template: project.template ?? null,
         },
@@ -109,6 +106,41 @@ class BackendRemoteProjectStore implements RemoteProjectStore {
     const body = await controlResponse.json() as { project?: unknown }
     spaceRuntimeProjectPointerSchema.parse(body.project)
     return project
+  }
+
+  async #readObject(objectKey: string | null, label: string) {
+    const objectHash = objectHashFromKey(objectKey)
+    if (!objectHash) throw new Error(`${label} has no valid object key`)
+    const response = await this.#fetch(
+      `/v1/internal/space-runtime-objects/${objectHash}`,
+      { method: 'GET' },
+    )
+    if (!response.ok) throw new Error(`${label} read returned ${response.status}`)
+    return response.text()
+  }
+
+  async #writeObject(value: unknown) {
+    const content = new TextEncoder().encode(`${JSON.stringify(value)}\n`)
+    const objectHash = await sha256Hex(content)
+    const response = await this.#fetch(
+      `/v1/internal/space-runtime-objects/${objectHash}`,
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+        body: content,
+      },
+    )
+    if (!response.ok) {
+      throw new Error(`Space Project object write returned ${response.status}`)
+    }
+    const object = await response.json() as { objectKey?: unknown }
+    if (
+      typeof object.objectKey !== 'string'
+      || objectHashFromKey(object.objectKey) !== objectHash
+    ) {
+      throw new Error('Space Project object write returned an invalid pointer')
+    }
+    return object.objectKey
   }
 
   async #loadPointer(appId: string): Promise<{

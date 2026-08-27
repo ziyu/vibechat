@@ -41,6 +41,16 @@ Dev Preview Manager 不用单个可变进程代表整个 Space。Candidate 与 r
 - 从 Object Store 加载 Project 时会重新计算 source hash；内容与 Product DB 指针不一致会拒绝加载，避免静默运行损坏或绕过记录修改源码。
 - 已存在的 Space Project 始终按独立 Revision 原样加载，初始化不会隐式升级到模板当前版本。模板升级必须创建、验证并显式切换 Candidate。
 
+## Managed Space App 依赖
+
+Space Project 以普通 package import 消费平台包，并在 `package.json` 使用精确版本、在 `space-app-dependencies.json` 使用精确 `sha256:` integrity。Runtime 不执行在线 npm resolution：`@vibechat/space-app-dependencies` 向注入的 managed Registry 请求固定 artifact，校验 package name/version/Project format/files/integrity 后，仅在 prepared build 中生成 `vendor/vibechat-packages`、resolved manifest 和 revision-local `file:` dependency。
+
+组件源码使用 `/foundation`、`/user`、`/agent`、`/chat` 等语义化 package subpath；当前返回自包含 HTML 的 `agentos-app-v1` 可使用明确的 `/chat/inline` delivery adapter。Registry 的 object key、`/artifacts/*` 和版本目录均不得进入 Project import。Git 不保存组件的逐版本编译目录；每个可供 Space 使用的版本必须先发布到 managed Registry/Object Store，并登记不可变的 `name + version + integrity + objectKey`。公共 npm 仅可作为同一 package 的可选 mirror，不是 Runtime 准备 Project 的线上依赖。
+
+stored source 与 prepared artifact 分别写入 Project pointer 的 `sourceObjectKey/sourceHash` 和 `artifactObjectKey/artifactHash`。Dev Preview、Publish、`deploy:project` 与冷启动都复用同一 prepared artifact；已存在且验证通过的 prepared artifact 不需要 Registry 在线。只有新 Candidate 解析依赖，缺 lock、范围版本、未知 release、hash 漂移、生成路径碰撞或缓存损坏都会 fail closed，并保留当前 ready Revision 和 Published Release。
+
+没有 managed lock 的历史 Space 保持原文件内容和 Revision ID 算法。任意现有 Space 都可以在后续 Agent/人工 Revision 中同时增加普通 dependency 和 lock，验证成功后才形成新的 ready Revision。Agent 不能自行创建 generated vendor/resolved manifest，也不能安装 package。
+
 官方模板维护流程和生产存储边界见 [`packages/space-templates/README.md`](../../packages/space-templates/README.md)。
 
 内部 `/runtime/*` 与 `/api/apps/*` 不应直接暴露到浏览器。公开 SDK 由 Backend 的 `/v1/space-app-sdk` 提供，App bridge 只开放经过 Host 和 Backend 校验的命令。

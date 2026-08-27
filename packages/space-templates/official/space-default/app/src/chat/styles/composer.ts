@@ -12,130 +12,16 @@ export const chatComposerStyles = `
   padding-left: max(18px, calc((100% - 760px) / 2));
 }
 
-.vcc-context,
-.vcc-typing,
-.vcc-error {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 8px 6px;
-  padding: 7px 9px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 9px;
-  background: #181a17;
-  color: #c8c5bc;
-  font-size: 9px;
-}
-
-.vcc-context[hidden],
-.vcc-typing[hidden],
-.vcc-error[hidden] {
-  display: none !important;
-}
-
-.vcc-context button {
-  border: 0;
-  background: none;
-  color: #fff;
-  cursor: pointer;
-}
-
-.vcc-typing {
-  width: max-content;
-  color: var(--vcc-muted);
-}
-
-.vcc-error {
-  border-color: rgba(238, 105, 83, 0.35);
-  color: #f0a292;
-}
-
-.vcc-compose {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 7px;
-  align-items: end;
-  padding: 8px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 16px;
-  background: #171916;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.34);
-}
-
-.vcc-compose .vcc-attach {
-  align-self: end;
-}
-
-.vcc-compose textarea {
-  width: 100%;
-  min-width: 0;
-  min-height: 38px;
-  max-height: 120px;
-  resize: none;
-  overflow-y: auto;
-  padding: 9px 6px 5px;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #fff;
-  font: inherit;
-  line-height: 1.5;
-}
-
-.vcc-compose textarea::placeholder {
-  color: #706f68;
-}
-
-.vcc-send {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 0;
-  border-radius: 11px;
-  background: var(--vcc-accent);
-  color: #11120f;
-  cursor: pointer;
-}
-
-.vcc-send:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.vcc-send svg {
-  width: 17px;
-}
-
-.vcc-hint {
-  display: block;
-  margin-top: 5px;
-  color: #66665f;
-  font-size: 8px;
-  text-align: center;
-}
-
-.vcc-file {
-  display: none;
-}
-
 .vcc-mentions {
   position: absolute;
   right: 12px;
   bottom: calc(100% - 4px);
   left: 12px;
-  display: none;
-  max-height: 180px;
-  overflow: auto;
-  padding: 5px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 12px;
-  background: #1b1d19;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  z-index: 3;
 }
 
-.vcc-root[data-mentions="true"] .vcc-mentions {
-  display: grid;
+.vcc-mentions[hidden] {
+  display: none;
 }
 
 .vcc-root[data-mode="full"] .vcc-mentions {
@@ -143,47 +29,81 @@ export const chatComposerStyles = `
   left: max(18px, calc((100% - 760px) / 2));
 }
 
-.vcc-mention {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
-  gap: 9px;
-  align-items: center;
-  padding: 7px;
-  border: 0;
+.vcc-mentions::part(menu) {
+  border-color: var(--vcc-line);
+  border-radius: 12px;
+  background: #1b1d19;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.vcc-mentions::part(option) {
   border-radius: 9px;
-  background: transparent;
+}
+
+.vcc-error {
+  display: block;
+  margin: 0 8px 6px;
+}
+
+.vcc-error::part(error) {
+  border-color: rgba(238, 105, 83, 0.46);
+  border-radius: 9px;
+  background: #181a17;
+  color: #f4b0a2;
+  font-size: 10px;
+}
+
+vc-space-chat-composer::part(context) {
+  margin: 0 8px 6px;
+  border: 1px solid var(--vcc-line);
+  border-radius: 9px;
+  background: #181a17;
+  color: #d1cec5;
+  font-size: 10px;
+}
+
+vc-space-chat-composer::part(form) {
+  gap: 7px;
+  padding: 8px;
+  border-color: var(--vcc-line);
+  border-radius: 16px;
+  background: #171916;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.34);
+}
+
+vc-space-chat-composer::part(input) {
+  min-height: 38px;
+  padding: 9px 6px 5px;
   color: #fff;
-  text-align: left;
-  cursor: pointer;
+  caret-color: var(--vcc-accent);
 }
 
-.vcc-mention:hover {
-  background: rgba(255, 255, 255, 0.07);
+vc-space-chat-composer::part(attach),
+vc-space-chat-composer::part(send),
+vc-space-chat-composer::part(cancel-context) {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 11px;
 }
 
-.vcc-mention b {
-  display: grid;
-  width: 29px;
-  height: 29px;
-  place-items: center;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--vcc-accent);
-  font: 700 9px Georgia, serif;
+vc-space-chat-composer::part(attach),
+vc-space-chat-composer::part(cancel-context) {
+  border-color: transparent;
+  background: transparent;
+  color: #d0cdc5;
 }
 
-.vcc-mention span {
-  display: grid;
+vc-space-chat-composer::part(send) {
+  border-color: var(--vcc-accent);
+  background: var(--vcc-accent);
+  color: #11120f;
 }
 
-.vcc-mention small,
-.vcc-mention em {
-  color: var(--vcc-muted);
-  font-size: 8px;
-}
-
-.vcc-mention em {
-  font-style: normal;
-  text-transform: uppercase;
+.vcc-hint {
+  display: block;
+  margin-top: 5px;
+  color: #8d8c85;
+  font-size: 9px;
+  text-align: center;
 }
 `;

@@ -5,9 +5,15 @@ import ts from "typescript";
 import type { registry } from "./actors.js";
 import { assertAppId } from "./app-id.js";
 import {
+  preparedProjectFilePaths,
   projectFilePaths,
   type ProjectFiles,
 } from "./project-store.js";
+import {
+  prepareProjectDependencies,
+  type PreparedProject,
+  type ProjectDependencyPreparer,
+} from "./project-dependencies.js";
 
 const workspace = "/workspace";
 const devPort = 4173;
@@ -33,6 +39,7 @@ export interface DevPreviewResult {
   version: string;
   updatedAt: string;
   url: string;
+  prepared: PreparedProject;
 }
 
 interface ReadyDevPreview extends DevPreviewResult {
@@ -65,11 +72,14 @@ export class DevPreviewManager {
     { version: string; promise: Promise<DevPreviewResult> }
   >();
   readonly #getVm: DevPreviewVmFactory;
+  readonly #prepareDependencies: ProjectDependencyPreparer;
 
   constructor(
     getVm: DevPreviewVmFactory = (actorKey) => client.vm.getOrCreate(actorKey),
+    prepareDependencies: ProjectDependencyPreparer = prepareProjectDependencies,
   ) {
     this.#getVm = getVm;
+    this.#prepareDependencies = prepareDependencies;
   }
 
   status(appId: string): DevPreviewStatus {
@@ -77,13 +87,28 @@ export class DevPreviewManager {
     return this.#statuses.get(appId) ?? { state: "idle" };
   }
 
-  prepare(
+  async prepare(
     appId: string,
     files: ProjectFiles,
     onStatus?: StatusReporter,
+    prepared?: PreparedProject,
   ): Promise<DevPreviewResult> {
     assertAppId(appId);
-    const version = draftVersion(files);
+    let preparedProject: PreparedProject;
+    try {
+      await onStatus?.("正在校验 Space App 固定依赖…");
+      preparedProject = await this.#prepareDependencies(files, prepared);
+    } catch (error) {
+      const version = draftVersion(files);
+      const normalized = normalizeDevError(error);
+      this.#statuses.set(appId, {
+        state: "failed",
+        version,
+        error: normalized.message,
+      });
+      throw normalized;
+    }
+    const version = preparedDraftVersion(files, preparedProject);
     const retained = this.#readyPreviews.get(appId)?.get(version);
     if (retained) {
       if (!this.#active.has(appId)) {
@@ -98,6 +123,7 @@ export class DevPreviewManager {
         version,
         updatedAt: retained.updatedAt,
         url: devPreviewUrl(appId, version),
+        prepared: retained.prepared,
       });
     }
     const active = this.#active.get(appId);
@@ -105,7 +131,7 @@ export class DevPreviewManager {
 
     const previous = active?.promise.catch(() => undefined) ?? Promise.resolve();
     const promise = previous
-      .then(() => this.#build(appId, files, version, onStatus))
+      .then(() => this.#build(appId, preparedProject, version, onStatus))
       .finally(() => {
         if (this.#active.get(appId)?.promise === promise) {
           this.#active.delete(appId);
@@ -151,7 +177,7 @@ export class DevPreviewManager {
 
   async #build(
     appId: string,
-    files: ProjectFiles,
+    prepared: PreparedProject,
     version: string,
     onStatus?: StatusReporter,
   ): Promise<DevPreviewResult> {
@@ -161,7 +187,7 @@ export class DevPreviewManager {
 
     try {
       await onStatus?.("正在同步到 Space Dev VM…");
-      const sourcePaths = projectFilePaths(files);
+      const sourcePaths = preparedProjectFilePaths(prepared.files);
       const sourceDirectories = new Set(
         sourcePaths
           .map((path) => posix.dirname(path))
@@ -173,12 +199,15 @@ export class DevPreviewManager {
       await agent.filesystem.writeFiles(
         sourcePaths.map((path) => ({
           path: `${workspace}/${path}`,
-          content: files[path],
+          content: prepared.files[path],
         })),
       );
 
       await onStatus?.("正在快速转译开发版本…");
-      const compiled = compileDevProject(files);
+      const compiled = compileDevProject(
+        prepared.files,
+        prepared.importPaths,
+      );
       const buildDirectories = new Set(
         compiled.files
           .map((file) => posix.dirname(file.path))
@@ -213,9 +242,15 @@ export class DevPreviewManager {
         url: devPreviewUrl(appId, version),
         actorKey,
         pid: process.pid,
+        prepared,
       });
       this.#statuses.set(appId, { state: "ready", version, updatedAt });
-      return { version, updatedAt, url: devPreviewUrl(appId, version) };
+      return {
+        version,
+        updatedAt,
+        url: devPreviewUrl(appId, version),
+        prepared,
+      };
     } catch (error) {
       const normalized = normalizeDevError(error);
       this.#statuses.set(appId, {
@@ -255,6 +290,14 @@ export function draftVersion(files: ProjectFiles) {
     hash.update(path).update("\0").update(files[path]).update("\0");
   }
   return hash.digest("hex").slice(0, 16);
+}
+
+export function preparedDraftVersion(
+  files: ProjectFiles,
+  prepared: PreparedProject,
+) {
+  if (prepared.dependencies.length === 0) return draftVersion(files);
+  return prepared.artifactHash.slice("sha256:".length, "sha256:".length + 16);
 }
 
 export function devPreviewUrl(appId: string, version: string) {
@@ -316,11 +359,15 @@ function normalizeDevError(error: unknown) {
   return new DevPreviewError(message);
 }
 
-function compileDevProject(project: ProjectFiles) {
+function compileDevProject(
+  project: ProjectFiles,
+  importPaths: Readonly<Record<string, string>>,
+) {
   const imports = new Set<string>();
   const output = new Map<string, string>();
-  for (const path of projectFilePaths(project)) {
+  for (const path of preparedProjectFilePaths(project)) {
     const source = project[path];
+    if (/\.d\.[cm]?ts$/.test(path)) continue;
     if (!/\.tsx?$/.test(path)) {
       output.set(path, source);
       continue;
@@ -377,7 +424,7 @@ function compileDevProject(project: ProjectFiles) {
       throw new DevPreviewError("开发版本存在 TypeScript 语法错误", diagnostics);
     }
 
-    const code = result.outputText
+    let code = result.outputText
       .replace(
         /(\bfrom\s*)(["'])rivetkit(?:\/[^"']*)?\2/g,
         (_match, prefix: string, quote: string) =>
@@ -393,6 +440,26 @@ function compileDevProject(project: ProjectFiles) {
         (_match, prefix: string, quote: string) =>
           `${prefix}${quote}file://${rivetKitShimPath}${quote}`,
       );
+    for (const [specifier, target] of Object.entries(importPaths)) {
+      const escaped = escapeRegExp(specifier);
+      const replacement = `file://${devBuildRoot}/${target}`;
+      code = code
+        .replace(
+          new RegExp(`(\\bfrom\\s*)(["'])${escaped}\\2`, "g"),
+          (_match, prefix: string, quote: string) =>
+            `${prefix}${quote}${replacement}${quote}`,
+        )
+        .replace(
+          new RegExp(`(^\\s*import\\s*)(["'])${escaped}\\2`, "gm"),
+          (_match, prefix: string, quote: string) =>
+            `${prefix}${quote}${replacement}${quote}`,
+        )
+        .replace(
+          new RegExp(`(\\bimport\\s*\\(\\s*)(["'])${escaped}\\2`, "g"),
+          (_match, prefix: string, quote: string) =>
+            `${prefix}${quote}${replacement}${quote}`,
+        );
+    }
     const outputPath = path.replace(/\.tsx?$/, ".js");
     if (output.has(outputPath) && outputPath !== path) {
       throw new DevPreviewError(`开发项目的输出路径冲突：${outputPath}`);
@@ -406,6 +473,10 @@ function compileDevProject(project: ProjectFiles) {
     files: [...output].map(([path, content]) => ({ path, content })),
     imports,
   };
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function rivetKitShim(imports: Set<string>) {

@@ -33,6 +33,7 @@ packages/space-templates/
 │       ├── releases.json
 │       └── app/
 │           ├── package.json
+│           ├── space-app-dependencies.json # exact managed package integrity（按需）
 │           ├── tsconfig.json
 │           └── src/
 │               ├── index.ts        # 仅启动 Runtime、装配 fetch handler
@@ -57,6 +58,8 @@ packages/space-templates/
 
 `official-catalog.generated.ts` 只生成当前市场所需的 Template/Version/Artifact 元数据，不包含 App 源码。开发环境的 Node artifact provider 从当前 `app/` 读取源码并验证 hash；生产 Runtime 必须按同一个 artifact ID 从 Registry/Object Store 获取。
 
+Template 引用平台组件时使用普通、语义化 package specifier：正常浏览器构建使用 `@vibechat/space-app-components/chat`，当前返回自包含 HTML 的 `agentos-app-v1` Template 使用明确的 `@vibechat/space-app-components/chat/inline` delivery adapter。`package.json` 必须声明精确版本，`space-app-dependencies.json` 必须声明同版本的 managed integrity；不能引用 `/artifacts/*`、版本目录、仓库路径，也不能提交 `src/vendor` 组件副本、`vendor/vibechat-packages` 或 `vibechat.resolved-dependencies.json`。Runtime 只在隔离的 prepared build 中生成 revision-local `file:` dependency，并把 prepared artifact 与 source object 分开持久化，因此 Template working source、既有 ready Revision 和 Published Release 不被在线 Registry 漂移改写。
+
 ## 不变量
 
 1. 已签发的 `templateVersionId` 不得原地修改 source、capabilities、compatibility、Publisher 或 provenance。
@@ -67,6 +70,7 @@ packages/space-templates/
 6. Space 创建后同时保存 Template lineage hash 与当前 Project hash；Runtime 初始化不得隐式升级现有 Project。模板升级必须创建独立 Candidate，验证成功后由显式操作切换，任何 Agent/人工修改都不会被覆盖。
 7. Matrix 只保存 Template/Project/Release 指针和安全快照，不保存源码或构建产物。
 8. `agentos-app-v1` 的 `src/index.ts` 必须导出 RivetKit `registry`、调用 `registry.start()` 并默认导出 fetch handler；Dev Preview 与不可变 Release 使用同一入口契约。
+9. managed dependency 只允许 exact version + exact `sha256:` integrity；Registry unavailable、版本/hash 不一致或 source 占用生成目录时，新 Candidate 必须失败并保留最后 ready Revision/Release。
 
 ## 发布官方新版本
 

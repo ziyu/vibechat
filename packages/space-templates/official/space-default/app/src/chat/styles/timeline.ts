@@ -1,19 +1,19 @@
 export const chatTimelineStyles = `
-.vcc-timeline {
+.vcc-timeline-region {
+  display: grid;
   min-height: 0;
-  overflow-y: auto;
-  padding: 20px 16px 24px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-}
-
-.vcc-root[data-mode="full"] .vcc-timeline {
-  padding: clamp(28px, 5vw, 66px) max(18px, calc((100% - 760px) / 2)) 32px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .vcc-opening {
-  margin: 4vh auto 48px;
+  padding: clamp(28px, 5vw, 66px) 18px 18px;
   text-align: center;
+}
+
+.vcc-opening[hidden],
+.vcc-build[hidden] {
+  display: none;
 }
 
 .vcc-opening b {
@@ -26,13 +26,13 @@ export const chatTimelineStyles = `
   border-radius: 20px;
   background: color-mix(in srgb, var(--vcc-accent) 10%, transparent);
   color: var(--vcc-accent);
-  box-shadow: 0 0 70px color-mix(in srgb, var(--vcc-accent) 13%, transparent);
+  box-shadow: 0 14px 48px color-mix(in srgb, var(--vcc-accent) 13%, transparent);
   font: italic 31px Georgia, serif;
 }
 
 .vcc-opening h1 {
   margin: 18px 0 8px;
-  font: 500 clamp(27px, 4vw, 48px) / 1.05 Georgia, "Noto Serif SC", serif;
+  font: 500 clamp(27px, 4vw, 48px)/1.05 Georgia, "Noto Serif SC", serif;
   letter-spacing: -0.04em;
 }
 
@@ -49,192 +49,49 @@ export const chatTimelineStyles = `
   padding: 5px 9px;
   border: 1px solid var(--vcc-line);
   border-radius: 999px;
-  color: #bcb9b1;
+  color: #c7c4bc;
   font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.vcc-message {
-  display: grid;
-  grid-template-columns: 31px minmax(0, 1fr);
-  gap: 9px;
-  align-items: start;
-  margin-top: 15px;
-}
-
-.vcc-message[data-own="true"] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.vcc-avatar {
-  display: grid;
-  width: 31px;
-  height: 31px;
-  place-items: center;
-  border: 1px solid var(--vcc-line);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.07);
-  color: #ddd8ce;
-  font: 700 10px Georgia, serif;
-}
-
-.vcc-message[data-agent="true"] .vcc-avatar {
-  border-color: color-mix(in srgb, var(--vcc-accent) 42%, transparent);
-  color: var(--vcc-accent);
-}
-
-.vcc-main {
-  min-width: 0;
-  max-width: 82%;
-}
-
-.vcc-message[data-own="true"] .vcc-main {
-  justify-self: end;
-}
-
-.vcc-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 5px 5px;
-}
-
-.vcc-meta strong {
-  font-size: 10px;
-}
-
-.vcc-meta time,
-.vcc-edited,
-.vcc-status {
-  color: #77776f;
-  font-size: 8px;
-}
-
-.vcc-bubble {
-  position: relative;
-  padding: 10px 12px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 4px 14px 14px;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.vcc-message[data-own="true"] .vcc-bubble {
-  border-color: color-mix(in srgb, var(--vcc-accent) 32%, transparent);
-  border-radius: 14px 4px 14px 14px;
-  background: color-mix(in srgb, var(--vcc-accent) 15%, rgba(255, 255, 255, 0.05));
-}
-
-.vcc-message[data-agent="true"] .vcc-bubble {
-  border-color: color-mix(in srgb, var(--vcc-accent) 28%, transparent);
-  background: color-mix(in srgb, var(--vcc-accent) 9%, rgba(255, 255, 255, 0.04));
-}
-
-.vcc-bubble p {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.vcc-bubble blockquote {
-  margin: 0 0 8px;
-  padding: 7px 9px;
-  border-left: 2px solid var(--vcc-accent);
-  border-radius: 4px 8px 8px 4px;
-  background: rgba(0, 0, 0, 0.2);
-  color: #b9b6ad;
-  font-size: 10px;
-}
-
-.vcc-bubble blockquote b {
+vc-space-chat-timeline {
   display: block;
-  color: #e1ddd4;
+  min-height: 0;
+  height: 100%;
+  --vc-space-chat-timeline-max-height: none;
 }
 
-.vcc-attachment {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  margin: 0 0 8px;
-  padding: 8px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 9px;
-  color: #fff;
-  text-decoration: none;
+vc-space-chat-timeline::part(viewport) {
+  height: 100%;
+  max-height: none;
+  padding: 20px max(16px, calc((100% - 760px) / 2)) 26px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.vcc-attachment img {
-  width: 96px;
-  max-height: 84px;
-  border-radius: 7px;
-  object-fit: cover;
+vc-space-chat-timeline::part(list) {
+  width: min(100%, 760px);
+  margin-inline: auto;
 }
 
-.vcc-attachment span {
-  display: grid;
-}
-
-.vcc-attachment small {
+vc-space-chat-timeline::part(status) {
+  min-height: 100%;
   color: var(--vcc-muted);
-  font-size: 9px;
-}
-
-.vcc-edited,
-.vcc-status {
-  display: block;
-  margin-top: 5px;
-}
-
-.vcc-status {
-  text-align: right;
-}
-
-.vcc-status[data-failed="true"] {
-  color: #f09a8c;
-  cursor: pointer;
-}
-
-.vcc-actions,
-.vcc-reactions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 7px;
-}
-
-.vcc-actions button,
-.vcc-reactions button {
-  min-width: 25px;
-  height: 24px;
-  padding: 0 7px;
-  border: 1px solid var(--vcc-line);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ccc8bf;
-  font-size: 10px;
-  cursor: pointer;
-}
-
-.vcc-actions button:hover,
-.vcc-reactions button:hover {
-  border-color: color-mix(in srgb, var(--vcc-accent) 55%, transparent);
-  color: #fff;
-}
-
-.vcc-reactions button[data-reacted="true"] {
-  border-color: var(--vcc-accent);
-  background: color-mix(in srgb, var(--vcc-accent) 16%, transparent);
 }
 
 .vcc-build {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin: 18px 0 0 40px;
+  width: min(calc(100% - 32px), 720px);
+  margin: 0 auto 12px;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--vcc-accent) 28%, transparent);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.24);
 }
 
 .vcc-build i {
