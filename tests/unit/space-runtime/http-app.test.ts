@@ -117,6 +117,61 @@ describe("Space Runtime HTTP composition", () => {
       "v1",
     );
   });
+
+  it("reports external Engine, replica, region, and declared pool boundaries", async () => {
+    vi.stubEnv("PI_MODE", "agentos");
+    vi.stubEnv("SPACE_RUNTIME_ENGINE_MODE", "external");
+    vi.stubEnv("SPACE_RUNTIME_POOL_WORKLOAD", "");
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("AI_PROVIDER", "openai");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ runtime: "engine", status: "ok", version: "2.3.7" }),
+      ),
+    );
+    try {
+      const { runtime } = createRuntimeStub();
+      const response = await createHttpApp(runtime).request("/api/health");
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: true,
+        modelConfigured: true,
+        provider: "openai",
+        rivetEngineDataDirectory: null,
+        deployment: {
+          engineMode: "external",
+          engineOwnership: "external",
+          engineIdentity: "http://127.0.0.1:6420",
+          region: "local",
+          executionPools: {
+            agentExecution: "agent-execution",
+            appBuild: "app-build",
+            releaseServing: "release-serving",
+          },
+          poolPolicies: {
+            agentExecution: {
+              credentialScope: "agent-provider",
+              credentialEnvironmentVariableCount: 12,
+              egress: { mode: "allow", patternCount: 0 },
+            },
+            appBuild: {
+              credentialScope: "build-without-provider-credentials",
+              credentialEnvironmentVariableCount: 0,
+            },
+            releaseServing: {
+              credentialScope: "app-scoped-serving-capability",
+              credentialEnvironmentVariableCount: 0,
+            },
+          },
+          poolRoutingEnforced: true,
+        },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
 });
 
 function createRuntimeStub() {

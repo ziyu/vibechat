@@ -1533,6 +1533,16 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - 真实 Synapse、managed Rivet Engine、Host Pi/provider、SQLite 和两个独立 Chromium Context 最终运行 `chat-space-agent-collaboration.spec.ts` 3/3 通过：幂等 Matrix Agent event、真实 Pi Revision 双端 live 收敛，以及 Fake Candidate 失败保护全部通过。本证据完成场景 #6 的 Pi/fake lifecycle 与公共事件部分，但不把本地 managed Engine 解释为 S5 外部区域 Engine、双 Runtime replica 或独立 worker pool 的生产证据。
 - `boundaries:check`（414 个活动源码文件）、`docs:check`、21/22 workspace 递归 typecheck/build、Cloudflare Workers 本地预览 `/api/health` 200（D1 healthy）和 `git diff --check` 通过。根 pnpm/Turbo 受当前 macOS Corepack 网络解析与 Keychain/TLS 初始化问题影响，使用本地缓存的 pnpm 9.4.0 逐 workspace 执行等价任务；构建仅保留既有 warning。
 
+2026-08-27 S5 Engine deployment 仓库实现证据：
+
+- Runtime 配置新增显式 `managed/external` Engine mode、无 credential/query/fragment 的 endpoint、region/replica identity，以及 Agent execution、App build/dev、Release serving 三类不同的逻辑 pool class。生产缺失 external mode、endpoint、region 或 replica ID 时启动失败，不会静默落到本地 Engine。
+- production/external control Runtime 只做 Engine health preflight，不启动 Registry。Agent/build/serving 分别使用一个独立 Node worker 与 Envoy pool；standalone managed 模式也派生三个子进程，只有 Agent worker 拥有开发 Engine。build/serving 在 probe 前拒绝 Agent provider credential，三类 network/sidecar/quota 已进入 concrete AgentOS VM/Apps 配置，health 返回 `poolRoutingEnforced=true`。
+- control 的 `openSession` payload 不再携带 `env` 或 provider secret；credential 只由 Agent worker 的 session resolver 注入，并覆盖同名 client 输入。production control 带 key、production Agent worker 缺少 key、build/serving 带 key 均经定向测试验证为启动失败关闭。
+- 双 Node replica deterministic harness 共用 external Engine health 与 Backend control/Object Store client，覆盖 active owner 接管、旧 owner fencing、session rebuild、Release pointer 和 outbox ACK 丢失重放。该 harness 不直连 Product DB，也没有新增第二条 queue。
+- disposable Rivet Engine health 返回 `2.3.7`；六个独立 worker（每类两个）同时注册后，metrics 的 `envoy_connection_active` 对 `agent-s5/build-s5/serving-s5` 均为 `2`。停止一个 build worker 后收敛为 `2/1/2`，证明 pool 不再因同进程 Registry 配置互相挤出。相同断言已写入 opt-in `space-runtime-agentos-pools.integration.test.ts`。
+- 最终门禁中 Space Runtime unit 25 files/107 tests、真实 Engine pool integration 1/1、双 Node replica failover integration 1/1 通过。完整 Chromium E2E 已尝试，结果为 39 passed、8 failed、3 skipped、9 did not run；失败来自共享服务/数据环境的 429、seed foreign key、commission 数据漂移、Matrix timeout 和 `SPACE_RUNTIME_UNAVAILABLE`，未冒充 S5 通过证据。
+- 生产部署、secret/egress/quota、metrics、灰度、升级、回滚、容量、备份恢复和 fencing/session/artifact/Release/Outbox 故障步骤已进入稳定 Runbook。本地 filesystem Engine 和 mock Backend harness 不代表生产持久化：真实 Cloudflare D1/R2 + Synapse + external Engine 跨宿主演练仍未执行，场景 #14 的目标环境验收保持未完成。
+
 ---
 
 ### Backlog 优先级汇总
@@ -1566,6 +1576,8 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-27 | S5 完整 Chromium 回归尝试 | 39 | 8 | 3 | 另有 9 未运行；失败为 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 与 `SPACE_RUNTIME_UNAVAILABLE`，属于当前共享服务/数据环境事实，未声称回归全绿 |
+| 2026-08-27 | Space Runtime + disposable Rivet Engine + 独立 pool worker | 6 | 0 | 0 | Agent/build/serving 各两个独立 Node/Envoy 同时 active；停止一个 build 后为 `2/1/2`；这是 pool 进程隔离证据，不代表真实 D1/R2 + Synapse 跨宿主验收 |
 | 2026-08-27 | Space Agent S4 + Pi/fake + Synapse + 双 Chromium | 3 | 0 | 0 | 显式启用真实 Pi 与测试 Fake binding；幂等 Agent event、真实 Revision 双端 live 收敛、Candidate 三次 repair 失败保护均通过；不代表 S5 外部 Engine/双副本/pool 已完成 |
 | 2026-08-27 | Space Agent + Pi/provider + Synapse + 双 Chromium | 2 | 0 | 1 | 显式启用真实 Agent 验收；幂等 Matrix Agent event 与真实 Project Revision 双端 live 切换均通过；Fake Candidate 故障注入未启用，按设计跳过 |
 | 2026-08-27 | TanStack + Web + Backend + Admin + Site + Space Runtime + Synapse | 56 | 0 | 3 | 完整 Chromium 回归 4.0 分钟；三个 Agent collaboration 场景因全量运行未显式开启真实/fake Agent 开关而跳过；账户定向 13/13 另行通过；19/19 typecheck/build、Docs production build、文档和 diff 检查均通过 |

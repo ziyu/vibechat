@@ -40,7 +40,6 @@ export interface AgentExecutionHandle {
     sessionId: string;
     agent: string;
     cwd: string;
-    env: Record<string, string>;
     permissionPolicy: "allow_all";
     additionalInstructions: string;
   }): Promise<void>;

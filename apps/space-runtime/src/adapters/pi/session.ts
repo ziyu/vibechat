@@ -26,7 +26,6 @@ export async function ensurePiSession(agent: AgentExecutionHandle) {
     sessionId: piSessionId,
     agent: "pi",
     cwd: "/workspace",
-    env: piEnvironment(),
     permissionPolicy: "allow_all",
     additionalInstructions: collaborationInstructions(),
   });
@@ -49,27 +48,5 @@ export async function writePiSettings(agent: AgentExecutionHandle) {
       null,
       2,
     )}\n`,
-  );
-}
-
-function piEnvironment() {
-  return Object.fromEntries(
-    [
-      [
-        "ANTHROPIC_API_KEY",
-        process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN,
-      ],
-      ["ANTHROPIC_OAUTH_TOKEN", process.env.ANTHROPIC_OAUTH_TOKEN],
-      ["ANTHROPIC_BASE_URL", process.env.ANTHROPIC_BASE_URL],
-      ["OPENAI_API_KEY", process.env.OPENAI_API_KEY],
-      ["GEMINI_API_KEY", process.env.GEMINI_API_KEY],
-      ["OPENROUTER_API_KEY", process.env.OPENROUTER_API_KEY],
-      ["ZAI_API_KEY", process.env.ZAI_API_KEY],
-      ["GROQ_API_KEY", process.env.GROQ_API_KEY],
-      ["CEREBRAS_API_KEY", process.env.CEREBRAS_API_KEY],
-      ["XAI_API_KEY", process.env.XAI_API_KEY],
-      ["MISTRAL_API_KEY", process.env.MISTRAL_API_KEY],
-      ["AI_GATEWAY_API_KEY", process.env.AI_GATEWAY_API_KEY],
-    ].filter((entry): entry is [string, string] => Boolean(entry[1])),
   );
 }

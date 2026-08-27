@@ -89,7 +89,7 @@ export function createDurableSpaceControlFromEnv(): DurableSpaceControl {
   return new BackendDurableSpaceControl(origin, signingSecret)
 }
 
-class BackendDurableSpaceControl implements DurableSpaceControl {
+export class BackendDurableSpaceControl implements DurableSpaceControl {
   readonly description = 'product-db'
   readonly #origin: string
   readonly #signingSecret: string

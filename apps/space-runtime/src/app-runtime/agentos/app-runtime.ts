@@ -1,6 +1,6 @@
 import { createClient } from "@rivet-dev/agentos/client";
 import { deployApp } from "@rivet-dev/agentos-apps";
-import type { registry } from "../../actors.js";
+import type { AgentOsAppBuildRegistry } from "../../actors.js";
 import type {
   AppCandidateFactory,
   AppCandidateHandle,
@@ -9,14 +9,15 @@ import type {
   AppReleaseInput,
 } from "../contract.js";
 
-const client = createClient<typeof registry>({
+const client = createClient<AgentOsAppBuildRegistry>({
   endpoint:
     process.env.RIVET_ENDPOINT ??
     process.env.AGENTOS_ENDPOINT ??
     "http://127.0.0.1:6420",
+  poolName: process.env.SPACE_APP_BUILD_POOL_CLASS ?? "app-build",
 });
 
-type AgentOsAppExecutionVm = ReturnType<typeof client.vm.getOrCreate>;
+type AgentOsAppExecutionVm = ReturnType<typeof client.appBuildVm.getOrCreate>;
 
 class AgentOsCandidateHandle implements AppCandidateHandle {
   readonly #vm: AgentOsAppExecutionVm;
@@ -73,7 +74,7 @@ class AgentOsCandidateHandle implements AppCandidateHandle {
 }
 
 const createAgentOsCandidate: AppCandidateFactory = (actorKey) =>
-  new AgentOsCandidateHandle(client.vm.getOrCreate(actorKey));
+  new AgentOsCandidateHandle(client.appBuildVm.getOrCreate(actorKey));
 
 const deployAgentOsRelease: AppReleaseExecutor = async (
   input: AppReleaseInput,
@@ -82,7 +83,7 @@ const deployAgentOsRelease: AppReleaseExecutor = async (
     appId: input.spaceInstanceId,
     files: input.files,
     scaling: input.scaling,
-  });
+  }, { client });
   return {
     releaseId: deployment.release,
     deployment: deployment as unknown as Record<string, unknown>,

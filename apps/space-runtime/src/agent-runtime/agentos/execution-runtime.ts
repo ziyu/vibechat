@@ -1,5 +1,5 @@
 import { createClient } from "@rivet-dev/agentos/client";
-import type { registry } from "../../actors.js";
+import type { AgentOsAgentRegistry } from "../../actors.js";
 import type {
   AgentExecutionHandle,
   AgentExecutionHandleFactory,
@@ -9,14 +9,15 @@ import type {
 } from "../contract.js";
 import { agentExecutionActorKey } from "./actor-key.js";
 
-const client = createClient<typeof registry>({
+const client = createClient<AgentOsAgentRegistry>({
   endpoint:
     process.env.RIVET_ENDPOINT ??
     process.env.AGENTOS_ENDPOINT ??
     "http://127.0.0.1:6420",
+  poolName: process.env.SPACE_AGENT_EXECUTION_POOL_CLASS ?? "agent-execution",
 });
 
-type AgentOsExecutionVm = ReturnType<typeof client.vm.getOrCreate>;
+type AgentOsExecutionVm = ReturnType<typeof client.agentVm.getOrCreate>;
 
 class AgentOsExecutionHandle implements AgentExecutionHandle {
   readonly #vm: AgentOsExecutionVm;
@@ -53,7 +54,6 @@ class AgentOsExecutionHandle implements AgentExecutionHandle {
     sessionId: string;
     agent: string;
     cwd: string;
-    env: Record<string, string>;
     permissionPolicy: "allow_all";
     additionalInstructions: string;
   }) {
@@ -91,7 +91,7 @@ class AgentOsExecutionHandle implements AgentExecutionHandle {
 }
 
 const createAgentOsHandle: AgentExecutionHandleFactory = (actorKey) =>
-  new AgentOsExecutionHandle(client.vm.getOrCreate(actorKey));
+  new AgentOsExecutionHandle(client.agentVm.getOrCreate(actorKey));
 
 export class AgentOsAgentExecutionRuntime implements AgentExecutionRuntime {
   readonly #createHandle: AgentExecutionHandleFactory;

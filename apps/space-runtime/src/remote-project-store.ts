@@ -31,7 +31,7 @@ export function createRemoteProjectStoreFromEnv(): RemoteProjectStore {
   return new BackendRemoteProjectStore(origin, signingSecret)
 }
 
-class BackendRemoteProjectStore implements RemoteProjectStore {
+export class BackendRemoteProjectStore implements RemoteProjectStore {
   readonly #origin: string
   readonly #signingSecret: string
   readonly #ownerId = runtimeReplicaOwnerId

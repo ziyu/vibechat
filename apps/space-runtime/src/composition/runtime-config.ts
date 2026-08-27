@@ -4,6 +4,10 @@ import {
   parseSpaceRuntimeSchedulingConfig,
   type SpaceRuntimeSchedulingConfig,
 } from "../runtime-config.js";
+import {
+  parseSpaceRuntimeDeploymentConfig,
+  type SpaceRuntimeDeploymentConfig,
+} from "./runtime-deployment.js";
 
 export interface SpaceRuntimeConfig {
   port: number;
@@ -14,17 +18,17 @@ export interface SpaceRuntimeConfig {
   defaultAgentId: string;
   internalSigningSecret: string;
   scheduling: SpaceRuntimeSchedulingConfig;
+  deployment: SpaceRuntimeDeploymentConfig;
   agentOsTemporaryDirectory: string;
   rivetkitStoragePath: string;
   rivetEngineDataDirectory: string;
-  configuredRivetEndpoint?: string;
-  localRivetEndpoint: string;
 }
 
 export function createSpaceRuntimeConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): SpaceRuntimeConfig {
   const scheduling = parseSpaceRuntimeSchedulingConfig(environment);
+  const deployment = parseSpaceRuntimeDeploymentConfig(environment);
   const rivetkitStoragePath = resolve(
     environment.RIVETKIT_STORAGE_PATH ??
       join(process.cwd(), ".data", "rivetkit-storage"),
@@ -39,6 +43,7 @@ export function createSpaceRuntimeConfig(
     internalSigningSecret:
       environment.SPACE_RUNTIME_INTERNAL_TOKEN?.trim() ?? "",
     scheduling,
+    deployment,
     agentOsTemporaryDirectory: resolve(
       environment.SPACE_RUNTIME_TMP_DIR ??
         `/tmp/vc-space-runtime-${process.pid}`,
@@ -48,9 +53,6 @@ export function createSpaceRuntimeConfig(
       environment.RIVET_ENGINE_DATABASE_PATH ??
         join(rivetkitStoragePath, "managed-engine", "db"),
     ),
-    configuredRivetEndpoint:
-      environment.RIVET_ENDPOINT ?? environment.AGENTOS_ENDPOINT,
-    localRivetEndpoint: "http://127.0.0.1:6420",
   };
 }
 

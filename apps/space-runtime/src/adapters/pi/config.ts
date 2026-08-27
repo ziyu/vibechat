@@ -22,12 +22,17 @@ const providerCredentialNames = [
 export function hasModelCredentials() {
   return (
     piMode() === "host" ||
+    (
+      process.env.SPACE_RUNTIME_ENGINE_MODE === "external" &&
+      !process.env.SPACE_RUNTIME_POOL_WORKLOAD
+    ) ||
     providerCredentialNames.some((name) => Boolean(process.env[name]))
   );
 }
 
 export function configuredProvider() {
   if (piMode() === "host") return localPiProvider();
+  if (process.env.AI_PROVIDER?.trim()) return process.env.AI_PROVIDER.trim();
   const name = providerCredentialNames.find((candidate) =>
     Boolean(process.env[candidate]),
   );

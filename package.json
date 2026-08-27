@@ -130,6 +130,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
+      "@rivet-dev/agentos@0.2.15": "patches/@rivet-dev__agentos@0.2.15.patch",
       "@rivet-dev/agentos-apps@0.2.15": "patches/@rivet-dev__agentos-apps@0.2.15.patch",
       "@rivet-dev/agentos-core@0.2.15": "patches/@rivet-dev__agentos-core@0.2.15.patch"
     }

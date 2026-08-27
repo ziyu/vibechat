@@ -167,32 +167,54 @@ describe("durable Space Runtime control plane", () => {
     const leaseC = await control.claimLease(instanceId, "replica-c", 5_000);
     expect(leaseC?.fencingToken).toBe(3);
 
-    const reply = await control.enqueueOutbox({
-      eventId: "outbox-reply-1",
-      spaceInstanceId: instanceId,
-      eventType: "agent_reply",
-      dedupeKey: "turn-m2",
-      payload: { transactionId: "space-agent-turn-m2" },
-    });
-    const duplicate = await control.enqueueOutbox({
-      eventId: "outbox-reply-duplicate",
-      spaceInstanceId: instanceId,
-      eventType: "agent_reply",
-      dedupeKey: "turn-m2",
-      payload: { transactionId: "space-agent-turn-m2" },
-    });
-    expect(duplicate.eventId).toBe(reply.eventId);
+    const outboxFixtures = [
+      {
+        eventId: "outbox-reply-1",
+        eventType: "agent_reply" as const,
+        dedupeKey: "turn-m2",
+        payload: { transactionId: "space-agent-turn-m2" },
+      },
+      {
+        eventId: "outbox-credits-1",
+        eventType: "credits_callback" as const,
+        dedupeKey: "credits-reservation-m2",
+        payload: { transactionId: "credits-reservation-m2" },
+      },
+      {
+        eventId: "outbox-state-1",
+        eventType: "matrix_v2_state" as const,
+        dedupeKey: "space-instance-failover:revision-m2:release-m1",
+        payload: { readyRevisionId: "2222222222222222" },
+      },
+    ];
+    for (const fixture of outboxFixtures) {
+      const original = await control.enqueueOutbox({
+        ...fixture,
+        spaceInstanceId: instanceId,
+      });
+      const duplicate = await control.enqueueOutbox({
+        ...fixture,
+        eventId: `${fixture.eventId}-duplicate`,
+        spaceInstanceId: instanceId,
+      });
+      expect(duplicate.eventId).toBe(original.eventId);
+    }
 
     const firstDelivery = await control.claimOutbox("reconciler-a");
-    expect(firstDelivery).toHaveLength(1);
+    expect(firstDelivery).toHaveLength(3);
     const exactlyOnceSink = new Set<string>();
-    exactlyOnceSink.add(firstDelivery[0]!.dedupeKey);
+    for (const event of firstDelivery) {
+      exactlyOnceSink.add(`${event.eventType}:${event.dedupeKey}`);
+    }
     now = new Date(now.getTime() + 61_000);
     const retriedDelivery = await control.claimOutbox("reconciler-b");
-    expect(retriedDelivery[0]).toMatchObject({ eventId: reply.eventId, attempt: 2 });
-    exactlyOnceSink.add(retriedDelivery[0]!.dedupeKey);
-    await control.completeOutbox(reply.eventId, "reconciler-b");
-    expect(exactlyOnceSink.size).toBe(1);
+    expect(retriedDelivery).toHaveLength(3);
+    for (const event of retriedDelivery) {
+      expect(event.attempt).toBe(2);
+      exactlyOnceSink.add(`${event.eventType}:${event.dedupeKey}`);
+      await control.completeOutbox(event.eventId, "reconciler-b");
+    }
+    expect(exactlyOnceSink.size).toBe(3);
   });
 
   it("persists cancellation once and keeps terminal Turns immutable", async () => {

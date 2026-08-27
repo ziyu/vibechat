@@ -429,7 +429,7 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Complete（2026-08-27） |
 | S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Complete（2026-08-27） |
 | S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Complete（2026-08-27） |
-| S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Active（结构切片） |
+| S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Repository Complete；云环境演练 Pending（2026-08-27） |
 | S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Pending |
 
 ### 9.1 S1：只做结构拆分
@@ -548,12 +548,18 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 4. 演练旧 owner fencing、session restore/rebuild、R2 artifact、Release 跨宿主恢复和 Outbox 重放。
 5. 建立部署、升级、回滚、容量和故障 Runbook；本地 managed Engine 只保留开发说明。
 
-#### S5 当前切片（2026-08-27）
+#### S5 仓库实现记录（2026-08-27）
 
-- [ ] 先固定 Runtime 的 Engine mode、endpoint identity、replica identity、pool class 和启动前置校验契约；默认开发 managed mode 保持可用，生产模式必须显式连接外部持久 Engine，不能静默启动本地 Engine。
-- [ ] 将 Agent execution、App build/dev、Release serving 的逻辑 pool 配置和最小可观测字段收敛到 provider-neutral runtime ports；本切片只建立结构与失败关闭，不声称底层 Engine 已完成物理 pool 隔离。
-- [ ] 增加两个 Runtime replica 共用一个外部 Engine 与 Product DB lease 的 deterministic integration harness，再进入真实 Synapse/D1/R2 跨进程演练。
-- [ ] 在上述代码和运行证据完成后补齐外部 Engine 部署、升级、回滚、容量与故障 Runbook；当前阶段不得将开发 managed Engine 写成生产拓扑。
+- [x] 已固定 Runtime 的 `managed/external` Engine mode、无 credential/query/fragment 的 endpoint、region/replica identity、三类逻辑 pool class 和启动前置校验。生产必须显式 `SPACE_RUNTIME_ENGINE_MODE=external` 并提供 endpoint、region、replica ID；配置缺失时在 claim Turn 前启动失败，不能静默启动本地 Engine。
+- [x] control Runtime 在 external/production 模式只做 Engine health preflight，不承载 Registry。开发 standalone Runtime 也使用三个独立子进程，只有 Agent worker 可以拥有 managed Engine；根开发启动器在 Engine ready 后启动并等待三个 worker，再启动应用。
+- [x] Agent、App build/dev、Release serving 分别使用单 Registry OS worker 和独立 Envoy pool；同一镜像通过 `SPACE_RUNTIME_POOL_WORKLOAD` 选择角色。AgentOS VM/Apps concrete provider 已接入各自的 sidecar pool、network policy 和 quota，Runtime health 返回 `poolRoutingEnforced=true`。
+- [x] provider credential 只存在于 Agent worker：control 的 `openSession` contract 不再携带 `env`，worker 内的 AgentOS session resolver 才注入 provider secret，并覆盖任何同名 client 输入。生产 control 检测到 key、生产 Agent worker 缺少全部 key、build/serving worker 检测到任一 key，都会在 Engine probe/Registry 启动前失败关闭；部署平台仍必须在 secret scope 层做物理隔离。
+- [x] 新增 deployment/AgentOS infrastructure 测试，覆盖生产缺失配置、非法 endpoint、pool 折叠、managed 数据目录、external 健康预检、凭据边界和不可用失败关闭；Node 24.19.0 下 Space Runtime 全量 25 个测试文件、107/107 通过，Runtime typecheck、416 个活动源码边界检查、开发启动脚本语法和 `git diff --check` 通过。GitNexus 对配置解析、Engine 启动与 health route 的单符号 impact 均为 LOW；`SpaceRuntimeConfig` 接口影响为 MEDIUM、无业务执行流命中。
+- [x] 两个独立 Node replica 共用 external Engine health 和 Backend control/Object Store client 的 deterministic harness 已覆盖 lease 接管、旧 owner fencing、session rebuild、Release pointer 与 outbox ACK 丢失重放；没有新增第二条 queue 或 Runtime 直连 Product DB。
+- [x] disposable Rivet Engine `2.3.7` 上实测三个独立 pool 各两个 Envoy 同时 active；停止一个 build worker 后 `agent/build/serving` active connection 为 `2/1/2`，没有复现多 Registry 同进程的互相挤出。相同检查已固化为 opt-in integration test。
+- [x] 最终复跑 opt-in 真实 Engine pool integration 1/1、双 Node replica failover integration 1/1。完整 Chromium E2E 已尝试，实际为 39 passed、8 failed、3 skipped、9 did not run；失败来自当前共享环境的 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 和 `SPACE_RUNTIME_UNAVAILABLE`，未作为 S5 通过证据。
+- [x] 已补齐[Space Runtime AgentOS 生产部署 Runbook](../../stable/runbooks/space-runtime-agentos-production.md)，覆盖环境/区域部署单位、secret/egress/quota、启动、metrics、灰度、升级、回滚、容量、备份恢复、fencing/session/artifact/Release/Outbox 故障处理；managed Engine 明确仅用于开发。
+- [ ] 外部环境限制：尚未在真实 Cloudflare D1/R2 + Synapse + external Engine 的不同宿主上执行完整故障演练，也没有生产 Engine 持久存储/备份恢复证据。本地 filesystem Engine 与 mock Backend harness 不能替代该运行证据；S5 仓库实现已完成，但生产验收在获得目标环境后才可关闭。
 
 ### 9.6 S6：第二 Adapter 与治理
 

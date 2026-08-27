@@ -12,6 +12,7 @@ import {
 } from '../../../apps/space-runtime/src/app-runtime/contract'
 import { AgentOsAppExecutionRuntime } from '../../../apps/space-runtime/src/app-runtime/agentos/app-runtime'
 import { runProjectTurn } from '../../../apps/space-runtime/src/adapters/pi/adapter'
+import { agentProviderCredentialEnvironmentVariables } from '../../../apps/space-runtime/src/composition/runtime-deployment'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -60,7 +61,11 @@ describe('Space execution runtime boundaries', () => {
 
   it('routes AgentOS project turns through the injected Agent runtime', async () => {
     vi.stubEnv('PI_MODE', 'agentos')
-    vi.stubEnv('OPENAI_API_KEY', 'test-provider-key')
+    vi.stubEnv('SPACE_RUNTIME_ENGINE_MODE', 'external')
+    vi.stubEnv('SPACE_RUNTIME_POOL_WORKLOAD', '')
+    for (const name of agentProviderCredentialEnvironmentVariables) {
+      vi.stubEnv(name, '')
+    }
     vi.stubEnv('AI_MODEL', '')
     const files = {
       'package.json': '{}',
@@ -71,6 +76,7 @@ describe('Space execution runtime boundaries', () => {
       Object.entries(files).map(([path, content]) => [`/workspace/${path}`, content]),
     )
     const dispose = vi.fn(async () => undefined)
+    const openSession = vi.fn(async () => undefined)
     const handle: AgentExecutionHandle = {
       makeDirectory: vi.fn(async () => undefined),
       writeFile: vi.fn(async (path: string, content: string) => {
@@ -80,7 +86,7 @@ describe('Space execution runtime boundaries', () => {
         new TextEncoder().encode(storedFiles.get(path) ?? ''),
       ),
       listSessions: vi.fn(async () => []),
-      openSession: vi.fn(async () => undefined),
+      openSession,
       deleteSession: vi.fn(async () => undefined),
       connect: vi.fn(async () => ({ dispose })),
       prompt: vi.fn(async () => ({
@@ -102,6 +108,14 @@ describe('Space execution runtime boundaries', () => {
       spaceInstanceId: 'space-runtime-test',
       agentId: 'pi',
     })
+    expect(openSession).toHaveBeenCalledWith({
+      sessionId: 'space-pi',
+      agent: 'pi',
+      cwd: '/workspace',
+      permissionPolicy: 'allow_all',
+      additionalInstructions: expect.any(String),
+    })
+    expect(openSession.mock.calls[0]?.[0]).not.toHaveProperty('env')
     expect(dispose).toHaveBeenCalledOnce()
   })
 

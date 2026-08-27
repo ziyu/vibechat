@@ -1,11 +1,9 @@
-import { mkdir } from "node:fs/promises";
 import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { createFakeAgentAdapter } from "../adapters/fake/adapter.js";
 import { createPiAgentAdapter } from "../adapters/pi/adapter.js";
 import { SpaceAgentAdapterRegistry } from "../adapters/registry.js";
 import { AgentOsAppExecutionRuntime } from "../app-runtime/agentos/app-runtime.js";
 import { createDurableSpaceControlFromEnv } from "../durable-space-control.js";
-import { registry } from "../infrastructure/actors.js";
 import {
   createProjectFromTemplate,
   initializeProjectFromTemplate,
@@ -30,6 +28,7 @@ import { AgentTurnProcessor } from "../turn-processor/process-agent-turn.js";
 import { PublishTurnProcessor } from "../turn-processor/process-publish-turn.js";
 import { RestoreTurnProcessor } from "../turn-processor/process-restore-turn.js";
 import type { SpaceRuntimeDependencies } from "./dependencies.js";
+import { startAgentOsInfrastructure } from "./agentos-infrastructure.js";
 import {
   boundedLogError,
   errorMessage,
@@ -320,27 +319,6 @@ export async function createRuntime(
       }
     },
   };
-}
-
-async function startAgentOsInfrastructure(config: SpaceRuntimeConfig) {
-  await Promise.all([
-    mkdir(config.agentOsTemporaryDirectory, { recursive: true }),
-    mkdir(config.rivetEngineDataDirectory, { recursive: true }),
-  ]);
-  process.env.TMPDIR = config.agentOsTemporaryDirectory;
-  const startsLocalRivetEngine = !config.configuredRivetEndpoint;
-  if (config.configuredRivetEndpoint) {
-    process.env.RIVET_ENDPOINT = config.configuredRivetEndpoint;
-  } else {
-    process.env.RIVET_RUN_ENGINE ??= "1";
-  }
-  process.env.RIVETKIT_STORAGE_PATH ??= config.rivetkitStoragePath;
-
-  const registryReady = registry.startAndWait();
-  if (startsLocalRivetEngine) {
-    process.env.RIVET_ENDPOINT = config.localRivetEndpoint;
-  }
-  await registryReady;
 }
 
 function createControlPlaneFailureReporter() {

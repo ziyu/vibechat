@@ -56,7 +56,7 @@
 - [x] S2 已完成：`@vibechat/space-agent-contracts` 已让 Agent identity、Definition/Binding/Session/Turn snapshot、版本化 usage/error/event 和内部 callback 脱离 Pi/AgentOS，旧 `space-app-contracts` 保留兼容 re-export；`libs/space-agents`、PG/SQLite-D1 对称领域表、Pi bootstrap/binding 回填和现有 Turn nullable 固定字段已落地。Wrangler 本地 D1 `0000 → 0014`、PostgreSQL 17 单独 `0014` 与恢复 journal 后的完整 `0000 → 0014` migration 均已验证，D1/PG repository contract 各 1/1 通过。S3 invoke/enqueue 固定 snapshot 仍未开始。
 - [x] S3 已完成：Backend invoke 已提取为可测试 application service，Definition/Binding/session policy 成为调用权威；新建 Space 幂等写默认 Pi binding，现有 Turn 固定 Definition/Adapter/session/policy/Project/reservation snapshot，Runtime snapshot 与 Matrix v2 state 输出公开 Agent view，callback 优先按固定字段 fencing。默认仍只开放 Pi；真实 Synapse + Pi/provider 双 Chromium E2E 2/2 通过，完整 Adapter cancel/restore 和生产 Engine 继续属于 S4/S5。
 - [x] S4 已完成：生产 Adapter Registry/Turn processor 已切到 provider-neutral `beginSession/runTurn/summarize/cancel/restore` 和 strict `AgentEventV1`；Pi 与 Fake 通过相同 lifecycle suite。Product DB session summary/ref/hash、restore/rebuild、bounded audit 与 cancel control 均经 Backend internal API 持久化并受 active Turn、lease/fencing 保护；成员取消入口、Adapter Abort/cancel、usage 缺失失败退款和 Candidate repair 失败保护已接入唯一收口。定向单测 133/133、Agent collaboration E2E 3/3 和 Workers/D1 health 200 通过。
-- [ ] S5 Active：先固定外部 Engine mode/endpoint、Runtime replica identity 与 Agent/build/dev/serving pool 的 provider-neutral 结构和失败关闭，再实现两个 Runtime replica 共用 Engine 的 integration harness。区域级外部持久 Engine、真实 D1/R2 跨宿主恢复和物理 pool 隔离尚未完成。
+- [x] S5 仓库实现完成：生产 control 只预检区域级 external Engine；Agent/build/serving 是三个独立 OS worker/Envoy pool，接入各自 credential scope、egress、quota 和 metrics。control 的 session 请求不携带 provider secret，只有 Agent worker resolver 注入 credential；production control 带 key、Agent worker 缺 key 或 build/serving 带 key 均失败关闭。双 Node replica harness 已覆盖 lease/fencing/session/Release/Outbox，真实 disposable Engine 上三类 pool 各两个 replica 同时 active，停止一个 build worker 后保持 `2/1/2`。Runtime unit 107/107、pool integration 1/1、replica failover integration 1/1 通过。生产 Runbook 已完成；真实 Cloudflare D1/R2 + Synapse + external Engine 跨宿主和备份恢复仍是目标环境验收项，不能由本地 filesystem Engine 代替。
 
 尚未完成：
 
@@ -65,7 +65,7 @@
 - member Mention、分页、历史 rollback 和其余 #40 浏览器验收。
 - 用户 Template 发布、审核与撤销。
 - 第二真实 Adapter；Pi/Fake 完整 lifecycle、session/audit/cancel 持久化和 usage 缺失退款已在 S4 完成。
-- 区域级外部共享 AgentOS/Rivet Engine，以及 Agent execution、App build/dev、Release serving 的独立 worker pool、credential、quota 和生产 Runbook。
+- 真实目标环境的区域级 external AgentOS/Rivet Engine、D1/R2、Synapse 跨宿主接管与备份恢复验收；仓库中的独立 worker pool、credential、quota 和生产 Runbook 已完成。
 
 ## 3. 状态定义
 
@@ -146,7 +146,7 @@ A2 的完成结论不因 Space App 增量设计而撤销：
 | Agent Adapter 最小合约 | 已由 Pi 与 fake 共享事件、usage、取消和恢复；第二真实 Adapter 仍需通过同一 suite | A4 第二 Adapter |
 | Agent Registry 与 session | Definition/Binding/session ref/summary/audit 已进入 Product DB；继续验证跨副本 restore/rebuild | A4/S5 恢复演练 |
 | agentOS Apps 版本兼容 | 技术路线已经确定；先复现 demo `0.2.15` 基线，再由仓库 lockfile 固定兼容版本 | A3 Runtime spike |
-| AgentOS 生产部署 | 每个环境/区域共享外部 Engine；Agent、build/dev、serving pool 独立治理，不按 Space 复制集群 | A4 生产部署演练 |
+| AgentOS 生产部署 | external control、三类独立 worker pool、credential/egress/quota、双 Node 接管 harness 与 Runbook 已落地；仍需真实 D1/R2 + Synapse 跨宿主和备份恢复验收，不按 Space 复制集群 | A4/S5 目标环境演练 |
 | Runtime 内部认证与网络 | 不复用 Cookie/secret；短期 audience token | A3 contract 评审 |
 | Instance Server 多副本所有权 | 同一 `spaceInstanceId` 只允许一个 lease owner 执行写 Turn，SSE 可接管 | A3 Runtime spike |
 | `room_index` 原地升级 | 不新建平行实例表；PG/SQLite/D1 回填、唯一约束和回滚均需验证 | A3 schema migration |
