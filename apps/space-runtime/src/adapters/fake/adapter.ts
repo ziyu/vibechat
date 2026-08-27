@@ -6,7 +6,10 @@ import type {
   AgentUsageV1,
 } from "@vibechat/space-agent-contracts";
 import type { AgentUsage } from "../../agent-usage.js";
-import type { CompleteSpaceAgentAdapter } from "../contract.js";
+import type {
+  AgentProjectPatch,
+  CompleteSpaceAgentAdapter,
+} from "../contract.js";
 
 const DEFAULT_TIMESTAMP = "2026-01-01T00:00:00.000Z";
 
@@ -212,6 +215,7 @@ export function createFakeAgentAdapter(options: {
       }
 
       const revisionRequested = input.requestText.includes("[fake:revision]");
+      let projectPatch: AgentProjectPatch | undefined;
       if (revisionRequested) {
         yield {
           schemaVersion: "vibechat.agent-event/v1",
@@ -232,12 +236,11 @@ export function createFakeAgentAdapter(options: {
           return;
         }
 
-        const patchHash = sha256([
-          input.spaceInstanceId,
-          input.agentId,
-          input.sessionId,
-          input.requestText,
-        ].join("\n"));
+        const files = await input.projectWorkspace.read();
+        projectPatch = await input.projectWorkspace.apply(input.turnId, {
+          ...files,
+          "src/fake-agent-note.ts": `export const note = ${JSON.stringify(input.requestText)};\n`,
+        });
         yield {
           schemaVersion: "vibechat.agent-event/v1",
           eventId: `${input.turnId}:${sequence}`,
@@ -246,9 +249,7 @@ export function createFakeAgentAdapter(options: {
           occurredAt: input.requestedAt,
           type: "project_patch",
           baseRevisionId: input.project.revisionId,
-          patchRef: `fake-patch:${input.turnId}`,
-          sourceHash: patchHash,
-          filesChanged: ["src/fake-agent-note.ts"],
+          ...projectPatch,
         };
         sequence += 1;
       } else {
@@ -288,7 +289,7 @@ export function createFakeAgentAdapter(options: {
       }
 
       const revisionId = revisionRequested
-        ? `fake-revision-${sha256(input.requestText).slice(-16)}`
+        ? `fake-revision-${projectPatch!.sourceHash.slice(-16)}`
         : undefined;
       const hasUsage = !input.requestText.includes("[fake:missing-usage]");
       yield {

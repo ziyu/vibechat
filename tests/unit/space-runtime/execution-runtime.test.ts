@@ -105,6 +105,48 @@ describe('Space execution runtime boundaries', () => {
     expect(dispose).toHaveBeenCalledOnce()
   })
 
+  it('cancels an active AgentOS Pi session through the provider-neutral signal', async () => {
+    vi.stubEnv('PI_MODE', 'agentos')
+    vi.stubEnv('OPENAI_API_KEY', 'test-provider-key')
+    vi.stubEnv('AI_MODEL', '')
+    let markPromptStarted: (() => void) | undefined
+    const promptStarted = new Promise<void>((resolve) => {
+      markPromptStarted = resolve
+    })
+    const dispose = vi.fn(async () => undefined)
+    const deleteSession = vi.fn(async () => undefined)
+    const handle: AgentExecutionHandle = {
+      makeDirectory: vi.fn(async () => undefined),
+      writeFile: vi.fn(async () => undefined),
+      readFile: vi.fn(async () => new Uint8Array()),
+      listSessions: vi.fn(async () => []),
+      openSession: vi.fn(async () => undefined),
+      deleteSession,
+      connect: vi.fn(async () => ({ dispose })),
+      prompt: vi.fn(() => {
+        markPromptStarted?.()
+        return new Promise(() => undefined)
+      }),
+    }
+    const controller = new AbortController()
+    const turn = runProjectTurn({
+      spaceInstanceId: 'space-runtime-cancel',
+      request: 'cancel this turn',
+      files: {
+        'package.json': '{}',
+        'tsconfig.json': '{}',
+        'src/index.ts': 'export default {}',
+      },
+    }, { open: () => handle }, controller.signal)
+
+    await promptStarted
+    controller.abort(new Error('lease lost'))
+
+    await expect(turn).rejects.toThrow('lease lost')
+    expect(deleteSession).toHaveBeenCalledWith('space-pi')
+    expect(dispose).toHaveBeenCalledOnce()
+  })
+
   it('delegates Dev VM and immutable Release operations through App runtime', async () => {
     const candidate = {} as AppCandidateHandle
     const deployment: AppReleaseResult = {

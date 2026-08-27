@@ -76,6 +76,28 @@ export interface RestoreAgentSessionInput {
   requestedAt: string;
 }
 
+export interface AgentProjectPatch {
+  patchRef: string;
+  sourceHash: `sha256:${string}`;
+  filesChanged: string[];
+}
+
+/**
+ * Runtime-local Project staging port. Source files stay outside the shared
+ * wire contracts; an Adapter can only read and replace its current staged
+ * snapshot, while the Turn processor remains responsible for validation,
+ * Candidate creation, and moving the ready Revision pointer.
+ */
+export interface AgentProjectWorkspace {
+  readonly baseRevisionId: string;
+  read(): Promise<ProjectFiles>;
+  apply(turnId: string, files: ProjectFiles): Promise<AgentProjectPatch>;
+}
+
+export type RunAgentTurnInput = AgentTurnInputV1 & {
+  projectWorkspace: AgentProjectWorkspace;
+};
+
 /**
  * Provider-neutral S4 lifecycle port. Runtime consumers migrate to this only
  * after the fake contract suite is stable; the legacy adapter remains the S3
@@ -89,7 +111,7 @@ export interface SpaceAgentLifecycleAdapter {
     signal: AbortSignal,
   ): Promise<AgentSessionRefV1>;
   runTurn(
-    input: AgentTurnInputV1,
+    input: RunAgentTurnInput,
     signal: AbortSignal,
   ): AsyncIterable<AgentEventV1>;
   summarize(

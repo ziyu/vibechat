@@ -1518,6 +1518,12 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - Fake Adapter 通过可复用 contract suite，覆盖版本化事件、单调 sequence、唯一 terminal、chat/revision/usage、标准失败、usage 缺失、幂等 cancel、AbortSignal、summary、restore/rebuild 及跨 Space/Agent/session 隔离；定向 3 个文件、13/13 通过，contracts 与 Runtime typecheck 通过。
 - 本证据只建立 S4 Adapter 合约基线；Pi、生产 Turn processor、Product DB session/event/cancel 持久化尚未切换，不勾选场景 6，也不替代真实 Synapse/AgentOS E2E。
 
+2026-08-27 S4 Pi lifecycle 证据：
+
+- Pi Adapter 已实现与 Fake 相同的 begin/stream/summarize/cancel/restore 端口；旧 `runProjectTurn/reviseProject` 继续兼容。Host Pi 的 AbortSignal 会终止子进程，AgentOS Pi 的取消会删除活动 session 并在后续恢复时显式 rebuild。
+- Project source 只进入 Runtime-local staged workspace，`AgentTurnInputV1` 和 `AgentEventV1` 仍只携带 Project ref/hash/patch ref，不把源码或 AgentOS VM 类型放入公共 contracts。Pi 原始 progress 被映射为版本化 status/text/tool/project/usage/terminal event。
+- Fake lifecycle、Pi lifecycle 与 execution runtime 定向测试 3 个文件、17/17 通过，Runtime typecheck 通过。生产 Turn processor 尚未消费新 stream，Product DB session/event/cancel 尚未持久化，因此场景 6 仍保持未通过。
+
 ---
 
 ### Backlog 优先级汇总

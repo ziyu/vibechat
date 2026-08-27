@@ -528,7 +528,9 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 - [x] Fake Adapter 同时实现旧接口与完整 lifecycle，覆盖确定性 chat/revision/usage、标准失败、真正缺失 usage、AbortSignal、幂等 cancel、summary hash/ref 和 restore/rebuild。
 - [x] 建立可复用 lifecycle contract suite：严格事件 schema、单调 sequence、唯一 terminal、chat/revision/usage、cancel/AbortSignal、summarize、restore/rebuild 及跨 Space/Agent/session 隔离均通过；该 suite 将由后续 Pi lifecycle 复用。
 - [x] Node 24.19.0 下 contracts 与 Runtime typecheck 通过；contracts、旧 Adapter 兼容与 Fake lifecycle 定向测试 3 个文件、13/13 通过。Fake 仍只在显式测试开关下注册，不能成为产品成功 fallback。
-- [ ] 下一切片迁移 Pi lifecycle 并接入 session event/cancel/restore 持久化；在此之前旧 S3 执行路径继续是生产权威，不能把本切片标为 S4 Complete。
+- [x] 第二切片让 Pi Adapter 通过同一 lifecycle suite；Host Pi 将 AbortSignal 映射为子进程终止，AgentOS Pi 将取消映射为活动 session 删除和后续 rebuild。Runtime-local Project workspace 负责 staged source，公共 Turn/Event schema 仍只持有 Project ref/hash。
+- [x] Pi 与 Fake lifecycle、execution runtime 定向测试 3 个文件、17/17 通过，Runtime typecheck 通过；Pi/Fake 均保持旧 S3 接口兼容，Registry 和生产 processor 尚未切换。
+- [ ] 下一切片将 versioned event、session summary/restore 和 cancel 接入现有 Turn/control-plane；在此之前旧 S3 执行路径继续是生产权威，不能把本切片标为 S4 Complete。
 
 ### 9.5 S5：生产共享 AgentOS
 

@@ -2,7 +2,6 @@ import type {
   AgentDefinitionSnapshot,
   AgentEventV1,
   AgentSessionRefV1,
-  AgentTurnInputV1,
 } from '../../../packages/space-agent-contracts/src'
 import {
   agentEventV1Schema,
@@ -13,7 +12,11 @@ import {
 } from '../../../packages/space-agent-contracts/src'
 import type {
   SpaceAgentLifecycleAdapter,
+  RunAgentTurnInput,
 } from '../../../apps/space-runtime/src/adapters/contract'
+import {
+  createAgentProjectWorkspace,
+} from '../../../apps/space-runtime/src/adapters/project-workspace'
 import { describe, expect, it } from 'vitest'
 
 const timestamp = '2026-08-27T00:00:00.000Z'
@@ -27,16 +30,27 @@ export type AgentLifecycleContractFactory = (
   options?: AgentLifecycleContractFactoryOptions,
 ) => SpaceAgentLifecycleAdapter
 
+export interface AgentLifecycleContractIdentity {
+  adapterKey: string
+  adapterVersion: string
+}
+
+const fakeIdentity: AgentLifecycleContractIdentity = {
+  adapterKey: 'fake',
+  adapterVersion: '1.0.0',
+}
+
 export function createAgentDefinitionFixture(
   agentId = 'fake',
+  identity: AgentLifecycleContractIdentity = fakeIdentity,
 ): AgentDefinitionSnapshot {
   return {
     definitionId: `definition-${agentId}`,
     agentId,
     version: '1.0.0',
-    adapterKey: 'fake',
-    adapterVersion: '1.0.0',
-    provider: 'fake',
+    adapterKey: identity.adapterKey,
+    adapterVersion: identity.adapterVersion,
+    provider: identity.adapterKey,
     model: 'deterministic',
     capabilities: ['conversation', 'project_patch'],
     toolPolicyId: 'tool-policy-default',
@@ -60,8 +74,10 @@ export function createAgentSessionFixture(options: {
   sessionId?: string
   generation?: number
   restoreStatus?: AgentSessionRefV1['restoreStatus']
+  identity?: AgentLifecycleContractIdentity
 } = {}): AgentSessionRefV1 {
   const agentId = options.agentId || 'fake'
+  const identity = options.identity || fakeIdentity
   return {
     schemaVersion: 'vibechat.agent-session-ref/v1',
     sessionId: options.sessionId || `session-${agentId}`,
@@ -69,8 +85,8 @@ export function createAgentSessionFixture(options: {
     agentId,
     definitionId: `definition-${agentId}`,
     definitionVersion: '1.0.0',
-    adapterKey: 'fake',
-    adapterVersion: '1.0.0',
+    adapterKey: identity.adapterKey,
+    adapterVersion: identity.adapterVersion,
     generation: options.generation || 1,
     providerSessionRef: null,
     summaryRef: null,
@@ -90,8 +106,10 @@ export function createAgentTurnInputFixture(options: {
   sessionId?: string
   sessionGeneration?: number
   requestText?: string
-} = {}): AgentTurnInputV1 {
+  identity?: AgentLifecycleContractIdentity
+} = {}): RunAgentTurnInput {
   const agentId = options.agentId || 'fake'
+  const identity = options.identity || fakeIdentity
   return {
     schemaVersion: 'vibechat.agent-turn-input/v1',
     turnId: options.turnId || 'turn-1',
@@ -99,7 +117,7 @@ export function createAgentTurnInputFixture(options: {
     agentId,
     sessionId: options.sessionId || `session-${agentId}`,
     sessionGeneration: options.sessionGeneration || 1,
-    definition: createAgentDefinitionFixture(agentId),
+    definition: createAgentDefinitionFixture(agentId, identity),
     policy: {
       schemaVersion: 'vibechat.agent-policy/v1',
       policySnapshotHash: hash,
@@ -123,6 +141,11 @@ export function createAgentTurnInputFixture(options: {
     },
     requestText: options.requestText || 'Answer this message.',
     requestedAt: timestamp,
+    projectWorkspace: createAgentProjectWorkspace('revision-1', {
+      'package.json': '{}',
+      'tsconfig.json': '{}',
+      'src/index.ts': 'export default {}',
+    }),
   }
 }
 
@@ -164,6 +187,7 @@ function expectValidEventStream(events: AgentEventV1[]) {
 export function runAgentLifecycleContractSuite(
   label: string,
   createAdapter: AgentLifecycleContractFactory,
+  identity: AgentLifecycleContractIdentity = fakeIdentity,
 ) {
   describe(`${label} lifecycle contract`, () => {
     it('begins isolated, strict, provider-neutral sessions', async () => {
@@ -173,21 +197,23 @@ export function runAgentLifecycleContractSuite(
         spaceInstanceId: 'space-a',
         agentId: 'fake-a',
         sessionId: 'session-shared',
+        identity,
       })
       const sessionB = createAgentSessionFixture({
         spaceInstanceId: 'space-b',
         agentId: 'fake-b',
         sessionId: 'session-shared',
+        identity,
       })
 
       const [startedA, startedB] = await Promise.all([
         adapter.beginSession({
-          definition: createAgentDefinitionFixture('fake-a'),
+          definition: createAgentDefinitionFixture('fake-a', identity),
           session: sessionA,
           requestedAt: timestamp,
         }, signal),
         adapter.beginSession({
-          definition: createAgentDefinitionFixture('fake-b'),
+          definition: createAgentDefinitionFixture('fake-b', identity),
           session: sessionB,
           requestedAt: timestamp,
         }, signal),
@@ -207,13 +233,14 @@ export function runAgentLifecycleContractSuite(
     it('streams strict monotonic chat, revision, usage, and one terminal event', async () => {
       const adapter = createAdapter()
       const chatEvents = await collectAgentEvents(adapter.runTurn(
-        createAgentTurnInputFixture({ turnId: 'turn-chat' }),
+        createAgentTurnInputFixture({ turnId: 'turn-chat', identity }),
         new AbortController().signal,
       ))
       const revisionEvents = await collectAgentEvents(adapter.runTurn(
         createAgentTurnInputFixture({
           turnId: 'turn-revision',
           requestText: '[fake:revision] add a note',
+          identity,
         }),
         new AbortController().signal,
       ))
@@ -247,6 +274,7 @@ export function runAgentLifecycleContractSuite(
         spaceInstanceId: 'space-a',
         agentId: 'fake-a',
         sessionId: 'session-shared',
+        identity,
       })
       const iterator = adapter.runTurn(
         activeInput,
@@ -283,6 +311,7 @@ export function runAgentLifecycleContractSuite(
           spaceInstanceId: 'space-b',
           agentId: 'fake-b',
           sessionId: 'session-shared',
+          identity,
         }),
         new AbortController().signal,
       ))
@@ -291,7 +320,7 @@ export function runAgentLifecycleContractSuite(
 
       const abortController = new AbortController()
       const abortIterator = adapter.runTurn(
-        createAgentTurnInputFixture({ turnId: 'turn-abort' }),
+        createAgentTurnInputFixture({ turnId: 'turn-abort', identity }),
         abortController.signal,
       )[Symbol.asyncIterator]()
       const abortFirst = await abortIterator.next()
@@ -314,11 +343,13 @@ export function runAgentLifecycleContractSuite(
         spaceInstanceId: 'space-a',
         agentId: 'fake-a',
         sessionId: 'session-shared',
+        identity,
       })
       const sessionB = createAgentSessionFixture({
         spaceInstanceId: 'space-b',
         agentId: 'fake-b',
         sessionId: 'session-shared',
+        identity,
       })
       const [summaryA, summaryB] = await Promise.all([
         adapter.summarize({
@@ -342,9 +373,9 @@ export function runAgentLifecycleContractSuite(
     })
 
     it('returns explicit restored and rebuild-required session results', async () => {
-      const session = createAgentSessionFixture()
+      const session = createAgentSessionFixture({ identity })
       const input = {
-        definition: createAgentDefinitionFixture(),
+        definition: createAgentDefinitionFixture('fake', identity),
         session,
         requestedAt: timestamp,
       }

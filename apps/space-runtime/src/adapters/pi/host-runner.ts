@@ -10,7 +10,9 @@ import { hostPiSessionId } from "./session.js";
 
 export async function runHostPiProjectTurn(
   input: SpaceAgentTurnInput,
+  signal: AbortSignal = new AbortController().signal,
 ): Promise<PiRunnerResult> {
+  signal.throwIfAborted();
   const workspace = join(
     process.cwd(),
     ".data",
@@ -22,6 +24,7 @@ export async function runHostPiProjectTurn(
     workspace,
     input.spaceInstanceId,
     turnPrompt(input),
+    signal,
     input.onProgress,
   );
   return {
@@ -35,8 +38,10 @@ function runHostPi(
   workspace: string,
   spaceInstanceId: string,
   prompt: string,
+  signal: AbortSignal,
   onProgress?: (event: GenerationProgress) => void | Promise<void>,
 ) {
+  signal.throwIfAborted();
   return new Promise<{ summary: string; usage?: AgentUsage }>(
     (resolve, reject) => {
       const args = [
@@ -100,12 +105,30 @@ function runHostPi(
           agentDeltaTimer = setTimeout(flushAgentDeltas, 32);
         }
       };
-      const timeout = setTimeout(() => {
-        settled = true;
+      const cleanup = () => {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", abort);
         if (agentDeltaTimer) clearTimeout(agentDeltaTimer);
+      };
+      const abort = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        child.kill("SIGTERM");
+        reject(
+          signal.reason instanceof Error
+            ? signal.reason
+            : new Error("Pi generation was cancelled"),
+        );
+      };
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         child.kill("SIGTERM");
         reject(new Error("Pi generation timed out after 6 minutes"));
       }, 360_000);
+      signal.addEventListener("abort", abort, { once: true });
 
       const handleLine = (line: string) => {
         if (!line.trim()) return;
@@ -170,13 +193,15 @@ function runHostPi(
         if (stderr.length < 64 * 1024) stderr += chunk;
       });
       child.on("error", (error) => {
-        clearTimeout(timeout);
-        if (agentDeltaTimer) clearTimeout(agentDeltaTimer);
-        if (!settled) reject(error);
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(error);
       });
       child.on("close", (code) => {
-        clearTimeout(timeout);
         if (settled) return;
+        settled = true;
+        cleanup();
         if (stdoutBuffer.trim()) handleLine(stdoutBuffer);
         flushAgentDeltas();
         void progressQueue.then(() => {

@@ -15,7 +15,9 @@ import { ensurePiSession, piSessionId, writePiSettings } from "./session.js";
 export async function runAgentOsPi(
   input: SpaceAgentTurnInput,
   executionRuntime: AgentExecutionRuntime,
+  signal: AbortSignal = new AbortController().signal,
 ): Promise<PiRunnerResult> {
+  signal.throwIfAborted();
   const agent = executionRuntime.open({
     spaceInstanceId: input.spaceInstanceId,
     agentId: "pi",
@@ -43,10 +45,14 @@ export async function runAgentOsPi(
 
   try {
     await ensurePiSession(agent);
-    const result = await agent.prompt({
-      sessionId: piSessionId,
-      text: turnPrompt(input),
-    });
+    const result = await promptWithAbort(
+      agent,
+      {
+        sessionId: piSessionId,
+        text: turnPrompt(input),
+      },
+      signal,
+    );
     await progressQueue;
 
     return {
@@ -55,6 +61,31 @@ export async function runAgentOsPi(
     };
   } finally {
     await connection.dispose();
+  }
+}
+
+async function promptWithAbort(
+  agent: AgentExecutionHandle,
+  input: { sessionId: string; text: string },
+  signal: AbortSignal,
+) {
+  signal.throwIfAborted();
+  let abort: (() => void) | undefined;
+  const aborted = new Promise<never>((_, reject) => {
+    abort = () => {
+      void agent.deleteSession(input.sessionId).catch(() => undefined);
+      reject(
+        signal.reason instanceof Error
+          ? signal.reason
+          : new Error("Pi AgentOS generation was cancelled"),
+      );
+    };
+    signal.addEventListener("abort", abort, { once: true });
+  });
+  try {
+    return await Promise.race([agent.prompt(input), aborted]);
+  } finally {
+    if (abort) signal.removeEventListener("abort", abort);
   }
 }
 
