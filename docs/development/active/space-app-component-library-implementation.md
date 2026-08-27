@@ -18,7 +18,7 @@
 
 本轮进一步新增 `@vibechat/space-app-components@0.7.0` 与相邻 development Template `space-default@0.1.5`，不覆盖 `0.1.4` lock。交互 Timeline 现在只呈现一套 canonical Reaction，候选 Reaction 与 reply/edit/delete/retry 进入 compact MessageActions；桌面使用浮层，窄屏使用带 backdrop 的 action sheet，覆盖焦点循环/恢复、Escape、外部点击、危险删除二次确认和英中内建文案。相邻同作者消息按五分钟窗口分组，重复 author/time/delivery 与 avatar chrome 被压缩；controls 使用 `fit-content` 跟随消息方向和气泡。独立 MessageActions 仍保持 inline 默认，因此这是新增 compact 能力与交互 Timeline 默认优化，不要求旧消费方迁移。`0.7.0` 当前仍只有本地 release lock/构建证据，未上传生产 managed Registry/Object Store。
 
-本轮没有改写任何既有 Published Release。托管依赖解析、Registry 缺失/漂移 fail closed、旧 Space 后加依赖、prepared 缓存冷启动和 source/artifact 分离已有 unit 证据；`space-default@0.1.3` 也已在真实本地 Rivet/AgentOS Dev VM 中生成 ready Revision，并在完整开发栈冷启动后从同一 prepared artifact 恢复。单 Chromium iframe 已确认 `0.5.0` Composer/Timeline 可见且无新 console error，但没有发送消息。生产 Object Store publish、不可变 Release、真实 Matrix 双浏览器、完整交互/a11y 矩阵和抽屉式 Template 迁移仍未执行，因此 C1/C3/C5 与“可供所有生产 Space 使用”都不能标记 Complete。
+本轮没有改写任何既有 Published Release。托管依赖解析、Registry 缺失/漂移 fail closed、旧 Space 后加依赖、prepared 缓存冷启动和 source/artifact 分离已有 unit 证据；`space-default@0.1.3` 也已在真实本地 Rivet/AgentOS Dev VM 中生成 ready Revision，并在完整开发栈冷启动后从同一 prepared artifact 恢复。首个抽屉式 Template `space-focus@0.1.3` 已固定 `@vibechat/space-app-components@0.7.0`，保留共享便签桌面并删除 Template 自有 Chat renderer/composer/state machine；单 Chromium 真实 Matrix iframe 已覆盖发送、回复、Reaction、抽屉 unread、刷新恢复和 390px 布局。生产 Object Store publish、不可变 Release、真实 Matrix 双浏览器和完整交互/a11y 矩阵仍未执行，因此 C1/C3/C5 与“可供所有生产 Space 使用”都不能标记 Complete。
 
 ## 状态定义
 
@@ -38,7 +38,7 @@
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | `0.7.0` + `space-default@0.1.5` 渐进式操作、单一 Reaction、消息分组与响应式 action sheet；旧 vendor 与 Shadow DOM adapter 已删除 | 对 `0.7.0` 做真实 Matrix 双浏览器交互后迁移抽屉式 Template |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | Default `0.1.5` 与 Focus `0.1.3` 同锁 `0.7.0`；Focus 单 Chromium 真实 Matrix 复合 E2E 已覆盖便签、抽屉、消息操作和移动布局 | 完成双浏览器 Matrix、不可变 Release 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
@@ -69,6 +69,7 @@
 - [x] 增加 Host→SDK `chat.permissions`，由 message view 结合 ownership/status 生成 actions；Timeline 公开 `interactive`、`interactionDisabled`、`reactionChoices`、稳定 `chat-message-entry` 与嵌套 action/reaction parts。
 - [x] 将 Default 升到 development `space-default@0.1.4` / exact `0.6.0`，删除 Timeline Shadow DOM 查询和 style 注入，改用组件公共类型与 parts；read receipt 按最新消息去重且不占全局 command pending。
 - [x] 将组件升到 `0.7.0`、Default 升到相邻 development `0.1.5`；交互 Timeline 只保留 canonical Reaction + compact More，新增五分钟消息分组、气泡锚定 controls、桌面浮层/移动 action sheet、键盘焦点管理和危险删除确认，同时保持 standalone MessageActions inline 默认兼容。
+- [x] 将首个抽屉式官方 Template `space-focus` 升到相邻 development `0.1.3`，固定同一个 `@vibechat/space-app-components@0.7.0`；保留共享便签桌面、主题和抽屉开关，只删除 Template 内重复的 Chat renderer/composer/state machine，并验证既有 `0.1.2` release lock 与已存储 Space Revision 不被改写。
 - [x] 在 Candidate 隔离树中校验并 materialize exact version/integrity，只改写 prepared `package.json`；source 和 Agent workspace 禁止生成 vendor/resolved manifest。
 - [x] 将 prepared artifact 接入 Dev Preview、Publish、手工部署和冷启动，并通过 `artifactObjectKey/artifactHash` 与 source object 分开持久化；旧无 lock Space 保持原 Revision ID 算法。
 - [x] 建立 Registry unavailable、version/hash drift、generated path collision、旧 Space 后加依赖、prepared tamper、冷启动不访问 Registry和最后 ready Revision 保留的 unit 证据。
@@ -85,7 +86,7 @@
 - keyboard、screen reader、200% 字体、长文案和图片失败状态通过；high contrast/reduced motion 契约进入样式与机械检查。
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、生产 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
-- `0.7.0` 与 `space-default@0.1.5` 已完成最终 package/bundle、43 个定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 与抽屉式 Template 继续保持未完成。
+- `0.7.0`、`space-default@0.1.5` 与 `space-focus@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release和完整 a11y 矩阵继续保持未完成。
 
 ## 2026-08-26 验证记录
 

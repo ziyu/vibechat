@@ -56,11 +56,15 @@ describe("Space Template publication protocol", () => {
       });
       const expectedCurrentVersion = template.id === "space-default"
         ? "0.1.5"
-        : "0.1.2";
+        : template.id === "space-focus"
+          ? "0.1.3"
+          : "0.1.2";
       expect(template.versions.map((item) => item.semanticVersion)).toEqual(
         template.id === "space-default"
           ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5"]
-          : ["0.1.0", "0.1.1", "0.1.2"],
+          : template.id === "space-focus"
+            ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3"]
+            : ["0.1.0", "0.1.1", "0.1.2"],
       );
       expect(version).toMatchObject({
         id: expect.stringMatching(
@@ -100,7 +104,9 @@ describe("Space Template publication protocol", () => {
         expect.arrayContaining([...spaceTemplateRequiredProjectPaths]),
       );
       expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(
-        template.id === "space-default" ? 20 : 24,
+        template.id === "space-default" || template.id === "space-focus"
+          ? 20
+          : 24,
       );
       expect(project!.files["src/index.ts"].length).toBeLessThan(1_000);
       expect(project!.files["src/index.ts"]).toContain("./runtime.js");
@@ -132,7 +138,7 @@ describe("Space Template publication protocol", () => {
         ".vcc-compose-wrap {\n  position: relative;",
       );
       const markup = project!.files["src/chat/markup.ts"];
-      if (template.id === "space-default") {
+      if (template.id === "space-default" || template.id === "space-focus") {
         expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
           "createSpaceChatController",
         );
@@ -154,12 +160,23 @@ describe("Space Template publication protocol", () => {
           .toBeUndefined();
         expect(project!.files["src/chat/client/composer.ts"]).toBeUndefined();
         expect(project!.files["src/chat/client/messages.ts"]).toBeUndefined();
-        expect(Object.values(project!.files).join("\n")).not.toContain(
+        expect(Object.entries(project!.files)
+          .filter(([path]) => path.startsWith("src/chat/"))
+          .map(([, source]) => source)
+          .join("\n")).not.toContain(
           "innerHTML",
         );
         expect(markup.indexOf('id="vcc-timeline"')).toBeLessThan(
           markup.indexOf('id="vcc-composer"'),
         );
+        if (template.id === "space-focus") {
+          expect(project!.files["src/chat/client.ts"]).toContain(
+            'bootstrapChat(space, components, "dock")',
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.state.get<unknown>("studio.notes")',
+          );
+        }
       } else {
         expect(project!.files["src/chat/client/composer.ts"]).toContain(
           "submitChatMessage",
@@ -173,6 +190,9 @@ describe("Space Template publication protocol", () => {
         expect(markup.indexOf('id="vcc-input"')).toBeLessThan(
           markup.indexOf('id="vcc-send"'),
         );
+        expect(project!.files["src/app/controller.ts"]).toBeTruthy();
+      }
+      if (template.id !== "space-default") {
         expect(project!.files["src/app/controller.ts"]).toBeTruthy();
       }
       expect(isOfficialSpaceTemplate(template)).toBe(true);

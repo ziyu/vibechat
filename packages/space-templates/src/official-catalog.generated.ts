@@ -563,7 +563,7 @@ export const officialTemplateDefinitions = [
       "icon": "⌁",
       "accent": "#b7d66d",
       "canvas": "#23342b",
-      "currentVersionId": "tplv-space-focus-0-1-2"
+      "currentVersionId": "tplv-space-focus-0-1-3"
     },
     "versions": [
       {
@@ -675,6 +675,46 @@ export const officialTemplateDefinitions = [
           "schemaVersion": "vibechat.space-template-version-lock/v1",
           "sourceHash": "sha256:7fff7448e4ee0097a982854a00c053418d7abd4fd64a3f3d40c2c25e36f828a5",
           "manifestHash": "sha256:b60df96e08f669f04846c0c05f24bd421f80e57736c6b0e82a9a1e4bb91bec55"
+        }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-focus-0-1-3",
+          "semanticVersion": "0.1.3",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read",
+              "state.shared.write"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-focus/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-6b42d106b6da65979810dda9ae93f7dafa977b37d4cdc51fafac26c8761080a2",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:6b42d106b6da65979810dda9ae93f7dafa977b37d4cdc51fafac26c8761080a2"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:6b42d106b6da65979810dda9ae93f7dafa977b37d4cdc51fafac26c8761080a2",
+          "manifestHash": "sha256:8c4fa05b215b53c64a65b53e8bbc98fedf507e33c7c4518aa7c8b9c7450f7f34"
         }
       }
     ]

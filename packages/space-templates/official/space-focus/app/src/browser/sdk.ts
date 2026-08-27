@@ -47,6 +47,18 @@ export interface SpaceAgentMessage {
   createdAt: string | number;
 }
 
+export interface SpaceChatPermissions {
+  readonly send: boolean;
+  readonly attach: boolean;
+  readonly reply: boolean;
+  readonly editOwn: boolean;
+  readonly deleteOwn: boolean;
+  readonly react: boolean;
+  readonly retryOwn: boolean;
+  readonly typing: boolean;
+  readonly markRead: boolean;
+}
+
 export interface SpaceSdk {
   ready: Promise<unknown>;
   locale?: string;
@@ -60,9 +72,21 @@ export interface SpaceSdk {
     messages?: SpaceAgentMessage[];
     build?: { stage?: string } | null;
   };
+  snapshot: {
+    locale?: string;
+    meta: { name?: string; summary?: string; icon?: string };
+    members: SpaceMember[];
+    agent: {
+      id?: string;
+      name?: string;
+      messages?: SpaceAgentMessage[];
+      build?: { stage?: string } | null;
+    };
+  };
   chat: {
     messages?: SpaceMessage[];
     typingMemberIds?: string[];
+    permissions: SpaceChatPermissions;
     send(input: { text: string; replyToId?: string; mentionIds?: string[] }): Promise<unknown>;
     edit(messageId: string, text: string): Promise<unknown>;
     delete(messageId: string): Promise<unknown>;

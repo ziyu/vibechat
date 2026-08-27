@@ -4,23 +4,13 @@ export interface ChatCopy {
   connected: string;
   members: string;
   empty: string;
-  placeholder: string;
-  deleted: string;
-  edited: string;
-  sending: string;
-  sent: string;
-  failed: string;
-  reply: string;
-  edit: string;
-  remove: string;
-  retry: string;
-  attach: string;
-  attachFile: string;
-  agent: string;
-  person: string;
-  typing: string;
   hint: string;
   working: string;
+  title: string;
+  open: string;
+  close: string;
+  region: string;
+  timeline: string;
 }
 
 export function getChatCopy(space: SpaceSdk): ChatCopy {
@@ -29,45 +19,25 @@ export function getChatCopy(space: SpaceSdk): ChatCopy {
       connected: "connected",
       members: "members",
       empty: "Chat is ready. Write the first message or mention an Agent to shape this Space.",
-      placeholder: "Message this Space…",
-      deleted: "This message was deleted",
-      edited: "edited",
-      sending: "Sending…",
-      sent: "Sent",
-      failed: "Send failed",
-      reply: "Reply",
-      edit: "Edit",
-      remove: "Delete",
-      retry: "Retry",
-      attach: "Attachment",
-      attachFile: "Attach file",
-      agent: "Agent",
-      person: "Member",
-      typing: "is typing…",
       hint: "Enter to send · type @ to mention a member or Agent",
       working: "is handling your request",
+      title: "Chat",
+      open: "Open Space Chat",
+      close: "Close Chat",
+      region: "Space Chat",
+      timeline: "Message timeline",
     },
     zh: {
       connected: "实时连接",
       members: "位成员",
       empty: "Chat 已经就绪。发送第一条消息，或 @Agent 定制这个 Space。",
-      placeholder: "写给这个 Space…",
-      deleted: "这条消息已删除",
-      edited: "已编辑",
-      sending: "发送中…",
-      sent: "已发送",
-      failed: "发送失败",
-      reply: "回复",
-      edit: "编辑",
-      remove: "删除",
-      retry: "重试",
-      attach: "附件",
-      attachFile: "添加附件",
-      agent: "Agent",
-      person: "成员",
-      typing: "正在输入…",
       hint: "Enter 发送 · 输入 @ 提及成员或 Agent",
       working: "正在处理你的请求",
+      title: "聊天",
+      open: "打开 Space 聊天",
+      close: "关闭聊天",
+      region: "Space 聊天",
+      timeline: "消息时间线",
     },
   };
 
