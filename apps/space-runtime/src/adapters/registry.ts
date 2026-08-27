@@ -1,24 +1,24 @@
-import type { SpaceAgentAdapter } from "./contract.js";
+import type { CompleteSpaceAgentAdapter } from "./contract.js";
 
 export class SpaceAgentAdapterRegistry {
-  readonly #adapters = new Map<string, SpaceAgentAdapter>();
+  readonly #adapters = new Map<string, CompleteSpaceAgentAdapter>();
 
-  constructor(adapters: Iterable<SpaceAgentAdapter>) {
+  constructor(adapters: Iterable<CompleteSpaceAgentAdapter>) {
     for (const adapter of adapters) {
-      if (!adapter.id.trim()) throw new Error("Agent Adapter id is required");
-      if (this.#adapters.has(adapter.id)) {
-        throw new Error(`Duplicate Agent Adapter id: ${adapter.id}`);
+      if (!adapter.adapterKey.trim()) throw new Error("Agent Adapter key is required");
+      if (this.#adapters.has(adapter.adapterKey)) {
+        throw new Error(`Duplicate Agent Adapter id: ${adapter.adapterKey}`);
       }
-      this.#adapters.set(adapter.id, adapter);
+      this.#adapters.set(adapter.adapterKey, adapter);
     }
   }
 
-  get(id: string) {
-    return this.#adapters.get(id);
+  get(adapterKey: string) {
+    return this.#adapters.get(adapterKey);
   }
 
-  has(id: string) {
-    return this.#adapters.has(id);
+  has(adapterKey: string) {
+    return this.#adapters.has(adapterKey);
   }
 
   list() {

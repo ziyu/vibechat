@@ -141,6 +141,13 @@ export class DatabaseSpaceAgentRepository implements
     return row ? toSession(row) : null
   }
 
+  async findSession(sessionId: string) {
+    const [row] = await db.select().from(spaceAgentSession)
+      .where(eq(spaceAgentSession.sessionId, sessionId))
+      .limit(1)
+    return row ? toSession(row) : null
+  }
+
   async saveSession(session: AgentSessionRefV1) {
     const values = {
       sessionId: session.sessionId,

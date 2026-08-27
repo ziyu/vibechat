@@ -3,6 +3,10 @@ import {
   type SpaceRuntimeLease,
 } from '@vibechat/space-app-contracts'
 import {
+  agentSessionRefV1Schema,
+  type AgentSessionRefV1,
+} from '@vibechat/space-agent-contracts'
+import {
   signSpaceRuntimeCredential,
   spaceBackendCallbackAudience,
 } from '@vibechat/space-runtime-auth'
@@ -16,6 +20,23 @@ const leaseRenewalWindowMs = 10_000
 export interface DurableSpaceInstanceSnapshot {
   sequence: number
   snapshot: Record<string, unknown>
+}
+
+export interface DurableAgentAuditEvent {
+  eventId: string
+  spaceInstanceId: string
+  agentId: string
+  definitionId: string | null
+  sessionId: string | null
+  eventType: string
+  policySnapshotHash: string | null
+  result: Record<string, unknown>
+  createdAt: string
+}
+
+export interface DurableAgentTurnControl {
+  status: 'queued' | 'active' | 'completed' | 'failed'
+  cancelRequestedAt: string | null
 }
 
 export interface DurableSpaceControl {
@@ -36,6 +57,22 @@ export interface DurableSpaceControl {
     turnId: string,
     status: 'completed' | 'failed',
   ): Promise<boolean>
+  loadAgentSession(input: {
+    spaceInstanceId: string
+    agentId: string
+    sessionId: string
+    generation: number
+  }): Promise<AgentSessionRefV1 | null>
+  saveAgentSession(turnId: string, session: AgentSessionRefV1): Promise<void>
+  rebuildAgentSession(input: {
+    turnId: string
+    session: AgentSessionRefV1
+  }): Promise<AgentSessionRefV1>
+  recordAgentAudit(turnId: string, event: DurableAgentAuditEvent): Promise<void>
+  getAgentTurnControl(
+    spaceInstanceId: string,
+    turnId: string,
+  ): Promise<DurableAgentTurnControl>
   heartbeat(spaceInstanceId: string): Promise<void>
   listRunnableSpaceInstanceIds(): Promise<string[]>
   reconcileOutbox(): Promise<void>
@@ -168,6 +205,88 @@ class BackendDurableSpaceControl implements DurableSpaceControl {
     if (!response.ok) throw new Error(`Space Turn completion returned ${response.status}`)
     const body = await response.json() as { completed?: unknown }
     return body.completed === true
+  }
+
+  async loadAgentSession(input: {
+    spaceInstanceId: string
+    agentId: string
+    sessionId: string
+    generation: number
+  }) {
+    const response = await this.#control({ action: 'load_agent_session', ...input })
+    if (!response.ok) throw new Error(`Agent session read returned ${response.status}`)
+    const body = await response.json() as { session?: unknown }
+    return body.session ? agentSessionRefV1Schema.parse(body.session) : null
+  }
+
+  async saveAgentSession(turnId: string, session: AgentSessionRefV1) {
+    const lease = await this.#lease(session.spaceInstanceId)
+    const response = await this.#control({
+      action: 'save_agent_session',
+      turnId,
+      lease,
+      session,
+    })
+    if (response.status === 409) {
+      this.#leases.delete(session.spaceInstanceId)
+      throw new Error(`Space Runtime owner was fenced for ${session.spaceInstanceId}`)
+    }
+    if (!response.ok) throw new Error(`Agent session write returned ${response.status}`)
+  }
+
+  async rebuildAgentSession(input: {
+    turnId: string
+    session: AgentSessionRefV1
+  }) {
+    const lease = await this.#lease(input.session.spaceInstanceId)
+    const response = await this.#control({
+      action: 'rebuild_agent_session',
+      turnId: input.turnId,
+      lease,
+      sessionId: input.session.sessionId,
+      generation: input.session.generation,
+    })
+    if (response.status === 409) {
+      this.#leases.delete(input.session.spaceInstanceId)
+      throw new Error(`Space Runtime owner was fenced for ${input.session.spaceInstanceId}`)
+    }
+    if (!response.ok) throw new Error(`Agent session rebuild returned ${response.status}`)
+    const body = await response.json() as { session?: unknown }
+    return agentSessionRefV1Schema.parse(body.session)
+  }
+
+  async recordAgentAudit(turnId: string, event: DurableAgentAuditEvent) {
+    const lease = await this.#lease(event.spaceInstanceId)
+    const response = await this.#control({
+      action: 'record_agent_audit',
+      turnId,
+      lease,
+      event,
+    })
+    if (response.status === 409) {
+      this.#leases.delete(event.spaceInstanceId)
+      throw new Error(`Space Runtime owner was fenced for ${event.spaceInstanceId}`)
+    }
+    if (!response.ok) throw new Error(`Agent audit write returned ${response.status}`)
+  }
+
+  async getAgentTurnControl(spaceInstanceId: string, turnId: string) {
+    const response = await this.#control({
+      action: 'get_agent_turn_control',
+      spaceInstanceId,
+      turnId,
+    })
+    if (!response.ok) throw new Error(`Agent Turn control read returned ${response.status}`)
+    const body = await response.json() as Record<string, unknown>
+    if (
+      !['queued', 'active', 'completed', 'failed'].includes(String(body.status))
+      || (body.cancelRequestedAt !== null
+        && typeof body.cancelRequestedAt !== 'string')
+    ) throw new Error('Agent Turn control read returned an invalid result')
+    return {
+      status: body.status as DurableAgentTurnControl['status'],
+      cancelRequestedAt: body.cancelRequestedAt as string | null,
+    }
   }
 
   async heartbeat(spaceInstanceId: string) {

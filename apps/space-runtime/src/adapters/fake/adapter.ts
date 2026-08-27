@@ -214,7 +214,9 @@ export function createFakeAgentAdapter(options: {
         return;
       }
 
-      const revisionRequested = input.requestText.includes("[fake:revision]");
+      const failingRevisionRequested = input.requestText.includes("[fake:failure]");
+      const revisionRequested = failingRevisionRequested
+        || input.requestText.includes("[fake:revision]");
       let projectPatch: AgentProjectPatch | undefined;
       if (revisionRequested) {
         yield {
@@ -237,10 +239,18 @@ export function createFakeAgentAdapter(options: {
         }
 
         const files = await input.projectWorkspace.read();
-        projectPatch = await input.projectWorkspace.apply(input.turnId, {
-          ...files,
-          "src/fake-agent-note.ts": `export const note = ${JSON.stringify(input.requestText)};\n`,
-        });
+        projectPatch = await input.projectWorkspace.apply(
+          input.turnId,
+          failingRevisionRequested
+            ? {
+                ...files,
+                "src/fake-agent-failure.ts": "export const deterministicCandidateFailure = ;\n",
+              }
+            : {
+                ...files,
+                "src/fake-agent-note.ts": `export const note = ${JSON.stringify(input.requestText)};\n`,
+              },
+        );
         yield {
           schemaVersion: "vibechat.agent-event/v1",
           eventId: `${input.turnId}:${sequence}`,

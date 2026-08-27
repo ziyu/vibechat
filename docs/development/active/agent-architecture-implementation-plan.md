@@ -428,8 +428,8 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | S1 | Space Runtime 结构拆分和自动边界检查 | 无行为变化 | Complete（2026-08-26） |
 | S2 | Agent contracts、领域库、DB schema、默认 Pi binding | 兼容双读，不开放多 Agent | Complete（2026-08-27） |
 | S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Complete（2026-08-27） |
-| S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Active（contracts-first） |
-| S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Pending |
+| S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Complete（2026-08-27） |
+| S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Active（结构切片） |
 | S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Pending |
 
 ### 9.1 S1：只做结构拆分
@@ -521,7 +521,7 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 4. 持久化 session generation、summary/ref、restore result 和 bounded audit。
 5. 增加中断、取消、session rebuild、跨 Space/Agent 隔离和 usage 缺失退款测试。
 
-#### S4 首切片记录（2026-08-27）
+#### S4 完成记录（2026-08-27）
 
 - [x] 新增 provider-neutral lifecycle 端口，固定 `beginSession/runTurn/summarize/cancel/restore`；`runTurn` 只输出版本化 `AgentEventV1`，旧 S3 Adapter 接口暂时并行，生产 Registry、Pi 与 Turn processor 尚未切换。
 - [x] Contracts 新增 strict 的 session summary、restore/rebuild result 与带 `Space/Agent/session generation` 隔离键的 cancel input；公共类型不包含 Pi、AgentOS、provider credential、prompt、源码或 provider-native event。
@@ -530,7 +530,15 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 - [x] Node 24.19.0 下 contracts 与 Runtime typecheck 通过；contracts、旧 Adapter 兼容与 Fake lifecycle 定向测试 3 个文件、13/13 通过。Fake 仍只在显式测试开关下注册，不能成为产品成功 fallback。
 - [x] 第二切片让 Pi Adapter 通过同一 lifecycle suite；Host Pi 将 AbortSignal 映射为子进程终止，AgentOS Pi 将取消映射为活动 session 删除和后续 rebuild。Runtime-local Project workspace 负责 staged source，公共 Turn/Event schema 仍只持有 Project ref/hash。
 - [x] Pi 与 Fake lifecycle、execution runtime 定向测试 3 个文件、17/17 通过，Runtime typecheck 通过；Pi/Fake 均保持旧 S3 接口兼容，Registry 和生产 processor 尚未切换。
-- [ ] 下一切片将 versioned event、session summary/restore 和 cancel 接入现有 Turn/control-plane；在此之前旧 S3 执行路径继续是生产权威，不能把本切片标为 S4 Complete。
+- [x] 生产 `AgentTurnProcessor` 和 Adapter Registry 已切到固定 `adapterKey/version` 对应的完整 lifecycle；processor 只消费 strict `AgentEventV1`，校验单调 sequence、唯一 event ID、唯一 terminal、Conversation/Revision/Candidate repair 和 usage 累计。旧兼容方法不再是生产 Turn 权威。
+- [x] Backend↔Runtime durable control API 已增加 session load/save/rebuild、bounded audit、Turn cancel control；Product DB session 初始状态为 `restoring`，restore 失败时以新 generation 幂等 rebuild，并拒绝旧 generation 竞争写。Runtime 不直连 Product DB，也不保存 prompt、消息正文、源码全文或 provider-native event。
+- [x] session summary/ref/hash、restore/rebuild 结果和 bounded audit 写入都复核 active Turn、lease owner 与 fencing token；旧 owner、错误 Turn、错误 Space/Agent/session generation 均 fail closed。Runtime 同一 durable client 读取取消状态，并以 AbortSignal 通知 Adapter。
+- [x] 新增成员鉴权的 `DELETE /v1/spaces/instances/:roomId/turns`：只有 Turn 发起人可请求取消，`cancel_requested_at` 首次写入后幂等返回；active owner 轮询后调用 Adapter cancel，并由唯一 completion/billing 路径失败收口和退款。
+- [x] usage 缺失不再被视为零用量成功；Conversation/Revision 均以标准失败进入幂等退款。Candidate 连续 repair 失败继续保持旧 ready Revision、Published Release 与 Chat，不移动任何可见指针。
+- [x] S4 定向验证为 35 个测试文件、133/133 通过；完整 Vitest 为 290 通过、3 个既有失败、2 个未配置 integration skip。既有失败仍为 `validators/user` 1 个和缺少默认邮件 provider key 的 `email/cloudflare` 2 个，与 S4 无关。
+- [x] 真实 Synapse、managed Rivet Engine、Host Pi/provider、SQLite 和两个独立 Chromium Context 的 collaboration spec 最终 3/3 通过：幂等 Matrix Agent event、真实 Pi Revision 双端 live 收敛，以及显式 Fake Candidate 三次 repair 失败保护均通过。Fake Definition/Binding 只由 test helper 在显式 `SPACE_AGENT_FAKE_ENABLED=1` 与多 Agent 测试开关下建立，不成为生产 fallback。
+- [x] `boundaries:check` 覆盖 414 个活动源码文件，`docs:check`、21/22 workspace 递归 typecheck/build、Cloudflare Workers 本地预览 `/api/health` 200（D1 healthy）和 `git diff --check` 通过。根 pnpm/Turbo 在当前 macOS 环境受 Corepack 网络解析与 Keychain/TLS 初始化影响，改用仓库固定 pnpm 9.4.0 的本地缓存逐 workspace 执行等价门禁；Wrangler 日志目录、bundle 体积、第三方 `use client` 与 Shiki WASM warning 均为退出码 0 的既有警告。
+- [x] S4 不部署区域级外部 Engine、不证明两个独立 Runtime replica 共享同一 Engine，也不实现 worker pool 隔离；这些条件继续属于 S5，不能用本地 managed Engine 或单进程 E2E 替代。
 
 ### 9.5 S5：生产共享 AgentOS
 
@@ -539,6 +547,13 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 3. 分离 Agent、build/dev、serving pool 的镜像、credential、egress、quota 和指标。
 4. 演练旧 owner fencing、session restore/rebuild、R2 artifact、Release 跨宿主恢复和 Outbox 重放。
 5. 建立部署、升级、回滚、容量和故障 Runbook；本地 managed Engine 只保留开发说明。
+
+#### S5 当前切片（2026-08-27）
+
+- [ ] 先固定 Runtime 的 Engine mode、endpoint identity、replica identity、pool class 和启动前置校验契约；默认开发 managed mode 保持可用，生产模式必须显式连接外部持久 Engine，不能静默启动本地 Engine。
+- [ ] 将 Agent execution、App build/dev、Release serving 的逻辑 pool 配置和最小可观测字段收敛到 provider-neutral runtime ports；本切片只建立结构与失败关闭，不声称底层 Engine 已完成物理 pool 隔离。
+- [ ] 增加两个 Runtime replica 共用一个外部 Engine 与 Product DB lease 的 deterministic integration harness，再进入真实 Synapse/D1/R2 跨进程演练。
+- [ ] 在上述代码和运行证据完成后补齐外部 Engine 部署、升级、回滚、容量与故障 Runbook；当前阶段不得将开发 managed Engine 写成生产拓扑。
 
 ### 9.6 S6：第二 Adapter 与治理
 

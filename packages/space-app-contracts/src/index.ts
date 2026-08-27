@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import {
+  agentSessionIdSchema,
+  agentSessionRefV1Schema,
+  agentTurnIdSchema,
   spaceAgentIdSchema,
   spaceAgentPublicViewSchema,
 } from '@vibechat/space-agent-contracts'
@@ -139,6 +142,47 @@ export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
     status: z.enum(['completed', 'failed']),
   }),
   z.object({
+    action: z.literal('load_agent_session'),
+    spaceInstanceId: z.string().min(1).max(255),
+    agentId: spaceAgentIdSchema,
+    sessionId: agentSessionIdSchema,
+    generation: z.number().int().positive(),
+  }).strict(),
+  z.object({
+    action: z.literal('save_agent_session'),
+    turnId: agentTurnIdSchema,
+    lease: spaceRuntimeLeaseSchema,
+    session: agentSessionRefV1Schema,
+  }).strict(),
+  z.object({
+    action: z.literal('rebuild_agent_session'),
+    turnId: agentTurnIdSchema,
+    lease: spaceRuntimeLeaseSchema,
+    sessionId: agentSessionIdSchema,
+    generation: z.number().int().positive(),
+  }).strict(),
+  z.object({
+    action: z.literal('record_agent_audit'),
+    turnId: agentTurnIdSchema,
+    lease: spaceRuntimeLeaseSchema,
+    event: z.object({
+      eventId: z.string().min(1).max(255),
+      spaceInstanceId: z.string().min(1).max(255),
+      agentId: spaceAgentIdSchema,
+      definitionId: z.string().min(1).max(255).nullable(),
+      sessionId: agentSessionIdSchema.nullable(),
+      eventType: z.string().min(1).max(128),
+      policySnapshotHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).nullable(),
+      result: z.record(z.string(), z.unknown()),
+      createdAt: z.string().datetime(),
+    }).strict(),
+  }).strict(),
+  z.object({
+    action: z.literal('get_agent_turn_control'),
+    spaceInstanceId: z.string().min(1).max(255),
+    turnId: agentTurnIdSchema,
+  }).strict(),
+  z.object({
     action: z.literal('list_runnable_instances'),
     limit: z.number().int().min(1).max(100).default(100),
   }),
@@ -216,6 +260,16 @@ export const createSpaceAgentTurnRequestSchema = z.object({
   agentMention: spaceAgentMentionSchema,
 })
 
+export const cancelSpaceAgentTurnRequestSchema = z.object({
+  turnId: agentTurnIdSchema,
+}).strict()
+
+export const spaceAgentTurnCancellationSchema = z.object({
+  accepted: z.literal(true),
+  turnId: agentTurnIdSchema,
+  cancelRequestedAt: z.string().datetime(),
+}).strict()
+
 export const spaceTurnAcceptedSchema = z.object({
   accepted: z.literal(true),
   deduplicated: z.boolean().default(false),
@@ -267,6 +321,8 @@ export type SpaceRuntimeProjectPointer = z.infer<typeof spaceRuntimeProjectPoint
 export type SpaceRuntimeControlRequest = z.infer<typeof spaceRuntimeControlRequestSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>
+export type CancelSpaceAgentTurnRequest = z.infer<typeof cancelSpaceAgentTurnRequestSchema>
+export type SpaceAgentTurnCancellation = z.infer<typeof spaceAgentTurnCancellationSchema>
 export type SpaceTurnAccepted = z.infer<typeof spaceTurnAcceptedSchema>
 export type PublishSpaceAppRequest = z.infer<typeof publishSpaceAppRequestSchema>
 export type RestoreSpaceAppRequest = z.infer<typeof restoreSpaceAppRequestSchema>

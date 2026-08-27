@@ -123,6 +123,7 @@ export interface ProjectRepository {
 
 export interface TurnRepository {
   getTurn(turnId: string): Promise<RuntimeTurnRecord | null>;
+  requestTurnCancellation(turnId: string, requestedAt: Date): Promise<Date | null>;
   enqueueTurn(turn: RuntimeTurnEnqueue): Promise<RuntimeTurnRecord>;
   claimNextTurn(spaceInstanceId: string, lease: RuntimeLease): Promise<RuntimeTurnRecord | null>;
   completeTurn(turnId: string, lease: RuntimeLease, status: "completed" | "failed"): Promise<boolean>;
@@ -131,6 +132,7 @@ export interface TurnRepository {
 }
 
 export interface LeaseRepository {
+  assertLease(lease: RuntimeLease): Promise<void>;
   claimLease(spaceInstanceId: string, ownerId: string, ttlMs: number): Promise<RuntimeLease | null>;
   renewLease(lease: RuntimeLease, ttlMs: number): Promise<RuntimeLease | null>;
   releaseLease(lease: RuntimeLease): Promise<boolean>;

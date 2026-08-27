@@ -120,6 +120,9 @@ describe("durable Space Runtime control plane", () => {
     now = new Date(now.getTime() + 6_000);
     const leaseB = await control.claimLease(instanceId, "replica-b", 5_000);
     expect(leaseB?.fencingToken).toBe(2);
+    await expect(control.assertLease(leaseA!)).rejects.toMatchObject({
+      code: "SPACE_RUNTIME_FENCED",
+    });
     const recoveredPublish = await control.claimNextTurn(instanceId, leaseB!);
     expect(recoveredPublish).toMatchObject({ turnId: "turn-p", attempt: 2 });
     expect(await control.getTurn("turn-p")).toMatchObject({
@@ -192,6 +195,64 @@ describe("durable Space Runtime control plane", () => {
     expect(exactlyOnceSink.size).toBe(1);
   });
 
+  it("persists cancellation once and keeps terminal Turns immutable", async () => {
+    const instanceId = "space-instance-cancellation";
+    const firstRequestedAt = new Date(now);
+    firstRequestedAt.setMilliseconds(0);
+    await control.enqueueTurn({
+      turnId: "turn-cancelled",
+      spaceInstanceId: instanceId,
+      externalRequestId: "matrix-cancelled",
+      kind: "message",
+      payload: { clientId: "member-1" },
+    });
+
+    await expect(
+      control.requestTurnCancellation("turn-cancelled", firstRequestedAt),
+    ).resolves.toEqual(firstRequestedAt);
+    await expect(
+      control.requestTurnCancellation(
+        "turn-cancelled",
+        new Date(firstRequestedAt.getTime() + 1_000),
+      ),
+    ).resolves.toEqual(firstRequestedAt);
+
+    const lease = await control.claimLease(instanceId, "runtime-cancel", 5_000);
+    expect(await control.claimNextTurn(instanceId, lease!)).toMatchObject({
+      turnId: "turn-cancelled",
+      cancelRequestedAt: firstRequestedAt,
+    });
+    await control.completeTurn("turn-cancelled", lease!, "failed");
+    await expect(
+      control.requestTurnCancellation(
+        "turn-cancelled",
+        new Date(firstRequestedAt.getTime() + 2_000),
+      ),
+    ).resolves.toEqual(firstRequestedAt);
+
+    await control.enqueueTurn({
+      turnId: "turn-completed-without-cancel",
+      spaceInstanceId: instanceId,
+      externalRequestId: "matrix-completed-without-cancel",
+      kind: "message",
+      payload: { clientId: "member-1" },
+    });
+    expect(await control.claimNextTurn(instanceId, lease!)).toMatchObject({
+      turnId: "turn-completed-without-cancel",
+    });
+    await control.completeTurn(
+      "turn-completed-without-cancel",
+      lease!,
+      "completed",
+    );
+    await expect(
+      control.requestTurnCancellation(
+        "turn-completed-without-cancel",
+        firstRequestedAt,
+      ),
+    ).resolves.toBeNull();
+  });
+
   it("lets a second SpaceInstanceServer take over an interrupted turn without duplicate completion", async () => {
     const { SpaceInstanceServer } = await import(
       "../../../apps/space-runtime/src/space-instance-server"
@@ -250,7 +311,9 @@ function requestInput(
   } as const;
 }
 
-function durableAdapter(ownerId: string) {
+function durableAdapter(
+  ownerId: string,
+): import("../../../apps/space-runtime/src/durable-space-control").DurableSpaceControl {
   let lease: import("@libs/space-runtime-control").RuntimeLease | null = null;
   const ensureLease = async (spaceInstanceId: string) => {
     if (lease && lease.expiresAt > now) return lease;
@@ -304,6 +367,28 @@ function durableAdapter(ownerId: string) {
       status: "completed" | "failed",
     ) {
       return control.completeTurn(turnId, await ensureLease(spaceInstanceId), status);
+    },
+    async loadAgentSession() {
+      return null;
+    },
+    async saveAgentSession() {
+      throw new Error("Agent sessions are not used by this failover fixture");
+    },
+    async rebuildAgentSession() {
+      throw new Error("Agent sessions are not used by this failover fixture");
+    },
+    async recordAgentAudit() {
+      throw new Error("Agent audits are not used by this failover fixture");
+    },
+    async getAgentTurnControl(spaceInstanceId: string, turnId: string) {
+      const turn = await control.getTurn(turnId);
+      if (!turn || turn.spaceInstanceId !== spaceInstanceId) {
+        throw new Error(`turn not found for ${spaceInstanceId}`);
+      }
+      return {
+        status: turn.status,
+        cancelRequestedAt: turn.cancelRequestedAt?.toISOString() || null,
+      };
     },
     async heartbeat(spaceInstanceId: string) {
       await ensureLease(spaceInstanceId);

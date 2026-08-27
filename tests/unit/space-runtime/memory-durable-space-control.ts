@@ -1,5 +1,6 @@
 import type { DurableSpaceControl } from '../../../apps/space-runtime/src/durable-space-control'
 import type { SpaceTurnRequest } from '../../../apps/space-runtime/src/space-instance-server'
+import type { AgentSessionRefV1 } from '../../../packages/space-agent-contracts/src'
 
 interface MemorySpaceState {
   sequence: number
@@ -11,6 +12,7 @@ interface MemorySpaceState {
 
 export function createMemoryDurableSpaceControl(): DurableSpaceControl {
   const spaces = new Map<string, MemorySpaceState>()
+  const sessions = new Map<string, AgentSessionRefV1>()
   const state = (spaceInstanceId: string) => {
     let current = spaces.get(spaceInstanceId)
     if (!current) {
@@ -59,6 +61,35 @@ export function createMemoryDurableSpaceControl(): DurableSpaceControl {
       if (current.activeTurnId !== turnId) return false
       current.activeTurnId = null
       return true
+    },
+    async loadAgentSession(input) {
+      const session = sessions.get(input.sessionId)
+      return session
+        && session.spaceInstanceId === input.spaceInstanceId
+        && session.agentId === input.agentId
+        && session.generation === input.generation
+        ? structuredClone(session)
+        : null
+    },
+    async saveAgentSession(_turnId, session) {
+      sessions.set(session.sessionId, structuredClone(session))
+    },
+    async rebuildAgentSession(input) {
+      const rebuilt: AgentSessionRefV1 = {
+        ...input.session,
+        sessionId: `${input.session.sessionId}-rebuild`,
+        generation: input.session.generation + 1,
+        providerSessionRef: null,
+        restoreStatus: 'restoring',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      sessions.set(rebuilt.sessionId, rebuilt)
+      return structuredClone(rebuilt)
+    },
+    async recordAgentAudit() {},
+    async getAgentTurnControl() {
+      return { status: 'active', cancelRequestedAt: null }
     },
     async heartbeat() {},
     async listRunnableSpaceInstanceIds() {

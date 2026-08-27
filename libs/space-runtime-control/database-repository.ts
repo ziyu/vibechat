@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, lt, lte, or } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import {
   db,
   spaceRuntimeInstanceState,
@@ -183,6 +183,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     const [stored] = await db.select().from(spaceRuntimeTurn)
       .where(eq(spaceRuntimeTurn.turnId, turnId)).limit(1);
     return stored ? this.turn(stored) : null;
+  }
+
+  async requestTurnCancellation(turnId: string, requestedAt: Date) {
+    const updated = await db.update(spaceRuntimeTurn).set({
+      cancelRequestedAt: requestedAt,
+      updatedAt: this.now(),
+    }).where(and(
+      eq(spaceRuntimeTurn.turnId, turnId),
+      inArray(spaceRuntimeTurn.status, ["queued", "active"]),
+      isNull(spaceRuntimeTurn.cancelRequestedAt),
+    )).returning({ cancelRequestedAt: spaceRuntimeTurn.cancelRequestedAt });
+    if (updated[0]?.cancelRequestedAt) return updated[0].cancelRequestedAt;
+    return (await this.getTurn(turnId))?.cancelRequestedAt ?? null;
   }
 
   async claimNextTurn(spaceInstanceId: string, lease: RuntimeLease) {
@@ -404,7 +417,7 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     return updated.length === 1;
   }
 
-  private async assertLease(lease: RuntimeLease) {
+  async assertLease(lease: RuntimeLease) {
     const [stored] = await db.select().from(spaceRuntimeLease).where(and(
       eq(spaceRuntimeLease.spaceInstanceId, lease.spaceInstanceId),
       eq(spaceRuntimeLease.ownerId, lease.ownerId),

@@ -37,13 +37,50 @@ export class SpaceAgentSessionService {
       summaryRef: null,
       summaryHash: null,
       region: input.region,
-      restoreStatus: 'ready',
+      restoreStatus: 'restoring',
       lastTurnId: null,
       createdAt: timestamp,
       updatedAt: timestamp,
     }
     await this.repository.saveSession(session)
-    return session
+    return await this.repository.findLatestSession(
+      input.spaceInstanceId,
+      input.definition.agentId,
+    ) || session
+  }
+
+  async rebuild(input: {
+    session: AgentSessionRefV1
+    now?: Date
+  }): Promise<AgentSessionRefV1> {
+    const latest = await this.repository.findLatestSession(
+      input.session.spaceInstanceId,
+      input.session.agentId,
+    )
+    if (latest && latest.generation > input.session.generation) return latest
+    if (
+      latest
+      && latest.generation === input.session.generation
+      && latest.sessionId !== input.session.sessionId
+    ) {
+      throw new Error('Agent session generation identity conflict')
+    }
+
+    const timestamp = (input.now || new Date()).toISOString()
+    const session: AgentSessionRefV1 = {
+      ...input.session,
+      sessionId: this.createId(),
+      generation: input.session.generation + 1,
+      providerSessionRef: null,
+      restoreStatus: 'restoring',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    await this.repository.saveSession(session)
+    return await this.repository.findLatestSession(
+      input.session.spaceInstanceId,
+      input.session.agentId,
+    ) || session
   }
 
   private canReuse(
@@ -56,7 +93,6 @@ export class SpaceAgentSessionService {
       && session.adapterKey === definition.adapterKey
       && session.adapterVersion === definition.adapterVersion
       && session.region === region
-      && session.restoreStatus !== 'closed'
-      && session.restoreStatus !== 'failed'
+      && (session.restoreStatus === 'ready' || session.restoreStatus === 'restoring')
   }
 }

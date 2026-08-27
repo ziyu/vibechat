@@ -65,7 +65,28 @@ class MemoryRepository implements
     )) || null
   }
 
+  async findSession(sessionId: string) {
+    return this.sessions.find((session) => session.sessionId === sessionId) || null
+  }
+
   async saveSession(session: AgentSessionRefV1) {
+    const index = this.sessions.findIndex((candidate) => (
+      candidate.spaceInstanceId === session.spaceInstanceId
+      && candidate.agentId === session.agentId
+      && candidate.generation === session.generation
+    ))
+    if (index >= 0) {
+      this.sessions[index] = {
+        ...this.sessions[index],
+        providerSessionRef: session.providerSessionRef,
+        summaryRef: session.summaryRef,
+        summaryHash: session.summaryHash,
+        restoreStatus: session.restoreStatus,
+        lastTurnId: session.lastTurnId,
+        updatedAt: session.updatedAt,
+      } as AgentSessionRefV1
+      return
+    }
     this.sessions.push(session)
   }
 }
@@ -219,7 +240,7 @@ describe('Space Agent domain services', () => {
     })
   })
 
-  it('reuses compatible sessions and increments generation after a closed session', async () => {
+  it('starts sessions as restoring and reuses only ready or restoring sessions', async () => {
     const repository = new MemoryRepository()
     const service = new SpaceAgentSessionService(
       repository,
@@ -239,15 +260,74 @@ describe('Space Agent domain services', () => {
       definition: defaultPiDefinition,
       region: 'local',
     })
+    expect(first.restoreStatus).toBe('restoring')
     expect(reused).toBe(first)
 
-    repository.sessions[0] = { ...first, restoreStatus: 'closed' }
+    repository.sessions[0] = { ...first, restoreStatus: 'rebuild_required' }
     const rebuilt = await service.getOrCreate({
       spaceInstanceId: 'space-1',
       definition: defaultPiDefinition,
       region: 'local',
       now: new Date('2026-08-27T01:00:00.000Z'),
     })
-    expect(rebuilt).toMatchObject({ sessionId: 'session-2', generation: 2 })
+    expect(rebuilt).toMatchObject({
+      sessionId: 'session-2',
+      generation: 2,
+      restoreStatus: 'restoring',
+    })
+  })
+
+  it('rebuilds a generation once and returns the persisted generation on retry', async () => {
+    const repository = new MemoryRepository()
+    const service = new SpaceAgentSessionService(
+      repository,
+      (() => {
+        let next = 0
+        return () => `session-${++next}`
+      })(),
+    )
+    const first = await service.getOrCreate({
+      spaceInstanceId: 'space-rebuild',
+      definition: defaultPiDefinition,
+      region: 'local',
+      now: new Date('2026-08-27T00:00:00.000Z'),
+    })
+    repository.sessions[0] = {
+      ...first,
+      restoreStatus: 'rebuild_required',
+    }
+
+    const rebuilt = await service.rebuild({
+      session: repository.sessions[0]!,
+      now: new Date('2026-08-27T01:00:00.000Z'),
+    })
+    const retried = await service.rebuild({
+      session: repository.sessions[0]!,
+      now: new Date('2026-08-27T02:00:00.000Z'),
+    })
+
+    expect(rebuilt).toMatchObject({
+      sessionId: 'session-2',
+      generation: 2,
+      providerSessionRef: null,
+      restoreStatus: 'restoring',
+    })
+    expect(retried).toEqual(rebuilt)
+    expect(repository.sessions).toHaveLength(2)
+  })
+
+  it('rejects a conflicting identity for the same session generation', async () => {
+    const repository = new MemoryRepository()
+    const service = new SpaceAgentSessionService(repository, () => 'session-next')
+    const first = await service.getOrCreate({
+      spaceInstanceId: 'space-conflict',
+      definition: defaultPiDefinition,
+      region: 'local',
+      now: new Date('2026-08-27T00:00:00.000Z'),
+    })
+
+    await expect(service.rebuild({
+      session: { ...first, sessionId: 'session-forged' },
+    })).rejects.toThrow('Agent session generation identity conflict')
   })
 })

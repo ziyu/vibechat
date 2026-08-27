@@ -1524,6 +1524,15 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - Project source 只进入 Runtime-local staged workspace，`AgentTurnInputV1` 和 `AgentEventV1` 仍只携带 Project ref/hash/patch ref，不把源码或 AgentOS VM 类型放入公共 contracts。Pi 原始 progress 被映射为版本化 status/text/tool/project/usage/terminal event。
 - Fake lifecycle、Pi lifecycle 与 execution runtime 定向测试 3 个文件、17/17 通过，Runtime typecheck 通过。生产 Turn processor 尚未消费新 stream，Product DB session/event/cancel 尚未持久化，因此场景 6 仍保持未通过。
 
+2026-08-27 S4 完成证据：
+
+- 生产 Adapter Registry/Turn processor 已切到固定 `adapterKey/version` 的 `beginSession/runTurn/summarize/cancel/restore`；strict `AgentEventV1` 执行流校验单调 sequence、唯一 event ID/terminal，覆盖 Conversation/Revision/Candidate repair 与 usage 累计。前述 contracts-first 与 Pi lifecycle 条目保留当时切片事实，其“尚未切换”限制已由本条后续实现关闭。
+- Product DB session summary/ref/hash、restore/rebuild、bounded audit 和 cancel control 只经 Backend internal API 读写；save/rebuild/audit 均复核 active Turn、lease owner 和 fencing token。用户通过成员鉴权的 `DELETE /v1/spaces/instances/:roomId/turns` 请求取消，且只有 Turn 发起人可取消；首次 `cancel_requested_at` 幂等持久化，Runtime 轮询后以 AbortSignal/Adapter cancel 进入唯一失败与退款收口。
+- usage 缺失按标准失败退款，不再按零 usage 成功。Fake Candidate 在正常 Matrix Mention、Product DB Definition/Binding、credits reservation、Turn、三次 repair 和 Dev Preview 链路失败后，旧 ready Revision、Published Release 和 Chat 均保持；Fake 只在显式测试开关下可用。
+- Node 24.15.0 下 S4 定向 35 个测试文件、133/133 通过；完整 Vitest 为 290 通过、3 个既有失败、2 个未配置 integration skip。既有失败为 `validators/user` 1 个与缺少默认邮件 provider key 的 `email/cloudflare` 2 个。
+- 真实 Synapse、managed Rivet Engine、Host Pi/provider、SQLite 和两个独立 Chromium Context 最终运行 `chat-space-agent-collaboration.spec.ts` 3/3 通过：幂等 Matrix Agent event、真实 Pi Revision 双端 live 收敛，以及 Fake Candidate 失败保护全部通过。本证据完成场景 #6 的 Pi/fake lifecycle 与公共事件部分，但不把本地 managed Engine 解释为 S5 外部区域 Engine、双 Runtime replica 或独立 worker pool 的生产证据。
+- `boundaries:check`（414 个活动源码文件）、`docs:check`、21/22 workspace 递归 typecheck/build、Cloudflare Workers 本地预览 `/api/health` 200（D1 healthy）和 `git diff --check` 通过。根 pnpm/Turbo 受当前 macOS Corepack 网络解析与 Keychain/TLS 初始化问题影响，使用本地缓存的 pnpm 9.4.0 逐 workspace 执行等价任务；构建仅保留既有 warning。
+
 ---
 
 ### Backlog 优先级汇总
@@ -1557,6 +1566,7 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-27 | Space Agent S4 + Pi/fake + Synapse + 双 Chromium | 3 | 0 | 0 | 显式启用真实 Pi 与测试 Fake binding；幂等 Agent event、真实 Revision 双端 live 收敛、Candidate 三次 repair 失败保护均通过；不代表 S5 外部 Engine/双副本/pool 已完成 |
 | 2026-08-27 | Space Agent + Pi/provider + Synapse + 双 Chromium | 2 | 0 | 1 | 显式启用真实 Agent 验收；幂等 Matrix Agent event 与真实 Project Revision 双端 live 切换均通过；Fake Candidate 故障注入未启用，按设计跳过 |
 | 2026-08-27 | TanStack + Web + Backend + Admin + Site + Space Runtime + Synapse | 56 | 0 | 3 | 完整 Chromium 回归 4.0 分钟；三个 Agent collaboration 场景因全量运行未显式开启真实/fake Agent 开关而跳过；账户定向 13/13 另行通过；19/19 typecheck/build、Docs production build、文档和 diff 检查均通过 |
 | 2026-08-24 | Space Runtime managed Engine + Published Release recovery | 33 | 0 | 0 | Runtime/Template/Product 定向 unit 31/31；真实 Matrix Space Chromium 2/2；完整停止/重启后 Alice 的同一 Release 冷启动与热请求均为 200；另通过全仓 18/18 typecheck/build、Docs build、边界和文档检查 |

@@ -1,11 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DatabaseRoomRepository } from '@libs/rooms'
 import {
+  SpaceAgentAuditService,
+  SpaceAgentSessionService,
+} from '@libs/space-agents'
+import { DatabaseSpaceAgentRepository } from '@libs/space-agents/database-repository'
+import {
   DatabaseSpaceRuntimeControlPlane,
   RuntimeFencingError,
   type RuntimeLease,
   type RuntimeTurnRecord,
 } from '@libs/space-runtime-control'
+import {
+  agentTurnInputV1Schema,
+  type AgentSessionRefV1,
+  type AgentTurnInputV1,
+} from '@vibechat/space-agent-contracts'
 import {
   spaceRuntimeControlRequestSchema,
   spaceRuntimeStateCallbackSchema,
@@ -28,6 +38,7 @@ export const Route = createFileRoute('/v1/internal/space-runtime-control')({
           return Response.json({ error: 'invalid_control_request' }, { status: 400 })
         }
         const control = new DatabaseSpaceRuntimeControlPlane()
+        const agents = new DatabaseSpaceAgentRepository()
         try {
           if (parsed.data.action === 'claim_lease') {
             const instance = await runtimeInstance(parsed.data.spaceInstanceId)
@@ -147,6 +158,95 @@ export const Route = createFileRoute('/v1/internal/space-runtime-control')({
             )
             return Response.json({ completed })
           }
+          if (parsed.data.action === 'load_agent_session') {
+            if (!await runtimeInstance(parsed.data.spaceInstanceId)) return notAllowed()
+            const session = await agents.findSession(parsed.data.sessionId)
+            if (
+              !session
+              || session.spaceInstanceId !== parsed.data.spaceInstanceId
+              || session.agentId !== parsed.data.agentId
+              || session.generation !== parsed.data.generation
+            ) return Response.json({ session: null })
+            return Response.json({ session })
+          }
+          if (parsed.data.action === 'save_agent_session') {
+            const lease = parseLease(parsed.data.lease)
+            const owned = await ownedAgentTurn(
+              control,
+              parsed.data.turnId,
+              lease,
+            )
+            if (!owned || !sessionMatchesTurn(parsed.data.session, owned.agentTurn, true)) {
+              return notAllowed()
+            }
+            const current = await agents.findSession(parsed.data.session.sessionId)
+            if (!current || !sameSessionIdentity(current, parsed.data.session)) {
+              return notAllowed()
+            }
+            await agents.saveSession({
+              ...parsed.data.session,
+              lastTurnId: parsed.data.turnId,
+            })
+            return Response.json({ saved: true })
+          }
+          if (parsed.data.action === 'rebuild_agent_session') {
+            const lease = parseLease(parsed.data.lease)
+            const owned = await ownedAgentTurn(
+              control,
+              parsed.data.turnId,
+              lease,
+            )
+            const session = await agents.findSession(parsed.data.sessionId)
+            if (
+              !owned
+              || !session
+              || session.generation !== parsed.data.generation
+              || !sessionMatchesTurn(session, owned.agentTurn, false)
+            ) return notAllowed()
+            const rebuilt = await new SpaceAgentSessionService(agents).rebuild({
+              session,
+            })
+            return Response.json({ session: rebuilt })
+          }
+          if (parsed.data.action === 'record_agent_audit') {
+            const lease = parseLease(parsed.data.lease)
+            const owned = await ownedAgentTurn(
+              control,
+              parsed.data.turnId,
+              lease,
+            )
+            const event = parsed.data.event
+            if (
+              !owned
+              || event.spaceInstanceId !== owned.agentTurn.spaceInstanceId
+              || event.agentId !== owned.agentTurn.agentId
+              || (event.definitionId !== null
+                && event.definitionId !== owned.agentTurn.definition.definitionId)
+            ) return notAllowed()
+            if (event.sessionId) {
+              const session = await agents.findSession(event.sessionId)
+              if (!session || !sessionMatchesTurn(session, owned.agentTurn, true)) {
+                return notAllowed()
+              }
+            }
+            await new SpaceAgentAuditService(agents).record({
+              ...event,
+              turnId: parsed.data.turnId,
+              createdAt: new Date(event.createdAt),
+            })
+            return Response.json({ recorded: true })
+          }
+          if (parsed.data.action === 'get_agent_turn_control') {
+            if (!await runtimeInstance(parsed.data.spaceInstanceId)) return notAllowed()
+            const turn = await control.getTurn(parsed.data.turnId)
+            if (!turn || turn.spaceInstanceId !== parsed.data.spaceInstanceId) {
+              return notAllowed()
+            }
+            return Response.json({
+              status: turn.status,
+              cancelRequestedAt: turn.cancelRequestedAt?.toISOString() || null,
+            })
+          }
           if (parsed.data.action === 'list_runnable_instances') {
             const spaceInstanceIds = await control.listRunnableSpaceInstanceIds(
               parsed.data.limit,
@@ -190,6 +290,55 @@ function serializeTurn(turn: RuntimeTurnRecord) {
     createdAt: turn.createdAt.toISOString(),
     updatedAt: turn.updatedAt.toISOString(),
   }
+}
+
+async function ownedAgentTurn(
+  control: DatabaseSpaceRuntimeControlPlane,
+  turnId: string,
+  lease: RuntimeLease,
+): Promise<{ turn: RuntimeTurnRecord; agentTurn: AgentTurnInputV1 } | null> {
+  await control.assertLease(lease)
+  const turn = await control.getTurn(turnId)
+  if (
+    !turn
+    || turn.spaceInstanceId !== lease.spaceInstanceId
+    || turn.status !== 'active'
+    || turn.ownerId !== lease.ownerId
+    || turn.fencingToken !== lease.fencingToken
+  ) return null
+  const payloadAgentTurn = turn.payload.agentTurn
+  const parsed = agentTurnInputV1Schema.safeParse(payloadAgentTurn)
+  if (!parsed.success || parsed.data.turnId !== turnId) return null
+  return { turn, agentTurn: parsed.data }
+}
+
+function sessionMatchesTurn(
+  session: AgentSessionRefV1,
+  turn: AgentTurnInputV1,
+  allowRebuild: boolean,
+) {
+  const generationMatches = session.generation === turn.sessionGeneration
+    || (allowRebuild && session.generation === turn.sessionGeneration + 1)
+  return generationMatches
+    && session.spaceInstanceId === turn.spaceInstanceId
+    && session.agentId === turn.agentId
+    && session.definitionId === turn.definition.definitionId
+    && session.definitionVersion === turn.definition.version
+    && session.adapterKey === turn.definition.adapterKey
+    && session.adapterVersion === turn.definition.adapterVersion
+}
+
+function sameSessionIdentity(left: AgentSessionRefV1, right: AgentSessionRefV1) {
+  return left.sessionId === right.sessionId
+    && left.spaceInstanceId === right.spaceInstanceId
+    && left.agentId === right.agentId
+    && left.definitionId === right.definitionId
+    && left.definitionVersion === right.definitionVersion
+    && left.adapterKey === right.adapterKey
+    && left.adapterVersion === right.adapterVersion
+    && left.generation === right.generation
+    && left.region === right.region
+    && left.createdAt === right.createdAt
 }
 
 function notAllowed() {

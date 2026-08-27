@@ -2,7 +2,6 @@ import { mkdir } from "node:fs/promises";
 import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
 import { createFakeAgentAdapter } from "../adapters/fake/adapter.js";
 import { createPiAgentAdapter } from "../adapters/pi/adapter.js";
-import { loadSeed } from "../adapters/pi/project-workspace.js";
 import { SpaceAgentAdapterRegistry } from "../adapters/registry.js";
 import { AgentOsAppExecutionRuntime } from "../app-runtime/agentos/app-runtime.js";
 import { createDurableSpaceControlFromEnv } from "../durable-space-control.js";
@@ -61,10 +60,18 @@ export async function createRuntime(
   let spaces: SpaceInstanceServer;
   const agentTurnProcessor = new AgentTurnProcessor({
     maximumRepairs: config.maximumRepairs,
-    getAgent: (agentId) => agentAdapters.get(agentId),
+    getAgent: (adapterKey) => agentAdapters.get(adapterKey),
     loadProject,
-    loadSeed,
     saveProject,
+    loadAgentSession: (input) => durableSpaceControl.loadAgentSession(input),
+    saveAgentSession: (turnId, session) =>
+      durableSpaceControl.saveAgentSession(turnId, session),
+    rebuildAgentSession: (input) =>
+      durableSpaceControl.rebuildAgentSession(input),
+    recordAgentAudit: (turnId, event) =>
+      durableSpaceControl.recordAgentAudit(turnId, event),
+    getAgentTurnControl: (spaceInstanceId, turnId) =>
+      durableSpaceControl.getAgentTurnControl(spaceInstanceId, turnId),
     preparePreview: ({ spaceInstanceId, files, onStatus }) =>
       devPreviews.prepare(spaceInstanceId, files, onStatus),
     heartbeat: ({ spaceInstanceId, turnId, elapsedSeconds }) =>
@@ -154,13 +161,13 @@ export async function createRuntime(
   });
   const claimedTurnExecutor = new ClaimedTurnExecutor({
     defaultAgentId: config.defaultAgentId,
-    executeAgentTurn: ({ spaceInstanceId, turn, agentId }) =>
-      agentTurnProcessor.process({
-        spaceInstanceId,
-        turnId: turn.turnId,
-        message: combinedTurnRequest(turn),
-        agentId,
-      }),
+    executeAgentTurn: ({ turn }) => {
+      const agentTurn = turn.requests[0]?.agentTurn;
+      if (!agentTurn) {
+        throw new Error("Claimed Agent Turn is missing its pinned lifecycle input");
+      }
+      return agentTurnProcessor.process({ agentTurn });
+    },
     executePublishTurn: ({
       spaceInstanceId,
       turnId,
@@ -313,20 +320,6 @@ export async function createRuntime(
       }
     },
   };
-}
-
-function combinedTurnRequest(turn: ClaimedSpaceTurn) {
-  const [first] = turn.requests;
-  if (!first) return "";
-  if (turn.requests.length === 1) return first.text;
-  return [
-    "以下是 Space 成员按服务器接收顺序提交的多条消息，请作为同一轮协作综合处理。",
-    "独立需求应合并；针对同一目标的后续明确修正覆盖前文；如果存在无法安全判断的冲突，请先说明冲突并提问，不要擅自修改有争议的部分。",
-    ...turn.requests.map(
-      (request, index) =>
-        `${index + 1}. ${request.authorName}：${request.text}`,
-    ),
-  ].join("\n");
 }
 
 async function startAgentOsInfrastructure(config: SpaceRuntimeConfig) {
