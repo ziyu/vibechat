@@ -43,6 +43,7 @@ export type GenerationProgress =
 
 export interface SpaceAgentTurnInput {
   spaceInstanceId: string;
+  executionPoolClass?: string;
   request: string;
   files: ProjectFiles;
   diagnostics?: string;

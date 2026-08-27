@@ -430,7 +430,7 @@ Publish 和 Restore 继续使用同一 Space queue，不进入 Agent Adapter：
 | S3 | Backend invoke 切到 Definition/Binding policy，Turn 固定版本 | 默认 Pi 行为保持，多 Agent 仍可关闭 | Complete（2026-08-27） |
 | S4 | 完整 Adapter/session/event/cancel/restore 合约 | session 可恢复，协议不再绑定 Pi | Complete（2026-08-27） |
 | S5 | 区域级外部 AgentOS、独立 pool、双 Runtime 接管 | 部署形态变化 | Repository Complete；云环境演练 Pending（2026-08-27） |
-| S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Pending |
+| S6 | 第二真实 Adapter、Admin 治理、区域/专属 pool | 受控产品扩展 | Repository Complete；目标环境演练 Pending（2026-08-27） |
 
 ### 9.1 S1：只做结构拆分
 
@@ -567,6 +567,26 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 - Admin 只管理 Definition/version、binding、冻结、policy 和审计；不能编辑 provider secret 或不可变源码。
 - Agent 切换固定新 Turn 的 Definition，不改写进行中的 Turn 或复制旧 Agent 隐藏 session。
 - Agent 市场、BYOK、多 Agent 自主协作和 E2EE 访问继续独立评审。
+
+2026-08-27 实施切片已冻结：
+
+- [x] 以 AgentOS 已锁定的 Claude Code ACP 包实现第二个真实 Adapter；Pi、Claude Code 与 fake 继续消费同一 provider-neutral lifecycle contract，第二 Adapter 先通过 S4 suite 再注册到 Runtime Adapter Registry。
+- [x] Definition 新增版本化 execution pool policy：默认选择当前区域共享 Agent pool，专属模式必须固定受控 pool class；Runtime 只接受部署 allowlist 中的专属 pool，并在缺失 worker/错误区域时失败关闭。
+- [x] 新增独立 Agent governance service 与 Admin API，覆盖 Definition/version 创建、freeze/unfreeze、Space binding/default switch、budget/tool/region/pool policy 和 bounded audit；provider credential 与 Project/source 不进入请求或响应。
+- [x] 新 binding/Definition 只影响后续 invocation 固定的 `AgentTurnInputV1`；已经入队/active 的 Turn 继续使用原 definition snapshot、adapter version、session generation 与 execution pool。不同 Agent 的 session 继续以 `Space × Agent × generation` 隔离，不复制 provider session ref 或隐藏上下文。
+- [x] Admin App 增加 Agent Governance 页面与权限回归；默认多 Agent 产品调用仍受 `SPACE_AGENT_MULTI_AGENT_ENABLED` 控制，不隐式开放市场、BYOK、多 Agent 自主协作或 E2EE。
+
+#### S6 仓库实现记录（2026-08-27）
+
+- [x] 新增 `claude-code` Adapter，固定 `@agentos-software/claude-code@0.2.7`，与 Pi/fake 共用 lifecycle factory、Project workspace、session/cancel/restore 和 usage 映射。Runtime Registry 只在 Adapter contract suite 通过后注册 Claude Code；公共 contracts、Matrix 和 Admin 响应不含 ACP/provider 原始事件或 credential。
+- [x] Definition 增加不可变 `executionPoolPolicy`，支持当前区域的 `regional_shared` 与带受控 `poolClass` 的 `dedicated`。Backend invocation 固定 policy hash，Runtime 复核 Definition region、部署 allowlist 和实际 Agent worker pool；错误区域、未批准 pool 或缺失 pool 均在 provider 调用前失败关闭。
+- [x] Agent governance service 与 Admin API/UI 已落地：Definition 版本按 SemVer 严格递增且 prerelease 低于 stable，同一 `agentId + version` 不可覆盖；freeze/unfreeze、Space binding/default switch、budget/tool/region/pool policy 与 bounded audit 均由 Product DB 领域服务执行。Admin 请求/响应 schema 明确拒绝 credential、prompt 和 Project/source。
+- [x] PG 与 SQLite/D1 `0015` 增加 execution pool policy 并幂等 seed Claude Definition；`0016` 清理历史重复默认 binding，并用每 Space 单默认唯一索引守住后续写入。`upsertDefaultBinding` 在 PG/SQLite transaction 与 D1 batch 中原子切换；active binding 不能引用 frozen Definition。
+- [x] 已验证新 binding/Definition 只影响后续 invocation：已固定 Turn 保持原 Definition/Adapter/session generation/execution pool；Pi 与 Claude Code session 继续按 `Space × Agent × generation` 隔离，不复制 provider session ref。治理、SemVer、冻结、原子默认切换、Turn 固定和跨 Agent session 隔离均有定向测试。
+- [x] Node 24.19.0 下 S6 定向 11 个测试文件、73/73 通过；完整 Vitest 为 322 通过、3 个既有失败、4 个未配置/显式 integration skip。既有失败仍为 `validators/user` 1 个和缺少默认邮件 provider key 的 `email/cloudflare` 2 个；双 Runtime replica integration 在允许临时回环端口后另行 1/1 通过。
+- [x] 当前 worktree 的 SQLite 从空库应用到 `0016` 并 seed，确认 Pi/Claude Definition、execution pool 字段和单默认唯一索引；Wrangler 本地 D1 实际应用 `0015/0016`。Cloudflare Workers 本地预览 `/api/health` 200（D1 healthy），未登录 Agent 治理 API 为 401。
+- [x] 隔离 Web/Backend/Admin 实栈上的 Admin Chromium E2E 为 6/6，覆盖未登录 401、普通用户 fail-closed、治理页面、Definition 不可变冲突、freeze/unfreeze 恢复和既有运营域回归；Admin permission API 为 12/12。受影响的 21/22 workspace 递归 typecheck/build 全部通过，边界检查覆盖 428 个活动源码文件，`docs:check` 与 docs app production build 通过。根 `pnpm typecheck` 在 Turbo 启动任务前仍被本机 macOS Keychain/TLS 错误阻断，因此使用固定 pnpm 9.4.0/Node 24.19.0 逐 workspace 执行等价门禁；Wrangler 日志目录权限与 bundle warning 不影响构建退出码。
+- [ ] 目标环境仍需使用真实 Anthropic credential、external Engine 和独立专属 `agentExecution` worker 完成 Claude Conversation/Revision、专属 pool 缺失/恢复、D1/R2/Synapse 跨宿主与备份恢复演练。本地运行证据不替代该生产验收；多 Agent 产品调用默认仍由 `SPACE_AGENT_MULTI_AGENT_ENABLED=0` 关闭。
 
 ## 10. 每阶段完成标准
 

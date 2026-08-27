@@ -57,6 +57,7 @@
 - [x] S3 已完成：Backend invoke 已提取为可测试 application service，Definition/Binding/session policy 成为调用权威；新建 Space 幂等写默认 Pi binding，现有 Turn 固定 Definition/Adapter/session/policy/Project/reservation snapshot，Runtime snapshot 与 Matrix v2 state 输出公开 Agent view，callback 优先按固定字段 fencing。默认仍只开放 Pi；真实 Synapse + Pi/provider 双 Chromium E2E 2/2 通过，完整 Adapter cancel/restore 和生产 Engine 继续属于 S4/S5。
 - [x] S4 已完成：生产 Adapter Registry/Turn processor 已切到 provider-neutral `beginSession/runTurn/summarize/cancel/restore` 和 strict `AgentEventV1`；Pi 与 Fake 通过相同 lifecycle suite。Product DB session summary/ref/hash、restore/rebuild、bounded audit 与 cancel control 均经 Backend internal API 持久化并受 active Turn、lease/fencing 保护；成员取消入口、Adapter Abort/cancel、usage 缺失失败退款和 Candidate repair 失败保护已接入唯一收口。定向单测 133/133、Agent collaboration E2E 3/3 和 Workers/D1 health 200 通过。
 - [x] S5 仓库实现完成：生产 control 只预检区域级 external Engine；Agent/build/serving 是三个独立 OS worker/Envoy pool，接入各自 credential scope、egress、quota 和 metrics。control 的 session 请求不携带 provider secret，只有 Agent worker resolver 注入 credential；production control 带 key、Agent worker 缺 key 或 build/serving 带 key 均失败关闭。双 Node replica harness 已覆盖 lease/fencing/session/Release/Outbox，真实 disposable Engine 上三类 pool 各两个 replica 同时 active，停止一个 build worker 后保持 `2/1/2`。Runtime unit 107/107、pool integration 1/1、replica failover integration 1/1 通过。生产 Runbook 已完成；真实 Cloudflare D1/R2 + Synapse + external Engine 跨宿主和备份恢复仍是目标环境验收项，不能由本地 filesystem Engine 代替。
+- [x] S6 仓库实现完成：Claude Code ACP `0.2.7` 已作为第二真实 Adapter 通过与 Pi/fake 相同的 lifecycle contract，并进入 Runtime Registry；Definition 增加不可变区域共享/专属 execution pool policy。Agent governance service、Admin API 与 `/admin/agents` 已覆盖严格 SemVer 版本、freeze/unfreeze、Space binding/default switch、budget/tool/region/pool policy 和 bounded audit，且不接收或返回 credential/Project source。SQLite/D1 `0015/0016` 已实际应用，Admin Chromium E2E 6/6、普通用户权限 API 12/12、S6 定向 unit 73/73 和 Workers/D1 health 200 通过；真实 Anthropic provider、external Engine 专属 worker 和跨宿主恢复仍待目标环境演练。
 
 尚未完成：
 
@@ -64,7 +65,7 @@
 - 真实 Cloudflare D1/R2 migration/preview，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。
 - member Mention、分页、历史 rollback 和其余 #40 浏览器验收。
 - 用户 Template 发布、审核与撤销。
-- 第二真实 Adapter；Pi/Fake 完整 lifecycle、session/audit/cancel 持久化和 usage 缺失退款已在 S4 完成。
+- 真实 Anthropic credential 下的 Claude Conversation/Revision，以及 external Engine 独立专属 Agent worker 的目标环境演练；第二 Adapter 的仓库 contract、Registry 和治理实现已在 S6 完成。
 - 真实目标环境的区域级 external AgentOS/Rivet Engine、D1/R2、Synapse 跨宿主接管与备份恢复验收；仓库中的独立 worker pool、credential、quota 和生产 Runbook 已完成。
 
 ## 3. 状态定义
@@ -84,7 +85,7 @@
 | A1 | 产品壳与信息架构 | §4 | Complete（现有 IA） | `apps/web-app/src/features/chat` 与真实路由/E2E | 保留 Discover；新增 Kernel/Chat/App 与 Space 用户语义 |
 | A2 | 身份、社交、Chat 与市场底座 | §3.1、§5.1、§9 | Complete | identity/social/rooms/timeline/product-state 测试与真实 Synapse/Chromium | 保持全回归，不用本地 demo 替代 Matrix/市场 |
 | A3 | Space Kernel、Project 与 Space SDK | §5–§9、§14 阶段 1–2 | Active | contracts/SDK、`room_index` migration、Runtime、Backend gateway、真实 kick/leave 全 gateway E2E | 空白/后选模板、D1/R2 preview、双进程接管与其余双浏览器 App |
-| A4 | Agent Adapter、Space Dev 与发布 | MVP §6、§7、§10、§14；[Agent/AgentOS 设计](../../stable/designs/agent-architecture-and-agentos-deployment.md) | Active | Product DB Definition/Binding/session/audit、完整 Pi/fake lifecycle、结构化 Matrix Mention、virtual-user Matrix 回写、queue、cancel、credits settlement/refund、Candidate 隔离与 Dev/Release smoke | 区域共享外部 Engine、独立 pool、真实双进程恢复、第二真实 Adapter、历史 rollback 与完整 E2E |
+| A4 | Agent Adapter、Space Dev 与发布 | MVP §6、§7、§10、§14；[Agent/AgentOS 设计](../../stable/designs/agent-architecture-and-agentos-deployment.md) | Active | Product DB Definition/Binding/session/audit、完整 Pi/fake/Claude Code lifecycle、Admin 治理、区域/专属 pool policy、结构化 Matrix Mention、virtual-user Matrix 回写、queue、cancel、credits settlement/refund、Candidate 隔离与 Dev/Release smoke | 目标区域 external Engine 的 Claude/专属 pool、真实跨宿主恢复、历史 rollback 与完整 E2E |
 | A5 | 生产恢复与市场演进 | §11–§14 阶段 5 | 未开始 | 当前通用 Auth/Matrix/市场/账务/部署能力 | 治理、压测、安全、备份恢复和第三方市场独立评审 |
 
 ## 5. A0 当前任务：兼容护栏
@@ -143,7 +144,7 @@ A2 的完成结论不因 Space App 增量设计而撤销：
 
 | 项目 | 当前约束 | 最晚出口 |
 | --- | --- | --- |
-| Agent Adapter 最小合约 | 已由 Pi 与 fake 共享事件、usage、取消和恢复；第二真实 Adapter 仍需通过同一 suite | A4 第二 Adapter |
+| Agent Adapter 最小合约 | Pi、fake 与 Claude Code ACP 已共享事件、usage、取消和恢复 suite；继续验证真实 Anthropic provider 与目标区域 worker | A4/S6 目标环境演练 |
 | Agent Registry 与 session | Definition/Binding/session ref/summary/audit 已进入 Product DB；继续验证跨副本 restore/rebuild | A4/S5 恢复演练 |
 | agentOS Apps 版本兼容 | 技术路线已经确定；先复现 demo `0.2.15` 基线，再由仓库 lockfile 固定兼容版本 | A3 Runtime spike |
 | AgentOS 生产部署 | external control、三类独立 worker pool、credential/egress/quota、双 Node 接管 harness 与 Runbook 已落地；仍需真实 D1/R2 + Synapse 跨宿主和备份恢复验收，不按 Space 复制集群 | A4/S5 目标环境演练 |

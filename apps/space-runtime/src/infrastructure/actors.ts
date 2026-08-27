@@ -1,3 +1,4 @@
+import claudeCode from "@agentos-software/claude-code";
 import pi from "@agentos-software/pi";
 import {
   agentOS,
@@ -20,7 +21,7 @@ export function createAgentOsAgentRegistry(
   const { agentExecution } = deployment.poolPolicies;
   const startEngine = options.startEngine ?? false;
   const agentVm = agentOS({
-    software: [pi],
+    software: [pi, claudeCode],
     ...agentOsVmIsolation(agentExecution),
     resolveSessionEnvironment: () =>
       agentProviderSessionEnvironment(process.env),

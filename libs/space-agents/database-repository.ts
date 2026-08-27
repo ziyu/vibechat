@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, ne } from 'drizzle-orm'
 import {
   agentDefinitionSnapshotSchema,
   agentSessionRefV1Schema,
@@ -9,6 +9,9 @@ import {
 } from '@vibechat/space-agent-contracts'
 import {
   db,
+  isD1Dialect,
+  isSqliteDialect,
+  runD1Batch,
   spaceAgentAuditEvent,
   spaceAgentBinding,
   spaceAgentDefinition,
@@ -45,6 +48,23 @@ export class DatabaseSpaceAgentRepository implements
     return row ? toDefinition(row) : null
   }
 
+  async findDefinitionByAgentVersion(agentId: string, version: string) {
+    const [row] = await db.select().from(spaceAgentDefinition)
+      .where(and(
+        eq(spaceAgentDefinition.agentId, agentId),
+        eq(spaceAgentDefinition.version, version),
+      ))
+      .limit(1)
+    return row ? toDefinition(row) : null
+  }
+
+  async listDefinitions() {
+    const rows = await db.select().from(spaceAgentDefinition)
+      .orderBy(asc(spaceAgentDefinition.agentId), desc(spaceAgentDefinition.createdAt))
+      .limit(200)
+    return rows.map(toDefinition)
+  }
+
   async upsertDefinition(definition: AgentDefinitionSnapshot) {
     await db.insert(spaceAgentDefinition).values({
       definitionId: definition.definitionId,
@@ -61,6 +81,7 @@ export class DatabaseSpaceAgentRepository implements
       maxBudgetCredits: definition.maxBudgetCredits,
       maxConcurrency: definition.maxConcurrency,
       dataRegionPolicyJson: definition.dataRegionPolicy,
+      executionPoolPolicyJson: definition.executionPoolPolicy,
       displayName: definition.displayName,
       description: definition.description,
       status: definition.status,
@@ -68,6 +89,16 @@ export class DatabaseSpaceAgentRepository implements
       createdAt: new Date(definition.createdAt),
       updatedAt: new Date(definition.updatedAt),
     }).onConflictDoNothing()
+  }
+
+  async updateDefinitionStatus(
+    definitionId: string,
+    status: AgentDefinitionSnapshot['status'],
+    updatedAt: Date,
+  ) {
+    await db.update(spaceAgentDefinition)
+      .set({ status, updatedAt })
+      .where(eq(spaceAgentDefinition.definitionId, definitionId))
   }
 
   async findBinding(spaceInstanceId: string, agentId: string) {
@@ -98,35 +129,74 @@ export class DatabaseSpaceAgentRepository implements
     return rows.map(toBinding)
   }
 
+  async listAllBindings() {
+    const rows = await db.select().from(spaceAgentBinding)
+      .orderBy(desc(spaceAgentBinding.updatedAt), asc(spaceAgentBinding.spaceInstanceId))
+      .limit(500)
+    return rows.map(toBinding)
+  }
+
   async upsertBinding(binding: SpaceAgentBindingSnapshot) {
-    const values = {
-      bindingId: binding.bindingId,
-      spaceInstanceId: binding.spaceInstanceId,
-      agentId: binding.agentId,
-      definitionId: binding.definitionId,
-      definitionVersion: binding.definitionVersion,
-      isDefault: binding.isDefault,
-      permissionPolicyId: binding.permissionPolicyId,
-      toolPolicyId: binding.toolPolicyId,
-      budgetPolicyJson: binding.budgetPolicy,
-      policySnapshotHash: binding.policySnapshotHash,
-      status: binding.status,
-      createdAt: new Date(binding.createdAt),
-      updatedAt: new Date(binding.updatedAt),
-    }
+    const values = bindingValues(binding)
     await db.insert(spaceAgentBinding).values(values).onConflictDoUpdate({
       target: [spaceAgentBinding.spaceInstanceId, spaceAgentBinding.agentId],
-      set: {
-        definitionId: values.definitionId,
-        definitionVersion: values.definitionVersion,
-        isDefault: values.isDefault,
-        permissionPolicyId: values.permissionPolicyId,
-        toolPolicyId: values.toolPolicyId,
-        budgetPolicyJson: values.budgetPolicyJson,
-        policySnapshotHash: values.policySnapshotHash,
-        status: values.status,
-        updatedAt: values.updatedAt,
-      },
+      set: bindingUpdateValues(values),
+    })
+  }
+
+  async upsertDefaultBinding(binding: SpaceAgentBindingSnapshot) {
+    if (!binding.isDefault) {
+      await this.upsertBinding(binding)
+      return
+    }
+    const updatedAt = new Date(binding.updatedAt)
+    const values = bindingValues(binding)
+    const clearPreviousDefault = db.update(spaceAgentBinding)
+      .set({ isDefault: false, updatedAt })
+      .where(and(
+        eq(spaceAgentBinding.spaceInstanceId, binding.spaceInstanceId),
+        ne(spaceAgentBinding.agentId, binding.agentId),
+      ))
+    const saveDefault = db.insert(spaceAgentBinding).values(values)
+      .onConflictDoUpdate({
+        target: [spaceAgentBinding.spaceInstanceId, spaceAgentBinding.agentId],
+        set: bindingUpdateValues(values),
+      })
+
+    if (isD1Dialect()) {
+      await runD1Batch([clearPreviousDefault, saveDefault] as const)
+      return
+    }
+    if (isSqliteDialect()) {
+      ;(db as any).transaction((transaction: any) => {
+        transaction.update(spaceAgentBinding)
+          .set({ isDefault: false, updatedAt })
+          .where(and(
+            eq(spaceAgentBinding.spaceInstanceId, binding.spaceInstanceId),
+            ne(spaceAgentBinding.agentId, binding.agentId),
+          ))
+          .run()
+        transaction.insert(spaceAgentBinding).values(values)
+          .onConflictDoUpdate({
+            target: [spaceAgentBinding.spaceInstanceId, spaceAgentBinding.agentId],
+            set: bindingUpdateValues(values),
+          })
+          .run()
+      })
+      return
+    }
+    await db.transaction(async (transaction) => {
+      await transaction.update(spaceAgentBinding)
+        .set({ isDefault: false, updatedAt })
+        .where(and(
+          eq(spaceAgentBinding.spaceInstanceId, binding.spaceInstanceId),
+          ne(spaceAgentBinding.agentId, binding.agentId),
+        ))
+      await transaction.insert(spaceAgentBinding).values(values)
+        .onConflictDoUpdate({
+          target: [spaceAgentBinding.spaceInstanceId, spaceAgentBinding.agentId],
+          set: bindingUpdateValues(values),
+        })
     })
   }
 
@@ -198,6 +268,67 @@ export class DatabaseSpaceAgentRepository implements
       createdAt: event.createdAt,
     }).onConflictDoNothing()
   }
+
+  async listAuditEvents(input: {
+    spaceInstanceId?: string
+    agentId?: string
+    limit: number
+  }) {
+    const filters = [
+      ...(input.spaceInstanceId
+        ? [eq(spaceAgentAuditEvent.spaceInstanceId, input.spaceInstanceId)]
+        : []),
+      ...(input.agentId ? [eq(spaceAgentAuditEvent.agentId, input.agentId)] : []),
+    ]
+    const rows = await db.select().from(spaceAgentAuditEvent)
+      .where(filters.length > 0 ? and(...filters) : undefined)
+      .orderBy(desc(spaceAgentAuditEvent.createdAt))
+      .limit(Math.min(Math.max(input.limit, 1), 100))
+    return rows.map((row) => ({
+      eventId: row.eventId,
+      spaceInstanceId: row.spaceInstanceId,
+      agentId: row.agentId,
+      definitionId: row.definitionId,
+      sessionId: row.sessionId,
+      turnId: row.turnId,
+      eventType: row.eventType,
+      policySnapshotHash: row.policySnapshotHash,
+      result: row.resultJson,
+      createdAt: row.createdAt,
+    }))
+  }
+}
+
+function bindingValues(binding: SpaceAgentBindingSnapshot) {
+  return {
+    bindingId: binding.bindingId,
+    spaceInstanceId: binding.spaceInstanceId,
+    agentId: binding.agentId,
+    definitionId: binding.definitionId,
+    definitionVersion: binding.definitionVersion,
+    isDefault: binding.isDefault,
+    permissionPolicyId: binding.permissionPolicyId,
+    toolPolicyId: binding.toolPolicyId,
+    budgetPolicyJson: binding.budgetPolicy,
+    policySnapshotHash: binding.policySnapshotHash,
+    status: binding.status,
+    createdAt: new Date(binding.createdAt),
+    updatedAt: new Date(binding.updatedAt),
+  }
+}
+
+function bindingUpdateValues(values: ReturnType<typeof bindingValues>) {
+  return {
+    definitionId: values.definitionId,
+    definitionVersion: values.definitionVersion,
+    isDefault: values.isDefault,
+    permissionPolicyId: values.permissionPolicyId,
+    toolPolicyId: values.toolPolicyId,
+    budgetPolicyJson: values.budgetPolicyJson,
+    policySnapshotHash: values.policySnapshotHash,
+    status: values.status,
+    updatedAt: values.updatedAt,
+  }
 }
 
 function toDefinition(
@@ -218,6 +349,7 @@ function toDefinition(
     maxBudgetCredits: row.maxBudgetCredits,
     maxConcurrency: row.maxConcurrency,
     dataRegionPolicy: row.dataRegionPolicyJson,
+    executionPoolPolicy: row.executionPoolPolicyJson,
     displayName: row.displayName,
     description: row.description,
     status: row.status,

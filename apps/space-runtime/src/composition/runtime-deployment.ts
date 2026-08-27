@@ -61,6 +61,7 @@ export interface SpaceRuntimeDeploymentConfig {
     region: string;
   };
   pools: SpaceRuntimeExecutionPools;
+  dedicatedAgentPools: readonly string[];
   poolPolicies: SpaceRuntimeExecutionPoolPolicies;
   poolRoutingEnforced: true;
 }
@@ -193,10 +194,25 @@ export function parseSpaceRuntimeDeploymentConfig(
       "SPACE_RELEASE_SERVING_POOL_CLASS",
     ),
   } satisfies SpaceRuntimeExecutionPools;
+  const dedicatedAgentPools = commaSeparatedPoolClasses(
+    environment.SPACE_AGENT_DEDICATED_POOL_ALLOWLIST,
+    "SPACE_AGENT_DEDICATED_POOL_ALLOWLIST",
+  );
 
   if (mode === "external" && new Set(Object.values(pools)).size !== 3) {
     throw new Error(
       "External Space Runtime requires distinct Agent, App build, and Release serving pool classes",
+    );
+  }
+  if (
+    dedicatedAgentPools.some((pool) =>
+      pool === pools.agentExecution
+      || pool === pools.appBuild
+      || pool === pools.releaseServing
+    )
+  ) {
+    throw new Error(
+      "Dedicated Agent pool classes must be distinct from regional Agent, App build, and Release serving pools",
     );
   }
 
@@ -216,9 +232,40 @@ export function parseSpaceRuntimeDeploymentConfig(
     },
     replica: { id: replicaId, region },
     pools,
+    dedicatedAgentPools,
     poolPolicies,
     poolRoutingEnforced: true,
   };
+}
+
+export function resolveAgentExecutionPoolClass(
+  deployment: SpaceRuntimeDeploymentConfig,
+  definition: {
+    dataRegionPolicy: { mode: "any" | "allowlist" | "required"; regions: string[] };
+    executionPoolPolicy: {
+      mode: "regional_shared" | "dedicated";
+      poolClass: string | null;
+    };
+  },
+) {
+  if (
+    definition.dataRegionPolicy.mode !== "any"
+    && !definition.dataRegionPolicy.regions.includes(deployment.replica.region)
+  ) {
+    throw new Error(
+      `Agent Definition is not allowed in Runtime region ${deployment.replica.region}`,
+    );
+  }
+  if (definition.executionPoolPolicy.mode === "regional_shared") {
+    return deployment.pools.agentExecution;
+  }
+  const poolClass = definition.executionPoolPolicy.poolClass;
+  if (!poolClass || !deployment.dedicatedAgentPools.includes(poolClass)) {
+    throw new Error(
+      `Dedicated Agent pool ${poolClass || "<missing>"} is not allowed by this Runtime deployment`,
+    );
+  }
+  return poolClass;
 }
 
 function createExecutionPoolPolicies(
@@ -458,6 +505,20 @@ function poolClass(
   variable: string,
 ) {
   return validatedIdentity(optionalValue(value) ?? fallback, variable);
+}
+
+function commaSeparatedPoolClasses(value: string | undefined, name: string) {
+  const entries = (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const unique = [...new Set(entries)];
+  for (const entry of unique) {
+    if (!identityPattern.test(entry)) {
+      throw new Error(`${name} contains an invalid pool class: ${entry}`);
+    }
+  }
+  return unique;
 }
 
 function validatedIdentity(value: string, variable: string) {

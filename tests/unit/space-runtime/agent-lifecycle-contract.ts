@@ -59,6 +59,7 @@ export function createAgentDefinitionFixture(
     maxBudgetCredits: 100,
     maxConcurrency: 1,
     dataRegionPolicy: { mode: 'any', regions: [] },
+    executionPoolPolicy: { mode: 'regional_shared', poolClass: null },
     displayName: `Fake ${agentId}`,
     description: 'Deterministic contract-test Agent',
     status: 'active',

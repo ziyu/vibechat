@@ -5,6 +5,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   createDefaultPiBinding,
+  defaultClaudeDefinition,
   defaultPiDefinition,
 } from '../../../libs/space-agents/bootstrap'
 
@@ -51,6 +52,21 @@ describe('DatabaseSpaceAgentRepository on a D1 request binding', () => {
       await expect(repository.findBinding('space-d1-1', 'pi')).resolves.toEqual(bindingSnapshot)
       await expect(repository.listBindings('space-d1-1')).resolves.toEqual([bindingSnapshot])
 
+      const claudeBinding = {
+        ...bindingSnapshot,
+        bindingId: 'space-agent-binding:space-d1-1:claude',
+        agentId: 'claude',
+        definitionId: defaultClaudeDefinition.definitionId,
+        definitionVersion: defaultClaudeDefinition.version,
+        policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+        updatedAt: '2026-08-27T03:01:00.000Z',
+      }
+      await repository.upsertDefaultBinding(claudeBinding)
+      await expect(repository.listBindings('space-d1-1')).resolves.toEqual([
+        claudeBinding,
+        { ...bindingSnapshot, isDefault: false, updatedAt: claudeBinding.updatedAt },
+      ])
+
       await repository.saveSession({
         schemaVersion: 'vibechat.agent-session-ref/v1',
         sessionId: 'session-d1-1',
@@ -96,6 +112,19 @@ class BetterSqliteD1Binding {
 
   prepare(query: string) {
     return new BetterSqliteD1Statement(this.database, query)
+  }
+
+  async batch(statements: BetterSqliteD1Statement[]) {
+    this.database.exec('BEGIN')
+    try {
+      const results = []
+      for (const statement of statements) results.push(await statement.run())
+      this.database.exec('COMMIT')
+      return results
+    } catch (error) {
+      this.database.exec('ROLLBACK')
+      throw error
+    }
   }
 }
 

@@ -12,6 +12,9 @@ import {
 } from '../../../apps/space-runtime/src/app-runtime/contract'
 import { AgentOsAppExecutionRuntime } from '../../../apps/space-runtime/src/app-runtime/agentos/app-runtime'
 import { runProjectTurn } from '../../../apps/space-runtime/src/adapters/pi/adapter'
+import {
+  runClaudeCodeProjectTurn,
+} from '../../../apps/space-runtime/src/adapters/claude-code/adapter'
 import { agentProviderCredentialEnvironmentVariables } from '../../../apps/space-runtime/src/composition/runtime-deployment'
 
 afterEach(() => {
@@ -56,7 +59,26 @@ describe('Space execution runtime boundaries', () => {
       spaceInstanceId: 'space-runtime-test',
       agentId: 'pi',
     })).toBe(handle)
-    expect(createHandle).toHaveBeenCalledWith('space-space-runtime-test')
+    expect(createHandle).toHaveBeenCalledWith('space-space-runtime-test', {
+      spaceInstanceId: 'space-runtime-test',
+      agentId: 'pi',
+    })
+  })
+
+  it('passes the pinned dedicated pool class to the AgentOS client factory', () => {
+    const handle = {} as AgentExecutionHandle
+    const createHandle = vi.fn(() => handle)
+    const runtime = new AgentOsAgentExecutionRuntime(createHandle)
+
+    expect(runtime.open({
+      spaceInstanceId: 'space-dedicated',
+      agentId: 'claude',
+      poolClass: 'tenant-a',
+    })).toBe(handle)
+    expect(createHandle).toHaveBeenCalledWith(
+      expect.stringContaining('space-dedicated'),
+      expect.objectContaining({ poolClass: 'tenant-a' }),
+    )
   })
 
   it('routes AgentOS project turns through the injected Agent runtime', async () => {
@@ -159,6 +181,55 @@ describe('Space execution runtime boundaries', () => {
     await expect(turn).rejects.toThrow('lease lost')
     expect(deleteSession).toHaveBeenCalledWith('space-pi')
     expect(dispose).toHaveBeenCalledOnce()
+  })
+
+  it('maps Claude Code ACP usage and session identity without provider-native output', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'managed-worker-key')
+    const files = {
+      'package.json': '{}',
+      'tsconfig.json': '{}',
+      'src/index.ts': 'export default {}',
+    }
+    const storedFiles = new Map(
+      Object.entries(files).map(([path, content]) => [`/workspace/${path}`, content]),
+    )
+    let onEvent: Parameters<AgentExecutionHandle['connect']>[0] = () => undefined
+    const openSession = vi.fn(async () => undefined)
+    const handle: AgentExecutionHandle = {
+      makeDirectory: vi.fn(async () => undefined),
+      writeFile: vi.fn(async (path, content) => { storedFiles.set(path, content) }),
+      readFile: vi.fn(async (path) => new TextEncoder().encode(storedFiles.get(path) ?? '')),
+      listSessions: vi.fn(async () => []),
+      openSession,
+      deleteSession: vi.fn(async () => undefined),
+      connect: vi.fn(async (listener) => {
+        onEvent = listener
+        return { dispose: vi.fn(async () => undefined) }
+      }),
+      prompt: vi.fn(async () => {
+        onEvent({
+          sessionId: 'space-claude-code',
+          type: 'usage_update',
+          usage: { inputTokens: 21, outputTokens: 8, thoughtTokens: 3 },
+        })
+        return { content: [{ type: 'text', text: 'No project change.' }] }
+      }),
+    }
+
+    await expect(runClaudeCodeProjectTurn({
+      spaceInstanceId: 'space-claude',
+      executionPoolClass: 'tenant-a',
+      request: 'Answer only.',
+      files,
+    }, { open: vi.fn(() => handle) })).resolves.toEqual({
+      kind: 'chat',
+      message: 'No project change.',
+      usage: { inputTokens: 21, outputTokens: 8, totalTokens: 29 },
+    })
+    expect(openSession).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 'space-claude-code',
+      agent: 'claude',
+    }))
   })
 
   it('delegates Dev VM and immutable Release operations through App runtime', async () => {

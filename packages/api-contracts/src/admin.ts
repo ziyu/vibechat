@@ -1,4 +1,13 @@
 import { z } from 'zod'
+import {
+  agentAvailabilitySchema,
+  agentBudgetPolicySnapshotSchema,
+  agentDataRegionPolicySchema,
+  agentDefinitionSnapshotSchema,
+  agentExecutionPoolPolicySchema,
+  agentVersionSchema,
+  spaceAgentBindingSnapshotSchema,
+} from '@vibechat/space-agent-contracts'
 
 export const adminUserRoleSchema = z.enum(['admin', 'user'])
 export const adminUserRoles = adminUserRoleSchema.enum
@@ -68,8 +77,70 @@ export const adminCreditTransactionsQuerySchema = z.object({
   sortDirection: z.enum(['asc', 'desc']).default('desc'),
 })
 
+export const adminAgentGovernanceQuerySchema = z.object({
+  spaceInstanceId: z.string().trim().min(1).max(255).optional(),
+  agentId: z.string().trim().min(1).max(64).optional(),
+  auditLimit: z.coerce.number().int().min(1).max(100).default(50),
+}).strict()
+
+export const adminCreateAgentDefinitionSchema = z.object({
+  agentId: z.string().trim().min(1).max(64),
+  version: agentVersionSchema,
+  adapterKey: z.enum(['pi', 'claude-code']),
+  adapterVersion: z.string().trim().min(1).max(64),
+  provider: z.string().trim().min(1).max(64),
+  model: z.string().trim().min(1).max(128),
+  capabilities: z.array(z.string().trim().min(1).max(64)).min(1).max(64),
+  toolPolicyId: z.string().trim().min(1).max(255),
+  pricingPolicyId: z.string().trim().min(1).max(255),
+  maxBudgetCredits: z.number().int().nonnegative(),
+  maxConcurrency: z.number().int().positive().max(1_000),
+  dataRegionPolicy: agentDataRegionPolicySchema,
+  executionPoolPolicy: agentExecutionPoolPolicySchema,
+  displayName: z.string().trim().min(1).max(128),
+  description: z.string().trim().max(2_000),
+  availability: agentAvailabilitySchema,
+}).strict()
+
+export const adminSetAgentDefinitionFrozenSchema = z.object({
+  frozen: z.boolean(),
+}).strict()
+
+export const adminUpsertSpaceAgentBindingSchema = z.object({
+  spaceInstanceId: z.string().trim().min(1).max(255),
+  agentId: z.string().trim().min(1).max(64),
+  definitionId: z.string().trim().min(1).max(255),
+  isDefault: z.boolean(),
+  permissionPolicyId: z.string().trim().min(1).max(255),
+  toolPolicyId: z.string().trim().min(1).max(255),
+  budgetPolicy: agentBudgetPolicySnapshotSchema,
+  status: z.enum(['active', 'disabled']),
+}).strict()
+
+export const adminAgentAuditEventSchema = z.object({
+  eventId: z.string().min(1).max(255),
+  spaceInstanceId: z.string().min(1).max(255),
+  agentId: z.string().min(1).max(64),
+  definitionId: z.string().nullable(),
+  sessionId: z.string().nullable(),
+  turnId: z.string().nullable(),
+  eventType: z.string().min(1).max(255),
+  policySnapshotHash: z.string().nullable(),
+  result: z.record(z.string(), z.unknown()),
+  createdAt: z.string().datetime(),
+}).strict()
+
+export const adminAgentGovernanceSnapshotSchema = z.object({
+  definitions: z.array(agentDefinitionSnapshotSchema),
+  bindings: z.array(spaceAgentBindingSnapshotSchema),
+  audit: z.array(adminAgentAuditEventSchema),
+}).strict()
+
 export type AdminUserRole = z.infer<typeof adminUserRoleSchema>
 export type AdminUserListItem = z.infer<typeof adminUserListItemSchema>
 export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>
 export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>
 export type AdminCreditTransactionsQuery = z.infer<typeof adminCreditTransactionsQuerySchema>
+export type AdminAgentGovernanceSnapshot = z.infer<typeof adminAgentGovernanceSnapshotSchema>
+export type AdminCreateAgentDefinition = z.infer<typeof adminCreateAgentDefinitionSchema>
+export type AdminUpsertSpaceAgentBinding = z.infer<typeof adminUpsertSpaceAgentBindingSchema>

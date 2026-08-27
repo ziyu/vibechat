@@ -9,15 +9,29 @@ import type {
 } from "../contract.js";
 import { agentExecutionActorKey } from "./actor-key.js";
 
-const client = createClient<AgentOsAgentRegistry>({
-  endpoint:
-    process.env.RIVET_ENDPOINT ??
-    process.env.AGENTOS_ENDPOINT ??
-    "http://127.0.0.1:6420",
-  poolName: process.env.SPACE_AGENT_EXECUTION_POOL_CLASS ?? "agent-execution",
-});
+const clients = new Map<string, ReturnType<typeof createAgentOsClient>>();
 
-type AgentOsExecutionVm = ReturnType<typeof client.agentVm.getOrCreate>;
+function createAgentOsClient(poolName: string) {
+  return createClient<AgentOsAgentRegistry>({
+    endpoint:
+      process.env.RIVET_ENDPOINT ??
+      process.env.AGENTOS_ENDPOINT ??
+      "http://127.0.0.1:6420",
+    poolName,
+  });
+}
+
+function clientForPool(poolName: string) {
+  const existing = clients.get(poolName);
+  if (existing) return existing;
+  const client = createAgentOsClient(poolName);
+  clients.set(poolName, client);
+  return client;
+}
+
+type AgentOsExecutionVm = ReturnType<
+  ReturnType<typeof createAgentOsClient>["agentVm"]["getOrCreate"]
+>;
 
 class AgentOsExecutionHandle implements AgentExecutionHandle {
   readonly #vm: AgentOsExecutionVm;
@@ -68,7 +82,8 @@ class AgentOsExecutionHandle implements AgentExecutionHandle {
         event.type === "agent_message_chunk" ||
         event.type === "agent_thought_chunk" ||
         event.type === "tool_call" ||
-        event.type === "tool_call_update"
+        event.type === "tool_call_update" ||
+        event.type === "usage_update"
       ) {
         onEvent(event as unknown as AgentRuntimeEvent);
       }
@@ -90,8 +105,14 @@ class AgentOsExecutionHandle implements AgentExecutionHandle {
   }
 }
 
-const createAgentOsHandle: AgentExecutionHandleFactory = (actorKey) =>
-  new AgentOsExecutionHandle(client.agentVm.getOrCreate(actorKey));
+const createAgentOsHandle: AgentExecutionHandleFactory = (actorKey, target) => {
+  const poolName = target?.poolClass
+    ?? process.env.SPACE_AGENT_EXECUTION_POOL_CLASS
+    ?? "agent-execution";
+  return new AgentOsExecutionHandle(
+    clientForPool(poolName).agentVm.getOrCreate(actorKey),
+  );
+};
 
 export class AgentOsAgentExecutionRuntime implements AgentExecutionRuntime {
   readonly #createHandle: AgentExecutionHandleFactory;
@@ -101,6 +122,6 @@ export class AgentOsAgentExecutionRuntime implements AgentExecutionRuntime {
   }
 
   open(target: AgentExecutionTarget) {
-    return this.#createHandle(agentExecutionActorKey(target));
+    return this.#createHandle(agentExecutionActorKey(target), target);
   }
 }

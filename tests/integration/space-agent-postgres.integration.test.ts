@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   createDefaultPiBinding,
+  defaultClaudeDefinition,
   defaultPiDefinition,
 } from '../../libs/space-agents/bootstrap'
 
@@ -32,10 +33,7 @@ describePostgres('DatabaseSpaceAgentRepository on PostgreSQL', () => {
           eq(database.spaceAgentSession.agentId, 'pi'),
         ))
       await database.db.delete(database.spaceAgentBinding)
-        .where(and(
-          eq(database.spaceAgentBinding.spaceInstanceId, 'space-pg-contract'),
-          eq(database.spaceAgentBinding.agentId, 'pi'),
-        ))
+        .where(eq(database.spaceAgentBinding.spaceInstanceId, 'space-pg-contract'))
       await database.pool?.end?.()
     }
     delete process.env.DB_DIALECT
@@ -44,6 +42,7 @@ describePostgres('DatabaseSpaceAgentRepository on PostgreSQL', () => {
 
   it('persists the same Definition, binding, session, and audit contract as SQLite/D1', async () => {
     await repository.upsertDefinition(defaultPiDefinition)
+    await repository.upsertDefinition(defaultClaudeDefinition)
     await expect(repository.findDefinition(defaultPiDefinition.definitionId))
       .resolves.toEqual(defaultPiDefinition)
 
@@ -51,9 +50,23 @@ describePostgres('DatabaseSpaceAgentRepository on PostgreSQL', () => {
       'space-pg-contract',
       new Date('2026-08-27T04:00:00.000Z'),
     )
-    await repository.upsertBinding(binding)
-    await expect(repository.findDefaultBinding('space-pg-contract')).resolves.toEqual(binding)
-    await expect(repository.listBindings('space-pg-contract')).resolves.toEqual([binding])
+    await repository.upsertDefaultBinding(binding)
+    const claudeBinding = {
+      ...binding,
+      bindingId: 'space-agent-binding:space-pg-contract:claude',
+      agentId: 'claude',
+      definitionId: defaultClaudeDefinition.definitionId,
+      definitionVersion: defaultClaudeDefinition.version,
+      policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+      updatedAt: '2026-08-27T04:01:00.000Z',
+    }
+    await repository.upsertDefaultBinding(claudeBinding)
+    await expect(repository.findDefaultBinding('space-pg-contract'))
+      .resolves.toEqual(claudeBinding)
+    await expect(repository.listBindings('space-pg-contract')).resolves.toEqual([
+      claudeBinding,
+      { ...binding, isDefault: false, updatedAt: claudeBinding.updatedAt },
+    ])
 
     await repository.saveSession({
       schemaVersion: 'vibechat.agent-session-ref/v1',

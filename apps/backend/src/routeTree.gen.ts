@@ -60,6 +60,7 @@ import { Route as ApiAdminStatsIndexRouteImport } from './routes/api/admin/stats
 import { Route as ApiAdminPricingPlansIndexRouteImport } from './routes/api/admin/pricing-plans/index'
 import { Route as ApiAdminOrdersIndexRouteImport } from './routes/api/admin/orders/index'
 import { Route as ApiAdminBlogIndexRouteImport } from './routes/api/admin/blog/index'
+import { Route as ApiAdminAgentsIndexRouteImport } from './routes/api/admin/agents/index'
 import { Route as V1SpacesInstancesRoomIdRouteImport } from './routes/v1/spaces/instances/$roomId'
 import { Route as V1SpacesSpaceIdFavoriteRouteImport } from './routes/v1/spaces/$spaceId/favorite'
 import { Route as V1RoomsRoomIdPreferencesRouteImport } from './routes/v1/rooms/$roomId/preferences'
@@ -83,12 +84,15 @@ import { Route as ApiAdminBlogIdRouteImport } from './routes/api/admin/blog/$id'
 import { Route as ApiAdminUsersUpdateIndexRouteImport } from './routes/api/admin/users/update/index'
 import { Route as ApiAdminUsersDeleteIndexRouteImport } from './routes/api/admin/users/delete/index'
 import { Route as ApiAdminCreditsTransactionsIndexRouteImport } from './routes/api/admin/credits/transactions/index'
+import { Route as ApiAdminAgentsDefinitionsIndexRouteImport } from './routes/api/admin/agents/definitions/index'
+import { Route as ApiAdminAgentsBindingsIndexRouteImport } from './routes/api/admin/agents/bindings/index'
 import { Route as V1SpacesInstancesRoomIdTurnsRouteImport } from './routes/v1/spaces/instances/$roomId/turns'
 import { Route as V1SpacesInstancesRoomIdRestoreRouteImport } from './routes/v1/spaces/instances/$roomId/restore'
 import { Route as V1SpacesInstancesRoomIdPublishRouteImport } from './routes/v1/spaces/instances/$roomId/publish'
 import { Route as V1SpacesInstancesRoomIdEventsRouteImport } from './routes/v1/spaces/instances/$roomId/events'
 import { Route as V1SpacesInstancesRoomIdBridgeRouteImport } from './routes/v1/spaces/instances/$roomId/bridge'
 import { Route as V1SpacesInstancesRoomIdAppRouteImport } from './routes/v1/spaces/instances/$roomId/app'
+import { Route as ApiAdminAgentsDefinitionsDefinitionIdStatusRouteImport } from './routes/api/admin/agents/definitions/$definitionId/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -351,6 +355,11 @@ const ApiAdminBlogIndexRoute = ApiAdminBlogIndexRouteImport.update({
   path: '/api/admin/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAgentsIndexRoute = ApiAdminAgentsIndexRouteImport.update({
+  id: '/api/admin/agents/',
+  path: '/api/admin/agents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const V1SpacesInstancesRoomIdRoute = V1SpacesInstancesRoomIdRouteImport.update({
   id: '/v1/spaces/instances/$roomId',
   path: '/v1/spaces/instances/$roomId',
@@ -475,6 +484,18 @@ const ApiAdminCreditsTransactionsIndexRoute =
     path: '/api/admin/credits/transactions/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminAgentsDefinitionsIndexRoute =
+  ApiAdminAgentsDefinitionsIndexRouteImport.update({
+    id: '/api/admin/agents/definitions/',
+    path: '/api/admin/agents/definitions/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAgentsBindingsIndexRoute =
+  ApiAdminAgentsBindingsIndexRouteImport.update({
+    id: '/api/admin/agents/bindings/',
+    path: '/api/admin/agents/bindings/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const V1SpacesInstancesRoomIdTurnsRoute =
   V1SpacesInstancesRoomIdTurnsRouteImport.update({
     id: '/turns',
@@ -510,6 +531,12 @@ const V1SpacesInstancesRoomIdAppRoute =
     id: '/app',
     path: '/app',
     getParentRoute: () => V1SpacesInstancesRoomIdRoute,
+  } as any)
+const ApiAdminAgentsDefinitionsDefinitionIdStatusRoute =
+  ApiAdminAgentsDefinitionsDefinitionIdStatusRouteImport.update({
+    id: '/api/admin/agents/definitions/$definitionId/status',
+    path: '/api/admin/agents/definitions/$definitionId/status',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -577,6 +604,7 @@ export interface FileRoutesByFullPath {
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
+  '/api/admin/agents/': typeof ApiAdminAgentsIndexRoute
   '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
@@ -590,9 +618,12 @@ export interface FileRoutesByFullPath {
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
   '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
+  '/api/admin/agents/bindings/': typeof ApiAdminAgentsBindingsIndexRoute
+  '/api/admin/agents/definitions/': typeof ApiAdminAgentsDefinitionsIndexRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
+  '/api/admin/agents/definitions/$definitionId/status': typeof ApiAdminAgentsDefinitionsDefinitionIdStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -659,6 +690,7 @@ export interface FileRoutesByTo {
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
+  '/api/admin/agents': typeof ApiAdminAgentsIndexRoute
   '/api/admin/blog': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans': typeof ApiAdminPricingPlansIndexRoute
@@ -672,9 +704,12 @@ export interface FileRoutesByTo {
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
   '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
+  '/api/admin/agents/bindings': typeof ApiAdminAgentsBindingsIndexRoute
+  '/api/admin/agents/definitions': typeof ApiAdminAgentsDefinitionsIndexRoute
   '/api/admin/credits/transactions': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update': typeof ApiAdminUsersUpdateIndexRoute
+  '/api/admin/agents/definitions/$definitionId/status': typeof ApiAdminAgentsDefinitionsDefinitionIdStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -742,6 +777,7 @@ export interface FileRoutesById {
   '/v1/rooms/$roomId/preferences': typeof V1RoomsRoomIdPreferencesRoute
   '/v1/spaces/$spaceId/favorite': typeof V1SpacesSpaceIdFavoriteRoute
   '/v1/spaces/instances/$roomId': typeof V1SpacesInstancesRoomIdRouteWithChildren
+  '/api/admin/agents/': typeof ApiAdminAgentsIndexRoute
   '/api/admin/blog/': typeof ApiAdminBlogIndexRoute
   '/api/admin/orders/': typeof ApiAdminOrdersIndexRoute
   '/api/admin/pricing-plans/': typeof ApiAdminPricingPlansIndexRoute
@@ -755,9 +791,12 @@ export interface FileRoutesById {
   '/v1/spaces/instances/$roomId/publish': typeof V1SpacesInstancesRoomIdPublishRoute
   '/v1/spaces/instances/$roomId/restore': typeof V1SpacesInstancesRoomIdRestoreRoute
   '/v1/spaces/instances/$roomId/turns': typeof V1SpacesInstancesRoomIdTurnsRoute
+  '/api/admin/agents/bindings/': typeof ApiAdminAgentsBindingsIndexRoute
+  '/api/admin/agents/definitions/': typeof ApiAdminAgentsDefinitionsIndexRoute
   '/api/admin/credits/transactions/': typeof ApiAdminCreditsTransactionsIndexRoute
   '/api/admin/users/delete/': typeof ApiAdminUsersDeleteIndexRoute
   '/api/admin/users/update/': typeof ApiAdminUsersUpdateIndexRoute
+  '/api/admin/agents/definitions/$definitionId/status': typeof ApiAdminAgentsDefinitionsDefinitionIdStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -826,6 +865,7 @@ export interface FileRouteTypes {
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
+    | '/api/admin/agents/'
     | '/api/admin/blog/'
     | '/api/admin/orders/'
     | '/api/admin/pricing-plans/'
@@ -839,9 +879,12 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/publish'
     | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
+    | '/api/admin/agents/bindings/'
+    | '/api/admin/agents/definitions/'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
     | '/api/admin/users/update/'
+    | '/api/admin/agents/definitions/$definitionId/status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -908,6 +951,7 @@ export interface FileRouteTypes {
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
+    | '/api/admin/agents'
     | '/api/admin/blog'
     | '/api/admin/orders'
     | '/api/admin/pricing-plans'
@@ -921,9 +965,12 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/publish'
     | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
+    | '/api/admin/agents/bindings'
+    | '/api/admin/agents/definitions'
     | '/api/admin/credits/transactions'
     | '/api/admin/users/delete'
     | '/api/admin/users/update'
+    | '/api/admin/agents/definitions/$definitionId/status'
   id:
     | '__root__'
     | '/'
@@ -990,6 +1037,7 @@ export interface FileRouteTypes {
     | '/v1/rooms/$roomId/preferences'
     | '/v1/spaces/$spaceId/favorite'
     | '/v1/spaces/instances/$roomId'
+    | '/api/admin/agents/'
     | '/api/admin/blog/'
     | '/api/admin/orders/'
     | '/api/admin/pricing-plans/'
@@ -1003,9 +1051,12 @@ export interface FileRouteTypes {
     | '/v1/spaces/instances/$roomId/publish'
     | '/v1/spaces/instances/$roomId/restore'
     | '/v1/spaces/instances/$roomId/turns'
+    | '/api/admin/agents/bindings/'
+    | '/api/admin/agents/definitions/'
     | '/api/admin/credits/transactions/'
     | '/api/admin/users/delete/'
     | '/api/admin/users/update/'
+    | '/api/admin/agents/definitions/$definitionId/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1073,6 +1124,7 @@ export interface RootRouteChildren {
   V1RoomsRoomIdPreferencesRoute: typeof V1RoomsRoomIdPreferencesRoute
   V1SpacesSpaceIdFavoriteRoute: typeof V1SpacesSpaceIdFavoriteRoute
   V1SpacesInstancesRoomIdRoute: typeof V1SpacesInstancesRoomIdRouteWithChildren
+  ApiAdminAgentsIndexRoute: typeof ApiAdminAgentsIndexRoute
   ApiAdminBlogIndexRoute: typeof ApiAdminBlogIndexRoute
   ApiAdminOrdersIndexRoute: typeof ApiAdminOrdersIndexRoute
   ApiAdminPricingPlansIndexRoute: typeof ApiAdminPricingPlansIndexRoute
@@ -1080,9 +1132,12 @@ export interface RootRouteChildren {
   ApiAdminSubscriptionsIndexRoute: typeof ApiAdminSubscriptionsIndexRoute
   ApiAdminUsersIndexRoute: typeof ApiAdminUsersIndexRoute
   ApiAdminWithdrawalsIndexRoute: typeof ApiAdminWithdrawalsIndexRoute
+  ApiAdminAgentsBindingsIndexRoute: typeof ApiAdminAgentsBindingsIndexRoute
+  ApiAdminAgentsDefinitionsIndexRoute: typeof ApiAdminAgentsDefinitionsIndexRoute
   ApiAdminCreditsTransactionsIndexRoute: typeof ApiAdminCreditsTransactionsIndexRoute
   ApiAdminUsersDeleteIndexRoute: typeof ApiAdminUsersDeleteIndexRoute
   ApiAdminUsersUpdateIndexRoute: typeof ApiAdminUsersUpdateIndexRoute
+  ApiAdminAgentsDefinitionsDefinitionIdStatusRoute: typeof ApiAdminAgentsDefinitionsDefinitionIdStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1444,6 +1499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminBlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/agents/': {
+      id: '/api/admin/agents/'
+      path: '/api/admin/agents'
+      fullPath: '/api/admin/agents/'
+      preLoaderRoute: typeof ApiAdminAgentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/spaces/instances/$roomId': {
       id: '/v1/spaces/instances/$roomId'
       path: '/v1/spaces/instances/$roomId'
@@ -1605,6 +1667,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminCreditsTransactionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/agents/definitions/': {
+      id: '/api/admin/agents/definitions/'
+      path: '/api/admin/agents/definitions'
+      fullPath: '/api/admin/agents/definitions/'
+      preLoaderRoute: typeof ApiAdminAgentsDefinitionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/agents/bindings/': {
+      id: '/api/admin/agents/bindings/'
+      path: '/api/admin/agents/bindings'
+      fullPath: '/api/admin/agents/bindings/'
+      preLoaderRoute: typeof ApiAdminAgentsBindingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/v1/spaces/instances/$roomId/turns': {
       id: '/v1/spaces/instances/$roomId/turns'
       path: '/turns'
@@ -1646,6 +1722,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/v1/spaces/instances/$roomId/app'
       preLoaderRoute: typeof V1SpacesInstancesRoomIdAppRouteImport
       parentRoute: typeof V1SpacesInstancesRoomIdRoute
+    }
+    '/api/admin/agents/definitions/$definitionId/status': {
+      id: '/api/admin/agents/definitions/$definitionId/status'
+      path: '/api/admin/agents/definitions/$definitionId/status'
+      fullPath: '/api/admin/agents/definitions/$definitionId/status'
+      preLoaderRoute: typeof ApiAdminAgentsDefinitionsDefinitionIdStatusRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -1740,6 +1823,7 @@ const rootRouteChildren: RootRouteChildren = {
   V1RoomsRoomIdPreferencesRoute: V1RoomsRoomIdPreferencesRoute,
   V1SpacesSpaceIdFavoriteRoute: V1SpacesSpaceIdFavoriteRoute,
   V1SpacesInstancesRoomIdRoute: V1SpacesInstancesRoomIdRouteWithChildren,
+  ApiAdminAgentsIndexRoute: ApiAdminAgentsIndexRoute,
   ApiAdminBlogIndexRoute: ApiAdminBlogIndexRoute,
   ApiAdminOrdersIndexRoute: ApiAdminOrdersIndexRoute,
   ApiAdminPricingPlansIndexRoute: ApiAdminPricingPlansIndexRoute,
@@ -1747,9 +1831,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSubscriptionsIndexRoute: ApiAdminSubscriptionsIndexRoute,
   ApiAdminUsersIndexRoute: ApiAdminUsersIndexRoute,
   ApiAdminWithdrawalsIndexRoute: ApiAdminWithdrawalsIndexRoute,
+  ApiAdminAgentsBindingsIndexRoute: ApiAdminAgentsBindingsIndexRoute,
+  ApiAdminAgentsDefinitionsIndexRoute: ApiAdminAgentsDefinitionsIndexRoute,
   ApiAdminCreditsTransactionsIndexRoute: ApiAdminCreditsTransactionsIndexRoute,
   ApiAdminUsersDeleteIndexRoute: ApiAdminUsersDeleteIndexRoute,
   ApiAdminUsersUpdateIndexRoute: ApiAdminUsersUpdateIndexRoute,
+  ApiAdminAgentsDefinitionsDefinitionIdStatusRoute:
+    ApiAdminAgentsDefinitionsDefinitionIdStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

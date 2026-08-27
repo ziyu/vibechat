@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@vibechat/space-app-contracts": "workspace:*",
+    "@vibechat/space-agent-contracts": "workspace:*",
     "zod": "4.2.1"
   },
   "devDependencies": {

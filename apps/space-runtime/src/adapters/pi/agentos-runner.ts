@@ -17,26 +17,62 @@ export async function runAgentOsPi(
   executionRuntime: AgentExecutionRuntime,
   signal: AbortSignal = new AbortController().signal,
 ): Promise<PiRunnerResult> {
+  return runAgentOsAcpProjectTurn(input, executionRuntime, signal, {
+    agentId: "pi",
+    agentName: "Pi",
+    sessionId: piSessionId,
+    prepare: writePiSettings,
+    ensureSession: ensurePiSession,
+    prompt: turnPrompt,
+  });
+}
+
+export async function runAgentOsAcpProjectTurn(
+  input: SpaceAgentTurnInput,
+  executionRuntime: AgentExecutionRuntime,
+  signal: AbortSignal,
+  options: {
+    agentId: string;
+    agentName: string;
+    sessionId: string;
+    prepare?: (agent: AgentExecutionHandle) => Promise<void>;
+    ensureSession: (agent: AgentExecutionHandle) => Promise<void>;
+    prompt: (input: SpaceAgentTurnInput) => string;
+  },
+): Promise<PiRunnerResult> {
   signal.throwIfAborted();
   const agent = executionRuntime.open({
     spaceInstanceId: input.spaceInstanceId,
-    agentId: "pi",
+    agentId: options.agentId,
+    ...(input.executionPoolClass
+      ? { poolClass: input.executionPoolClass }
+      : {}),
   });
   await agent.makeDirectory("/workspace/src");
   await writeAgentFiles(agent, input.files);
-  await writePiSettings(agent);
+  await options.prepare?.(agent);
 
   const tools = new Map<string, { name: string; path?: string }>();
   const observedProjectPaths = new Set(projectFilePaths(input.files));
   let progressQueue = Promise.resolve();
+  let usage: PiRunnerResult["usage"];
   const enqueue = (event: AgentRuntimeEvent) => {
-    if (event.sessionId !== piSessionId) return;
+    if (event.sessionId !== options.sessionId) return;
+    if (event.type === "usage_update") {
+      usage = {
+        inputTokens: event.usage.inputTokens,
+        outputTokens: event.usage.outputTokens,
+        totalTokens: event.usage.inputTokens + event.usage.outputTokens,
+      };
+      return;
+    }
     progressQueue = progressQueue.then(() =>
       relaySessionEvent(
         agent,
         event,
         tools,
         observedProjectPaths,
+        options.agentName,
         input.onProgress,
       ),
     );
@@ -44,20 +80,22 @@ export async function runAgentOsPi(
   const connection = await agent.connect(enqueue);
 
   try {
-    await ensurePiSession(agent);
+    await options.ensureSession(agent);
     const result = await promptWithAbort(
       agent,
       {
-        sessionId: piSessionId,
-        text: turnPrompt(input),
+        sessionId: options.sessionId,
+        text: options.prompt(input),
       },
       signal,
+      options.agentName,
     );
     await progressQueue;
 
     return {
       files: validateFiles(await readAgentFiles(agent, observedProjectPaths)),
-      summary: extractAcpSummary(result.content),
+      summary: extractAcpSummary(result.content, options.agentName),
+      usage,
     };
   } finally {
     await connection.dispose();
@@ -68,6 +106,7 @@ async function promptWithAbort(
   agent: AgentExecutionHandle,
   input: { sessionId: string; text: string },
   signal: AbortSignal,
+  agentName: string,
 ) {
   signal.throwIfAborted();
   let abort: (() => void) | undefined;
@@ -77,7 +116,7 @@ async function promptWithAbort(
       reject(
         signal.reason instanceof Error
           ? signal.reason
-          : new Error("Pi AgentOS generation was cancelled"),
+          : new Error(`${agentName} AgentOS generation was cancelled`),
       );
     };
     signal.addEventListener("abort", abort, { once: true });
@@ -94,6 +133,7 @@ async function relaySessionEvent(
   event: AgentRuntimeEvent,
   tools: Map<string, { name: string; path?: string }>,
   observedProjectPaths: Set<string>,
+  agentName: string,
   onProgress?: (event: GenerationProgress) => void | Promise<void>,
 ) {
   if (!onProgress) return;
@@ -113,7 +153,7 @@ async function relaySessionEvent(
     await onProgress({
       type: "thought",
       id: "agentos-thinking",
-      label: "Pi 正在分析需求与现有代码",
+      label: `${agentName} 正在分析需求与现有代码`,
       status: "in_progress",
     });
     return;
@@ -170,8 +210,8 @@ function toolPath(event: Extract<AgentRuntimeEvent, { type: "tool_call" }>) {
   return path?.replace(/^\/workspace\/?/, "") || undefined;
 }
 
-function extractAcpSummary(content: unknown) {
-  if (!Array.isArray(content)) return "Pi 已完成本轮处理。";
+function extractAcpSummary(content: unknown, agentName: string) {
+  if (!Array.isArray(content)) return `${agentName} 已完成本轮处理。`;
   const text = content
     .flatMap((block) => {
       if (
@@ -188,5 +228,5 @@ function extractAcpSummary(content: unknown) {
     })
     .join("\n")
     .trim();
-  return text ? text.slice(0, 1_200) : "Pi 已完成本轮处理。";
+  return text ? text.slice(0, 1_200) : `${agentName} 已完成本轮处理。`;
 }

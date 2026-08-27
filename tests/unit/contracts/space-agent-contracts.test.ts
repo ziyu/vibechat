@@ -12,6 +12,7 @@ import {
   spaceAgentBillingCallbackSchema as compatibilityBillingCallbackSchema,
   spaceAgentCompletionCallbackSchema as compatibilityCompletionCallbackSchema,
 } from '../../../packages/space-app-contracts/src'
+import { adminCreateAgentDefinitionSchema } from '../../../packages/api-contracts/src'
 
 const timestamp = '2026-08-27T00:00:00.000Z'
 const hash = `sha256:${'a'.repeat(64)}`
@@ -103,6 +104,26 @@ describe('Space Agent contracts', () => {
       systemPrompt: 'hidden prompt',
       providerEvent: { type: 'native.delta' },
     }).success).toBe(false)
+
+    expect(adminCreateAgentDefinitionSchema.safeParse({
+      ...definition(),
+      executionPoolPolicy: { mode: 'regional_shared', poolClass: null },
+      providerCredential: 'secret',
+      projectSource: { 'src/index.ts': 'hidden' },
+    }).success).toBe(false)
+  })
+
+  it('defaults legacy Definitions to regional shared execution and validates dedicated pools', () => {
+    expect(agentDefinitionSnapshotSchema.parse(definition()).executionPoolPolicy)
+      .toEqual({ mode: 'regional_shared', poolClass: null })
+    expect(agentDefinitionSnapshotSchema.safeParse({
+      ...definition(),
+      executionPoolPolicy: { mode: 'dedicated', poolClass: '' },
+    }).success).toBe(false)
+    expect(agentDefinitionSnapshotSchema.safeParse({
+      ...definition(),
+      executionPoolPolicy: { mode: 'dedicated', poolClass: 'tenant-cn-east' },
+    }).success).toBe(true)
   })
 
   it('normalizes legacy usage and callbacks to their V1 wire shapes', () => {

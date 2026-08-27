@@ -17,6 +17,18 @@ export const agentDataRegionPolicySchema = z.object({
   regions: z.array(z.string().trim().min(1).max(64)).max(32),
 }).strict()
 
+export const agentExecutionPoolPolicySchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('regional_shared'),
+    poolClass: z.null(),
+  }).strict(),
+  z.object({
+    mode: z.literal('dedicated'),
+    poolClass: z.string().trim().min(1).max(128)
+      .regex(/^[a-z0-9][a-z0-9._:-]*$/i),
+  }).strict(),
+])
+
 export const agentDefinitionSnapshotSchema = z.object({
   definitionId: agentDefinitionIdSchema,
   agentId: spaceAgentIdSchema,
@@ -32,6 +44,10 @@ export const agentDefinitionSnapshotSchema = z.object({
   maxBudgetCredits: z.number().int().nonnegative(),
   maxConcurrency: z.number().int().positive().max(1_000),
   dataRegionPolicy: agentDataRegionPolicySchema,
+  executionPoolPolicy: agentExecutionPoolPolicySchema.default({
+    mode: 'regional_shared',
+    poolClass: null,
+  }),
   displayName: z.string().trim().min(1).max(128),
   description: z.string().trim().max(2_000),
   status: agentDefinitionStatusSchema,
@@ -98,3 +114,4 @@ export type SpaceAgentBindingSnapshot = z.infer<typeof spaceAgentBindingSnapshot
 export type SpaceAgentBindingPublicSnapshot = z.infer<typeof spaceAgentBindingPublicSnapshotSchema>
 export type SpaceAgentPublicView = z.infer<typeof spaceAgentPublicViewSchema>
 export type AgentBudgetPolicySnapshot = z.infer<typeof agentBudgetPolicySnapshotSchema>
+export type AgentExecutionPoolPolicy = z.infer<typeof agentExecutionPoolPolicySchema>

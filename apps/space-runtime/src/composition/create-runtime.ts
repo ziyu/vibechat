@@ -1,4 +1,5 @@
 import { getOfficialSpaceTemplate } from "@vibechat/space-templates";
+import { createClaudeCodeAgentAdapter } from "../adapters/claude-code/adapter.js";
 import { createFakeAgentAdapter } from "../adapters/fake/adapter.js";
 import { createPiAgentAdapter } from "../adapters/pi/adapter.js";
 import { SpaceAgentAdapterRegistry } from "../adapters/registry.js";
@@ -41,6 +42,7 @@ import {
   createSpaceRuntimeConfig,
   type SpaceRuntimeConfig,
 } from "./runtime-config.js";
+import { resolveAgentExecutionPoolClass } from "./runtime-deployment.js";
 
 export async function createRuntime(
   config: SpaceRuntimeConfig = createSpaceRuntimeConfig(),
@@ -49,8 +51,12 @@ export async function createRuntime(
   const appExecutionRuntime = new AgentOsAppExecutionRuntime();
   const devPreviews = new DevPreviewManager(appExecutionRuntime);
   const releaseManager = new ReleaseManager(appExecutionRuntime);
+  const resolveExecutionPoolClass = (
+    definition: Parameters<typeof resolveAgentExecutionPoolClass>[1],
+  ) => resolveAgentExecutionPoolClass(config.deployment, definition);
   const agentAdapters = new SpaceAgentAdapterRegistry([
-    createPiAgentAdapter(),
+    createPiAgentAdapter({ resolveExecutionPoolClass }),
+    createClaudeCodeAgentAdapter({ resolveExecutionPoolClass }),
     ...(process.env.SPACE_AGENT_FAKE_ENABLED === "1"
       ? [createFakeAgentAdapter()]
       : []),

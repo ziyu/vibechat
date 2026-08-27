@@ -13,6 +13,11 @@ export interface SpaceAgentAuditEvent {
 
 export interface SpaceAgentAuditRepository {
   appendAuditEvent(event: SpaceAgentAuditEvent): Promise<void>
+  listAuditEvents(input: {
+    spaceInstanceId?: string
+    agentId?: string
+    limit: number
+  }): Promise<SpaceAgentAuditEvent[]>
 }
 
 export class SpaceAgentAuditService {

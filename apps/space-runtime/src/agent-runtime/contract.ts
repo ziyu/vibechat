@@ -1,6 +1,7 @@
 export interface AgentExecutionTarget {
   spaceInstanceId: string;
   agentId: string;
+  poolClass?: string;
 }
 
 export type AgentRuntimeEvent =
@@ -24,6 +25,17 @@ export type AgentRuntimeEvent =
       type: "tool_call_update";
       toolCallId: string;
       status?: unknown;
+    }
+  | {
+      sessionId: string;
+      type: "usage_update";
+      usage: {
+        inputTokens: number;
+        outputTokens: number;
+        thoughtTokens?: number | null;
+        cachedReadTokens?: number | null;
+        cachedWriteTokens?: number | null;
+      };
     };
 
 export interface AgentRuntimeSubscription {
@@ -58,4 +70,5 @@ export interface AgentExecutionRuntime {
 
 export type AgentExecutionHandleFactory = (
   actorKey: string,
+  target?: AgentExecutionTarget,
 ) => AgentExecutionHandle;

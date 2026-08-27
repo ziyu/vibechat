@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SpaceInstanceRecord } from '../../../libs/rooms/types'
 import {
   createDefaultPiBinding,
+  defaultClaudeDefinition,
   defaultPiDefinition,
 } from '../../../libs/space-agents'
 import {
@@ -197,6 +198,104 @@ describe('SpaceAgentInvocationService', () => {
       code: 'SPACE_RUNTIME_UNAVAILABLE',
     })
     expect(dependencies.refundCredits).not.toHaveBeenCalled()
+  })
+
+  it('keeps an accepted Turn pinned while a later invocation switches Agent and session', async () => {
+    const piBinding = createDefaultPiBinding('space-1', now)
+    const claudeBinding = {
+      ...piBinding,
+      bindingId: 'space-agent-binding:space-1:claude',
+      agentId: 'claude',
+      definitionId: defaultClaudeDefinition.definitionId,
+      definitionVersion: defaultClaudeDefinition.version,
+      policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+    }
+    const resolveForInvocation = vi.fn()
+      .mockResolvedValueOnce({
+        status: 'resolved',
+        source: 'binding',
+        agentId: 'pi',
+        definition: defaultPiDefinition,
+        binding: piBinding,
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved',
+        source: 'binding',
+        agentId: 'claude',
+        definition: defaultClaudeDefinition,
+        binding: claudeBinding,
+      })
+    let nextTurn = 0
+    const dependencies = createDependencies({
+      bindings: { resolveForInvocation },
+      sessions: {
+        getOrCreate: vi.fn(async ({ definition }) => ({
+          schemaVersion: 'vibechat.agent-session-ref/v1' as const,
+          sessionId: `session-${definition.agentId}`,
+          spaceInstanceId: 'space-1',
+          agentId: definition.agentId,
+          definitionId: definition.definitionId,
+          definitionVersion: definition.version,
+          adapterKey: definition.adapterKey,
+          adapterVersion: definition.adapterVersion,
+          generation: 1,
+          providerSessionRef: `opaque-${definition.agentId}`,
+          summaryRef: null,
+          summaryHash: null,
+          region: 'local',
+          restoreStatus: 'ready' as const,
+          lastTurnId: null,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        })),
+      },
+      createTurnId: () => `turn-${++nextTurn}`,
+      enqueueRuntime: vi.fn(async (input) => ({
+        accepted: true,
+        deduplicated: false,
+        turnId: input.turnId,
+        queuePosition: 0,
+      })),
+      allowMultipleAgents: true,
+    })
+    const service = new SpaceAgentInvocationService(dependencies)
+
+    await service.invoke({
+      instance,
+      user: { id: 'user-1', name: 'Member One' },
+      request,
+    })
+    await service.invoke({
+      instance,
+      user: { id: 'user-1', name: 'Member One' },
+      request: {
+        ...request,
+        matrixEventId: '$matrix-event-2',
+        message: '@claude build a scoreboard',
+        agentMention: { type: 'agent', id: 'claude' },
+      },
+    })
+
+    const queuedTurns = vi.mocked(dependencies.enqueueRuntime).mock.calls
+      .map(([input]) => input.agentTurn)
+    expect(queuedTurns[0]).toMatchObject({
+      turnId: 'turn-1',
+      agentId: 'pi',
+      sessionId: 'session-pi',
+      definition: {
+        definitionId: defaultPiDefinition.definitionId,
+        executionPoolPolicy: { mode: 'regional_shared', poolClass: null },
+      },
+    })
+    expect(queuedTurns[1]).toMatchObject({
+      turnId: 'turn-2',
+      agentId: 'claude',
+      sessionId: 'session-claude',
+      definition: { definitionId: defaultClaudeDefinition.definitionId },
+    })
+    expect(queuedTurns[0]?.definition.definitionId)
+      .toBe(defaultPiDefinition.definitionId)
+    expect(queuedTurns[0]?.sessionId).not.toBe(queuedTurns[1]?.sessionId)
   })
 })
 

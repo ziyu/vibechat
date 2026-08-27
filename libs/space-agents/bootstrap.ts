@@ -6,6 +6,9 @@ import type {
 export const defaultPiAgentId = 'pi'
 export const defaultPiDefinitionId = 'agent-definition-pi-v1'
 export const defaultPiDefinitionVersion = '1.0.0'
+export const defaultClaudeAgentId = 'claude'
+export const defaultClaudeDefinitionId = 'agent-definition-claude-v1'
+export const defaultClaudeDefinitionVersion = '1.0.0'
 
 const bootstrapTimestamp = '2026-08-27T00:00:00.000Z'
 
@@ -24,8 +27,33 @@ export const defaultPiDefinition: AgentDefinitionSnapshot = {
   maxBudgetCredits: 1_000,
   maxConcurrency: 1,
   dataRegionPolicy: { mode: 'any', regions: [] },
+  executionPoolPolicy: { mode: 'regional_shared', poolClass: null },
   displayName: 'Pi',
   description: 'Default VibeChat project Agent',
+  status: 'active',
+  availability: 'available',
+  createdAt: bootstrapTimestamp,
+  updatedAt: bootstrapTimestamp,
+}
+
+export const defaultClaudeDefinition: AgentDefinitionSnapshot = {
+  definitionId: defaultClaudeDefinitionId,
+  agentId: defaultClaudeAgentId,
+  version: defaultClaudeDefinitionVersion,
+  adapterKey: 'claude-code',
+  adapterVersion: '0.2.7',
+  provider: 'anthropic',
+  model: 'configured',
+  capabilities: ['conversation', 'project_patch'],
+  toolPolicyId: 'space-agent-tools-default',
+  pricingPolicyId: 'space-agent-pricing-default',
+  usageSchemaVersion: 'vibechat.agent-usage/v1',
+  maxBudgetCredits: 1_000,
+  maxConcurrency: 1,
+  dataRegionPolicy: { mode: 'any', regions: [] },
+  executionPoolPolicy: { mode: 'regional_shared', poolClass: null },
+  displayName: 'Claude Code',
+  description: 'Managed Claude Code Agent for VibeChat Space projects',
   status: 'active',
   availability: 'available',
   createdAt: bootstrapTimestamp,

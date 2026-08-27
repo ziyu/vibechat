@@ -101,7 +101,10 @@ const serverOnlyClientImports = [
   '@libs/pricing',
 ]
 const packageDependencyPolicy = {
-  '@vibechat/api-contracts': new Set(['@vibechat/space-app-contracts']),
+  '@vibechat/api-contracts': new Set([
+    '@vibechat/space-agent-contracts',
+    '@vibechat/space-app-contracts',
+  ]),
   '@vibechat/auth-client': new Set(),
   '@vibechat/i18n': new Set(),
   '@vibechat/product-core': new Set(),

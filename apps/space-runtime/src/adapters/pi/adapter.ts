@@ -24,7 +24,16 @@ const defaultExecutionRuntime = new AgentOsAgentExecutionRuntime();
 type AgentEventPayload<T> = T extends AgentEventV1
   ? Omit<T, "schemaVersion" | "eventId" | "turnId" | "sequence" | "occurredAt">
   : never;
-type PiAgentEventPayload = AgentEventPayload<AgentEventV1>;
+type LifecycleAgentEventPayload = AgentEventPayload<AgentEventV1>;
+
+export interface LifecycleAgentIdentity {
+  id: string;
+  name: string;
+  adapterKey: string;
+  adapterVersion: string;
+  providerSessionPrefix: string;
+  defaultCompletionMessage: string;
+}
 
 export async function runProjectTurn(
   input: SpaceAgentTurnInput,
@@ -68,45 +77,83 @@ export function createPiAgentAdapter(options: {
     signal: AbortSignal,
   ) => Promise<ProjectTurnResult>;
   restoreMode?: "restored" | "rebuild_required";
+  resolveExecutionPoolClass?: (
+    definition: RunAgentTurnInput["definition"],
+  ) => string | undefined;
 } = {}): CompleteSpaceAgentAdapter {
   const executionRuntime = options.executionRuntime ?? defaultExecutionRuntime;
   const projectTurnRunner = options.projectTurnRunner
     ?? ((input, signal) => runProjectTurn(input, executionRuntime, signal));
+  return createLifecycleAgentAdapter({
+    identity: {
+      id: "pi",
+      name: "Pi",
+      adapterKey: "pi",
+      adapterVersion: "0.2.7",
+      providerSessionPrefix: "pi-session",
+      defaultCompletionMessage: "Pi 已完成本轮处理。",
+    },
+    projectTurnRunner,
+    isAvailable: hasModelCredentials,
+    restoreMode: options.restoreMode,
+    resolveExecutionPoolClass: options.resolveExecutionPoolClass,
+  });
+}
+
+export function createLifecycleAgentAdapter(options: {
+  identity: LifecycleAgentIdentity;
+  projectTurnRunner: (
+    input: SpaceAgentTurnInput,
+    signal: AbortSignal,
+  ) => Promise<ProjectTurnResult>;
+  isAvailable: () => boolean;
+  restoreMode?: "restored" | "rebuild_required";
+  resolveExecutionPoolClass?: (
+    definition: RunAgentTurnInput["definition"],
+  ) => string | undefined;
+}): CompleteSpaceAgentAdapter {
   const activeTurns = new Map<string, AbortController>();
   const cancelledTurns = new Set<string>();
-  const adapterKey = "pi";
-  const adapterVersion = "0.2.7";
+  const { identity, projectTurnRunner } = options;
 
   return {
-    id: "pi",
-    name: "Pi",
-    adapterKey,
-    adapterVersion,
-    isAvailable: hasModelCredentials,
-    runProjectTurn: (input) => runProjectTurn(input, executionRuntime),
-    reviseProject: (input) => reviseProject(input, executionRuntime),
+    id: identity.id,
+    name: identity.name,
+    adapterKey: identity.adapterKey,
+    adapterVersion: identity.adapterVersion,
+    isAvailable: options.isAvailable,
+    runProjectTurn: (input) => projectTurnRunner(input, new AbortController().signal),
+    async reviseProject(input) {
+      const turn = await projectTurnRunner(input, new AbortController().signal);
+      if (turn.kind === "revision") return turn;
+      throw new Error(
+        `${identity.name} did not modify the Project for a repair request: ${turn.message.slice(0, 600)}`,
+      );
+    },
     async beginSession(input, signal) {
       signal.throwIfAborted();
-      assertPiSessionDefinition(
+      assertSessionDefinition(
         input.definition,
         input.session,
-        adapterVersion,
+        identity,
       );
       return {
         ...input.session,
         providerSessionRef: input.session.providerSessionRef
-          || piProviderSessionRef(input.session),
+          || providerSessionRef(identity.providerSessionPrefix, input.session),
         restoreStatus: "ready",
         updatedAt: input.requestedAt,
       };
     },
     runTurn(input, signal) {
-      return runPiLifecycleTurn({
+      return runLifecycleTurn({
         input,
         signal,
         projectTurnRunner,
         activeTurns,
         cancelledTurns,
+        identity,
+        executionPoolClass: options.resolveExecutionPoolClass?.(input.definition),
       });
     },
     async summarize(input, signal) {
@@ -124,7 +171,7 @@ export function createPiAgentAdapter(options: {
         sessionId: input.session.sessionId,
         generation: input.session.generation,
         sourceTurnId: input.sourceTurnId,
-        summaryRef: `pi-session-summary:${summaryHash.slice(-32)}`,
+        summaryRef: `${identity.providerSessionPrefix}-summary:${summaryHash.slice(-32)}`,
         summaryHash,
         createdAt: input.requestedAt,
       };
@@ -133,14 +180,16 @@ export function createPiAgentAdapter(options: {
       signal.throwIfAborted();
       const key = lifecycleTurnKey(input);
       cancelledTurns.add(key);
-      activeTurns.get(key)?.abort(new Error(`Pi Turn cancelled: ${input.reason}`));
+      activeTurns.get(key)?.abort(
+        new Error(`${identity.name} Turn cancelled: ${input.reason}`),
+      );
     },
     async restore(input, signal) {
       signal.throwIfAborted();
-      assertPiSessionDefinition(
+      assertSessionDefinition(
         input.definition,
         input.session,
-        adapterVersion,
+        identity,
       );
       const rebuildRequired = options.restoreMode === "rebuild_required"
         || (
@@ -157,7 +206,7 @@ export function createPiAgentAdapter(options: {
             restoreStatus: "rebuild_required",
             updatedAt: input.requestedAt,
           },
-          reason: "The pinned Pi provider session is unavailable and must be rebuilt.",
+          reason: `The pinned ${identity.name} provider session is unavailable and must be rebuilt.`,
         };
       }
       return {
@@ -166,7 +215,7 @@ export function createPiAgentAdapter(options: {
         session: {
           ...input.session,
           providerSessionRef: input.session.providerSessionRef
-            || piProviderSessionRef(input.session),
+            || providerSessionRef(identity.providerSessionPrefix, input.session),
           restoreStatus: "ready",
           updatedAt: input.requestedAt,
         },
@@ -175,7 +224,7 @@ export function createPiAgentAdapter(options: {
   };
 }
 
-async function* runPiLifecycleTurn(options: {
+async function* runLifecycleTurn(options: {
   input: RunAgentTurnInput;
   signal: AbortSignal;
   projectTurnRunner: (
@@ -184,6 +233,8 @@ async function* runPiLifecycleTurn(options: {
   ) => Promise<ProjectTurnResult>;
   activeTurns: Map<string, AbortController>;
   cancelledTurns: Set<string>;
+  identity: LifecycleAgentIdentity;
+  executionPoolClass?: string;
 }): AsyncIterable<AgentEventV1> {
   const {
     input,
@@ -191,12 +242,14 @@ async function* runPiLifecycleTurn(options: {
     projectTurnRunner,
     activeTurns,
     cancelledTurns,
+    identity,
+    executionPoolClass,
   } = options;
   const key = lifecycleTurnKey(input);
   const controller = new AbortController();
   const relayAbort = () => controller.abort(signal.reason);
   if (signal.aborted || cancelledTurns.has(key)) {
-    controller.abort(signal.reason || new Error("Pi Turn was cancelled"));
+    controller.abort(signal.reason || new Error(`${identity.name} Turn was cancelled`));
   } else {
     signal.addEventListener("abort", relayAbort, { once: true });
   }
@@ -209,7 +262,7 @@ async function* runPiLifecycleTurn(options: {
   let result: ProjectTurnResult | undefined;
   let failure: unknown;
   const emit = (
-    event: PiAgentEventPayload,
+    event: LifecycleAgentEventPayload,
   ) => {
     const value = {
       schemaVersion: "vibechat.agent-event/v1" as const,
@@ -228,15 +281,16 @@ async function* runPiLifecycleTurn(options: {
   emit({
     type: "status",
     stage: "running",
-    message: "Pi started the Turn.",
+    message: `${identity.name} started the Turn.`,
   });
 
   void input.projectWorkspace.read()
     .then((files) => projectTurnRunner({
       spaceInstanceId: input.spaceInstanceId,
+      ...(executionPoolClass ? { executionPoolClass } : {}),
       request: input.requestText,
       files,
-      onProgress: (event) => emitPiProgress(emit, event),
+      onProgress: (event) => emitLifecycleProgress(emit, event),
     }, controller.signal))
     .then((value) => {
       result = value;
@@ -262,10 +316,11 @@ async function* runPiLifecycleTurn(options: {
     }
 
     if (controller.signal.aborted || failure || !result) {
-      emitPiFailure(
+      emitLifecycleFailure(
         emit,
         failure || controller.signal.reason,
         controller.signal.aborted,
+        identity.name,
       );
     } else {
       const usage = toVersionedUsage(result.usage);
@@ -293,7 +348,7 @@ async function* runPiLifecycleTurn(options: {
           .slice(0, 4_000),
         ...(result.kind === "revision"
           ? {
-              projectRevisionId: `pi-revision-${sha256(result.summary).slice(-16)}`,
+              projectRevisionId: `${identity.adapterKey}-revision-${sha256(result.summary).slice(-16)}`,
             }
           : {}),
         ...(usage ? { usage } : {}),
@@ -307,9 +362,9 @@ async function* runPiLifecycleTurn(options: {
   }
 }
 
-function emitPiProgress(
+function emitLifecycleProgress(
   emit: (
-    event: PiAgentEventPayload,
+    event: LifecycleAgentEventPayload,
   ) => void,
   event: GenerationProgress,
 ) {
@@ -344,12 +399,13 @@ function emitPiProgress(
   }
 }
 
-function emitPiFailure(
+function emitLifecycleFailure(
   emit: (
-    event: PiAgentEventPayload,
+    event: LifecycleAgentEventPayload,
   ) => void,
   error: unknown,
   cancelled: boolean,
+  agentName: string,
 ) {
   emit({
     type: "failed",
@@ -362,33 +418,33 @@ function emitPiFailure(
       diagnostics: {
         message: error instanceof Error
           ? error.message.slice(0, 512)
-          : "Pi failed without a bounded error message",
+          : `${agentName} failed without a bounded error message`,
       },
     },
   });
 }
 
-function assertPiSessionDefinition(
+function assertSessionDefinition(
   definition: Parameters<CompleteSpaceAgentAdapter["beginSession"]>[0]["definition"],
   session: AgentSessionRefV1,
-  adapterVersion: string,
+  identity: LifecycleAgentIdentity,
 ) {
   if (
     definition.agentId !== session.agentId
     || definition.definitionId !== session.definitionId
     || definition.version !== session.definitionVersion
-    || definition.adapterKey !== "pi"
-    || session.adapterKey !== "pi"
-    || definition.adapterVersion !== adapterVersion
-    || session.adapterVersion !== adapterVersion
+    || definition.adapterKey !== identity.adapterKey
+    || session.adapterKey !== identity.adapterKey
+    || definition.adapterVersion !== identity.adapterVersion
+    || session.adapterVersion !== identity.adapterVersion
   ) {
-    throw new Error("Pi session does not match its pinned Definition");
+    throw new Error(`${identity.name} session does not match its pinned Definition`);
   }
 }
 
-function piProviderSessionRef(session: AgentSessionRefV1) {
+function providerSessionRef(prefix: string, session: AgentSessionRefV1) {
   return [
-    "pi-session",
+    prefix,
     encodeURIComponent(session.spaceInstanceId),
     encodeURIComponent(session.agentId),
     String(session.generation),
@@ -423,13 +479,14 @@ function sha256(value: string) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 }
 
-function classifyProjectTurn(
+export function classifyProjectTurn(
   before: SpaceAgentTurnInput["files"],
   after: SpaceAgentTurnInput["files"],
   summary: string,
   usage?: AgentUsage,
+  defaultCompletionMessage = "Pi 已完成本轮处理。",
 ): ProjectTurnResult {
-  const message = summary.trim() || "Pi 已完成本轮处理。";
+  const message = summary.trim() || defaultCompletionMessage;
   const paths = new Set([...Object.keys(before), ...Object.keys(after)]);
   if ([...paths].some((path) => after[path] !== before[path])) {
     return { kind: "revision", files: after, summary: message, usage };

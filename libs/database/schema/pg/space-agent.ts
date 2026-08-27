@@ -1,4 +1,4 @@
-import { InferInsertModel, InferSelectModel } from 'drizzle-orm'
+import { InferInsertModel, InferSelectModel, sql } from 'drizzle-orm'
 import {
   boolean,
   index,
@@ -27,6 +27,13 @@ export const spaceAgentDefinition = pgTable('space_agent_definition', {
   dataRegionPolicyJson: jsonb('data_region_policy_json')
     .$type<{ mode: 'any' | 'allowlist' | 'required'; regions: string[] }>()
     .notNull(),
+  executionPoolPolicyJson: jsonb('execution_pool_policy_json')
+    .$type<
+      | { mode: 'regional_shared'; poolClass: null }
+      | { mode: 'dedicated'; poolClass: string }
+    >()
+    .notNull()
+    .default({ mode: 'regional_shared', poolClass: null }),
   displayName: text('display_name').notNull(),
   description: text('description').notNull().default(''),
   status: text('status').notNull().default('active'),
@@ -58,6 +65,9 @@ export const spaceAgentBinding = pgTable('space_agent_binding', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('space_agent_binding_space_agent_idx').on(table.spaceInstanceId, table.agentId),
+  uniqueIndex('space_agent_binding_one_default_idx')
+    .on(table.spaceInstanceId)
+    .where(sql`${table.isDefault} = true`),
   index('space_agent_binding_default_idx').on(table.spaceInstanceId, table.isDefault, table.status),
 ])
 

@@ -9,7 +9,10 @@ import {
   startManagedAgentOsPoolWorkers,
 } from "../../../apps/space-runtime/src/composition/agentos-infrastructure";
 import { createSpaceRuntimeConfig } from "../../../apps/space-runtime/src/composition/runtime-config";
-import { parseSpaceRuntimeDeploymentConfig } from "../../../apps/space-runtime/src/composition/runtime-deployment";
+import {
+  parseSpaceRuntimeDeploymentConfig,
+  resolveAgentExecutionPoolClass,
+} from "../../../apps/space-runtime/src/composition/runtime-deployment";
 import {
   createAgentOsAgentRegistry,
   createAgentOsAppBuildRegistry,
@@ -266,6 +269,39 @@ describe("Space Runtime deployment configuration", () => {
     });
     expect(appsOptions?.release?.limits?.resources?.maxProcesses).toBe(11);
     expect(appsOptions?.release?.network).toBe("deny");
+  });
+
+  it("routes only region-compatible Definitions to allowlisted dedicated pools", () => {
+    const deployment = parseSpaceRuntimeDeploymentConfig({
+      SPACE_RUNTIME_ENGINE_MODE: "external",
+      RIVET_ENDPOINT: "https://engine.internal",
+      SPACE_RUNTIME_REGION: "cn-east",
+      SPACE_AGENT_EXECUTION_POOL_CLASS: "agents-regional",
+      SPACE_APP_BUILD_POOL_CLASS: "builds",
+      SPACE_RELEASE_SERVING_POOL_CLASS: "serving",
+      SPACE_AGENT_DEDICATED_POOL_ALLOWLIST: "tenant-a,tenant-b,tenant-a",
+    });
+
+    expect(deployment.dedicatedAgentPools).toEqual(["tenant-a", "tenant-b"]);
+    expect(resolveAgentExecutionPoolClass(deployment, {
+      dataRegionPolicy: { mode: "required", regions: ["cn-east"] },
+      executionPoolPolicy: { mode: "regional_shared", poolClass: null },
+    })).toBe("agents-regional");
+    expect(resolveAgentExecutionPoolClass(deployment, {
+      dataRegionPolicy: { mode: "allowlist", regions: ["cn-east", "cn-north"] },
+      executionPoolPolicy: { mode: "dedicated", poolClass: "tenant-a" },
+    })).toBe("tenant-a");
+    expect(() => resolveAgentExecutionPoolClass(deployment, {
+      dataRegionPolicy: { mode: "required", regions: ["eu-west"] },
+      executionPoolPolicy: { mode: "regional_shared", poolClass: null },
+    })).toThrow("not allowed in Runtime region cn-east");
+    expect(() => resolveAgentExecutionPoolClass(deployment, {
+      dataRegionPolicy: { mode: "any", regions: [] },
+      executionPoolPolicy: { mode: "dedicated", poolClass: "tenant-denied" },
+    })).toThrow("not allowed by this Runtime deployment");
+    expect(() => parseSpaceRuntimeDeploymentConfig({
+      SPACE_AGENT_DEDICATED_POOL_ALLOWLIST: "agent-execution",
+    })).toThrow("must be distinct from regional Agent");
   });
 });
 

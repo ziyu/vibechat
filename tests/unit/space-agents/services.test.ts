@@ -6,6 +6,7 @@ import type {
 } from '../../../packages/space-agent-contracts/src'
 import {
   createDefaultPiBinding,
+  defaultClaudeDefinition,
   defaultPiDefinition,
   SpaceAgentBindingService,
   SpaceAgentRegistryService,
@@ -314,6 +315,49 @@ describe('Space Agent domain services', () => {
     })
     expect(retried).toEqual(rebuilt)
     expect(repository.sessions).toHaveLength(2)
+  })
+
+  it('keeps hidden sessions isolated by Space × Agent when the default changes', async () => {
+    const repository = new MemoryRepository()
+    const service = new SpaceAgentSessionService(
+      repository,
+      (() => {
+        let next = 0
+        return () => `isolated-session-${++next}`
+      })(),
+    )
+    const pi = await service.getOrCreate({
+      spaceInstanceId: 'space-agent-switch',
+      definition: defaultPiDefinition,
+      region: 'local',
+      now: new Date('2026-08-27T00:00:00.000Z'),
+    })
+    repository.sessions[0] = {
+      ...pi,
+      providerSessionRef: 'opaque-pi-session',
+      summaryRef: 'summary:pi',
+      restoreStatus: 'ready',
+    }
+    const claude = await service.getOrCreate({
+      spaceInstanceId: 'space-agent-switch',
+      definition: defaultClaudeDefinition,
+      region: 'local',
+      now: new Date('2026-08-27T00:01:00.000Z'),
+    })
+
+    expect(claude).toMatchObject({
+      agentId: 'claude',
+      generation: 1,
+      providerSessionRef: null,
+      summaryRef: null,
+    })
+    expect(claude.sessionId).not.toBe(pi.sessionId)
+    expect(repository.sessions).toHaveLength(2)
+    expect(repository.sessions[0]).toMatchObject({
+      agentId: 'pi',
+      providerSessionRef: 'opaque-pi-session',
+      summaryRef: 'summary:pi',
+    })
   })
 
   it('rejects a conflicting identity for the same session generation', async () => {

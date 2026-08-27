@@ -1,4 +1,4 @@
-import { InferInsertModel, InferSelectModel } from 'drizzle-orm'
+import { InferInsertModel, InferSelectModel, sql } from 'drizzle-orm'
 import {
   index,
   integer,
@@ -24,6 +24,13 @@ export const spaceAgentDefinition = sqliteTable('space_agent_definition', {
   dataRegionPolicyJson: text('data_region_policy_json', { mode: 'json' })
     .$type<{ mode: 'any' | 'allowlist' | 'required'; regions: string[] }>()
     .notNull(),
+  executionPoolPolicyJson: text('execution_pool_policy_json', { mode: 'json' })
+    .$type<
+      | { mode: 'regional_shared'; poolClass: null }
+      | { mode: 'dedicated'; poolClass: string }
+    >()
+    .notNull()
+    .default({ mode: 'regional_shared', poolClass: null }),
   displayName: text('display_name').notNull(),
   description: text('description').notNull().default(''),
   status: text('status').notNull().default('active'),
@@ -55,6 +62,9 @@ export const spaceAgentBinding = sqliteTable('space_agent_binding', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 }, (table) => [
   uniqueIndex('space_agent_binding_space_agent_idx').on(table.spaceInstanceId, table.agentId),
+  uniqueIndex('space_agent_binding_one_default_idx')
+    .on(table.spaceInstanceId)
+    .where(sql`${table.isDefault} = true`),
   index('space_agent_binding_default_idx').on(table.spaceInstanceId, table.isDefault, table.status),
 ])
 

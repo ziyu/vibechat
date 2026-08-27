@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { AgentSessionRefV1 } from '../../../packages/space-agent-contracts/src'
 import {
   createDefaultPiBinding,
+  defaultClaudeDefinition,
   defaultPiDefinition,
 } from '../../../libs/space-agents/bootstrap'
 
@@ -113,6 +114,51 @@ describe('DatabaseSpaceAgentRepository on SQLite', () => {
     })
     const auditRows = await database.db.select().from(database.spaceAgentAuditEvent)
     expect(auditRows).toHaveLength(1)
+    await expect(repository.listAuditEvents({
+      spaceInstanceId: 'space-repository-1',
+      agentId: 'pi',
+      limit: 1,
+    })).resolves.toMatchObject([{
+      eventId: 'audit-1',
+      result: { restoreStatus: 'ready' },
+    }])
+  })
+
+  it('governs Definition versions and switches exactly one default binding', async () => {
+    await expect(repository.findDefinitionByAgentVersion('claude', '1.0.0'))
+      .resolves.toEqual(defaultClaudeDefinition)
+    await expect(repository.listDefinitions()).resolves.toEqual(
+      expect.arrayContaining([defaultPiDefinition, defaultClaudeDefinition]),
+    )
+
+    await repository.updateDefinitionStatus(
+      defaultClaudeDefinition.definitionId,
+      'frozen',
+      new Date('2026-08-27T02:30:00.000Z'),
+    )
+    await expect(repository.findDefinition(defaultClaudeDefinition.definitionId))
+      .resolves.toMatchObject({ status: 'frozen' })
+    await repository.updateDefinitionStatus(
+      defaultClaudeDefinition.definitionId,
+      'active',
+      new Date('2026-08-27T02:31:00.000Z'),
+    )
+
+    const pi = createDefaultPiBinding(
+      'space-default-switch',
+      new Date('2026-08-27T02:32:00.000Z'),
+    )
+    const claude = claudeBinding(
+      'space-default-switch',
+      new Date('2026-08-27T02:33:00.000Z'),
+    )
+    await repository.upsertDefaultBinding(pi)
+    await repository.upsertDefaultBinding(claude)
+    const bindings = await repository.listBindings('space-default-switch')
+    expect(bindings.filter((binding) => binding.isDefault)).toEqual([claude])
+    await expect(repository.listAllBindings()).resolves.toEqual(
+      expect.arrayContaining(bindings),
+    )
   })
 })
 
@@ -157,6 +203,49 @@ describe('S2 SQLite/D1-compatible migration', () => {
         'reservation_transaction_id',
         'cancel_requested_at',
       ]))
+
+      sqlite.prepare(`
+        INSERT INTO space_agent_binding (
+          binding_id, space_instance_id, agent_id, definition_id,
+          definition_version, is_default, permission_policy_id, tool_policy_id,
+          budget_policy_json, policy_snapshot_hash, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 'active', ?, ?)
+      `).run(
+        'space-agent-binding:space-pi:claude',
+        'space-pi',
+        'claude',
+        'agent-definition-claude-v1',
+        '1.0.0',
+        'space-agent-permissions-default',
+        'space-agent-tools-default',
+        JSON.stringify({
+          maxCreditsPerTurn: 1_000,
+          maxInputTokens: 128_000,
+          maxOutputTokens: 16_000,
+        }),
+        `sha256:${'b'.repeat(64)}`,
+        2_000_000_000,
+        2_000_000_000,
+      )
+      applySqliteMigration(sqlite, 'libs/database/drizzle-sqlite/0015_yielding_toro.sql')
+      applySqliteMigration(sqlite, 'libs/database/drizzle-sqlite/0016_parallel_molten_man.sql')
+
+      expect(sqlite.prepare(`
+        SELECT execution_pool_policy_json AS policy
+        FROM space_agent_definition
+        WHERE agent_id = 'pi'
+      `).get()).toEqual({ policy: '{"mode":"regional_shared","poolClass":null}' })
+      expect(sqlite.prepare(`
+        SELECT count(*) AS count FROM space_agent_definition WHERE agent_id = 'claude'
+      `).get()).toEqual({ count: 1 })
+      expect(sqlite.prepare(`
+        SELECT count(*) AS count FROM space_agent_binding
+        WHERE space_instance_id = 'space-pi' AND is_default = 1
+      `).get()).toEqual({ count: 1 })
+      expect(() => sqlite.prepare(`
+        UPDATE space_agent_binding SET is_default = 1
+        WHERE space_instance_id = 'space-pi' AND is_default = 0
+      `).run()).toThrow(/unique/i)
     } finally {
       sqlite.close()
       removeSqliteFiles(path)
@@ -168,5 +257,27 @@ function removeSqliteFiles(path: string) {
   for (const suffix of ['', '-shm', '-wal']) {
     const candidate = `${path}${suffix}`
     if (existsSync(candidate)) rmSync(candidate, { force: true })
+  }
+}
+
+function applySqliteMigration(sqlite: Database.Database, path: string) {
+  const statements = readFileSync(path, 'utf8')
+    .split('--> statement-breakpoint')
+    .map((statement) => statement.trim())
+    .filter(Boolean)
+  for (const statement of statements) sqlite.exec(statement)
+}
+
+function claudeBinding(spaceInstanceId: string, now: Date) {
+  const timestamp = now.toISOString()
+  return {
+    ...createDefaultPiBinding(spaceInstanceId, now),
+    bindingId: `space-agent-binding:${spaceInstanceId}:claude`,
+    agentId: 'claude',
+    definitionId: defaultClaudeDefinition.definitionId,
+    definitionVersion: defaultClaudeDefinition.version,
+    policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+    createdAt: timestamp,
+    updatedAt: timestamp,
   }
 }
