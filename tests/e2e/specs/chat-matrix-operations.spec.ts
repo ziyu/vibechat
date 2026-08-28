@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 const password = 'VibeChat-e2e-password-2026!'
 const matrixBaseUrl = process.env.MATRIX_PUBLIC_HOMESERVER_URL || 'http://localhost:8008'
@@ -304,8 +305,9 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
     const secondSocialResponse = await second.page.request.get('/v1/contacts')
     expect(secondSocialResponse.ok(), await secondSocialResponse.text()).toBeTruthy()
     const secondSocial = await secondSocialResponse.json()
+    const friendRequestId = secondSocial.incomingRequests[0].id
     const acceptResponse = await second.page.request.post(
-      `/v1/friend-requests/${encodeURIComponent(secondSocial.incomingRequests[0].id)}/accept`,
+      `/v1/friend-requests/${encodeURIComponent(friendRequestId)}/accept`,
       { data: {} },
     )
     expect(acceptResponse.ok(), await acceptResponse.text()).toBeTruthy()
@@ -317,8 +319,7 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       firstContext.setOffline(false),
       secondContext.setOffline(false),
     ])
-    await firstContext.close()
-    await secondContext.close()
+    await closeBrowserContexts([firstContext, secondContext])
   })
 
   for (const contract of contracts) {

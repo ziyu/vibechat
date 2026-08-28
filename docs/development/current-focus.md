@@ -14,6 +14,10 @@
 
 2026-08-26 Agent 部署边界进一步确认：AgentOS/Rivet Engine 默认按环境与区域共享部署，Space 是逻辑 App/actor 与单写队列单位，Agent session 按 `Space × Agent` 隔离，Dev/Candidate 按 `Space × Revision` 隔离，Release 按不可变 artifact 独立扩缩容；不为每个 Space 部署完整 AgentOS，也不使用全球唯一单体。长期约束见 [Agent 架构与 AgentOS 部署设计](../stable/designs/agent-architecture-and-agentos-deployment.md)。Definition/Binding/session/audit、完整 lifecycle、Claude Code 第二 Adapter、Admin 治理和区域/专属 execution pool policy 已在 S2–S6 完成仓库实现；目标环境的 external Engine、专属 worker、真实 provider 和跨宿主恢复差距继续由 [Active 实施跟踪](./active/product-and-technical-implementation.md)维护，后续代码结构与阶段顺序固定在 [Agent 架构实施结构计划](./active/agent-architecture-implementation-plan.md)。
 
+2026-08-28 宿主界面首批“灯下房间”纵向切片已经完成结构纠偏：桌面一级导航位于左侧，搜索与账户沉到底部，移动端保留底部 Dock；`/spaces` 首屏由真实 Space 数据驱动紧凑的封面卡，完整列表、搜索、未读筛选和管理收进 Finder。账户页采用侧边记录索引，服务页采用可滚动方案架与单一购买门槛。Finder 已覆盖焦点进入、Tab 圈定、Escape、背景 inert 和关闭后焦点恢复。实现复用现有主题链路，将 `lamplit` 作为 `ColorScheme` 加入 `@vibechat/ui`，只在 Web 非 Space Shell 受控启用；完整约束与证据见 [VibeChat 宿主设计系统与主题工作流实施方案](./active/host-design-system-and-theme-workflow.md)。
+
+2026-08-28 运行中 Space 的 Kernel Lamplit 视觉刷新已经完成实现：可信 Header 重组为 Space 身份、运行上下文和可信操作三个区域；桌面为连续表面，390px 重组为两层，返回、reload、publish 和菜单均至少 44px。Runtime、Matrix、发布/恢复函数、Bridge、iframe URL 与用户 Space App 内容保持隔离。Kernel 聚合 E2E 真实 Chromium 2/2 通过；原分支记录的完整 Matrix 长流程超时已在后续 AgentOS `streamStdin` 修复与独立 external Engine 回归中关闭，最新 `chat-matrix-room.spec.ts` 为 4/4。
+
 当前主线是 A3/A4 首版切片验证和生产化：
 
 1. 保留 `/v1/spaces`、Discover、分类、收藏、模板版本和现有 `spaceId/spaceVersionId` 创建链路。

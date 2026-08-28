@@ -117,7 +117,7 @@ export function NewSpaceDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="vc-create-dialog"
+        className="vc-create-dialog theme-lamplit"
         data-testid="new-space-dialog"
         aria-describedby="new-space-description"
       >

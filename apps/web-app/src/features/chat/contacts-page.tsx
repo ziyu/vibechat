@@ -14,7 +14,7 @@ import {
 import { useTranslation } from '@/hooks/use-translation'
 import type { SocialPerson } from '@vibechat/api-contracts'
 import { useChat } from './chat-store'
-import { PersonAvatar, SpaceGlyph } from './chat-primitives'
+import { EmptyState, PersonAvatar, SpaceGlyph } from './chat-primitives'
 import { NewSpaceDialog } from './new-space-dialog'
 
 export function ContactsPage() {
@@ -105,23 +105,49 @@ export function ContactsPage() {
     }
   }
 
+  const directoryEmpty = state.contactIds.length === 0
+    && state.friendRequests.length === 0
+    && query.trim().length < 2
+  const directorySearch = (
+    <label className="vc-search-field vc-directory-search">
+      <Search size={16} aria-hidden="true" />
+      <input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t.chatApp.contacts.searchPlaceholder}
+        aria-label={t.chatApp.contacts.searchPlaceholder}
+      />
+    </label>
+  )
+
   return (
-    <div className="vc-directory-layout" data-testid="contacts-page">
+    <div className="vc-directory-layout" data-testid="contacts-page" data-empty={directoryEmpty || undefined}>
+      {directoryEmpty ? (
+        <section className="vc-contact-gathering">
+          <header className="vc-page-heading">
+            <h1>{t.chatApp.contacts.title}</h1>
+            <p>{t.chatApp.contacts.description}</p>
+          </header>
+          {directorySearch}
+          <div className="vc-contact-invitation">
+            <span className="vc-contact-door" aria-hidden="true" />
+            <span className="vc-contact-light" aria-hidden="true" />
+            <EmptyState
+              icon={<UserPlus size={24} />}
+              title={t.chatApp.contacts.emptyTitle}
+              description={t.chatApp.contacts.emptyDescription}
+            />
+          </div>
+        </section>
+      ) : (
+        <>
       <section className="vc-directory-list">
         <header className="vc-page-heading">
-          <span className="vc-kicker">{t.chatApp.contacts.kicker}</span>
           <h1>{t.chatApp.contacts.title}</h1>
           <p>{t.chatApp.contacts.description}</p>
         </header>
 
-        <label className="vc-search-field vc-directory-search">
-          <Search size={16} aria-hidden="true" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t.chatApp.contacts.searchPlaceholder}
-          />
-        </label>
+        {directorySearch}
 
         {state.friendRequests.length ? (
           <section className="vc-request-section">
@@ -262,7 +288,6 @@ export function ContactsPage() {
             <div className="vc-contact-hero">
               <span className="vc-contact-orbit" aria-hidden="true" />
               <PersonAvatar person={selectedPerson} size="xl" showPresence />
-              <span className="vc-kicker">{t.chatApp.contacts.contactProfile}</span>
               <h2>{selectedPerson.displayName}</h2>
               <p>{selectedPerson.handle}</p>
               {remarkEditing ? (
@@ -369,8 +394,18 @@ export function ContactsPage() {
               })}
             </section>
           </>
-        ) : null}
+        ) : (
+          <div className="vc-contact-empty">
+            <EmptyState
+              icon={<UserPlus size={22} />}
+              title={t.chatApp.contacts.emptyTitle}
+              description={t.chatApp.contacts.emptyDescription}
+            />
+          </div>
+        )}
       </section>
+        </>
+      )}
 
       <NewSpaceDialog
         open={createOpen}

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 const password = 'VibeChat-e2e-password-2026!'
 
@@ -187,6 +188,8 @@ test.describe('Vibe Chat real persisted product state', () => {
       })
       await secondSessionPage.goto('/spaces')
       await expect(secondSessionPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
+      await secondSessionPage.locator('.vc-rail-search').click()
+      await expect(secondSessionPage.getByTestId('space-list')).toBeVisible()
       await expect(secondSessionPage.getByTestId('space-row')).toContainText('持久化状态房间')
       await expect(secondSessionPage.getByTestId('space-row').locator('[aria-label="已静音"]')).toBeVisible()
       await expect(secondSessionPage.getByTestId('spaces-overview')).toBeVisible()
@@ -209,6 +212,7 @@ test.describe('Vibe Chat real persisted product state', () => {
 
       await secondSessionPage.setViewportSize({ width: 390, height: 844 })
       await secondSessionPage.goto('/spaces')
+      await secondSessionPage.locator('.vc-corridor-finder-button').click()
       await expect(secondSessionPage.getByTestId('space-list')).toBeVisible()
       await expect(secondSessionPage.getByTestId('space-row')).toHaveCount(1)
       await expect(secondSessionPage.getByTestId('space-search')).toBeVisible()
@@ -248,9 +252,7 @@ test.describe('Vibe Chat real persisted product state', () => {
       expect(localStorageDump).not.toContain('space-campfire')
       expect(localStorageDump).not.toContain(bootstrap.matrix.accessToken)
     } finally {
-      await firstContext.close()
-      await secondSessionContext.close()
-      await otherUserContext.close()
+      await closeBrowserContexts([firstContext, secondSessionContext, otherUserContext])
     }
   })
 })

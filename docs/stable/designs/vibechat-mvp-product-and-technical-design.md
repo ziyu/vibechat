@@ -3,11 +3,12 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-26
+> 更新日期：2026-08-28
 > 维护范围：VibeChat Web/PWA、Space Kernel、Chat、Space App Runtime、Agent 协作生成、Space 市场、Matrix 消息底座与发布系统
 > 事实边界：本文定义目标状态；当前实现、迁移差距与完成证据见 [Active 实施跟踪](../../development/active/product-and-technical-implementation.md)
 > 设计演进：[Space App 设计演进与实施记录](../../development/active/space-app-design-transition.md)
 > Agent 聚焦设计：[Agent 架构与 AgentOS 部署设计](./agent-architecture-and-agentos-deployment.md)
+> 宿主设计系统实施：[VibeChat 宿主设计系统与主题工作流实施方案](../../development/active/host-design-system-and-theme-workflow.md)
 
 ## 1. 执行摘要
 

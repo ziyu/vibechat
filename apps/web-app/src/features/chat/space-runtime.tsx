@@ -461,41 +461,49 @@ export function SpaceKernelControls({
   const revision = snapshot?.project.draftId?.slice(0, 7)
   return (
     <div className="vc-space-kernel" data-testid="space-kernel">
-      <span className="vc-space-agent-chip" data-active={building || undefined}>
-        <Bot size={13} />
-        {snapshot?.defaultAgentId || 'pi'}
-        {building ? <i /> : null}
-      </span>
-      <span className="vc-kernel-revision" data-building={building || undefined}>
-        {building ? <LoaderCircle size={13} /> : <CircleCheck size={13} />}
-        <span>{building ? t.chatApp.spaceRuntime.updating : t.chatApp.spaceRuntime.ready}</span>
-        {revision ? <code>{revision}</code> : null}
-      </span>
-      <button
-        type="button"
-        className="vc-kernel-reload"
-        onClick={onReload}
-        disabled={!runtime.appUrl}
-        aria-label={t.chatApp.spaceRuntime.reloadApp}
-        title={t.chatApp.spaceRuntime.reloadApp}
-      >
-        <RefreshCw size={13} />
-      </button>
-      <button
-        type="button"
-        className="vc-space-publish"
-        disabled={
-          !snapshot?.project.draftId
-          || publishing
-          || restoring
-          || applyingTemplate
-          || unavailable
-        }
-        onClick={() => void publish().catch(() => undefined)}
-      >
-        <Rocket size={13} />
-        {publishing ? t.chatApp.spaceRuntime.publishing : t.chatApp.spaceRuntime.publishVersion}
-      </button>
+      <div className="vc-kernel-runtime-status" data-testid="space-kernel-status">
+        <span className="vc-space-agent-chip" data-active={building || undefined}>
+          <Bot size={14} />
+          <span>{snapshot?.defaultAgentId || 'pi'}</span>
+          {building ? <i /> : null}
+        </span>
+        <span className="vc-kernel-revision" data-building={building || undefined}>
+          {building ? <LoaderCircle size={14} /> : <CircleCheck size={14} />}
+          <span>{building ? t.chatApp.spaceRuntime.updating : t.chatApp.spaceRuntime.ready}</span>
+          {revision ? <code>{revision}</code> : null}
+        </span>
+      </div>
+      <div className="vc-kernel-actions" data-testid="space-kernel-actions">
+        <button
+          type="button"
+          className="vc-kernel-reload"
+          data-testid="space-kernel-reload"
+          onClick={onReload}
+          disabled={!runtime.appUrl}
+          aria-label={t.chatApp.spaceRuntime.reloadApp}
+          title={t.chatApp.spaceRuntime.reloadApp}
+        >
+          <RefreshCw size={16} />
+        </button>
+        <button
+          type="button"
+          className="vc-space-publish"
+          data-testid="space-kernel-publish"
+          disabled={
+            !snapshot?.project.draftId
+            || publishing
+            || restoring
+            || applyingTemplate
+            || unavailable
+          }
+          onClick={() => void publish().catch(() => undefined)}
+        >
+          <Rocket size={15} />
+          <span>
+            {publishing ? t.chatApp.spaceRuntime.publishing : t.chatApp.spaceRuntime.publish}
+          </span>
+        </button>
+      </div>
     </div>
   )
 }

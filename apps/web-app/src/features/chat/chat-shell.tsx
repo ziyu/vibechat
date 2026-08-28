@@ -1,7 +1,7 @@
 'use client'
 
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Compass, ContactRound, Orbit, Shapes, UserRound } from 'lucide-react'
+import { Compass, ContactRound, DoorOpen, Search, Shapes, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '@/hooks/use-translation'
 import { useTheme } from '@vibechat/react-shared/hooks/use-theme'
@@ -57,7 +57,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
     {
       id: 'spaces',
       to: '/spaces',
-      icon: Orbit,
+      icon: DoorOpen,
       label: t.chatApp.nav.spaces,
     },
     {
@@ -93,7 +93,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="vc-app"
+      className="vc-app theme-lamplit"
       data-space-open={inSpace || undefined}
       data-ready={ready ? 'true' : 'false'}
       data-mode="matrix"
@@ -110,7 +110,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav aria-label={t.chatApp.nav.primaryLabel}>
-          {items.map((item) => {
+          {items.filter((item) => item.id !== 'me').map((item) => {
             const Icon = item.icon
             return (
               <Link
@@ -129,13 +129,24 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <Link
-          to="/me"
-          className="vc-rail-profile"
-          aria-label={t.chatApp.me.profile}
-        >
-          {currentUser ? <PersonAvatar person={currentUser} size="sm" showPresence /> : <span>V</span>}
-        </Link>
+        <div className="vc-rail-account-tools">
+          <Link
+            to="/spaces"
+            hash="finder"
+            className="vc-rail-search"
+            aria-label={t.chatApp.spaces.openFinder}
+            title={t.chatApp.spaces.openFinder}
+          >
+            <Search size={18} strokeWidth={1.8} />
+          </Link>
+          <Link
+            to="/me"
+            className="vc-rail-profile"
+            aria-label={t.chatApp.me.profile}
+          >
+            {currentUser ? <PersonAvatar person={currentUser} size="sm" showPresence /> : <span>V</span>}
+          </Link>
+        </div>
       </aside>
 
       <main className="vc-workspace">

@@ -45,6 +45,8 @@
 - [35. 登录后产品状态真实化](#35-登录后产品状态真实化)
 - [36. Apps 拆分与同源 Backend 网关](#36-apps-拆分与同源-backend-网关)
 - [39. Legacy 产品能力完整迁移](#39-legacy-产品能力完整迁移)
+- [40. Space App：聊天之上的可定制空间](#40-space-app聊天之上的可定制空间active)
+- [41. Lamplit 非 Space 宿主界面更新](#41-lamplit-非-space-宿主界面更新active)
 
 ### 待实现 (Backlog)
 - [19. 支付宝支付流程测试](#19-支付宝支付流程测试)
@@ -1356,7 +1358,7 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 ### 40.2 实时 Space App Surface 与不可修改 Chat Core（P0，Active）
 
 - [x] 产品文案、URL 和 Kernel 状态都把 Space 描述为持续可用、实时更新的在线空间，不出现 Workspace、试验场或“发布后才能使用”的语义。
-- [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。
+- [x] `/spaces/:spaceId` 只有顶部 Kernel Bar 是宿主固定 UI；其下整个视口来自单一 Space App Project，不存在宿主 Chat rail、timeline、composer 或并列 App panel。Kernel 在 Lamplit Light/Dark 下使用可信宿主语义表面，桌面按身份/上下文/操作分组，390px 重组为两层且关键操作至少 44px；主题不得改写 iframe URL、sandbox 或 App 计算样式。
 - [x] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
 - [x] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
 - [x] App 通过 SDK 查询平台结构化 member/agent Mention；member Mention 写入标准 Matrix metadata 且不调度 Agent/credits，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue；受管 Agent Matrix user 不进入 member target。
@@ -1505,7 +1507,7 @@ Default/Custom Chat Core 共用 contract 定向验收：使用同一对真实 Ma
 |---|---------|---------|
 | 1 | 市场模板创建 Space | A/B 已是联系人 → A 从 Discover 浏览分类/详情并收藏模板 → Default Chat 与四个差异化官方条目分别暴露不可变 Version/Artifact 引用 → 选择固定版本创建 Space → Runtime 解析 artifact 并幂等创建 Matrix Room、Space Instance、Project 和 ready Revision → 双方立即进入同一可用 Space |
 | 2 | 空白 Space 与后选模板 | A 选择空白创建 → 复制 Default Chat App 并立即可聊天 → 之后从 Kernel/Discover 选择模板 → Candidate 验证成功后实时切换 ready Revision，成员、消息和历史不变 |
-| 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Default Chat UI 位于 App 源码 → 全屏 Default Chat 不再渲染一条重复 Space 身份/连接状态的 App Header，抽屉式 Chat 只保留抽屉自身必要控制 → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
+| 3 | Kernel Bar + App Surface | 进入 Space → Host DOM 固定内容只有顶部 Kernel Bar → 其下单一 iframe 覆盖完整 App Surface → Kernel 使用 Lamplit 语义 Token，Light 为明亮暖白矿物表面、Dark 为独立炭灰表面，Space accent 只作低频身份/状态提示 → 桌面按身份、运行上下文、可信操作分组，390×844 重组为两层且无横向溢出，返回/reload/publish/menu 均至少 44×44px → 切换主题不改变 iframe URL、sandbox、背景、滤镜、透明度或混合模式 → Default Chat UI 位于 App 源码，不重复 Space 身份/连接状态 Header → 不存在宿主 Chat Panel、并列画布、Studio 或 Workspace |
 | 4 | 不可修改 Chat Core | 分别在 Default Chat App 和不同布局 Template App 中 → 双方完成文字/媒体/回复/编辑/删除/Reaction/已读/typing/历史 → Composer 在桌面与移动端都按“附件、可伸缩输入、发送”稳定布局且不遮挡 timeline → 两个 App 使用同一 SDK/Matrix timeline/ACL，UI 变化不改变能力语义 |
 | 5 | Mention 与 Agent 调度 | App 查询结构化 member/agent target → 每个逻辑 Agent 只出现一个可调用 target，受管 Matrix virtual user 不再作为普通成员、第二个 Mention 或成员计数暴露 → 普通讨论只进入 Matrix、不调用 Agent → 带 Agent Mention 的消息先获得 Matrix event ID → 仅该事件完成 ACL/credits 和幂等入队 → 一个合并 turn 只由受管 Agent virtual user 向 Matrix 幂等写入一个 `m.room.message` → 双方与刷新后的 Chat Core 都只显示该 Matrix Agent event，不投影 Runtime 私有 message |
 | 6 | Agent provider-neutral | 相同合约分别接 Pi Adapter 与 fake/第二 Adapter → Agent ID/provider 可切换 → Project、queue、usage、错误、权限和 UI 不出现 Pi 专属字段或行为依赖 |
@@ -1646,6 +1648,23 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 ---
 
+## 41. Lamplit 非 Space 宿主界面回归（Active）
+
+**文件：** `specs/host-lamplit-ui.spec.ts` ｜ **优先级：** P0 ｜ **Web 8001 / Backend 8002 / SQLite / 本地 Synapse**
+
+本组只保留两项与 Lamplit 改动直接相关的聚合回归。联系人、创建、收藏、设置、账户、服务与 Matrix 等功能行为继续由仓库已有 specs 负责，不在主题测试中重复覆盖。
+
+| # | 回归场景 | 具体流程 |
+|---|---------|---------|
+| 1 | ProductShell 主题与响应式 | 登录后打开 `/account` 和 `/services` → 验证 Lamplit Light Token、桌面 Rail、账户五项侧边记录索引、Home/End 键盘选择与 tabpanel 同步、服务方案架与唯一购买动作 → 切到 390×844 验证移动 Dock、五项索引同屏和无横向溢出 |
+| 2 | ChatShell、Space 封面与可信 Kernel 边界 | 完成真实 Matrix onboarding 并创建 Space → 验证 `/spaces` 使用紧凑封面卡而非 Dashboard、营销 Hero或大型房间布景；主标题使用统一无衬线字体、Regular 400 且桌面不超过 56px，不回退到块状展示字体；单个 Space 不横向撑满内容区，卡片只保留封面、名称、人数、更新时间和未读状态，完整列表默认收进 Finder → 切换 Light/Dark 和 390×844 后打开 Finder，验证焦点进入、圈定、Escape 关闭与触发点恢复 → 进入 `/spaces/:spaceId` 验证可信 Kernel 使用对应 Lamplit 表面并在移动端重组为两层，返回/reload/publish/menu 均至少 44px，同时单一 iframe 的 URL、sandbox、filter、opacity 与 blend mode 不受主题影响 |
+
+2026-08-27 实现证据：结构重建后的聚合用例 2/2 通过；真实浏览器完成 1440×900 与 390×844 的成对 Light/Dark 证据矩阵，覆盖 `/spaces`、`/contacts`、`/account`、`/services`，并继续保留此前对 1024×768、360×800、`/discover`、`/me` 和创建弹层的走查。账户不再使用顶端 Tabs/指标卡，服务只保留一个购买动作，联系人零状态不再使用后台分屏。完整本地服务栈上的 61 项全量 E2E 最终 57 通过、0 失败、4 按配置跳过。
+
+2026-08-28 Kernel 扩展证据：聚合用例继续保持 2/2 通过，并把第二项扩展为可信 Kernel 边界验证，覆盖桌面/390×844、Light/Dark、两层移动重组、四个 44px 关键目标、单一 iframe、sandbox、URL 与计算样式隔离。`chat-matrix-room.spec.ts` 同轮执行时未认证契约 1/1 通过，长流程在 iframe 内 Night Radio Chat drawer 点击后稳定超时，单独重跑结果相同；该流程未到达 restore 后半段，不能记为完整 Matrix 回归通过。
+
+---
+
 ### Backlog 优先级汇总
 
 | 优先级 | 编号 | 测试名称 | 前置条件 | 预计用例数 |
@@ -1668,6 +1687,7 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 | ✅ | 38 | 独立 Admin App 与运营管理链路 | Admin/Backend、SQLite、seeded Admin/普通用户 | 9 |
 | ✅ | 39 | 产品能力完整迁移 | Web/Backend/Admin、SQLite、本地 Synapse | 9 |
 | Planned | 40 | Space App：聊天之上的可定制空间 | Web/Backend/Space Runtime、SQLite、本地 Synapse、双 Chromium | 17 |
+| 首批已验证 / Active | 41 | Lamplit 非 Space 宿主界面回归 | Web/Backend、SQLite、本地 Synapse、桌面与移动 Chromium | 2 |
 
 ---
 
@@ -1679,6 +1699,13 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 |------|------|------|------|------|------|
 | 2026-08-28 | Space App lifecycle/security + Chat Core regression | 8 | 0 | 2 | 完整 `chat-matrix-room.spec.ts` 4/4（含 lifecycle/security 聚焦场景 1/1）、Fake Candidate failure 1/1、Default/Campfire Chat Core 2/2、member-history 1/1；两个真实 provider 条件场景按设计跳过；相关 unit 9 files/38 tests 通过。各 App-heavy 回归使用独立干净 Engine DB，不包含生产 R2/external Engine 跨宿主验收 |
 | 2026-08-28 | Revision 历史 + Kernel rollback + Synapse + 双 Chromium | 3 | 0 | 0 | 新增 rollback 场景 1/1（2.9 分钟），完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）；Revision unit 35/35、Space Runtime 相关全量 unit 138/138 与 D1 `0018`/Workers preview 另行通过 |
+| 2026-08-28 | Web Lamplit Trusted Kernel 定向回归 | 2 | 0 | 0 | 桌面/390×844、Light/Dark、44px 关键目标、移动两层重组、Host DOM 与 iframe 样式/URL/sandbox 隔离全部通过 |
+| 2026-08-28 | 真实 Matrix room 长流程复核 | 1 | 1 | 0 | 当次未认证契约通过；长流程在 iframe 内 Night Radio `Open Space Chat` 点击后超时，未进入 restore 后半段；该依赖问题已由上方后续 AgentOS `streamStdin` 修复后的 4/4 记录关闭 |
+| 2026-08-28 | Web Lamplit 标题排版优化 | 2 | 0 | 0 | `/spaces` 主标题切换为统一无衬线字体栈、Regular 400、36–56px 流式字号，并完成 Light/Dark 桌面与 390×844 移动端截图走查 |
+| 2026-08-27 | Web Lamplit Space 封面卡精简 | 2 | 0 | 0 | 单 Space 桌面卡宽不超过 321px，封面可见，吊灯、地面、人物与气泡不进入 DOM；390×844 移动布局、Finder 焦点管理及运行 Space 主题隔离继续通过 |
+| 2026-08-27 | Web/Backend/Admin/Site/Runtime 全量 E2E | 57 | 0 | 4 | 完整本地服务栈上执行 61 项，耗时 4.2 分钟；联盟关闭跳过 1 项，未启用真实/Fake Space Agent provider-ready 环境跳过 3 项；Lamplit 2/2 与其他 55 项有效用例全部通过 |
+| 2026-08-27 | Finder 契约与 Matrix Context 清理复核 | 10 | 0 | 0 | 持久化状态、社交邀请与 Lamplit 定向组通过；完整 Space 列表从真实桌面 Rail/移动入口进入 Finder，Matrix `/sync` Context 使用 2 秒有界关闭，不删除或放宽业务断言 |
+| 2026-08-27 | Web Lamplit 非 Space 宿主 | 2 | 0 | 0 | 结构重建后 `host-lamplit-ui.spec.ts` 覆盖宿主 Token、Light/Dark、桌面/移动 Shell、Spaces、账户、服务、Finder 焦点管理与运行 Space 主题隔离，并完成 Light/Dark 桌面/移动成对截图走查 |
 | 2026-08-27 | S5 完整 Chromium 回归尝试 | 39 | 8 | 3 | 另有 9 未运行；失败为 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 与 `SPACE_RUNTIME_UNAVAILABLE`，属于当前共享服务/数据环境事实，未声称回归全绿 |
 | 2026-08-27 | Space Runtime + disposable Rivet Engine + 独立 pool worker | 6 | 0 | 0 | Agent/build/serving 各两个独立 Node/Envoy 同时 active；停止一个 build 后为 `2/1/2`；这是 pool 进程隔离证据，不代表真实 D1/R2 + Synapse 跨宿主验收 |
 | 2026-08-27 | Space Agent S4 + Pi/fake + Synapse + 双 Chromium | 3 | 0 | 0 | 显式启用真实 Pi 与测试 Fake binding；幂等 Agent event、真实 Revision 双端 live 收敛、Candidate 三次 repair 失败保护均通过；不代表 S5 外部 Engine/双副本/pool 已完成 |

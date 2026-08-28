@@ -205,95 +205,108 @@ export function SpacePage({ roomId }: { roomId: string }) {
       } as CSSProperties}
     >
       <header className="vc-kernel-bar" data-testid="space-kernel-bar">
-        <Link to="/spaces" className="vc-kernel-icon" aria-label={t.chatApp.space.backToSpaces}>
-          <ArrowLeft size={17} />
-        </Link>
-        <span className="vc-kernel-divider" />
-        <SpaceGlyph space={space} />
-        <span className="vc-kernel-title">
-          <strong>{room.name}</strong>
-          <small><i /> {t.chatApp.space.connected}</small>
-        </span>
-        <span className="vc-kernel-members">
-          <AvatarStack people={members} limit={3} />
-          <UsersRound size={14} />
-          {members.length}
-        </span>
-        <SpaceKernelControls
-          runtime={runtime}
-          onReload={() => setReloadKey((current) => current + 1)}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="vc-kernel-icon" aria-label={t.chatApp.space.spaceMenu}>
-              <MoreHorizontal size={18} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="vc-menu-content">
-            <DropdownMenuItem onSelect={() => void toggleRoomPinned(room.id)}>
-              {room.pinned ? <PinOff /> : <Pin />}
-              {room.pinned ? t.chatApp.spaces.unpin : t.chatApp.spaces.pin}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void toggleRoomMuted(room.id)}>
-              {room.muted ? <Volume2 /> : <VolumeX />}
-              {room.muted ? t.chatApp.spaces.unmute : t.chatApp.spaces.mute}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              data-testid="space-revision-history"
-              disabled={!runtime.snapshot?.project.draftId}
-              onSelect={() => {
-                setSelectedRevisionId('')
-                setRevisionHistoryDialogOpen(true)
-                void runtime.loadRevisions().catch(() => undefined)
-              }}
-            >
-              <History />
-              {t.chatApp.spaceRuntime.revisionHistory}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              data-testid="apply-space-template"
-              disabled={
-                !runtime.snapshot?.project.draftId
-                || Boolean(runtime.snapshot.build)
-                || runtime.publishing
-                || runtime.restoring
-                || runtime.applyingTemplate
-                || runtime.unavailable
-              }
-              onSelect={() => {
-                const initial = state.spaces.find(
-                  (candidate) => candidate.id !== runtime.snapshot?.project.template?.id,
-                ) ?? state.spaces[0]
-                setApplyTemplateId(initial?.id ?? '')
-                setApplyTemplateDialogOpen(true)
-              }}
-            >
-              <LayoutTemplate />
-              {t.chatApp.spaceRuntime.applyTemplate}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              data-testid="restore-default-chat"
-              disabled={
-                !runtime.snapshot?.project.draftId
-                || Boolean(runtime.snapshot.build)
-                || runtime.publishing
-                || runtime.restoring
-                || runtime.applyingTemplate
-                || runtime.unavailable
-              }
-              onSelect={() => setRestoreDialogOpen(true)}
-            >
-              <RotateCcw />
-              {t.chatApp.spaceRuntime.restoreDefaultChat}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => markRoomRead(room.id)}>
-              <CheckCheck />
-              {t.chatApp.spaces.markRead}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="vc-kernel-identity" data-testid="space-kernel-identity">
+          <Link to="/spaces" className="vc-kernel-icon" aria-label={t.chatApp.space.backToSpaces}>
+            <ArrowLeft size={18} />
+          </Link>
+          <span className="vc-kernel-divider" aria-hidden="true" />
+          <SpaceGlyph space={space} />
+          <span className="vc-kernel-title">
+            <strong>{room.name}</strong>
+            <small><i /> {t.chatApp.space.connected}</small>
+          </span>
+        </div>
+
+        <div className="vc-kernel-context" data-testid="space-kernel-context">
+          <span className="vc-kernel-members">
+            <AvatarStack people={members} limit={3} />
+            <UsersRound size={15} />
+            {members.length}
+          </span>
+          <SpaceKernelControls
+            runtime={runtime}
+            onReload={() => setReloadKey((current) => current + 1)}
+          />
+        </div>
+
+        <div className="vc-kernel-menu-slot">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="vc-kernel-icon"
+                data-testid="space-kernel-menu"
+                aria-label={t.chatApp.space.spaceMenu}
+              >
+                <MoreHorizontal size={19} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="vc-menu-content">
+              <DropdownMenuItem onSelect={() => void toggleRoomPinned(room.id)}>
+                {room.pinned ? <PinOff /> : <Pin />}
+                {room.pinned ? t.chatApp.spaces.unpin : t.chatApp.spaces.pin}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void toggleRoomMuted(room.id)}>
+                {room.muted ? <Volume2 /> : <VolumeX />}
+                {room.muted ? t.chatApp.spaces.unmute : t.chatApp.spaces.mute}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                data-testid="space-revision-history"
+                disabled={!runtime.snapshot?.project.draftId}
+                onSelect={() => {
+                  setSelectedRevisionId('')
+                  setRevisionHistoryDialogOpen(true)
+                  void runtime.loadRevisions().catch(() => undefined)
+                }}
+              >
+                <History />
+                {t.chatApp.spaceRuntime.revisionHistory}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                data-testid="apply-space-template"
+                disabled={
+                  !runtime.snapshot?.project.draftId
+                  || Boolean(runtime.snapshot.build)
+                  || runtime.publishing
+                  || runtime.restoring
+                  || runtime.applyingTemplate
+                  || runtime.unavailable
+                }
+                onSelect={() => {
+                  const initial = state.spaces.find(
+                    (candidate) => candidate.id !== runtime.snapshot?.project.template?.id,
+                  ) ?? state.spaces[0]
+                  setApplyTemplateId(initial?.id ?? '')
+                  setApplyTemplateDialogOpen(true)
+                }}
+              >
+                <LayoutTemplate />
+                {t.chatApp.spaceRuntime.applyTemplate}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                data-testid="restore-default-chat"
+                disabled={
+                  !runtime.snapshot?.project.draftId
+                  || Boolean(runtime.snapshot.build)
+                  || runtime.publishing
+                  || runtime.restoring
+                  || runtime.applyingTemplate
+                  || runtime.unavailable
+                }
+                onSelect={() => setRestoreDialogOpen(true)}
+              >
+                <RotateCcw />
+                {t.chatApp.spaceRuntime.restoreDefaultChat}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => markRoomRead(room.id)}>
+                <CheckCheck />
+                {t.chatApp.spaces.markRead}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       <main className="vc-live-app-stage">
