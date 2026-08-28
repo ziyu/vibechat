@@ -1,3 +1,3 @@
-import { defineSpaceUserElements } from "./elements.js";
+import { defineSpaceUserElements } from "./register.js";
 
 defineSpaceUserElements();

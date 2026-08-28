@@ -1,5 +1,9 @@
 # Afterglow Radio
 
+## 0.1.6
+
+- Replace the hand-written member pills with the shared User Directory controller and MemberList from exact `@vibechat/space-app-components@0.10.2`, while preserving the radio scene, presence update, and docked Chat.
+
 ## 0.1.5
 
 - Upgrade to `@vibechat/space-app-components@0.7.4` and restore the drawer's original transform and backdrop-filter; shared action menus now remain independent through the browser Popover top layer.

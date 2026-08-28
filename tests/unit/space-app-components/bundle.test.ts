@@ -79,6 +79,8 @@ describe("Space component bundle", () => {
     expect(html).toContain("<vc-space-user-info-card");
     expect(html).toContain("<vc-space-agent-card");
     expect(html).toContain("<vc-space-agent-activity");
+    expect(html).toContain("<vc-space-member-list");
+    expect(html).toContain("<vc-space-mention-target-item");
     expect(html).toContain("<vc-space-chat-message");
     expect(html).toContain("<vc-space-typing-indicator");
     expect(html).toContain("theme-signal");
@@ -99,12 +101,16 @@ describe("Space component bundle", () => {
           version: release.version,
           type: "module",
           exports: {
+            "./user": "./user/index.js",
+            "./user/inline": "./user/inline.js",
             "./chat": "./chat/index.js",
             "./chat/inline": "./chat/inline.js",
             "./recipes": "./recipes/index.js",
             "./recipes/inline": "./recipes/inline.js",
           },
         }),
+        "user/index.js": "export const user = 'semantic';\n",
+        "user/inline.js": "export const spaceUserInlineModule = {};\n",
         "chat/index.js": "export const chat = 'semantic';\n",
         "chat/inline.js": "export const spaceChatInlineModule = {};\n",
         "recipes/index.js": "export const recipe = 'semantic';\n",
@@ -120,8 +126,11 @@ describe("Space component bundle", () => {
       projectFormat: "agentos-app-v1",
     });
 
-    expect(release.version).toBe("0.9.0");
+    expect(release.version).toBe("0.10.3");
     expect(release.packageFormat).toBe("npm-package-v1");
+    expect(resolved?.files["user/inline.js"]).toContain(
+      "spaceUserInlineModule",
+    );
     expect(resolved?.files["chat/inline.js"]).toContain(
       "spaceChatInlineModule",
     );

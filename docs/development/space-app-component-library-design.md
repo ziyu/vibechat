@@ -379,7 +379,7 @@ Space 源码必须使用普通 package import 和精确 SemVer，并用独立 lo
 
 Candidate 构建从平台管理的 Registry/Object Store 解析 name、精确 version、Project format 和 integrity，并生成独立 prepared artifact。只有 prepared `package.json` 被改写为 revision-local `file:` 依赖；stored source、Template source 和 Agent workspace 保持普通 package specifier。prepared artifact、解析清单和 import map 都进入 artifact hash，并通过 Project pointer 的 `artifactObjectKey/artifactHash` 与源码对象分开持久化。
 
-公共 import 使用与存储方式无关的语义化 subpath：`/foundation`、`/user`、`/agent`、`/chat` 均保留 ESM module boundary 供消费方 tree-shake，仅 `/register` 与 `/register/*` 声明自动注册 side effect。当前返回自包含 HTML 的 `agentos-app-v1` 使用 `/chat/inline` delivery adapter；普通浏览器构建使用 `/chat`。`/artifacts/*`、Registry object key 和版本目录不是公共 import 契约。
+公共 import 使用与存储方式无关的语义化 subpath：`/foundation`、`/user`、`/agent`、`/chat` 均保留 ESM module boundary 供消费方 tree-shake，仅 `/register` 与 `/register/*` 声明自动注册 side effect。当前返回自包含 HTML 的 `agentos-app-v1` 按所需领域使用 `/user/inline`、`/chat/inline` 或 `/recipes/inline` delivery adapter；普通浏览器构建仍使用对应的 `/user`、`/chat` 或 `/recipes` ESM entry。inline entry 只是同一发布包内、绑定同一版本和 integrity 的交付适配，不建立第二套组件 API。`/artifacts/*`、Registry object key 和版本目录不是公共 import 契约。
 
 Git 只保存源码、构建配置和当前 `managed-release.json` 发布锁；`dist/`、tarball 和 `releases/<version>/package` 类逐版本编译目录都是 gitignored 发布产物。每个供 Space 使用的版本必须先把由 `dist/package` 规范化生成的 managed package object 写入 Registry/Object Store，并登记不可变的 `name + version + integrity + objectKey`。tarball 只用于可选的公共 npm 或 npm-compatible Registry 镜像，不是 managed publish、线上 Space Runtime 构建或浏览器加载的前置依赖。
 

@@ -15,6 +15,7 @@ import type { SpaceUserIdentityView } from "./view.js";
 export const spaceUserAvatarElementName = "vc-space-user-avatar" as const;
 export const spaceUserNameElementName = "vc-space-user-name" as const;
 export const spaceUserInfoCardElementName = "vc-space-user-info-card" as const;
+export const spaceUserPresenceElementName = "vc-space-user-presence" as const;
 
 export interface SpaceUserAvatarElement extends HTMLElement {
   user: SpaceUserIdentityView | null;
@@ -27,6 +28,11 @@ export interface SpaceUserNameElement extends HTMLElement {
 export interface SpaceUserInfoCardElement extends HTMLElement {
   user: SpaceUserIdentityView | null;
 }
+
+export interface SpaceUserPresenceElement extends HTMLElement {
+  user: SpaceUserIdentityView | null;
+}
+
 
 function documentLocale(element: HTMLElement) {
   return element.getAttribute("locale")
@@ -183,6 +189,7 @@ export const spaceUserInfoCardStyles = `
 :host {
   display: block;
   min-inline-size: 0;
+  container-type: inline-size;
   color: var(--vc-space-color-text, #172026);
   font-family: var(--vc-space-font-body, sans-serif);
 }
@@ -202,9 +209,13 @@ export const spaceUserInfoCardStyles = `
   --vc-space-card-padding: .72rem;
   --vc-space-gap-md: .68rem;
 }
+@container (max-width: 22rem) {
+  .card { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .actions { grid-column: 1; justify-self: start; }
+}
 @media (max-width: 24rem) {
-  .card { grid-template-columns: auto minmax(0, 1fr); }
-  .actions { grid-column: 1 / -1; justify-self: start; }
+  .card { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .actions { grid-column: 1; justify-self: start; }
 }
 @media (forced-colors: active), (prefers-contrast: more) {
   .card { border: 2px solid CanvasText; }
@@ -271,6 +282,57 @@ function createSpaceUserInfoCardElementClass() {
   };
 }
 
+export const spaceUserPresenceStyles = `
+:host { display:inline-flex; min-inline-size:0; vertical-align:middle; }
+${spaceStatusDotElementName} { min-inline-size:0; }
+@media (forced-colors:active),(prefers-contrast:more) {
+  :host { color:CanvasText; }
+}
+`;
+
+function createSpaceUserPresenceElementClass() {
+  return class VcSpaceUserPresenceElement extends HTMLElement implements SpaceUserPresenceElement {
+    static readonly observedAttributes = ["locale", "name", "presence", "user-id"];
+    #user: SpaceUserIdentityView | null = null;
+
+    get user() { return this.#user; }
+    set user(value) {
+      this.#user = value;
+      if (this.isConnected) this.render();
+    }
+
+    connectedCallback() {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      this.render();
+    }
+
+    attributeChangedCallback() {
+      if (this.isConnected && !this.#user) this.render();
+    }
+
+    private render() {
+      const root = this.shadowRoot;
+      if (!root) return;
+      const user = this.#user ?? userFromAttributes(this);
+      const translate = createSpaceComponentTranslator(documentLocale(this));
+      const presenceLabel = translate(`space.components.presence.${user.presence}`);
+      this.setAttribute("role", "status");
+      this.setAttribute("aria-label", translate("space.components.user.presence.label", {
+        name: user.name,
+        status: presenceLabel,
+      }));
+      const style = this.ownerDocument.createElement("style");
+      style.textContent = spaceUserPresenceStyles;
+      const presence = this.ownerDocument.createElement(spaceStatusDotElementName);
+      presence.setAttribute("part", "status");
+      presence.setAttribute("status", user.presence);
+      presence.setAttribute("label", presenceLabel);
+      presence.setAttribute("show-label", "");
+      root.replaceChildren(style, presence);
+    }
+  };
+}
+
 export function renderSpaceUserInfoCard(user: SpaceUserIdentityView) {
   const attributes = [
     `user-id="${escapeSpaceAttribute(user.id)}"`,
@@ -282,7 +344,7 @@ export function renderSpaceUserInfoCard(user: SpaceUserIdentityView) {
   return `<${spaceUserInfoCardElementName} ${attributes.join(" ")}></${spaceUserInfoCardElementName}>`;
 }
 
-export function defineSpaceUserElements(
+export function defineSpaceUserIdentityElements(
   registry: SpaceElementRegistry | undefined = globalThis.customElements,
 ) {
   if (!registry || typeof globalThis.HTMLElement !== "function") return false;
@@ -291,5 +353,6 @@ export function defineSpaceUserElements(
   defineSpaceElement(registry, spaceUserAvatarElementName, createSpaceUserAvatarElementClass);
   defineSpaceElement(registry, spaceUserNameElementName, createSpaceUserNameElementClass);
   defineSpaceElement(registry, spaceUserInfoCardElementName, createSpaceUserInfoCardElementClass);
+  defineSpaceElement(registry, spaceUserPresenceElementName, createSpaceUserPresenceElementClass);
   return true;
 }

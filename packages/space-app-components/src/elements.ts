@@ -2,7 +2,7 @@ import { defineSpaceAgentElements } from "./agent/elements.js";
 import { defineSpaceChatElements } from "./chat/elements.js";
 import { defineSpaceFoundationElements } from "./foundation/elements.js";
 import type { SpaceElementRegistry } from "./foundation/element.js";
-import { defineSpaceUserElements } from "./user/elements.js";
+import { defineSpaceUserElements } from "./user/register.js";
 
 export function defineSpaceElements(
   registry: SpaceElementRegistry | undefined = globalThis.customElements,

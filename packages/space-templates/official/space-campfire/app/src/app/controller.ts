@@ -1,28 +1,65 @@
 import type { SpaceSdk } from "../browser/sdk.js";
-import { escapeHtml } from "../browser/html.js";
+
+interface CampfireMemberView {
+  readonly id: string;
+  readonly name: string;
+  readonly handle: string | null;
+  readonly avatarUrl: string | null;
+  readonly presence: "online" | "away" | "offline";
+}
+
+interface CampfireDirectorySnapshot {
+  readonly members: readonly CampfireMemberView[];
+}
+
+interface CampfireComponentContext {
+  dispose(): void;
+}
+
+interface CampfireDirectoryController {
+  readonly ready: Promise<void>;
+  getSnapshot(): CampfireDirectorySnapshot;
+  subscribe(listener: () => void): () => void;
+}
+
+interface CampfireUserComponents {
+  createSpaceComponentContext(options: {
+    sdk: unknown;
+    locale?: string;
+  }): CampfireComponentContext;
+  createSpaceUserDirectoryController(
+    context: CampfireComponentContext,
+  ): CampfireDirectoryController;
+}
+
+interface CampfireMemberListElement extends HTMLElement {
+  users: readonly CampfireMemberView[];
+}
 
 interface CampfireElements {
-  members: HTMLElement;
+  members: CampfireMemberListElement;
   copy: HTMLElement;
 }
 
 export function getCampfireElements(): CampfireElements {
-  const members = document.querySelector<HTMLElement>("#members");
+  const members = document.querySelector<CampfireMemberListElement>("#members");
   const copy = document.querySelector<HTMLElement>("#copy");
   if (!members || !copy) throw new Error("Campfire App markup is incomplete");
   return { members, copy };
 }
 
-export function renderCampfire(space: SpaceSdk, elements: CampfireElements) {
-  elements.copy.textContent = `${space.members.length} 位听众正在共享今晚的频率。Chat 始终在线，@Agent 可以继续改造这间电台。`;
-  elements.members.innerHTML = space.members.length
-    ? space.members
-      .map((member) => `<span class="member">${escapeHtml(member.name || member.displayName)}</span>`)
-      .join("")
-    : '<span class="member">等待听众</span>';
+export function renderCampfire(
+  snapshot: CampfireDirectorySnapshot,
+  elements: CampfireElements,
+) {
+  elements.copy.textContent = `${snapshot.members.length} 位听众正在共享今晚的频率。Chat 始终在线，@Agent 可以继续改造这间电台。`;
+  elements.members.users = snapshot.members;
 }
 
-export async function bootstrapCampfire(space: SpaceSdk) {
+export async function bootstrapCampfire(
+  space: SpaceSdk,
+  components: CampfireUserComponents,
+) {
   space.theme.set({
     text: "#f8eee4",
     muted: "#c7b6aa",
@@ -37,8 +74,18 @@ export async function bootstrapCampfire(space: SpaceSdk) {
   });
 
   const elements = getCampfireElements();
-  await space.ready;
-  renderCampfire(space, elements);
-  space.on("members", () => renderCampfire(space, elements));
+  const context = components.createSpaceComponentContext({
+    sdk: space,
+    locale: space.locale,
+  });
+  const directory = components.createSpaceUserDirectoryController(context);
+  const render = () => renderCampfire(directory.getSnapshot(), elements);
+  const unsubscribe = directory.subscribe(render);
+  await directory.ready;
+  render();
+  window.addEventListener("pagehide", () => {
+    unsubscribe();
+    context.dispose();
+  }, { once: true });
   void space.updatePresence({ scene: "radio", status: "listening" });
 }

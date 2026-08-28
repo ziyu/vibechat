@@ -1,6 +1,6 @@
 {
   "name": "@vibechat/space-app-components",
-  "version": "0.9.3",
+  "version": "0.10.3",
   "private": false,
   "description": "Framework-neutral User, Chat, and Agent UI components for VibeChat Space Apps",
   "license": "MIT",
@@ -39,6 +39,10 @@
     "./register/user": "./src/user/browser.ts",
     "./styles": "./src/styles/index.ts",
     "./user": "./src/user/index.ts",
+    "./user/inline": {
+      "types": "./src/user/inline.d.ts",
+      "default": "./dist/package/user/inline.js"
+    },
     "./testing": "./src/testing.ts",
     "./package.json": "./package.json"
   },

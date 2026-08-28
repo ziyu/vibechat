@@ -104,7 +104,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'tplv-space-campfire-0-1-5',
+      spaceVersionId: 'tplv-space-campfire-0-1-6',
       status: 'active',
     })
 
@@ -120,9 +120,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
       templateId: 'space-campfire',
-      templateVersionId: 'tplv-space-campfire-0-1-5',
-      version: '0.1.5',
-      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.5\+sha256\./),
+      templateVersionId: 'tplv-space-campfire-0-1-6',
+      version: '0.1.6',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.6\+sha256\./),
       publisher: {
         id: 'publisher-vibechat',
         verification: 'official',
@@ -177,7 +177,12 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(appResponse.headers()['x-vibechat-space-recovery']).toBeUndefined()
     const chat = await openAppChat(page)
     await expect(chat.getByRole('heading', { name: '夜航电台' })).toBeVisible()
-    await expect(chat.locator('script[data-vibechat-components="0.7.4"]')).toHaveCount(1)
+    await expect(chat.locator('script[data-vibechat-components="0.10.2"]')).toHaveCount(1)
+    await expect(chat.locator('script[data-vibechat-user-components="0.10.2"]')).toHaveCount(1)
+    const memberList = chat.getByRole('listbox', { name: 'Space 成员' })
+    await expect(memberList).toBeVisible()
+    await expect(memberList.getByRole('option')).toHaveCount(1)
+    await expect(memberList.getByRole('option')).toContainText('Matrix Room E2E')
     await expect.poll(() => chat.locator('#vcc-shell').evaluate((element) => {
       const styles = getComputedStyle(element)
       return {

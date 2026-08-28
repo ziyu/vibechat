@@ -41,6 +41,7 @@ export function renderSpaceComponentCatalogDocument(
         note: "这个离线 catalog 固定到同一个组件 artifact；它不会请求 npm、CDN 或宿主能力。",
         action: "打开身份操作",
         identityLabel: "身份信号",
+        directoryLabel: "成员目录与结构化提及",
         timelineLabel: "同一条 Matrix 时间线",
         aliceMessage: "我把沿河步道的三条岔路写进共享地图了；即使这段说明很长，消息也应该在窄屏里自然换行。",
         agentMessage: "已标记最安静的一条，并保留 Alice 作为来源作者。",
@@ -63,6 +64,7 @@ export function renderSpaceComponentCatalogDocument(
         note: "This offline catalog is pinned to one component artifact. It never requests npm, a CDN, or host capabilities.",
         action: "Open identity actions",
         identityLabel: "Identity signal",
+        directoryLabel: "Member directory and structured mentions",
         timelineLabel: "The same Matrix timeline",
         aliceMessage: "I mapped all three forks along the river path. Even this deliberately long field note must reflow naturally on a narrow screen.",
         agentMessage: "Marked the quietest route while keeping Alice visible as the source author.",
@@ -107,7 +109,17 @@ export function renderSpaceComponentCatalogDocument(
           <vc-space-agent-status name="Wayfinder" status="queued" pending-count="2"></vc-space-agent-status>
           <vc-space-agent-status name="Wayfinder" status="failed"></vc-space-agent-status>
         </div>
-        <vc-space-agent-activity data-catalog-agent-activity></vc-space-agent-activity>`;
+        <vc-space-agent-activity data-catalog-agent-activity></vc-space-agent-activity>
+        <section class="directory-sample" aria-label="${escapeHtml(copy.directoryLabel)}">
+          <h3>${escapeHtml(copy.directoryLabel)}</h3>
+          <vc-space-member-list data-catalog-members selected-user-id="alice"></vc-space-member-list>
+          <vc-space-member-list data-catalog-empty></vc-space-member-list>
+          <div class="target-grid">
+            <vc-space-mention-target-item data-catalog-target="0"></vc-space-mention-target-item>
+            <vc-space-mention-target-item data-catalog-target="1"></vc-space-mention-target-item>
+            <vc-space-mention-target-item data-catalog-target="2"></vc-space-mention-target-item>
+          </div>
+        </section>`;
 
   const alice: SpaceChatAuthorView = {
     id: "alice",
@@ -244,6 +256,29 @@ export function renderSpaceComponentCatalogDocument(
     { id: "wayfinder", handle: "wayfinder", name: "Wayfinder", type: "agent", available: true },
     { id: "offline-agent", handle: "offline", name: "Offline Agent", type: "agent", available: false },
   ]).replaceAll("<", "\\u003c");
+  const safeMembers = JSON.stringify([
+    {
+      id: "alice",
+      name: "Alice Chen — Community Cartographer with a deliberately long field name",
+      handle: "alice.maps.everywhere.across.the.river",
+      avatarUrl: null,
+      presence: "online",
+    },
+    {
+      id: "morgan",
+      name: locale === "zh-CN" ? "摩根 · 夜间路线维护者" : "Morgan — Night Route Keeper",
+      handle: "morgan.routes",
+      avatarUrl: null,
+      presence: "away",
+    },
+    {
+      id: "offline-member",
+      name: locale === "zh-CN" ? "暂时离线的成员" : "Member currently offline",
+      handle: "offline.member",
+      avatarUrl: null,
+      presence: "offline",
+    },
+  ]).replaceAll("<", "\\u003c");
   const safeCatalogError = JSON.stringify(copy.catalogError).replaceAll("<", "\\u003c");
   const safeInteractionIdle = JSON.stringify(copy.interactionIdle).replaceAll("<", "\\u003c");
   const safeAgentActivity = JSON.stringify({
@@ -301,6 +336,9 @@ export function renderSpaceComponentCatalogDocument(
       .identity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
       .status-line { display: flex; flex-wrap: wrap; gap: .75rem 1.2rem; margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--vc-space-color-border); }
       vc-space-agent-activity { display: block; max-width: 47rem; margin: 1rem auto 0; }
+      .directory-sample { display:grid; gap:.75rem; max-width:47rem; margin:1.2rem auto 0; padding-top:1rem; border-top:1px solid var(--vc-space-color-border); }
+      .target-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.6rem; }
+      .target-grid vc-space-mention-target-item { padding:.6rem; border:1px solid var(--vc-space-color-border); border-radius:var(--vc-space-radius-control,.65rem); }
       h3 { margin: 0; color: var(--vc-space-color-text-muted); font: 760 .78rem/1.3 var(--vc-space-font-body); letter-spacing: .09em; text-transform: uppercase; }
       .component-label { margin: 0 0 .72rem; color: var(--vc-space-color-text-muted); font: 760 .72rem/1.3 var(--vc-space-font-body); letter-spacing: .09em; text-transform: uppercase; }
       .chat-sample { display: grid; gap: 1rem; max-width: 47rem; margin: clamp(2rem, 5vw, 3.5rem) auto 0; padding-top: clamp(1.4rem, 3vw, 2rem); border-top: 1px solid var(--vc-space-color-border); }
@@ -314,6 +352,7 @@ export function renderSpaceComponentCatalogDocument(
       footer span { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
       @media (max-width: 48rem) {
         .intro, .world-copy, .identity-grid { grid-template-columns: 1fr; }
+        .target-grid { grid-template-columns:1fr; }
         h1 { max-width: 10ch; }
         footer { display: grid; }
       }
@@ -350,10 +389,17 @@ ${chatComponents}
       ${safeBrowserSource}
       const messages = ${safeMessages};
       const targets = ${safeMentionTargets};
+      const members = ${safeMembers};
       const initialLog = ${safeInteractionIdle};
       const agentActivity = ${safeAgentActivity};
       for (const world of document.querySelectorAll(".world")) {
         world.querySelector("[data-catalog-agent-activity]").activity = agentActivity;
+        const memberList = world.querySelector("[data-catalog-members]");
+        memberList.users = members;
+        memberList.disabledUserIds = ["offline-member"];
+        for (const targetItem of world.querySelectorAll("[data-catalog-target]")) {
+          targetItem.target = targets[Number(targetItem.dataset.catalogTarget)];
+        }
         const timeline = world.querySelector("[data-catalog-timeline]");
         const composer = world.querySelector("[data-catalog-composer]");
         const mentions = world.querySelector("[data-catalog-mentions]");
@@ -361,6 +407,9 @@ ${chatComponents}
         const actions = world.querySelector("[data-catalog-actions]");
         const error = world.querySelector("[data-catalog-error]");
         const log = world.querySelector("[data-catalog-log]");
+        memberList.addEventListener("vc-space-member-select", (event) => {
+          log.textContent = "member-select: " + event.detail.user.id;
+        });
         timeline.messages = messages;
         timeline.typingUsers = [messages[0].author];
         mentions.targets = targets;

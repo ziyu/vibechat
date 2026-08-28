@@ -37,6 +37,7 @@ const publishedExports = {
   "./core": packageEntry("core/index"),
   "./foundation": packageEntry("foundation/index"),
   "./user": packageEntry("user/index"),
+  "./user/inline": packageEntry("user/inline"),
   "./agent": packageEntry("agent/index"),
   "./chat": packageEntry("chat/index"),
   "./chat/inline": packageEntry("chat/inline"),
@@ -97,6 +98,7 @@ async function copyPublishedModules() {
   const compiledFiles = await readTree(compiledRoot);
   for (const [path, source] of Object.entries(compiledFiles)) {
     if (/^(?:node|testing)\.(?:js|d\.ts)$/.test(path)) continue;
+    if (/^user\/inline-browser\.(?:js|d\.ts)$/.test(path)) continue;
     const output = join(publishedPackageRoot, path);
     await mkdir(dirname(output), { recursive: true });
     await writeFile(output, source, "utf8");
@@ -138,6 +140,7 @@ const browserEntries = {
   "browser.js": join(sourceRoot, "browser.ts"),
   "foundation.js": join(sourceRoot, "foundation/browser.ts"),
   "user.js": join(sourceRoot, "user/browser.ts"),
+  "user-inline.js": join(sourceRoot, "user/inline-browser.ts"),
   "agent.js": join(sourceRoot, "agent/browser.ts"),
   "chat.js": join(sourceRoot, "chat/browser.ts"),
   "recipes.js": join(sourceRoot, "recipes/browser.ts"),
@@ -220,6 +223,12 @@ export declare const ${exportName}: Readonly<${interfaceName}>;
   );
 }
 
+await writeInlineModule({
+  directory: "user",
+  exportName: "spaceUserInlineModule",
+  interfaceName: "SpaceUserInlineModule",
+  bundlePath: "user-inline.js",
+});
 await writeInlineModule({
   directory: "chat",
   exportName: "spaceChatInlineModule",

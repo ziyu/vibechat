@@ -58,7 +58,7 @@ packages/space-templates/
 
 `official-catalog.generated.ts` 只生成当前市场所需的 Template/Version/Artifact 元数据，不包含 App 源码。开发环境的 Node artifact provider 从当前 `app/` 读取源码并验证 hash；生产 Runtime 必须按同一个 artifact ID 从 Registry/Object Store 获取。
 
-Template 引用平台组件时使用普通、语义化 package specifier：正常浏览器构建使用 `@vibechat/space-app-components/chat`，当前返回自包含 HTML 的 `agentos-app-v1` Template 使用明确的 `@vibechat/space-app-components/chat/inline` delivery adapter。`package.json` 必须声明精确版本，`space-app-dependencies.json` 必须声明同版本的 managed integrity；不能引用 `/artifacts/*`、版本目录、仓库路径，也不能提交 `src/vendor` 组件副本、`vendor/vibechat-packages` 或 `vibechat.resolved-dependencies.json`。Runtime 只在隔离的 prepared build 中生成 revision-local `file:` dependency，并把 prepared artifact 与 source object 分开持久化，因此 Template working source、既有 ready Revision 和 Published Release 不被在线 Registry 漂移改写。
+Template 引用平台组件时使用普通、语义化 package specifier：正常浏览器构建按领域使用 `@vibechat/space-app-components/user`、`/chat` 或 `/recipes`；当前返回自包含 HTML 的 `agentos-app-v1` Template 按需使用明确的 `/user/inline`、`/chat/inline` 或 `/recipes/inline` delivery adapter。inline entry 与普通领域 entry 属于同一个精确 package version/integrity，不是第二套组件 API。`package.json` 必须声明精确版本，`space-app-dependencies.json` 必须声明同版本的 managed integrity；不能引用 `/artifacts/*`、版本目录、仓库路径，也不能提交 `src/vendor` 组件副本、`vendor/vibechat-packages` 或 `vibechat.resolved-dependencies.json`。Runtime 只在隔离的 prepared build 中生成 revision-local `file:` dependency，并把 prepared artifact 与 source object 分开持久化，因此 Template working source、既有 ready Revision 和 Published Release 不被在线 Registry 漂移改写。
 
 ## 不变量
 

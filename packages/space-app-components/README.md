@@ -8,7 +8,8 @@ The package sits above `@vibechat/space-app-sdk` and below Space Templates. It p
 
 - `.` and `/core`: browser-safe APIs with no top-level browser-global access.
 - `/foundation`: Avatar、StatusDot、IconButton 与基础样式。
-- `/user`: member view model、UserAvatar、UserName 与 UserInfoCard。
+- `/user`: member view model、只读 User Directory controller、UserAvatar、UserName、UserPresence、UserInfoCard、MemberList 与 MentionTargetItem。
+- `/user/inline`: 仅供返回自包含 HTML 的 `agentos-app-v1` Project 使用的预构建 User 浏览器模块；普通浏览器构建使用 `/user`。
 - `/agent`: provider-neutral Agent identity/activity view model、只读 controller、AgentAvatar、Badge、Status、QueueStatus、Card 与 Activity。
 - `/chat`: Matrix timeline view、只读/可写 controller、Composer/Mention/Attachment/Reaction/Actions/Error/Timeline elements。
 - `/chat/inline`: 仅供返回自包含 HTML 的 `agentos-app-v1` Project 使用的预构建 Chat 浏览器模块；普通浏览器构建使用 `/chat`。
@@ -39,6 +40,14 @@ import {
 } from "@vibechat/space-app-components/chat/inline"
 ```
 
+只需要 User/Member 能力的自包含 Project 使用更小的 `/user/inline`；它导出 controller/context API 并显式注册 User elements，不会创建 SDK：
+
+```ts
+import {
+  spaceUserInlineModule,
+} from "@vibechat/space-app-components/user/inline"
+```
+
 使用完整装配 recipe 的同类 Project 改用 `/recipes/inline`；普通 bundler 仍从 `/recipes` tree-shake：
 
 ```ts
@@ -56,7 +65,7 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
-pnpm --filter @vibechat/space-app-components registry:publish 0.9.3
+pnpm --filter @vibechat/space-app-components registry:publish 0.10.3
 # Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
@@ -113,6 +122,39 @@ if (card && member) {
   card.user = createSpaceUserIdentityView(member)
 }
 ```
+
+成员目录继续复用同一个注入 SDK；controller 只投影 `self/members` 并订阅成员更新，组件通过 typed property 和 typed event 组合，不创建第二个 SDK 或 Matrix client：
+
+```ts
+import {
+  createSpaceUserDirectoryController,
+  spaceUserEventNames,
+  type SpaceMemberListElement,
+  type SpaceUserComponentEvent,
+} from "@vibechat/space-app-components/user"
+
+const directory = createSpaceUserDirectoryController(context)
+const list = document.querySelector<SpaceMemberListElement>(
+  "vc-space-member-list",
+)
+
+const renderMembers = () => {
+  if (list) list.users = directory.getSnapshot().members
+}
+
+directory.subscribe(renderMembers)
+await directory.ready
+renderMembers()
+
+list?.addEventListener(spaceUserEventNames.memberSelect, (event) => {
+  const selected = (event as SpaceUserComponentEvent<
+    typeof spaceUserEventNames.memberSelect
+  >).detail.user
+  console.debug("Selected member", selected.id)
+})
+```
+
+`vc-space-member-list` 使用 listbox/option + 原生 button 语义，支持 ArrowUp/ArrowDown/Home/End 和 bubbling/composed `vc-space-member-select`；`vc-space-user-presence` 始终显示 online/away/offline 文字。`vc-space-mention-target-item` 只呈现结构化 member/Agent target；Chat MentionMenu 内部复用它，但仍由既有 `vc-space-mention-select` 事件保存结构化 `mentionIds`，不会扫描 handle 或触发 Agent。
 
 Chat 只接收注入的 SDK。完整 controller 分别订阅 message、typing 与身份相关事件，typing/presence-only 更新不会重建 messages view；所有命令仍委托给同一个 `SpaceAppClient`：
 
@@ -260,6 +302,14 @@ Panel Recipe 默认只在 Agent 正在执行或队列中存在请求时显示，
 `0.9.0` 以向后兼容 minor 增加 provider-neutral `createSpaceAgentActivityView`、`createSpaceAgentController`、`vc-space-agent-queue-status`、`vc-space-agent-activity` 和 `mountAgentActivityPanelRecipe`。Activity 使用 polite live region、文本状态、forced-colors/reduced-motion fallback，并限制最多 12 条公开 activity；provider payload、Agent 调用、模型、积分和 Kernel 操作不进入组件 API。既有 Template 和 Space 仍固定原 exact version，不会自动升级。
 
 `0.9.1` 为 Chat Recipe 增加迁移兼容桥接：`SpaceChatRecipeElements.build/buildTitle/buildStage` 保留但标记 deprecated；`resolveSpaceChatRecipeElements()` 在三个旧 `#vcc-build*` 节点全部不存在时使用脱离文档、不可见的占位，允许 `AgentActivityPanelRecipe` 成为唯一可见 Agent 状态投影。只删除部分旧节点仍会 fail closed，已有固定 `0.8.1`/`0.9.0` 的 Template、Revision 与 Release 不会自动升级。
+
+`0.10.0` 以向后兼容 minor 增加 User/Member 公共层：`createSpaceUserDirectoryController`、`vc-space-user-presence`、`vc-space-member-list-item`、`vc-space-member-list`、`vc-space-mention-target-item` 与 `vc-space-member-select`。MemberList 提供空状态、selected/disabled、44px 原生按钮和 roving keyboard；MentionMenu 内部复用统一 target identity，同时保持既有 typed event 与结构化 Mention 契约。该版本只扩展组件 package/catalog，不自动升级任何 Template、Project、Revision 或 Release。
+
+`0.10.1` 首次增加语义化 `/user/inline` delivery adapter，但真实 Chromium 接入发现该入口只注册 User elements，没有导出 controller/context，因此不能作为完整的 User inline API 使用。该版本已经写入 Registry，按不可变发布规则保留且不覆盖；普通 bundler 的 side-effect-free `/user` 不受影响。
+
+`0.10.2` 修正 `/user/inline` 的浏览器入口：它使用独立 bundle 同时显式注册 User elements 并导出 `/user` API 与 `createSpaceComponentContext`。`/register/user` 继续保持纯 side effect，普通 `/user` 继续 side-effect-free；已写入 Registry 的 `0.10.1` 不覆盖，首个 Template 消费直接固定 `0.10.2`。
+
+`0.10.3` 是文档一致性 patch：代码 API 与 `0.10.2` 相同，只修正发布包 README 对 immutable `0.10.1` 的历史说明。因为 README 属于 package 内容，发布后不能原地修改 `0.10.2`；Campfire 已验证的 exact `0.10.2` 依赖保持不变。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 

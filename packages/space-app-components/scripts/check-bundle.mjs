@@ -31,6 +31,7 @@ const publishedPackageJson = JSON.parse(
 const requiredSemanticExports = [
   "./foundation",
   "./user",
+  "./user/inline",
   "./agent",
   "./chat",
   "./chat/inline",
@@ -101,6 +102,20 @@ for (const requiredExport of [
     throw new Error(`Published component /agent entry is missing ${requiredExport}`);
   }
 }
+const userModule = await import(
+  pathToFileURL(join(publishedPackageRoot, "user", "index.js"))
+);
+for (const requiredExport of [
+  "createSpaceUserDirectoryController",
+  "defineSpaceUserElements",
+  "spaceMemberListElementName",
+  "spaceMentionTargetItemElementName",
+  "spaceUserEventNames",
+]) {
+  if (!(requiredExport in userModule)) {
+    throw new Error(`Published component /user entry is missing ${requiredExport}`);
+  }
+}
 const inlineModule = await import(
   pathToFileURL(join(publishedPackageRoot, "chat", "inline.js"))
 );
@@ -110,6 +125,28 @@ if (
   || inlineModule.spaceChatInlineModule?.source !== files["chat.js"]
 ) {
   throw new Error("Published component /chat/inline entry is not bound to the Chat bundle");
+}
+const userInlineModule = await import(
+  pathToFileURL(join(publishedPackageRoot, "user", "inline.js"))
+);
+if (
+  userInlineModule.spaceUserInlineModule?.packageVersion !== managedRelease.version
+  || userInlineModule.spaceUserInlineModule?.bundleHash !== manifest.artifactHash
+  || userInlineModule.spaceUserInlineModule?.source !== files["user-inline.js"]
+) {
+  throw new Error("Published component /user/inline entry is not bound to the User bundle");
+}
+for (const requiredElementName of [
+  "vc-space-user-presence",
+  "vc-space-member-list-item",
+  "vc-space-member-list",
+  "vc-space-mention-target-item",
+]) {
+  if (!userInlineModule.spaceUserInlineModule.source.includes(requiredElementName)) {
+    throw new Error(
+      `Published component /user/inline does not register ${requiredElementName}`,
+    );
+  }
 }
 const recipesModule = await import(
   pathToFileURL(join(publishedPackageRoot, "recipes", "index.js"))
@@ -168,6 +205,7 @@ const budgets = {
   "browser.js": 35 * 1024,
   "foundation.js": 20 * 1024,
   "user.js": 20 * 1024,
+  "user-inline.js": 20 * 1024,
   "agent.js": 20 * 1024,
   "chat.js": 35 * 1024,
   "recipes.js": 35 * 1024,

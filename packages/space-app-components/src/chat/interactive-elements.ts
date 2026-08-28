@@ -2,6 +2,11 @@ import type { SpaceMentionTarget } from "@vibechat/space-app-sdk";
 import { createSpaceComponentTranslator } from "../core/context.js";
 import { defineSpaceElement, type SpaceElementRegistry } from "../foundation/element.js";
 import {
+  defineSpaceMentionTargetItemElement,
+  spaceMentionTargetItemElementName,
+  type SpaceMentionTargetItemElement,
+} from "../user/mention-elements.js";
+import {
   escapeSpaceAttribute,
   sanitizeSpaceMediaUrl,
 } from "../foundation/safety.js";
@@ -436,13 +441,9 @@ export const spaceMentionMenuStyles = `
 :host { display:block; min-inline-size:0; color:var(--vc-space-color-text,#172026); font-family:var(--vc-space-font-body,sans-serif); }
 .menu { display:grid; max-block-size:13rem; overflow:auto; gap:.18rem; padding:.35rem; border:1px solid var(--vc-space-color-border,#8a929a); border-radius:var(--vc-space-radius-card,.9rem); background:var(--vc-space-color-surface-raised,#fff); box-shadow:0 .8rem 2.2rem color-mix(in srgb,var(--vc-space-color-text,#172026) 18%,transparent); }
 .menu[hidden] { display:none; }
-button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.75rem; align-items:center; min-block-size:2.75rem; padding:.55rem .7rem; border:1px solid transparent; border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:transparent; text-align:start; cursor:pointer; }
+button { display:block; inline-size:100%; min-inline-size:0; min-block-size:44px; padding:.55rem .7rem; border:1px solid transparent; border-radius:var(--vc-space-radius-control,.55rem); color:inherit; background:transparent; text-align:start; cursor:pointer; }
 button:hover,button:focus-visible { border-color:var(--vc-space-color-accent,#d95835); outline:2px solid transparent; background:var(--vc-space-color-surface,#f5f2eb); }
 button:disabled { cursor:not-allowed; opacity:.55; }
-.identity { display:grid; min-inline-size:0; }
-.name,.handle { min-inline-size:0; overflow-wrap:anywhere; }
-.handle,.kind { color:var(--vc-space-color-text-muted,#5d6670); font-size:var(--vc-space-text-caption-size,.75rem); }
-.kind { text-align:end; }
 @media (forced-colors:active),(prefers-contrast:more) { .menu,button:focus-visible { border:2px solid CanvasText; background:Canvas; color:CanvasText; } }
 `;
 
@@ -490,21 +491,12 @@ function createSpaceMentionMenuElementClass() {
         button.disabled = target.available === false;
         button.setAttribute("role", "option");
         button.setAttribute("part", "option");
-        const identity = this.ownerDocument.createElement("span");
-        identity.className = "identity";
-        const name = this.ownerDocument.createElement("strong");
-        name.className = "name";
-        name.textContent = target.name;
-        const handle = this.ownerDocument.createElement("span");
-        handle.className = "handle";
-        handle.textContent = `@${target.handle}`;
-        identity.append(name, handle);
-        const kind = this.ownerDocument.createElement("span");
-        kind.className = "kind";
-        kind.textContent = target.available === false
-          ? translate("space.components.chat.mention.unavailable")
-          : translate(`space.components.chat.mention.${target.type}`);
-        button.append(identity, kind);
+        const targetItem = this.ownerDocument.createElement(
+          spaceMentionTargetItemElementName,
+        ) as SpaceMentionTargetItemElement;
+        targetItem.target = target;
+        targetItem.setAttribute("part", "target");
+        button.append(targetItem);
         const select = () => emit(this, spaceChatEventNames.mentionSelect, { target });
         button.addEventListener("click", select);
         button.addEventListener("keydown", (event) => {
@@ -1521,6 +1513,7 @@ export function defineSpaceChatInteractiveElements(
   registry: SpaceElementRegistry | undefined = globalThis.customElements,
 ) {
   if (!registry || typeof globalThis.HTMLElement !== "function") return false;
+  defineSpaceMentionTargetItemElement(registry);
   defineSpaceElement(registry, spaceChatComposerElementName, createSpaceChatComposerElementClass);
   defineSpaceElement(registry, spaceMentionMenuElementName, createSpaceMentionMenuElementClass);
   defineSpaceElement(registry, spaceChatAttachmentElementName, createSpaceChatAttachmentElementClass);

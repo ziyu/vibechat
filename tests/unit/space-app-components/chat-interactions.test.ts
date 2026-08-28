@@ -589,6 +589,7 @@ describe("Space Chat migration-ready view contracts", () => {
       expect(styles).toContain("min-inline-size");
     }
     expect(spaceChatComposerStyles).toContain("min-block-size:2.75rem");
+    expect(spaceMentionMenuStyles).toContain("min-block-size:44px");
     expect(spaceChatTimelineStyles).toContain("overflow:auto");
     expect(spaceChatTimelineStyles).toContain("inline-size:fit-content");
     expect(spaceReactionBarStyles).toContain(":host([hidden])");
