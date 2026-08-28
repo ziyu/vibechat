@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：Agent 领域、Agent Adapter、Space Runtime 结构、AgentOS 执行边界、数据迁移、部署与验证顺序
 > 稳定来源：[Agent 架构与 AgentOS 部署设计](../../stable/designs/agent-architecture-and-agentos-deployment.md)
 > 总体实施入口：[VibeChat MVP 产品与技术设计 Active 实施跟踪](./product-and-technical-implementation.md)
@@ -559,6 +559,10 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 - [x] disposable Rivet Engine `2.3.7` 上实测三个独立 pool 各两个 Envoy 同时 active；停止一个 build worker 后 `agent/build/serving` active connection 为 `2/1/2`，没有复现多 Registry 同进程的互相挤出。相同检查已固化为 opt-in integration test。
 - [x] 最终复跑 opt-in 真实 Engine pool integration 1/1、双 Node replica failover integration 1/1。完整 Chromium E2E 已尝试，实际为 39 passed、8 failed、3 skipped、9 did not run；失败来自当前共享环境的 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 和 `SPACE_RUNTIME_UNAVAILABLE`，未作为 S5 通过证据。
 - [x] 已补齐[Space Runtime AgentOS 生产部署 Runbook](../../stable/runbooks/space-runtime-agentos-production.md)，覆盖环境/区域部署单位、secret/egress/quota、启动、metrics、灰度、升级、回滚、容量、备份恢复、fencing/session/artifact/Release/Outbox 故障处理；managed Engine 明确仅用于开发。
+- [x] 新增签名 internal `capture_recovery_manifest` 与 `vibechat.space-runtime-recovery-manifest/v1`：在不导出 App State、源码、消息/prompt、provider/summary ref 或 Outbox payload 的前提下，记录 instance snapshot hash、Project/Revision/Object Store pointer、lease、脱敏 session identity 和 Turn/Outbox 聚合。SQLite 定向测试验证敏感字段不会进入恢复清单。
+- [x] 新增 `pnpm test:a3-a4:target` 单一目标环境入口和 TEST-CATALOG 40.10：预检两个 Runtime、external Engine/pool metrics、Cloudflare D1、R2 S3/Backend 对象逐字节 hash、Synapse state/timeline、lease 接管/旧 owner 409、双副本固定 Dev/Live、专属 pool 0→2→0→2，以及恢复前后清单一致性。缺失凭据时在测试前失败，不把 integration skip 写成通过。
+- [x] AgentOS Apps immutable Release 的 RivetKit callback 根因已定位为 guest stdin 未以 streaming mode 保持：Core 公共 `SpawnOptions` 与 kernel 转发补齐 `streamStdin`，Apps Release guest 固定使用 `streamStdin: true`。安装产物回归 1/1、A3/A4 repository suite 7/7、真实 Synapse/external Engine 的 `chat-matrix-room.spec.ts` 4/4（含同一 Live Release 长生命周期复读）和产品状态 9/9 通过；日志未再出现 `guest JavaScript stdin is already closed` 或 callback 30 秒超时。
+- [x] 同一轮本地压力运行中，build worker 的共享 AgentOS `0.2.15` sidecar 在约 27 分钟、多批 Dev actor 后开始让全新 Candidate 返回 `internal_error`；保留 Engine/Actor/Release 并滚动替换 build worker 后，原始 120 秒产品状态场景从超时恢复为 8.5 秒通过，完整文件 9/9。该本地依赖限制已进入 Runtime README 与生产 Runbook，不把 worker 滚动恢复冒充生产跨宿主持久化证据。
 - [ ] 外部环境限制：尚未在真实 Cloudflare D1/R2 + Synapse + external Engine 的不同宿主上执行完整故障演练，也没有生产 Engine 持久存储/备份恢复证据。本地 filesystem Engine 与 mock Backend harness 不能替代该运行证据；S5 仓库实现已完成，但生产验收在获得目标环境后才可关闭。
 
 ### 9.6 S6：第二 Adapter 与治理
@@ -586,6 +590,7 @@ S1 已按冻结顺序完成全部行为保持型结构拆分；以下记录保�
 - [x] Node 24.19.0 下 S6 定向 11 个测试文件、73/73 通过；完整 Vitest 为 322 通过、3 个既有失败、4 个未配置/显式 integration skip。既有失败仍为 `validators/user` 1 个和缺少默认邮件 provider key 的 `email/cloudflare` 2 个；双 Runtime replica integration 在允许临时回环端口后另行 1/1 通过。
 - [x] 当前 worktree 的 SQLite 从空库应用到 `0016` 并 seed，确认 Pi/Claude Definition、execution pool 字段和单默认唯一索引；Wrangler 本地 D1 实际应用 `0015/0016`。Cloudflare Workers 本地预览 `/api/health` 200（D1 healthy），未登录 Agent 治理 API 为 401。
 - [x] 隔离 Web/Backend/Admin 实栈上的 Admin Chromium E2E 为 6/6，覆盖未登录 401、普通用户 fail-closed、治理页面、Definition 不可变冲突、freeze/unfreeze 恢复和既有运营域回归；Admin permission API 为 12/12。受影响的 21/22 workspace 递归 typecheck/build 全部通过，边界检查覆盖 428 个活动源码文件，`docs:check` 与 docs app production build 通过。根 `pnpm typecheck` 在 Turbo 启动任务前仍被本机 macOS Keychain/TLS 错误阻断，因此使用固定 pnpm 9.4.0/Node 24.19.0 逐 workspace 执行等价门禁；Wrangler 日志目录权限与 bundle warning 不影响构建退出码。
+- [x] 目标环境 suite 已实现真实 Claude 专属 worker 演练与双 Chromium 产品验收：真实 Anthropic credential 只进入独立 `agentExecution` worker；Conversation 后停止 worker 使专属 pool 收敛为 0，replacement worker 连接同一 external Engine/session 后生成 Revision；两个 Matrix 成员验证唯一回复、ready Revision 双端收敛、刷新恢复和 Published Release 不被隐式移动。该 suite 尚未因目标凭据缺失而执行，不能提前关闭下一条生产门槛。
 - [ ] 目标环境仍需使用真实 Anthropic credential、external Engine 和独立专属 `agentExecution` worker 完成 Claude Conversation/Revision、专属 pool 缺失/恢复、D1/R2/Synapse 跨宿主与备份恢复演练。本地运行证据不替代该生产验收；多 Agent 产品调用默认仍由 `SPACE_AGENT_MULTI_AGENT_ENABLED=0` 关闭。
 
 ## 10. 每阶段完成标准

@@ -165,9 +165,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       await firstChat.getByTestId('message-input').fill(messageText)
       await firstChat.getByTestId('send-message').click()
       await expect(firstChat.getByTestId('message-body').filter({ hasText: messageText }))
-        .toHaveCount(1)
+        .toHaveCount(1, { timeout: 30_000 })
       await expect((await openAppChat(secondPage, 90_000)).getByTestId('message-body')
-        .filter({ hasText: messageText })).toHaveCount(1)
+        .filter({ hasText: messageText })).toHaveCount(1, { timeout: 30_000 })
 
       const stateValue = { marker: `lifecycle-${suffix}` }
       const stateResponse = await page.request.post(`${runtimeUrl}/bridge`, {
@@ -262,6 +262,10 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       await expect.poll(() => mountedAppRevision(secondPage)).toBe(secondRevision)
       await expect((await openAppChat(page)).getByTestId('message-body')
         .filter({ hasText: messageText })).toHaveCount(1)
+
+      const longLivedLive = await page.request.get(`${runtimeUrl}/app?channel=live`)
+      expect(longLivedLive.ok(), await longLivedLive.text()).toBeTruthy()
+      expect(await longLivedLive.text()).toContain('<title>夜航电台</title>')
 
       await expect(page.getByTestId('space-kernel-bar')).toBeVisible()
       await expect(chatFrame(page).getByTestId('space-kernel-bar')).toHaveCount(0)
@@ -562,7 +566,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       blankChat.getByTestId('message-body')
         .filter({ hasText: messageText })
         .locator('xpath=ancestor::article'),
-    ).toContainText('已发送')
+    ).toContainText('已发送', { timeout: 30_000 })
 
     const stateValue = { marker: `preserved-${suffix}` }
     const appStateResponse = await page.request.post(`${runtimeUrl}/bridge`, {

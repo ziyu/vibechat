@@ -81,6 +81,44 @@ export const spaceRuntimeProjectRevisionSchema = z.object({
   createdAt: z.string().datetime(),
 })
 
+const recoveryStatusCountSchema = z.object({
+  status: z.string().min(1).max(64),
+  count: z.number().int().nonnegative(),
+  maximumAttempt: z.number().int().nonnegative(),
+})
+
+const recoveryAgentSessionSchema = z.object({
+  sessionId: agentSessionIdSchema,
+  agentId: spaceAgentIdSchema,
+  definitionId: z.string().min(1).max(255),
+  definitionVersion: z.string().min(1).max(64),
+  adapterKey: z.string().min(1).max(128),
+  adapterVersion: z.string().min(1).max(64),
+  generation: z.number().int().positive(),
+  summaryHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).nullable(),
+  restoreStatus: agentSessionRefV1Schema.shape.restoreStatus,
+  lastTurnId: agentTurnIdSchema.nullable(),
+  updatedAt: z.string().datetime(),
+})
+
+export const spaceRuntimeRecoveryManifestSchema = z.object({
+  schemaVersion: z.literal('vibechat.space-runtime-recovery-manifest/v1'),
+  capturedAt: z.string().datetime(),
+  spaceInstanceId: z.string().min(1).max(255),
+  instance: z.object({
+    sequence: z.number().int().nonnegative(),
+    snapshotHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+    fencingToken: z.number().int().nonnegative(),
+    updatedAt: z.string().datetime(),
+  }).nullable(),
+  project: spaceRuntimeProjectPointerSchema.nullable(),
+  revisions: z.array(spaceRuntimeProjectRevisionSchema).max(200),
+  lease: spaceRuntimeLeaseSchema.nullable(),
+  agentSessions: z.array(recoveryAgentSessionSchema).max(200),
+  turns: z.array(recoveryStatusCountSchema).max(16),
+  outbox: z.array(recoveryStatusCountSchema).max(16),
+}).strict()
+
 export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('claim_lease'),
@@ -105,6 +143,10 @@ export const spaceRuntimeControlRequestSchema = z.discriminatedUnion('action', [
     action: z.literal('load_project_revision'),
     spaceInstanceId: z.string().min(1).max(255),
     revisionId: z.string().regex(/^[a-f0-9]{16}$/),
+  }),
+  z.object({
+    action: z.literal('capture_recovery_manifest'),
+    spaceInstanceId: z.string().min(1).max(255),
   }),
   z.object({
     action: z.literal('save_project'),
@@ -378,6 +420,7 @@ export type SpaceRuntimeStateCallback = z.infer<typeof spaceRuntimeStateCallback
 export type SpaceRuntimeLease = z.infer<typeof spaceRuntimeLeaseSchema>
 export type SpaceRuntimeProjectPointer = z.infer<typeof spaceRuntimeProjectPointerSchema>
 export type SpaceRuntimeProjectRevision = z.infer<typeof spaceRuntimeProjectRevisionSchema>
+export type SpaceRuntimeRecoveryManifest = z.infer<typeof spaceRuntimeRecoveryManifestSchema>
 export type SpaceRuntimeControlRequest = z.infer<typeof spaceRuntimeControlRequestSchema>
 export type SpaceRuntimeSnapshot = z.infer<typeof spaceRuntimeSnapshotSchema>
 export type CreateSpaceAgentTurnRequest = z.infer<typeof createSpaceAgentTurnRequestSchema>

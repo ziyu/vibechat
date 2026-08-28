@@ -138,7 +138,9 @@ function agentOsVmIsolation(policy: SpaceRuntimeExecutionPoolPolicy) {
 
 function agentOsAppsIsolation(policy: SpaceRuntimeExecutionPoolPolicy) {
   return {
-    sidecar: { kind: "shared" as const, pool: policy.className },
+    ...(policy.metrics.workload === "releaseServing"
+      ? { sidecar: { kind: "shared" as const, pool: policy.className } }
+      : {}),
     network: networkPermissions(policy),
     limits: agentOsLimits(policy),
   };

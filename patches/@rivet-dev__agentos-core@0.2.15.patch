@@ -26,6 +26,27 @@ index ae407d9aad02adb843276deec23e810324e2aebd..89660f2b9d64fc2f0d80ce1814bc1a85
                      loopbackExemptPorts: options?.loopbackExemptPorts ?? [],
                      bootstrapCommands,
                      ...(options?.rootFilesystem?.type === "native"
+@@ -2792,7 +2793,8 @@ export class AgentOs {
+         const proc = this.#kernel.spawn(command, args, {
+             cwd: options.cwd,
+             env: options.env,
+             stdin: options.stdin,
++            streamStdin: options.streamStdin,
+             timeout: options.timeoutMs,
+             onStdout: (data) => {
+                 recordOutput("stdout", data);
+diff --git a/dist/language-execution.d.ts b/dist/language-execution.d.ts
+index 3ed94092a71513db9a004c340661946fd4a65c12..d04758714155119f6ea9a3ed6bf4a67d3811e047 100644
+--- a/dist/language-execution.d.ts
++++ b/dist/language-execution.d.ts
+@@ -89,6 +89,7 @@ export interface SpawnOptions {
+     cwd?: string;
+     env?: Record<string, string>;
+     args?: string[];
+     stdin?: string | Uint8Array;
++    streamStdin?: boolean;
+     timeoutMs?: number;
+     pty?: {
 diff --git a/dist/options-schema.d.ts b/dist/options-schema.d.ts
 index 476e4a4b6dee675413607cc9c915f4e4cd84c694..0ef6e6f4ed373e1697043749acdbcd5fbda3afa0 100644
 --- a/dist/options-schema.d.ts

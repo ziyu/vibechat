@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 维护范围：Space Runtime control replica、区域级 Rivet Engine、Agent/App build/Release serving worker pool
 
 ## 用途与部署边界
@@ -153,6 +153,43 @@ pnpm vitest run tests/integration/space-runtime-agentos-pools.integration.test.t
 
 该测试为每类 pool 启动两个独立 worker，并停止一个 build worker，验证 Agent/serving active connection 不受影响。它证明真实 Engine 的进程/pool 注册行为，不代替 D1/R2、Synapse 或跨宿主生产演练。
 
+## A3/A4 目标环境验收
+
+仓库提供一个显式目标环境 runner，不进入默认 `pnpm test`。只在隔离的非生产或生产等价 namespace 中使用；预先建立一个专用 Space、两名 Matrix 成员、两个不同宿主的 Runtime origin、一个已批准专属 Agent pool，以及 Cloudflare D1/R2 和 Anthropic 的受限验收 credential。将 `env.example` 的 `A34_*` 样例复制到不提交的 `.env.a3-a4`，再执行：
+
+```bash
+pnpm test:a3-a4:target
+```
+
+runner 在启动测试前检查所有变量、两个不同 Runtime origin、Anthropic credential 和受限 `SPACE_AGENT_EGRESS_ALLOWLIST`；缺失时退出 2，不能以 skip 作为通过。它依次验证：
+
+1. 两个 Runtime replica 的 external Engine identity、region 和三类隔离 pool；Engine metrics 中区域 pool 与专属 Agent pool 均 active。
+2. Cloudflare D1 的 Project pointer 与签名 internal recovery manifest 一致；R2 S3 API 与 Backend Object Store 对每个 Project/Revision source 和 Release artifact 对象返回相同字节和 SHA-256。
+3. 短 lease 的 A/B 竞争、过期接管、更高 fencing token、旧 owner Project 写入 409，以及两个 Runtime 对固定 Dev Revision/Live Release 的恢复。
+4. Synapse v2 state/timeline 与 Product DB 指针一致；两个既有 Matrix 成员通过真实 Claude 完成唯一 Conversation 回复和 ready Revision 双端切换，刷新后 Chat/Revision 保留，Published Release 不移动。
+5. 独立专属 Agent pool 从缺失到两个 worker、全停、再恢复；真实 Claude worker 全停后 replacement worker 连接同一 external Engine/session 并完成 Revision。
+
+本 runner 会向专用 Space 写入 Matrix 消息和一个 Claude Revision，并会在隔离 Engine namespace 留下唯一测试 actor/session；不要指向普通用户 Space。Cloudflare API、R2 和 Matrix credential 只做读操作；Backend internal token 会执行短 lease/fencing 演练并在结束时释放新 owner lease。
+
+## 备份恢复 checkpoint
+
+在停止新 Turn、等待当前 Space 的 active Turn 和 processing Outbox 都归零后，先捕获基线：
+
+```bash
+pnpm a3-a4:recovery:capture -- ./recovery-before.json
+```
+
+命令使用签名 internal API 生成 `vibechat.space-runtime-recovery-manifest/v1`，并逐个读取、校验全部内容寻址 Project/Revision source 与 Release artifact 对象。清单仅保存 instance snapshot hash、Project/Revision/Release pointer、lease、脱敏 session identity 及 Turn/Outbox 聚合；不包含 App State、源码、消息/prompt、provider session ref、summary ref 或 Outbox payload。输出文件使用 create-only 写入，存在时拒绝覆盖。
+
+随后按基础设施提供方的正式流程备份并恢复同一时间点的 D1、R2 和 Engine 持久存储，部署 Backend、三类 worker、专属 Agent worker和至少两个 control replica。恢复完成且再次 quiesce 后执行：
+
+```bash
+pnpm a3-a4:recovery:verify -- ./recovery-before.json
+pnpm test:a3-a4:target
+```
+
+`verify` 会重新校验对象 SHA-256，并严格比较 App State hash、Project/Revision/Object Store pointer、Release、session generation/summary/restore 状态和 Turn/Outbox 聚合；captured time、lease owner、fencing token 和数据库更新时间不作为业务恢复恒等项。两条命令与基础设施提供方的 backup/restore job ID、恢复点、RPO/RTO 和 Engine 版本一起保存为演练记录。checkpoint 证明产品权威恢复一致性，但不创建 D1/R2/Engine 备份，底层备份仍由部署平台负责。
+
 ## 升级与灰度
 
 1. 先确认目标 Engine 与仓库锁定的 RivetKit/AgentOS client 版本兼容；Engine 升级与应用镜像升级分开执行。
@@ -200,6 +237,8 @@ restore 失败时只允许 active Turn owner 通过 Backend internal API 创建�
 ### Candidate、artifact 或 Release 故障
 
 Candidate/build 失败保持最后 ready Revision 和 Published Release。Object Store artifact 必须通过 source/content hash 校验；缺失时重新构建 Candidate。Release serving worker 恢复后从不可变 Release 启动新 replica，不删除 Release/App actor 数据来绕过恢复。
+
+仓库锁定的 AgentOS Apps/Core `0.2.15` 补丁要求 Release guest 通过公共 `streamStdin` spawn option 保持 RivetKit callback 通道；升级依赖时必须先运行 `agentos-patch-regression.test.ts` 和一次长生命周期 Live Release 复读。若 worker metrics 仍 active、Engine healthy，但全新 Dev actor 连续返回 `internal_error`，先保留 actor/sidecar/Engine 日志与资源指标，再按 build pool 最低容量滚动替换 build worker；替换后复核 Candidate 和现有 fixed Release。不得删除 Engine、App actor、artifact 或 Product DB pointer 作为恢复手段。停止旧 worker 时的 exit `143` 或 `transaction_closed` 日志只有在新 worker、Candidate、Release 和 Engine metrics 全部健康后才可按 teardown 噪声归类。
 
 ### Outbox 或账务积压
 

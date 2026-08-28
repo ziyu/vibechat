@@ -145,7 +145,7 @@ describe("Space Runtime multi-process failover harness", () => {
       spaceInstanceId,
       turnId,
       status: "completed",
-    })).resolves.toBe(false);
+    })).rejects.toThrow(/fenced|lease|another replica/i);
     await expect(replicaA.command({
       action: "save-instance",
       spaceInstanceId,

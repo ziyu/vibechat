@@ -6,6 +6,7 @@ import {
 } from '@libs/space-agents'
 import { DatabaseSpaceAgentRepository } from '@libs/space-agents/database-repository'
 import {
+  captureSpaceRuntimeRecoveryManifest,
   DatabaseSpaceRuntimeControlPlane,
   RuntimeFencingError,
   type RuntimeLease,
@@ -84,6 +85,14 @@ export const Route = createFileRoute('/v1/internal/space-runtime-control')({
                 ? { ...revision, createdAt: revision.createdAt.toISOString() }
                 : null,
             })
+          }
+          if (parsed.data.action === 'capture_recovery_manifest') {
+            const instance = await runtimeInstance(parsed.data.spaceInstanceId)
+            if (!instance) return notAllowed()
+            const manifest = await captureSpaceRuntimeRecoveryManifest(
+              instance.spaceInstanceId,
+            )
+            return Response.json({ manifest })
           }
           if (parsed.data.action === 'save_project') {
             const instance = await runtimeInstance(parsed.data.project.spaceInstanceId)

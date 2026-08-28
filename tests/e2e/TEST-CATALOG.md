@@ -1619,6 +1619,31 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 - 最终门禁中 Space Runtime unit 25 files/107 tests、真实 Engine pool integration 1/1、双 Node replica failover integration 1/1 通过。完整 Chromium E2E 已尝试，结果为 39 passed、8 failed、3 skipped、9 did not run；失败来自共享服务/数据环境的 429、seed foreign key、commission 数据漂移、Matrix timeout 和 `SPACE_RUNTIME_UNAVAILABLE`，未冒充 S5 通过证据。
 - 生产部署、secret/egress/quota、metrics、灰度、升级、回滚、容量、备份恢复和 fencing/session/artifact/Release/Outbox 故障步骤已进入稳定 Runbook。本地 filesystem Engine 和 mock Backend harness 不代表生产持久化：真实 Cloudflare D1/R2 + Synapse + external Engine 跨宿主演练仍未执行，场景 #14 的目标环境验收保持未完成。
 
+### 40.10 A3/A4 目标环境恢复验收（P0，Executable；Target run Pending）
+
+**文件：** `specs/a3-a4-target-acceptance.spec.ts`、`../integration/a3-a4-target-environment.integration.test.ts`、`../integration/space-runtime-dedicated-agent-pool.integration.test.ts`、`../integration/space-runtime-claude-code-target.integration.test.ts`
+
+本组只通过显式 `pnpm test:a3-a4:target` 运行。命令要求一个隔离的目标 namespace、两个不同的 Runtime origin、一个专用验收 Space 和两名既有 Matrix 成员；不会在默认 E2E 中使用生产凭据或修改共享 Space。验收必须覆盖：
+
+| # | 场景 | 完成证据 |
+|---|---|---|
+| 1 | 区域拓扑 | 两个 Runtime health 返回不同 replica ID、相同 region、相同 external Engine identity；Agent/build/serving 三类 pool 不折叠，已批准专属 Agent pool 在 Engine metrics 中 active |
+| 2 | D1/R2 权威 | Backend health 为 production/healthy；Cloudflare D1 read-only query 与内部 recovery manifest 的 Project/Revision/Release 指针一致；Backend Object Store 与 R2 S3 API 读取的每个内容寻址对象逐字节、SHA-256 一致 |
+| 3 | lease/fencing | replica A 持有短 lease 时 replica B 不能获取；过期后 B 使用更高 fencing token 接管；A 的 Project 写入返回 409；释放后两个 Runtime 都能读取相同固定 Dev Revision 和 Live Release |
+| 4 | 恢复清单 | v1 manifest 只包含 instance snapshot hash、Project/Revision pointer、lease、脱敏 session identity、Turn/Outbox 聚合；不含 App State、prompt、消息、源码、provider ref、summary ref 或 Outbox payload |
+| 5 | Synapse 恢复 | Matrix `io.vibechat.space.instance.v2` 与恢复后的 Product DB ready/published/Release 指针一致，受控 timeline 仍包含真实消息 |
+| 6 | 专属 pool 缺失/恢复 | 独立专属 `agentExecution` pool 从 0 个连接恢复到两个、全部停止后回到 0、再恢复到两个；区域 Agent pool 连接不受影响 |
+| 7 | 真实 Claude worker 恢复 | 真实 Anthropic credential 只进入专属 Agent worker；Claude 完成 Conversation；worker 全停后 metrics 为 0；replacement worker 连接同一 external Engine 并以同一 Space × Agent actor/session 完成 Revision |
+| 8 | 双浏览器产品链 | 两个既有 Matrix 成员在同一 Space 中看到唯一 Claude 回复和同一 ready Revision；刷新后 Chat、Agent 回复和 Revision 保留，Published Release 不被隐式移动 |
+
+目标环境执行前把 `env.example` 中的 `A34_*` 样例复制到未提交的 `.env.a3-a4`，并使用受限 Agent egress allowlist；runner 明确拒绝全开放 `SPACE_AGENT_EGRESS_ALLOWLIST=allow`。缺少 Cloudflare/R2/Matrix/Anthropic credential 时命令在任何测试开始前列出缺失变量并退出，不会将 skip 记为通过。当前仓库已实现可执行入口，目标环境尚未注入，因此本节状态保持 Target run Pending。
+
+2026-08-28 本地 AgentOS 兼容与回归证据（不改变 Target run Pending）：
+
+- Release guest 的 RivetKit callback 失败已定位为 AgentOS Core 公共 spawn 未透传 streaming stdin；仓库补丁新增 `SpawnOptions.streamStdin`、kernel 转发并让 Apps guest 固定 `streamStdin: true`。安装产物回归 1/1 与补丁 dry-run 均通过。
+- Node `24.19.0`、pnpm `9.4.0`、真实 Synapse、SQLite、独立 external Engine 和三类 pool 下，`chat-matrix-room.spec.ts` 4/4（6.0 分钟）通过；发布场景包含同一不可变 Live Release 在 Candidate 切换、双页刷新后的再次读取，未再出现 stdin closed 或 30 秒 callback timeout。`chat-real-product-state.spec.ts` 滚动替换退化的本地 build worker 后 9/9（16.0 秒）通过，A3/A4 repository suite 7/7 通过。
+- 连续多轮本地 E2E 后，AgentOS `0.2.15` build sidecar 曾让全新 Dev actor 持续返回 `internal_error`；不删除 Engine、Actor、artifact、Release 或 Product DB pointer，滚动替换 build worker 后原始 120 秒场景在 8.5 秒完成。该依赖限制与 teardown 的 exit `143`/`transaction_closed` 噪声已进入 Runtime README/Runbook，不能作为生产 D1/R2/跨宿主恢复通过证据。
+
 ---
 
 ### Backlog 优先级汇总
