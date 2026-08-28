@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 const password = 'VibeChat-e2e-password-2026!'
 
@@ -180,6 +181,7 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       await expect(queuedMessage).toContainText('已发送', { timeout: 20_000 })
 
       await first.page.goto('/spaces')
+      await first.page.locator('.vc-rail-search').click()
       await first.page.getByTestId('space-search').fill(attachmentName)
       await expect(first.page.getByTestId('space-row')).toHaveCount(1)
       await expect(first.page.getByTestId('space-row')).toContainText('Matrix Operations E2E')
@@ -197,8 +199,7 @@ test.describe('Vibe Chat complete Matrix message operations', () => {
       expect(localStorageDump).not.toContain(attachmentContent)
       expect(localStorageDump).not.toContain(first.bootstrap.matrix.accessToken)
     } finally {
-      await firstContext.close()
-      await secondContext.close()
+      await closeBrowserContexts([firstContext, secondContext])
     }
   })
 })

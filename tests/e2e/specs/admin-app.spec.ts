@@ -15,9 +15,7 @@ test.describe('Independent Admin App', () => {
     const signedOutPage = await signedOutContext.newPage()
     await signedOutPage.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
     await expect(signedOutPage).toHaveURL(/\/signin$/)
-    await expect(signedOutPage.getByRole('heading', {
-      name: 'Administrator sign-in required',
-    })).toBeVisible()
+    await expect(signedOutPage.getByTestId('signin-card')).toBeVisible()
     expect((await signedOutPage.request.get(`${ADMIN_ORIGIN}/api/admin/stats`)).status()).toBe(401)
     await signedOutContext.close()
 
@@ -52,7 +50,6 @@ test.describe('Independent Admin App', () => {
     await page.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
     await expect(page.getByTestId('admin-shell')).toBeVisible()
     await expect(page.getByTestId('admin-dashboard')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
 
     const endpoints = [
       '/api/admin/stats',

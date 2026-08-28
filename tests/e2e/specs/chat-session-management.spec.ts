@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 test.describe('Vibe Chat browser session management', () => {
   test.setTimeout(90_000)
@@ -80,8 +81,7 @@ test.describe('Vibe Chat browser session management', () => {
         window.localStorage.getItem('vibechat-chat-ui-v1')
       ))).resolves.toBeNull()
     } finally {
-      await firstContext.close()
-      await secondContext.close()
+      await closeBrowserContexts([firstContext, secondContext])
     }
   })
 })

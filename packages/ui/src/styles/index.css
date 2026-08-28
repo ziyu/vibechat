@@ -1,7 +1,9 @@
 /* Vibe Chat UI Styles */
 @import './themes/default.css';
+@import './semantic-tokens.css';
 @import './themes/claude.css';
 @import './themes/cosmic-night.css';
+@import './themes/lamplit.css';
 @import './themes/modern-minimal.css';
 @import './themes/ocean-breeze.css';
 @import './themes/perplexity.css';
@@ -80,4 +82,4 @@
 
 .animation-delay-4000 {
   animation-delay: 4s;
-} 
+}

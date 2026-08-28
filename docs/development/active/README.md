@@ -4,6 +4,8 @@
 
 - [VibeChat MVP 产品与技术设计实施跟踪](./product-and-technical-implementation.md)
 - [Space App 设计演进与实施记录](./space-app-design-transition.md)
+- [VibeChat 宿主设计系统与主题工作流实施方案](./host-design-system-and-theme-workflow.md)
+- [Space Kernel Lamplit 视觉刷新实施记录](./space-kernel-lamplit-visual-refresh.md)
 - [CircleCI CI/CD 迁移实施记录](./circleci-ci-cd-migration.md)
 
 Active 文档必须链接对应的稳定设计，记录当前状态、差距、工作流、完成证据和下一步；稳定设计也必须反向链接 Active 文档。

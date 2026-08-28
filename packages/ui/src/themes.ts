@@ -1,7 +1,7 @@
 // Theme management module for consistent theme handling across the application
-// Built on shadcn/ui theme system with 5 color schemes, light/dark modes, and tweakcn.com integration
+// Built on the shadcn/ui theme system with 7 color schemes and light/dark modes
 export type Theme = 'light' | 'dark'
-export type ColorScheme = 'default' | 'claude' | 'cosmic-night' | 'modern-minimal' | 'ocean-breeze' | 'perplexity'
+export type ColorScheme = 'default' | 'claude' | 'cosmic-night' | 'lamplit' | 'modern-minimal' | 'ocean-breeze' | 'perplexity'
 
 export interface ThemeState {
   theme: Theme
@@ -15,6 +15,7 @@ export const COLOR_SCHEMES: readonly ColorScheme[] = [
   'default',
   'claude',
   'cosmic-night',
+  'lamplit',
   'modern-minimal',
   'ocean-breeze',
   'perplexity'
@@ -30,6 +31,7 @@ export const COLOR_SCHEME_CLASSES = {
   default: '',  // default doesn't need a class
   claude: 'theme-claude',
   'cosmic-night': 'theme-cosmic-night',
+  lamplit: 'theme-lamplit',
   'modern-minimal': 'theme-modern-minimal',
   'ocean-breeze': 'theme-ocean-breeze',
   perplexity: 'theme-perplexity',
@@ -42,6 +44,7 @@ export const ALL_THEME_CLASSES = [
   'theme-default',
   'theme-claude',
   'theme-cosmic-night',
+  'theme-lamplit',
   'theme-modern-minimal',
   'theme-ocean-breeze',
   'theme-perplexity'
@@ -65,6 +68,10 @@ export const THEME_CONFIG = {
   'cosmic-night': {
     name: 'Cosmic Night',
     color: '#7c3aed' // oklch(0.5417 0.1790 288.0332) - Deep purple
+  },
+  lamplit: {
+    name: 'Lamplit',
+    color: '#a95436'
   },
   'modern-minimal': {
     name: 'Modern Minimal',
