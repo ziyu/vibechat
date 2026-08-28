@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { auth } from "@libs/auth";
+import { grantNewUserCredits } from "@libs/credits";
 import { db } from "./client";
 import {
   user,
@@ -119,13 +120,13 @@ async function seedDatabase() {
     try {
       // 检查普通用户是否已存在
       const existingUser = await db.select().from(user).where(eq(user.email, "user@example.com")).limit(1);
+      const normalUserId = existingUser[0]?.id || generateUserId();
       
       if (existingUser.length > 0) {
         console.log("✓ 普通用户已存在: user@example.com");
       } else {
         // 生成密码哈希
         const userPasswordHash = await ctx.password.hash("user123456");
-        const normalUserId = generateUserId();
         
         // 插入普通用户
         await db.insert(user).values({
@@ -151,6 +152,8 @@ async function seedDatabase() {
         
         console.log("✓ 已创建普通用户: user@example.com");
       }
+      await grantNewUserCredits(normalUserId);
+      console.log("✓ 普通用户欢迎积分已核验: user@example.com");
     } catch (error: any) {
       if (error.message?.includes("UNIQUE constraint") || error.code === "23505") {
         console.log("✓ 普通用户已存在: user@example.com");
@@ -282,6 +285,7 @@ async function seedDatabase() {
             .where(eq(userProfile.userId, userId));
         }
 
+        await grantNewUserCredits(userId);
         console.log(`✓ 聊天测试用户可用: ${testUser.email} (@${testUser.username})`);
       } catch (error: any) {
         console.error(

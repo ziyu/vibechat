@@ -170,6 +170,7 @@ export const spaceAgentActivityStyles = `
   color: var(--vc-space-color-text, #172026);
   font-family: var(--vc-space-font-body, sans-serif);
 }
+:host([hidden]) { display: none; }
 .panel {
   position: relative;
   display: grid;

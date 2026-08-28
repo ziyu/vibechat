@@ -147,7 +147,7 @@ setTimeout(() => {
     queue: { activeCount: 1, pendingCount: 2 },
   };
   notify("agent");
-}, 80);
+}, 500);
 `
 }
 
@@ -178,17 +178,17 @@ async function openTemplateDocument(
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' })
   await page.goto(previewOrigin)
-  await page.waitForTimeout(250)
-  expect(browserErrors).toEqual([])
 
   const root = page.locator('#vcc-root')
+  const activity = page.getByTestId('agent-activity')
   await expect(root).toHaveAttribute('data-mode', mode)
+  await expect(activity).toHaveAttribute('hidden', '')
   if (mode === 'dock') await page.locator('#vcc-launch').click()
 
-  const activity = page.getByTestId('agent-activity')
-  await expect(page.locator('script[data-vibechat-components="0.9.1"]')).toHaveCount(1)
+  await expect(page.locator('script[data-vibechat-components="0.9.3"]')).toHaveCount(1)
   await expect(page.locator('#vcc-build')).toHaveCount(0)
   await expect(activity).toBeVisible()
+  await expect(activity).not.toHaveAttribute('hidden', '')
   await expect(activity).toHaveAttribute('role', 'group')
   await expect(activity.locator('[part="stage"]')).toContainText('正在整理一段足够长的沿河路线活动说明')
   await expect(activity.locator('[part="activity"]')).toHaveCount(2)

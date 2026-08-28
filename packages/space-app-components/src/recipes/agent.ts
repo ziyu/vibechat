@@ -13,6 +13,8 @@ export interface SpaceAgentActivityPanelRecipeOptions
   extends CreateSpaceAgentActivityViewOptions {
   readonly context: SpaceComponentContext;
   readonly element: SpaceAgentActivityElement;
+  /** Keeps the panel mounted while idle. Defaults to activity-only visibility. */
+  readonly showWhenIdle?: boolean;
 }
 
 export interface SpaceAgentActivityPanelRecipeHandle {
@@ -54,11 +56,23 @@ export function mountAgentActivityPanelRecipe(
 
   const render = () => {
     if (disposed) return;
+    const activity = controller.getSnapshot();
+    const visible = options.showWhenIdle === true
+      || activity.active
+      || activity.queue.activeCount > 0
+      || activity.queue.pendingCount > 0;
     element.setAttribute(
       "locale",
       context.sdk.locale || context.sdk.snapshot.locale || context.locale,
     );
-    element.activity = controller.getSnapshot();
+    element.hidden = !visible;
+    element.style.display = visible ? "" : "none";
+    if (visible) {
+      element.removeAttribute("aria-hidden");
+    } else {
+      element.setAttribute("aria-hidden", "true");
+    }
+    element.activity = activity;
   };
   const unsubscribe = controller.subscribe(render);
 

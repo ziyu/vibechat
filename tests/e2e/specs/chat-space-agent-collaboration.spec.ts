@@ -226,7 +226,10 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
       const before = await beforeResponse.json()
       const replyToken = `AGENT_MATRIX_${suffix.replaceAll('-', '_')}`
       const agentPrompt = `@pi 请只回复 ${replyToken}，不要修改任何 App 代码。`
-      await firstChat.getByTestId('message-input').fill(agentPrompt)
+      const firstInput = firstChat.getByTestId('message-input')
+      await firstInput.fill('@')
+      await firstChat.locator('#vcc-mentions').getByRole('option', { name: /@pi/ }).click()
+      await firstInput.fill(agentPrompt)
       await firstChat.getByTestId('send-message').click()
 
       const firstAgentMessage = firstChat.locator('[data-testid="chat-message"][data-agent="true"]')
@@ -285,8 +288,10 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
         reloadedSecond.locator('[data-testid="chat-message"][data-agent="true"]').filter({ hasText: replyToken }),
       ).toHaveCount(1)
       await reloadedFirst.getByTestId('message-input').fill('@')
-      await expect(reloadedFirst.locator('#vcc-mentions [data-handle="pi"]')).toHaveCount(1)
-      await expect(reloadedFirst.locator('#vcc-mentions [data-handle*="vibe_agent_"]')).toHaveCount(0)
+      await expect(
+        reloadedFirst.locator('#vcc-mentions').getByRole('option', { name: /@pi/ }),
+      ).toHaveCount(1)
+      await expect(reloadedFirst.locator('#vcc-mentions').getByText(/@vibe_agent_/)).toHaveCount(0)
 
       const afterResponse = await first.page.request.get(
         `/v1/spaces/instances/${encodeURIComponent(room.matrixRoomId)}`,
@@ -317,8 +322,39 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
         '保持现有 Chat Core 和其他文件能力不变，不要发布；完成后直接保存代码。',
       ].join('\n')
 
-      await fixture.firstChat.getByTestId('message-input').fill(agentPrompt)
-      await fixture.firstChat.getByTestId('send-message').click()
+      const firstInput = fixture.firstChat.getByTestId('message-input')
+      await firstInput.fill('@')
+      await fixture.firstChat.locator('#vcc-mentions').getByRole('option', { name: /@pi/ }).click()
+      await firstInput.fill(agentPrompt)
+      const [turnResponse] = await Promise.all([
+        fixture.first.page.waitForResponse((response) =>
+          response.request().method() === 'POST'
+          && new URL(response.url()).pathname.endsWith('/turns'),
+        ),
+        fixture.firstChat.getByTestId('send-message').click(),
+      ])
+      expect(turnResponse.status(), await turnResponse.text()).toBe(202)
+
+      const firstActivity = fixture.firstChat.getByTestId('agent-activity')
+      const secondActivity = fixture.secondChat.getByTestId('agent-activity')
+      await expect(firstActivity).toHaveAttribute('data-active', 'true', { timeout: 30_000 })
+      await expect(secondActivity).toHaveAttribute('data-active', 'true', { timeout: 30_000 })
+      await expect(firstActivity).toHaveAttribute('aria-label', /Pi/)
+      await expect(secondActivity).toHaveAttribute('aria-label', /Pi/)
+      await expect(firstActivity.locator('[part="stage"]')).not.toHaveText(/空闲|idle/i)
+      await expect(secondActivity.locator('[part="stage"]')).not.toHaveText(/空闲|idle/i)
+      await expect(
+        firstActivity.locator('vc-space-agent-queue-status').locator('[part="label"]'),
+      ).toContainText('1 个进行中')
+      await expect(
+        secondActivity.locator('vc-space-agent-queue-status').locator('[part="label"]'),
+      ).toContainText('1 个进行中')
+      await expect(firstActivity.locator('[part="activity"]').first()).toBeVisible({
+        timeout: 120_000,
+      })
+      await expect(secondActivity.locator('[part="activity"]').first()).toBeVisible({
+        timeout: 120_000,
+      })
 
       await expect.poll(async () => {
         const snapshot = await readSpaceRuntime(fixture.first.page, fixture.room.matrixRoomId)
@@ -338,6 +374,8 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
       const secondMarker = chatFrame(fixture.second.page).getByTestId('agent-revision-marker')
       await expect(firstMarker).toHaveText(marker, { timeout: 30_000 })
       await expect(secondMarker).toHaveText(marker, { timeout: 30_000 })
+      await expect(firstActivity).toHaveAttribute('data-active', 'false', { timeout: 30_000 })
+      await expect(secondActivity).toHaveAttribute('data-active', 'false', { timeout: 30_000 })
 
       const chatAfterRevision = `Chat after Agent revision ${fixture.suffix}`
       await fixture.secondChat.getByTestId('message-input').fill(chatAfterRevision)
@@ -384,7 +422,11 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
       await expect(chatFrame(fixture.first.page).locator('#vcc-root')).toBeAttached()
       await expect(chatFrame(fixture.second.page).locator('#vcc-root')).toBeAttached()
       await fixture.firstChat.getByTestId('message-input').fill('@')
-      await expect(fixture.firstChat.locator('#vcc-mentions [data-handle="fake"]')).toHaveCount(1)
+      const fakeOption = fixture.firstChat
+        .locator('#vcc-mentions')
+        .getByRole('option', { name: /@fake/ })
+      await expect(fakeOption).toHaveCount(1)
+      await fakeOption.click()
 
       const failurePrompt = '@fake [fake:failure] verify deterministic Candidate isolation'
       await fixture.firstChat.getByTestId('message-input').fill(failurePrompt)

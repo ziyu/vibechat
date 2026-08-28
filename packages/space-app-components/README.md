@@ -56,7 +56,7 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
-pnpm --filter @vibechat/space-app-components registry:publish -- 0.9.1
+pnpm --filter @vibechat/space-app-components registry:publish 0.9.3
 # Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
@@ -236,6 +236,8 @@ const activity = mountAgentActivityPanelRecipe({
 await activity.ready
 window.addEventListener("pagehide", () => activity.dispose(), { once: true })
 ```
+
+Panel Recipe 默认只在 Agent 正在执行或队列中存在请求时显示，idle 时会给标准 element 设置 `hidden` 并退出辅助技术树；真实 activity 到达后自动恢复。需要常驻身份/状态面板的 Space 可以显式传入 `showWhenIdle: true`，无需在 Template 里复制可见性状态机。
 
 对应 declarative markup 只需要标准元素；完整活动数组通过 typed `activity` property 注入，不序列化到 attribute：
 

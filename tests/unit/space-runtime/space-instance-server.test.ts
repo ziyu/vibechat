@@ -61,6 +61,41 @@ describe('SpaceInstanceServer', () => {
     expect(snapshot.app.presence).toHaveLength(1)
   })
 
+  it('keeps the latest four Agent activities in chronological order', async () => {
+    const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
+    const turn = await server.beginTurn('space-instance-activities', {
+      clientId: 'member-1',
+      authorName: 'Member One',
+      text: '@pi update the app',
+      externalRequestId: '$matrix-agent-activities',
+      agentId: 'pi',
+    })
+    await server.claimTurn('space-instance-activities')
+
+    for (const toolCallId of ['tool-1', 'tool-2', 'tool-3', 'tool-4', 'tool-5']) {
+      await server.progress('space-instance-activities', turn.turnId, {
+        type: 'activity',
+        toolCallId,
+        label: `Run ${toolCallId}`,
+        status: 'in_progress',
+      })
+    }
+    await server.progress('space-instance-activities', turn.turnId, {
+      type: 'activity',
+      toolCallId: 'tool-3',
+      label: 'Run tool-3',
+      status: 'completed',
+    })
+
+    const snapshot = await server.snapshot('space-instance-activities')
+    expect(snapshot.build?.activities).toEqual([
+      expect.objectContaining({ toolCallId: 'tool-2', status: 'in_progress' }),
+      expect.objectContaining({ toolCallId: 'tool-3', status: 'completed' }),
+      expect.objectContaining({ toolCallId: 'tool-4', status: 'in_progress' }),
+      expect.objectContaining({ toolCallId: 'tool-5', status: 'in_progress' }),
+    ])
+  })
+
   it('deduplicates Kernel recovery and claims it as an exclusive ordered turn', async () => {
     const server = new SpaceInstanceServer(createMemoryDurableSpaceControl())
     const recovery = await server.beginTurn('space-instance-recovery', {

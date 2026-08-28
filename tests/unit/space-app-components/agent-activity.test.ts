@@ -86,10 +86,16 @@ function agentSdk() {
 
 class AgentActivityTestElement extends EventTarget {
   activity = null as ReturnType<typeof createSpaceAgentActivityView> | null;
+  hidden = false;
+  readonly style = { display: "" };
   readonly attributes = new Map<string, string>();
 
   setAttribute(name: string, value: string) {
     this.attributes.set(name, String(value));
+  }
+
+  removeAttribute(name: string) {
+    this.attributes.delete(name);
   }
 }
 
@@ -156,6 +162,7 @@ describe("Space Agent activity view", () => {
     expect(spaceAgentActivityStyles).toContain("forced-colors");
     expect(spaceAgentActivityStyles).toContain("prefers-reduced-motion");
     expect(spaceAgentActivityStyles).toContain("overflow-wrap: anywhere");
+    expect(spaceAgentActivityStyles).toContain(":host([hidden])");
     expect(spaceAgentQueueStatusStyles).toContain("prefers-contrast");
   });
 });
@@ -201,6 +208,9 @@ describe("Space Agent controller and recipe", () => {
     await recipe.ready;
 
     expect(element.activity?.agent.name).toBe("Wayfinder");
+    expect(element.hidden).toBe(true);
+    expect(element.style.display).toBe("none");
+    expect(element.attributes.get("aria-hidden")).toBe("true");
     expect(element.attributes.get("locale")).toBe("en");
     sdk.update(agentSnapshot({
       build: { stage: "Reviewing", activities: [] },
@@ -210,11 +220,38 @@ describe("Space Agent controller and recipe", () => {
       stage: "Reviewing",
       queue: { activeCount: 1, pendingCount: 4 },
     });
+    expect(element.hidden).toBe(false);
+    expect(element.style.display).toBe("");
+    expect(element.attributes.has("aria-hidden")).toBe(false);
+
+    sdk.update(agentSnapshot().agent);
+    expect(element.hidden).toBe(true);
+    expect(element.style.display).toBe("none");
+    expect(element.attributes.get("aria-hidden")).toBe("true");
 
     recipe.dispose();
     recipe.dispose();
     expect(recipe.disposed).toBe(true);
     expect(recipe.controller.disposed).toBe(true);
+    context.dispose();
+  });
+
+  it("allows an explicit persistent idle panel without changing the default", async () => {
+    const sdk = agentSdk();
+    const context = createSpaceComponentContext({ sdk: sdk.client });
+    const element = new AgentActivityTestElement();
+    const recipe = mountAgentActivityPanelRecipe({
+      context,
+      element: element as unknown as SpaceAgentActivityElement,
+      showWhenIdle: true,
+    });
+    await recipe.ready;
+
+    expect(element.hidden).toBe(false);
+    expect(element.style.display).toBe("");
+    expect(element.attributes.has("aria-hidden")).toBe(false);
+
+    recipe.dispose();
     context.dispose();
   });
 });

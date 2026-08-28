@@ -806,14 +806,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-7b00be6a67984b0d4739bd406e6d0069daa3c69f851c115bd0898da42aa4b4ac",
+          "id": "tpla-b58d32037d74a0c548ce19a73fda90c5503bfd9184c934e40df85c079313da50",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:7b00be6a67984b0d4739bd406e6d0069daa3c69f851c115bd0898da42aa4b4ac"
+          "sourceHash": "sha256:b58d32037d74a0c548ce19a73fda90c5503bfd9184c934e40df85c079313da50"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:7b00be6a67984b0d4739bd406e6d0069daa3c69f851c115bd0898da42aa4b4ac",
-          "manifestHash": "sha256:ab9c3d034e1ebb609d9a776193c6c23435f91122469778b9c96e500926f8be81"
+          "sourceHash": "sha256:b58d32037d74a0c548ce19a73fda90c5503bfd9184c934e40df85c079313da50",
+          "manifestHash": "sha256:298878233ce79fcefbecc39aff272a41ea991d882b373e2c527edfd202318117"
         }
       }
     ]
@@ -1185,14 +1185,14 @@ export const officialTemplateDefinitions = [
         },
         "artifact": {
           "schemaVersion": "vibechat.space-template-artifact/v1",
-          "id": "tpla-5324d1cc9b760286d4153903f47ef02ac30438a2ccd5d4382419e37ada1f1fda",
+          "id": "tpla-fadc4694a2a186a90a53116b199b39de9bde5200e47cf5deca4647a9cf3aba0d",
           "format": "agentos-app-v1",
-          "sourceHash": "sha256:5324d1cc9b760286d4153903f47ef02ac30438a2ccd5d4382419e37ada1f1fda"
+          "sourceHash": "sha256:fadc4694a2a186a90a53116b199b39de9bde5200e47cf5deca4647a9cf3aba0d"
         },
         "lock": {
           "schemaVersion": "vibechat.space-template-version-lock/v1",
-          "sourceHash": "sha256:5324d1cc9b760286d4153903f47ef02ac30438a2ccd5d4382419e37ada1f1fda",
-          "manifestHash": "sha256:ae9c065506f0b7b227cea3fa4a99424b470b6ec7c64c8c808f8925a02908c07c"
+          "sourceHash": "sha256:fadc4694a2a186a90a53116b199b39de9bde5200e47cf5deca4647a9cf3aba0d",
+          "manifestHash": "sha256:0e85b4d7d9a97228a64b4370f738603170003d1abd0d01f2141d9afa19081ea4"
         }
       }
     ]

@@ -9,7 +9,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@vibechat/space-app-components": "0.9.1",
+    "@vibechat/space-app-components": "0.9.3",
     "rivetkit": "2.3.9"
   },
   "devDependencies": {

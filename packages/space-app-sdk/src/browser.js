@@ -161,6 +161,50 @@ function acceptSnapshot(snapshot) {
   dispatch("agent", currentSnapshot.agent);
 }
 
+function activeAgentBuild() {
+  const build = currentSnapshot.agent.build;
+  return build && typeof build === "object" && !Array.isArray(build)
+    ? build
+    : null;
+}
+
+function syncActiveAgentIdentity(build) {
+  const agentId = typeof build?.agentId === "string" ? build.agentId.trim() : "";
+  if (!agentId) return;
+  const target = currentSnapshot.mentions.find(
+    (mention) => mention?.type === "agent" && mention.id === agentId,
+  );
+  currentSnapshot.agent.id = agentId;
+  currentSnapshot.agent.name = target?.name || agentId;
+}
+
+function acceptAgentProgress(event) {
+  const build = activeAgentBuild();
+  if (!build) return false;
+
+  if (event.type === "status") {
+    if (typeof event.message === "string" && event.message.trim()) {
+      build.stage = event.message;
+    }
+  } else if (event.type === "activity") {
+    const activities = Array.isArray(build.activities) ? build.activities : [];
+    const key = event.toolCallId || event.label;
+    const index = activities.findIndex(
+      (item) => item && typeof item === "object"
+        && (item.toolCallId || item.label) === key,
+    );
+    const activity = clone(event);
+    if (index >= 0) activities[index] = activity;
+    else activities.push(activity);
+    build.activities = activities.slice(-4);
+  } else {
+    return false;
+  }
+
+  dispatch("agent", currentSnapshot.agent);
+  return true;
+}
+
 function acceptEvent(event) {
   if (!event || typeof event.type !== "string") return;
   if (event.type === "presence") {
@@ -190,7 +234,10 @@ function acceptEvent(event) {
     dispatch("agent", currentSnapshot.agent);
   } else if (event.type === "turn_started") {
     currentSnapshot.agent.build = clone(event.turn || null);
+    syncActiveAgentIdentity(activeAgentBuild());
     dispatch("agent", currentSnapshot.agent);
+  } else if (acceptAgentProgress(event)) {
+    // Runtime progress is applied to the same Agent snapshot consumed by components.
   } else if (
     event.type === "draft_ready" ||
     event.type === "deployed" ||
