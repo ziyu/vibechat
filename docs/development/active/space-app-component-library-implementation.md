@@ -36,7 +36,7 @@
 
 组件库主线现已签锁兼容 minor `@vibechat/space-app-components@0.10.0`，建立 User/Member 公共层：只读 User Directory controller、带文字的 UserPresence、MemberListItem/MemberList、统一 MentionTargetItem 与 typed member-select event。内部按 identity/directory/mention/register 拆分，Chat MentionMenu 只复用 target identity，既有结构化 Mention event、键盘和 Agent 调度边界不变。离线 catalog Chromium 已覆盖 390px + 200% 字体下的 container-query 重排、forced colors、reduced motion、空状态、长文和完整 roving keyboard；本轮没有升级任何 Template、Project、Revision 或 Release。
 
-相邻 Template 消费已由不可变 patch `0.10.2` 完成：已发布的 `0.10.1` 因 `/user/inline` 仅注册 elements、未导出 controller/context 而保留为历史，`0.10.2` 用独立 inline browser entry 同时注册并导出正式 User API。Campfire development `0.1.6` 固定 exact `0.10.2`，通过同一个注入 SDK/context/User Directory controller 渲染真实 `vc-space-member-list`，删除手写成员 HTML，同时保持电台主题、presence 场景和共享 Chat 不变。受管 Registry 发布、重复幂等、90 文件 exact resolve、组件/Template unit、App typecheck、组件 catalog + Campfire Chromium 2/2 与 Impeccable detector 均已通过；历史 `0.1.5` 和既有 Revision/Release 未改写。随后 package README 修正 `0.10.1` 历史说明时，immutable build gate 正确拒绝改变 `0.10.2` 内容，因此新增代码 API 不变的文档 patch `0.10.3` 并单独发布，Campfire 继续固定已验收的 `0.10.2`。真实 Matrix Campfire Chat 回归与 screen reader 仍待独立环境验证。
+相邻 Template 消费已由不可变 patch `0.10.2` 完成：已发布的 `0.10.1` 因 `/user/inline` 仅注册 elements、未导出 controller/context 而保留为历史，`0.10.2` 用独立 inline browser entry 同时注册并导出正式 User API。Campfire development `0.1.6` 固定 exact `0.10.2`，通过同一个注入 SDK/context/User Directory controller 渲染真实 `vc-space-member-list`，删除手写成员 HTML，同时保持电台主题、presence 场景和共享 Chat 不变。受管 Registry 发布、重复幂等、90 文件 exact resolve、组件/Template unit、App typecheck、组件 catalog + Campfire Chromium 2/2 与 Impeccable detector 均已通过；历史 `0.1.5` 和既有 Revision/Release 未改写。隔离完整栈中的真实 `chat-matrix-room.spec.ts` 6/6 又证明 Campfire iframe 精确加载 `0.10.2`、Matrix 成员经公共 MemberList 呈现，发送、回复、Reaction、刷新恢复与 Default 恢复均无回归。随后 package README 修正 `0.10.1` 历史说明时，immutable build gate 正确拒绝改变 `0.10.2` 内容，因此新增代码 API 不变的文档 patch `0.10.3` 并单独发布，Campfire 继续固定已验收的 `0.10.2`。screen reader 仍待独立环境验证。
 
 ## 状态定义
 
@@ -53,10 +53,10 @@
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
 | C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.10.3` tracked managed release；`0.10.0`/`0.10.1`/`0.10.2` 本地受管 publish/重复幂等/resolve；`0.7.4`/`0.8.1`/`0.8.2` 已有隔离 D1/R2 publish/resolve | 当前版本真实部署 publish 与不可变 Release 证据 |
-| C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot/User Directory controller、SSR-safe Avatar/User elements；Campfire `0.1.6` 首个真实消费 Chromium 1/1 | screen reader 扩展与真实 Matrix 回归 |
+| C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot/User Directory controller、SSR-safe Avatar/User elements；Campfire `0.1.6` 隔离 Chromium 与真实 Matrix iframe 均通过 | screen reader 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
 | C4 | User/Agent identity/activity | §8、§15 阶段 1、3 | Active | `0.10.2` User/Member 公共层与 Campfire MemberList 1/1；`0.9.3` Agent activity API、Default/Focus 隔离 iframe 2/2 与 Default 真实 Pi/DeepSeek 1/1 | 补 Focus、screen reader 与不可变 Release |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus `0.2.0` 固定 `0.9.3` full/dock Chat + Agent Recipe，Campfire `0.1.6` 固定 `0.10.2` User + Chat，Default 真实 Matrix/AgentOS 双浏览器 ready Revision 1/1 | 补 Campfire Matrix Chat、Focus Agent、不可变 Release 与真实部署 publish |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus `0.2.0` 固定 `0.9.3` full/dock Chat + Agent Recipe，Campfire `0.1.6` 固定 `0.10.2` User + Chat；真实 Matrix 全文件 6/6，Default 双浏览器 Agent ready Revision 1/1 | 补 Focus Agent、不可变 Release 与真实部署 publish |
 
 ## 当前 Active 切片
 
@@ -128,7 +128,7 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - [x] 以 `0.10.2` 新增可消费的 `/user/inline` 独立 browser entry，并补 semantic export、SSR/package、bundle metadata 和无远程 import gate；已发布的 `0.10.0`/`0.10.1` 不覆盖。
 - [x] 将 Campfire 升到相邻 development `0.1.6`，固定 exact `0.10.2`/integrity，通过同一 SDK/context/User Directory controller 渲染真实 MemberList；保留 Chat、主题和 presence 场景并删除手写成员 HTML。
 - [x] 完成 Campfire MemberList 定向 unit/Chromium、App typecheck 和 Impeccable detector，并记录 source/manifest/integrity 与剩余未覆盖项。
-- [ ] 在可用的本地 Synapse/完整开发栈中执行 Campfire 真实 Matrix Chat 发送、回复、Reaction 和刷新恢复回归。
+- [x] 在可用的本地 Synapse/完整开发栈中执行 Campfire 真实 Matrix Chat 发送、回复、Reaction 和刷新恢复回归。
 - [ ] 建立 long name、图片失败、keyboard、screen reader、200% 字体、high contrast 与 reduced motion 的 unit/DOM/浏览器证据。
 - [x] 在真实本地 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中验证相同 component artifact/revision hash。
 - [ ] 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中验证相同 component artifact hash。
@@ -149,7 +149,7 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - `0.10.0` User/Member API 已完成 39/39 package unit、typecheck、managed build/bundle/integrity 和 catalog Chromium 1/1；source/browser/integrity 为 `sha256:21e5a30003d9e1ce5761381fd6cda151f39246388ead5c46b65f811612beddfe` / `sha256:c7d5199ecc59e1072cfacc792068bbd223483b9112c877ee5b001c107c94037f` / `sha256:61920297d2b7ef56c9c8b5a0a6571b8480b405e8f5dd2bd60cd97ea4ea82ad03`。本轮没有 Template 消费证据，因此 C2/C4 继续保持 Active。
 - `0.10.0` 已通过本地受管 Registry 正常鉴权 publish、重复 publish 幂等与 88 文件 exact resolve。`0.10.1` 也已不可变发布并保留为历史，但 Chromium 证明其 `/user/inline` 只注册 elements、未导出 controller/context；没有覆盖该版本。修复版 `0.10.2` 的 source/browser/integrity 为 `sha256:31bea66c93a6033aabde4c16f3b105186a12525ed9e1759759690a0e23235274` / `sha256:f9a8f552156fde6bf96a046c27ba5664172f7959a6441288835c13f42ea2827e` / `sha256:4ace2dc2efdb24f0698edba7a641d128fbe68d8e5808b27b6289904a178a6128`，本地 publish 与重复幂等均通过；Runtime POST 鉴权 exact resolve 返回 90 文件，并确认 `user/inline.js` 同时包含 `createSpaceComponentContext` 与 `createSpaceUserDirectoryController`。
 - README 历史说明修正触发 immutable package drift gate 后，没有改写 `0.10.2`，而是签锁 API 不变的文档 patch `0.10.3`。其 source/browser/integrity 为 `sha256:9cb78ff26721f90282f5914ba4c9e4a1faee08c1c5d7ff521c5f3973b1717cf1` / `sha256:f9a8f552156fde6bf96a046c27ba5664172f7959a6441288835c13f42ea2827e` / `sha256:939d4e1c6e73fe91d816a187efba3fb9cd52dfbf5630fae596c9d994f879017b`；本地 Registry Published + 重复 Verified，Runtime exact resolve 返回 90 文件并同时核对 User inline API 与修正后的 README。Campfire lock 继续为 `0.10.2`，没有为文档 patch 重签 Template。
-- Campfire development `0.1.6` 的 source/manifest 为 `sha256:13a9ae94303f79451e67214f0dc433ec6bb73e4f27d849d81516ae47f9553b59` / `sha256:1989528dcbfaa55c13523a6210a9ec2968fc7448952bf7e86a75ca715f210241`；组件与 Template 定向 unit 7 files、48/48、Campfire App typecheck、catalog codegen/lock 和组件 catalog + Campfire 隔离 Chromium 2/2 均通过。浏览器从可控真实 SDK snapshot 更新成员，最终由公共 controller/MemberList 投影，Impeccable detector 返回空结果。源码级浏览器夹具允许解析当前 workspace package，Template exact `0.10.2`/integrity 由 catalog unit 与 Runtime Registry exact resolve 独立保证，避免组件库后续升级迫使历史 Template 改签。真实 Matrix Chat E2E 因本轮未启动 Synapse/完整开发栈而未执行。
+- Campfire development `0.1.6` 的 source/manifest 为 `sha256:13a9ae94303f79451e67214f0dc433ec6bb73e4f27d849d81516ae47f9553b59` / `sha256:1989528dcbfaa55c13523a6210a9ec2968fc7448952bf7e86a75ca715f210241`；组件与 Template 定向 unit 7 files、48/48、Campfire App typecheck、catalog codegen/lock 和组件 catalog + Campfire 隔离 Chromium 2/2 均通过。浏览器从可控真实 SDK snapshot 更新成员，最终由公共 controller/MemberList 投影，Impeccable detector 返回空结果。隔离完整栈又以正常鉴权将历史 `0.10.2` 发布到真实 Registry，重复发布返回 Verified，Runtime POST exact resolve 返回 90 文件；真实 `chat-matrix-room.spec.ts` 全文件 6/6，Campfire iframe 断言 exact `0.10.2`、Matrix 成员 MemberList、发送、回复、Reaction、刷新唯一恢复与 Default 恢复，同时覆盖 Default/Focus `0.9.3` idle hidden 和其余官方 Template 回归。
 - 最终文档链接、组件 bundle、Template generated catalog、应用边界、21/23 workspace typecheck、21/23 workspace build 和 docs-app production build 均通过。仓库 Turbo 远程 TLS 初始化因本机无可用钥匙串失败，验证改用相同 filter 集合的 pnpm recursive 命令；Backend build 中 Wrangler 写用户目录日志遇到 sandbox `EPERM`，但 Vite/SSR 构建完成且整体退出 0。
 
 ## 2026-08-26 验证记录
