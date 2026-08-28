@@ -21,6 +21,7 @@ import {
 import { createSpaceComponentContext } from "@vibechat/space-app-components/core";
 import {
   mountChatDrawerRecipe,
+  resolveSpaceChatRecipeElements,
   type SpaceChatRecipeElements,
 } from "@vibechat/space-app-components/recipes";
 
@@ -154,6 +155,7 @@ class RecipeTestElement extends EventTarget {
   textContent = "";
   title = "";
   hidden = false;
+  isConnected = false;
   state = "loading";
   error: unknown = null;
   messages: readonly unknown[] = [];
@@ -217,6 +219,54 @@ function recipeFixture() {
     error: element(),
   } as unknown as SpaceChatRecipeElements;
   return { document: documentTarget, elements };
+}
+
+function recipeResolverFixture(legacyBuild: "all" | "none" | "partial") {
+  const fixture = recipeFixture();
+  const entries: Array<[string, Element]> = [
+    ["#vcc-root", fixture.elements.root],
+    ["#vcc-launch", fixture.elements.launch],
+    ["#vcc-launch-label", fixture.elements.launchLabel],
+    ["#vcc-shell", fixture.elements.shell],
+    ["#vcc-close", fixture.elements.close],
+    ["#vcc-unread", fixture.elements.unread],
+    ["#vcc-mark", fixture.elements.mark],
+    ["#vcc-room-name", fixture.elements.roomName],
+    ["#vcc-member-count", fixture.elements.memberCount],
+    ["#vcc-opening", fixture.elements.opening],
+    ["#vcc-opening-mark", fixture.elements.openingMark],
+    ["#vcc-opening-title", fixture.elements.openingTitle],
+    ["#vcc-opening-summary", fixture.elements.openingSummary],
+    ["#vcc-opening-agent", fixture.elements.openingAgent],
+    ["#vcc-hint", fixture.elements.hint],
+    ["#vcc-timeline", fixture.elements.timeline],
+    ["#vcc-composer", fixture.elements.composer],
+    ["#vcc-mentions", fixture.elements.mentions],
+    ["#vcc-error", fixture.elements.error],
+  ];
+  if (legacyBuild !== "none") {
+    entries.push(["#vcc-build", fixture.elements.build]);
+  }
+  if (legacyBuild === "all") {
+    entries.push(
+      ["#vcc-build-title", fixture.elements.buildTitle],
+      ["#vcc-build-stage", fixture.elements.buildStage],
+    );
+  }
+  const elementsBySelector = new Map(entries);
+  const created: RecipeTestElement[] = [];
+  Object.assign(fixture.document, {
+    createElement: vi.fn(() => {
+      const element = new RecipeTestElement();
+      element.ownerDocument = fixture.document;
+      created.push(element);
+      return element;
+    }),
+  });
+  const root = {
+    querySelector: vi.fn((selector: string) => elementsBySelector.get(selector) ?? null),
+  } as unknown as ParentNode;
+  return { ...fixture, created, root };
 }
 
 function recipeEvent<T>(type: string, detail: T) {
@@ -353,6 +403,56 @@ describe("Space Chat migration-ready controller", () => {
 });
 
 describe("Space Chat recipes", () => {
+  it("resolves the complete legacy build projection without changing existing elements", () => {
+    const fixture = recipeResolverFixture("all");
+    const elements = resolveSpaceChatRecipeElements(fixture.root, "Legacy Chat");
+
+    expect(elements.build).toBe(fixture.elements.build);
+    expect(elements.buildTitle).toBe(fixture.elements.buildTitle);
+    expect(elements.buildStage).toBe(fixture.elements.buildStage);
+    expect(fixture.created).toEqual([]);
+  });
+
+  it("mounts without legacy build DOM by using detached compatibility placeholders", async () => {
+    const sdk = interactiveSdk();
+    const fixture = recipeResolverFixture("none");
+    const context = createSpaceComponentContext({ sdk: sdk.client });
+    const elements = resolveSpaceChatRecipeElements(fixture.root, "Modern Chat");
+    const recipe = mountChatDrawerRecipe({
+      context,
+      elements,
+      copy: () => ({
+        connected: "connected",
+        members: "members",
+        empty: "Empty",
+        hint: "Type a message",
+        working: "is working",
+        title: "Chat",
+        open: "Open Chat",
+        close: "Close Chat",
+        region: "Space Chat",
+        timeline: "Message timeline",
+      }),
+    });
+    await recipe.ready;
+
+    expect(fixture.created).toHaveLength(3);
+    for (const placeholder of fixture.created) {
+      expect(placeholder.hidden).toBe(true);
+      expect(placeholder.isConnected).toBe(false);
+      expect(placeholder.attributes.get("aria-hidden")).toBe("true");
+    }
+    expect(recipe.disposed).toBe(false);
+    context.dispose();
+    expect(recipe.disposed).toBe(true);
+  });
+
+  it("fails closed when only part of the legacy build projection remains", () => {
+    const fixture = recipeResolverFixture("partial");
+    expect(() => resolveSpaceChatRecipeElements(fixture.root, "Partial Chat"))
+      .toThrow("Partial Chat is missing #vcc-build-title");
+  });
+
   it("mounts one drawer lifecycle, tracks unread/read state, and removes every listener", async () => {
     const sdk = interactiveSdk();
     const fixture = recipeFixture();

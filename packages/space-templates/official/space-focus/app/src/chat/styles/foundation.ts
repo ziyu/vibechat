@@ -10,6 +10,8 @@ export const chatFoundationStyles = `
   --vc-space-color-border: var(--vcc-line);
   --vc-space-color-accent: var(--vcc-accent);
   --vc-space-color-accent-contrast: #11120f;
+  --vc-space-color-positive: #69c681;
+  --vc-space-color-neutral: var(--vcc-muted);
   --vc-space-color-negative: #f0a292;
   --vc-space-color-focus: #ff8a75;
   --vc-space-font-body: "Avenir Next", "Noto Sans SC", sans-serif;

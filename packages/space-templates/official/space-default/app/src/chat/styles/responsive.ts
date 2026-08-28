@@ -20,6 +20,11 @@ export const chatResponsiveStyles = `
     padding: 12px 8px 18px;
   }
 
+  vc-space-agent-activity {
+    width: calc(100% - 16px);
+    margin-bottom: 10px;
+  }
+
   .vcc-root[data-mode="full"] .vcc-compose-wrap {
     padding-inline: 8px;
   }
@@ -51,10 +56,6 @@ export const chatResponsiveStyles = `
   .vcc-shell,
   .vcc-launch {
     transition: none;
-  }
-
-  .vcc-build i {
-    animation: none;
   }
 }
 `;

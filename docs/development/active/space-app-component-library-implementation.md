@@ -28,6 +28,8 @@
 
 组件库主线随后以向后兼容 minor 签锁 `@vibechat/space-app-components@0.9.0`，补齐 Agent P0 的 provider-neutral activity 层：`createSpaceAgentActivityView` 只投影有限 stage、queue count 和 activity label/detail，明确丢弃 provider `input/output/arguments/payload`；`createSpaceAgentController` 只订阅注入 SDK；`AgentQueueStatus`、`AgentActivity` 和 `AgentActivityPanelRecipe` 均为只读、SSR-safe，并提供文本状态、polite live region、forced-colors/reduced-motion fallback。离线 catalog 在同一 dark signal/light field-note DOM 中完成 390px 无横向溢出和无 console warning/error 走查。该版本没有升级任何官方 Template 或既有 Space，也没有修改 Runtime/Backend；下一切片才由 Template 显式升级后替换手写 build panel。
 
+当前切片已签锁兼容 patch `@vibechat/space-app-components@0.9.1`，并由 Default/Focus 相邻 development `0.2.0` 首次消费 Agent activity。Chat Recipe 保留 deprecated `build/buildTitle/buildStage` 类型字段：三个旧节点全部存在时行为不变，全部不存在时使用脱离文档的隐藏占位，只删除部分节点仍 fail closed；可见 Agent 状态只由 `AgentActivityPanelRecipe` 投影。两个 Template 复用同一 SDK/context，同时挂载 full/dock Chat Recipe 与只读 Agent Recipe，删除手写 build DOM/CSS；隔离 Chromium 2/2 已覆盖动态 stage/queue/activity、390px、200% 字体、forced-colors、reduced-motion 和无 console/page error。既有 Template/Revision/Release 不自动升级，当前 `0.2.0` 尚未在真实 Matrix/AgentOS ready Revision 或不可变 Release 中验证。
+
 ## 状态定义
 
 | 状态 | 含义 | 证据要求 |
@@ -42,21 +44,21 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.9.0` tracked managed release、exact version/integrity、不可变 build；`0.7.4`/`0.8.1`/`0.8.2` 已有隔离 D1/R2 publish/resolve | `0.9.0` 真实部署 publish 与不可变 Release 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.9.1` tracked managed release、exact version/integrity、不可变 build；`0.7.4`/`0.8.1`/`0.8.2` 已有隔离 D1/R2 publish/resolve | `0.9.1` 真实部署 publish 与不可变 Release 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
-| C4 | User/Agent identity/activity | §8、§15 阶段 1、3 | Active | `0.9.0` Agent activity view/controller/elements/recipe、两主题离线 catalog、unit/SSR/390px 浏览器证据 | Template 显式升级并完成 #40.3 完整 a11y/E2E 场景 |
-| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus 使用 `0.8.1` Recipe，其他三个继续固定 `0.7.4`；单 Chromium 真实 Matrix 6/6 | 完成双浏览器 Matrix、不可变 Release、真实部署 publish 和完整 a11y 矩阵 |
+| C4 | User/Agent identity/activity | §8、§15 阶段 1、3 | Active | `0.9.1` Agent activity API；Default/Focus `0.2.0` 隔离 iframe 2/2 覆盖 390px、200%、forced-colors/reduced-motion | 真实 Agent build、screen reader 与不可变 Release 证据 |
+| C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus `0.2.0` 固定 `0.9.1` full/dock Chat + Agent Recipe，其他三个继续固定 `0.7.4` | 为 `0.2.0` 完成真实 Matrix/AgentOS、双浏览器、不可变 Release 与真实部署 publish |
 
 ## 当前 Active 切片
 
 Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot → Timeline/Composer/Mention/Error 装配、typed event、unread/read receipt 和 lifecycle 已收敛到语义化 `/recipes` 公共入口。Recipe 只接收注入 context、Template copy 和既有标准元素，不拥有主题、launcher markup、场景状态、Matrix/Agent 权威或 Kernel 操作。Default 全屏和 Focus 抽屉以相邻 development `0.1.7` 固定 exact `0.8.1`/integrity；另外三个 Template 与既有版本继续固定 `0.7.4`，由本地多版本 Registry 和 prepared artifact 保持可运行。
 
-managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cloudflare D1/R2 preview；相关生产部署/跨 Runtime 工作继续保持独立，不在当前组件库分支扩展。当前组件库切片转入 Agent activity 公共能力：先在 package、catalog 和测试内固定 provider-neutral view/controller/element/recipe，再由后续 Template 相邻版本显式消费；在 Template/真实 iframe 和完整 a11y 证据完成前，不能把 package catalog 验证冒充用户链路完成。
+managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cloudflare D1/R2 preview；相关生产部署/跨 Runtime 工作继续保持独立，不在当前组件库分支扩展。Agent activity 公共能力与首批 Template 消费已完成：package、catalog、Default/Focus 相邻版本和隔离 iframe 共同固定 provider-neutral view/controller/element/recipe。真实 Matrix/AgentOS ready Revision、生产 publish、不可变 Release 和 screen reader 仍是后续出口，不能以 mock SDK 的隔离 iframe 冒充这些证据。
 
 ### 目标
 
-在不增加 Agent 调用权威和 provider 泄漏的前提下，建立可由所有 Space 复用的 Agent activity 公共层：view model/controller 只消费注入 SDK，Queue/Activity element 提供稳定文字、ARIA、part 和 responsive contract，Panel recipe 只负责只读装配。新能力以 exact `0.9.0` 签锁；既有 Template、Revision 和 Release 不自动升级，Template 迁移留到独立相邻版本切片。
+在不增加 Agent 调用权威和 provider 泄漏的前提下，让 Default/Focus 相邻 Template 通过 exact `0.9.1` 消费可由所有 Space 复用的 Agent activity 公共层：view model/controller 只消费注入 SDK，Queue/Activity element 提供稳定文字、ARIA、part 和 responsive contract，Panel recipe 只负责只读装配；既有 Template、Revision 和 Release 不自动升级。
 
 ### 任务
 
@@ -101,10 +103,13 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - [x] 新增只读 Agent controller，复用注入 `SpaceAppClient`、去重等价 snapshot、幂等 dispose，不提供 `agent.invoke()` 或第二个 SDK client。
 - [x] 新增 `vc-space-agent-queue-status`、`vc-space-agent-activity` 和 `AgentActivityPanelRecipe`，保持普通入口 SSR-safe、registrar-only side effect、typed property、安全 attribute、公开 part 与英中内建文案。
 - [x] 将组件 package 升为向后兼容 `0.9.0`，更新离线双主题 catalog、package README、bundle gate 和 managed release lock；未升级任何官方 Template 或既有 Space。
+- [x] 签锁兼容 patch `0.9.1`：保留 deprecated Chat build element 类型字段；完整旧 DOM 继续工作、完全缺失时使用 detached hidden placeholder、部分缺失 fail closed。
+- [x] 将 Default/Focus 升到相邻 development `0.2.0`，固定 exact `0.9.1`/integrity，复用同一 context 挂载 full/dock Chat Recipe 与 `AgentActivityPanelRecipe`，删除手写 build DOM/CSS 且不改写历史 lock。
+- [x] 用隔离 Chromium 2/2 验证动态 Agent stage/queue/activity、390px、200% 字体、forced-colors/reduced-motion、无横向溢出、无动画、无 console/page error和 Composer 可见性。
 - [ ] 建立 long name、图片失败、keyboard、screen reader、200% 字体、high contrast 与 reduced motion 的 unit/DOM/浏览器证据。
 - [x] 在真实本地 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中验证相同 component artifact/revision hash。
 - [ ] 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中验证相同 component artifact hash。
-- [ ] 在真实 Matrix 双浏览器、ready Revision/不可变 Release 中验证 Default Chat，并迁移至少一个抽屉式官方 Template。
+- [ ] 在真实 Matrix/AgentOS 双浏览器、ready Revision/不可变 Release 中验证 Default/Focus `0.2.0` 的 Chat 与 Agent activity。
 
 ### 完成条件
 
@@ -115,7 +120,7 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit 和隔离 Cloudflare D1/R2 preview；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、真实部署 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
 - `0.8.1` Recipe、`space-default@0.1.7`、`space-focus@0.1.7` 与继续固定 `0.7.4` 的 `space-campfire@0.1.5`、`space-arcade@0.1.3`、`space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
-- `0.9.0` Agent activity 公共 API 已完成 component typecheck、34/34 package unit、bundle/managed integrity 和离线 catalog 390px DOM 走查；真实 Template exact-version 消费、screen reader、200% 字体与强制 high-contrast/reduced-motion 浏览器矩阵未执行，因此 C4 与 #40.3 继续保持 Active。
+- `0.9.1` Agent activity 公共 API 与 Default/Focus `0.2.0` exact-version 消费已完成 component/Template typecheck、24/24 定向 unit、bundle/managed integrity、Catalog lock 和隔离 Chromium 2/2；#40.3 的 390px、200% 字体、forced-colors/reduced-motion 场景已通过。真实 Matrix/AgentOS Agent build、screen reader、生产 publish 和不可变 Release 未执行，因此 C1/C3/C4/C5 继续保持 Active。
 
 ## 2026-08-26 验证记录
 
@@ -315,6 +320,20 @@ Postcard `0.1.3` 的 source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd
 | package/bundle | 通过 | 组件 TypeScript、34/34 package unit 与 managed integrity gate 通过；browser/foundation/user/agent/chat/recipes gzip 分别为 30,561 / 3,132 / 5,507 / 7,465 / 23,848 / 26,055 bytes，均低于预算；普通 `/agent`、`/recipes` SSR-safe且无远程 import |
 | offline catalog browser | 通过（本地单 Chromium） | Night relay/Field notes 两主题各渲染同一 `vc-space-agent-activity`；DOM snapshot 暴露 status、Agent identity、stage、queue 和两条文字 activity；390×844 下 `scrollWidth === clientWidth === 390`、两 panel 宽 321px 且无 console warning/error |
 | 真实 Template/完整 a11y | 未执行 | 本轮刻意不升级 Template 或修改 Runtime/Backend；screen reader、200% 字体、强制 high contrast/reduced motion 和真实 iframe Agent build 更新留给下一迁移切片 |
+
+### 2026-08-28 Agent activity 首批 Template 迁移验证
+
+`@vibechat/space-app-components@0.9.1` source/browser artifact/integrity 分别为 `sha256:511ca97c185edf3d4e5c2cb595005d9ecf3bf920a7a8ec63a21f414993e34785`、`sha256:92259060a408554cd5d91c22e6135380074bc957e366a82d2e5b35e75b3a9899`、`sha256:bf9d6ee624ca368380df425e9d284c9345ef255ecc5ac59c9233f58575ee6b68`。Default `0.2.0` source/manifest hash 为 `sha256:7b00be6a67984b0d4739bd406e6d0069daa3c69f851c115bd0898da42aa4b4ac` / `sha256:ab9c3d034e1ebb609d9a776193c6c23435f91122469778b9c96e500926f8be81`；Focus `0.2.0` 为 `sha256:5324d1cc9b760286d4153903f47ef02ac30438a2ccd5d4382419e37ada1f1fda` / `sha256:ae9c065506f0b7b227cea3fa4a99424b470b6ec7c64c8c808f8925a02908c07c`。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| Chat Recipe 迁移桥接 | 通过 | `build/buildTitle/buildStage` 保留 deprecated 类型；完整旧 DOM 原样解析，三个节点全缺失时使用 detached hidden placeholder，部分缺失继续 fail closed；Chat Recipe unit 11/11 |
+| Template 组合 | 通过 | Default full 与 Focus dock 复用同一 SDK/context，分别挂载 Chat Recipe 和 `AgentActivityPanelRecipe(maxActivities=3)`；源码删除 `#vcc-build`、旧 build snapshot/copy/CSS/脉冲动画，只通过 token、公开 part 和 `data-testid=agent-activity` 扩展 |
+| package/bundle | 通过 | browser/foundation/user/agent/chat/recipes gzip 为 30,652 / 3,132 / 5,507 / 7,465 / 23,848 / 26,151 bytes；semantic exports、SSR/offline、无远程 import、managed integrity 与 exact Template lock 一致 |
+| 定向 unit/TypeScript/Catalog | 通过 | components/templates 3 files、24/24；组件、Default/Focus App TypeScript 与 Catalog `--check` 通过，历史 Template lock 未改写 |
+| 隔离 iframe a11y/responsive | 通过 | Chromium 2/2；mock SDK 动态更新 long stage、1 active/2 pending queue 和两条 activity，390×844 + 200% 字体下页面宽度保持 390px、Composer 在视口内；forced-colors/reduced-motion 下子树无动画且 console/page error 为空 |
+
+本轮 E2E 使用隔离生成文档和 mock SDK 验证 Template/组件组合，不等同于真实 Matrix/AgentOS ready Revision。当前 8001/8002/8007 由另一工作树的旧服务占用，因此没有把旧服务版本失败记录为本切片回归；真实 `0.2.0` Candidate、Agent build、双浏览器、不可变 Release、生产 managed publish 和 screen reader 仍待后续独立验证。
 
 ## 待决策清单
 

@@ -1,5 +1,10 @@
 # Vibe Chat
 
+## 0.2.0
+
+- Upgrade to exact `@vibechat/space-app-components@0.9.1` and replace the Template-owned Agent build banner with the provider-neutral `AgentActivityPanelRecipe`.
+- Keep Chat and Agent activity on the same injected SDK/context while adding bounded activity history, queue text, polite status announcements, forced-color support, and responsive public-part theming.
+
 ## 0.1.7
 
 - Upgrade to exact `@vibechat/space-app-components@0.8.1` and replace the remaining full-screen Chat bootstrap body with `DefaultChatRecipe` while preserving Template copy, markup, theme, Matrix behavior, and historical release locks.

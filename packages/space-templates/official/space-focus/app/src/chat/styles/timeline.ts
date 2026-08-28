@@ -11,8 +11,7 @@ export const chatTimelineStyles = `
   text-align: center;
 }
 
-.vcc-opening[hidden],
-.vcc-build[hidden] {
+.vcc-opening[hidden] {
   display: none;
 }
 
@@ -148,47 +147,47 @@ vc-space-chat-timeline::part(message-reaction-choice) {
   background: #171916;
 }
 
-.vcc-build {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+vc-space-agent-activity {
+  display: block;
+  min-width: 0;
   width: calc(100% - 28px);
   margin: 0 auto 12px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--vcc-accent) 28%, transparent);
+  --vc-space-card-padding: 10px 12px;
+  --vc-space-color-surface-raised: rgba(0, 0, 0, 0.24);
+}
+
+vc-space-agent-activity::part(panel) {
+  border-color: color-mix(in srgb, var(--vcc-accent) 28%, transparent);
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.24);
 }
 
-.vcc-build i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--vcc-accent);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--vcc-accent) 14%, transparent);
-  animation: vccPulse 900ms ease-in-out infinite alternate;
+vc-space-agent-activity::part(activities) {
+  max-block-size: 7rem;
+  overflow-y: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.vcc-build span {
-  display: grid;
-}
-
-.vcc-build small {
+vc-space-agent-activity::part(eyebrow),
+vc-space-agent-activity::part(activity-detail) {
   color: var(--vcc-muted);
-  font-size: 9px;
 }
 
-@keyframes vccPulse {
-  to {
-    opacity: 0.35;
-    transform: scale(0.7);
-  }
+vc-space-agent-activity::part(activity-label) {
+  color: var(--vc-space-color-text);
 }
 
 @media (max-width: 480px) {
   vc-space-chat-timeline::part(message-action-menu) {
     min-width: 0;
     border-radius: 16px;
+  }
+}
+
+@media (forced-colors: active) {
+  vc-space-agent-activity::part(panel) {
+    border-color: CanvasText;
+    background: Canvas;
   }
 }
 `;

@@ -1,5 +1,10 @@
 # Moss Studio
 
+## 0.2.0
+
+- Upgrade to exact `@vibechat/space-app-components@0.9.1` and replace the dock-owned Agent build banner with the provider-neutral `AgentActivityPanelRecipe`.
+- Preserve the shared-note scene and transformed Chat drawer while sharing one injected SDK/context across Chat and Agent activity, with bounded history, queue text, polite announcements, forced-color support, and responsive public-part theming.
+
 ## 0.1.7
 
 - Upgrade to exact `@vibechat/space-app-components@0.8.1` and replace the remaining docked Chat bootstrap body with `ChatDrawerRecipe` while preserving the shared-note scene, launcher, drawer theme, Matrix behavior, and historical release locks.

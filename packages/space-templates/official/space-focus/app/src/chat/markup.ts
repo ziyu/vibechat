@@ -24,13 +24,12 @@ export const chatMarkup = `<div class="vcc-root" id="vcc-root">
         state="loading"
         data-testid="message-timeline"
       ></vc-space-chat-timeline>
-      <div class="vcc-build" id="vcc-build" hidden>
-        <i></i>
-        <span>
-          <b id="vcc-build-title"></b>
-          <small id="vcc-build-stage"></small>
-        </span>
-      </div>
+      <vc-space-agent-activity
+        class="vcc-agent-activity"
+        id="vcc-agent-activity"
+        density="compact"
+        data-testid="agent-activity"
+      ></vc-space-agent-activity>
     </main>
     <div class="vcc-compose-wrap">
       <vc-space-mention-menu

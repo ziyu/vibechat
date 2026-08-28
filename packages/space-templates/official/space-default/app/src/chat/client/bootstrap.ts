@@ -1,14 +1,24 @@
 import type { SpaceSdk } from "../../browser/sdk.js";
+import type { SpaceAgentActivityElement } from "@vibechat/space-app-components/agent";
 import type { SpaceComponentContext } from "@vibechat/space-app-components/core";
 import type {
+  SpaceAgentActivityPanelRecipeHandle,
+  SpaceAgentActivityPanelRecipeOptions,
   SpaceChatRecipeElements,
   SpaceChatRecipeHandle,
   SpaceChatRecipeOptions,
 } from "@vibechat/space-app-components/recipes";
-import { getChatCopy } from "./copy.js";
+import type { ChatCopy } from "./copy.js";
 
-interface SpaceChatRecipeModule {
+interface SpaceRecipeModule {
   createSpaceComponentContext(options: { sdk: SpaceSdk }): SpaceComponentContext;
+  resolveSpaceAgentActivityPanelElement(
+    root: ParentNode,
+    label?: string,
+  ): SpaceAgentActivityElement;
+  mountAgentActivityPanelRecipe(
+    options: SpaceAgentActivityPanelRecipeOptions,
+  ): SpaceAgentActivityPanelRecipeHandle;
   resolveSpaceChatRecipeElements(root: ParentNode, label?: string): SpaceChatRecipeElements;
   mountDefaultChatRecipe(options: SpaceChatRecipeOptions): SpaceChatRecipeHandle;
   mountChatDrawerRecipe(options: SpaceChatRecipeOptions): SpaceChatRecipeHandle;
@@ -16,8 +26,9 @@ interface SpaceChatRecipeModule {
 
 export async function bootstrapChat(
   space: SpaceSdk,
-  components: SpaceChatRecipeModule,
+  components: SpaceRecipeModule,
   mode: "full" | "dock",
+  copy: () => ChatCopy,
 ) {
   const context = components.createSpaceComponentContext({ sdk: space });
   const options = {
@@ -26,11 +37,19 @@ export async function bootstrapChat(
       document,
       "Default Chat App",
     ),
-    copy: () => getChatCopy(space),
+    copy,
   };
   const recipe = mode === "full"
     ? components.mountDefaultChatRecipe(options)
     : components.mountChatDrawerRecipe(options);
+  const agentActivity = components.mountAgentActivityPanelRecipe({
+    context,
+    element: components.resolveSpaceAgentActivityPanelElement(
+      document,
+      "Default Chat Agent activity",
+    ),
+    maxActivities: 3,
+  });
   window.addEventListener("pagehide", () => context.dispose(), { once: true });
-  await recipe.ready;
+  await Promise.all([recipe.ready, agentActivity.ready]);
 }

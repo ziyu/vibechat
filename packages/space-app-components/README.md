@@ -56,7 +56,7 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
-pnpm --filter @vibechat/space-app-components registry:publish -- 0.9.0
+pnpm --filter @vibechat/space-app-components registry:publish -- 0.9.1
 # Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
@@ -256,6 +256,8 @@ window.addEventListener("pagehide", () => activity.dispose(), { once: true })
 `0.8.2` 增加 managed Registry 发布脚本和对应发行说明：规范化 JSON package object 是 Runtime 主分发对象，npm tarball 只作为可选 mirror。浏览器 bundle、公开 export、Custom Element、Recipe 与交互行为均未改变；Default/Focus 继续固定 `0.8.1`，不会因发布工具 patch 自动升级。
 
 `0.9.0` 以向后兼容 minor 增加 provider-neutral `createSpaceAgentActivityView`、`createSpaceAgentController`、`vc-space-agent-queue-status`、`vc-space-agent-activity` 和 `mountAgentActivityPanelRecipe`。Activity 使用 polite live region、文本状态、forced-colors/reduced-motion fallback，并限制最多 12 条公开 activity；provider payload、Agent 调用、模型、积分和 Kernel 操作不进入组件 API。既有 Template 和 Space 仍固定原 exact version，不会自动升级。
+
+`0.9.1` 为 Chat Recipe 增加迁移兼容桥接：`SpaceChatRecipeElements.build/buildTitle/buildStage` 保留但标记 deprecated；`resolveSpaceChatRecipeElements()` 在三个旧 `#vcc-build*` 节点全部不存在时使用脱离文档、不可见的占位，允许 `AgentActivityPanelRecipe` 成为唯一可见 Agent 状态投影。只删除部分旧节点仍会 fail closed，已有固定 `0.8.1`/`0.9.0` 的 Template、Revision 与 Release 不会自动升级。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 

@@ -25,7 +25,7 @@ const componentUrl = URL.createObjectURL(
 );
 try {
   const components = await import(componentUrl);
-  await bootstrapChat(space, components, "dock");
+  await bootstrapChat(space, components, "dock", () => getChatCopy(space));
 } finally {
   URL.revokeObjectURL(componentUrl);
 }

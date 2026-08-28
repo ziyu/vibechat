@@ -21,6 +21,7 @@ export interface SpaceChatRecipeCopy {
   readonly members: string;
   readonly empty: string;
   readonly hint: string;
+  /** @deprecated Legacy copy for the detached Chat build compatibility projection. */
   readonly working: string;
   readonly title: string;
   readonly open: string;
@@ -44,8 +45,11 @@ export interface SpaceChatRecipeElements {
   readonly openingTitle: HTMLElement;
   readonly openingSummary: HTMLElement;
   readonly openingAgent: HTMLElement;
+  /** @deprecated Mount Agent status with AgentActivityPanelRecipe instead. */
   readonly build: HTMLElement;
+  /** @deprecated Mount Agent status with AgentActivityPanelRecipe instead. */
   readonly buildTitle: HTMLElement;
+  /** @deprecated Mount Agent status with AgentActivityPanelRecipe instead. */
   readonly buildStage: HTMLElement;
   readonly hint: HTMLElement;
   readonly timeline: SpaceChatTimelineElement;
@@ -108,12 +112,53 @@ function requireRecipeElement<T extends Element>(
   return element;
 }
 
+function resolveLegacyBuildRecipeElements(
+  root: ParentNode,
+  document: Document,
+  label: string,
+): Pick<SpaceChatRecipeElements, "build" | "buildTitle" | "buildStage"> {
+  const build = root.querySelector<HTMLElement>(recipeSelectors.build);
+  const buildTitle = root.querySelector<HTMLElement>(recipeSelectors.buildTitle);
+  const buildStage = root.querySelector<HTMLElement>(recipeSelectors.buildStage);
+  const existingCount = [build, buildTitle, buildStage].filter(Boolean).length;
+
+  if (existingCount === 0) {
+    const createPlaceholder = () => {
+      const element = document.createElement("span");
+      element.hidden = true;
+      element.setAttribute("aria-hidden", "true");
+      return element;
+    };
+    return {
+      build: createPlaceholder(),
+      buildTitle: createPlaceholder(),
+      buildStage: createPlaceholder(),
+    };
+  }
+
+  return {
+    build: build ?? requireRecipeElement(root, recipeSelectors.build, label),
+    buildTitle: buildTitle ?? requireRecipeElement(root, recipeSelectors.buildTitle, label),
+    buildStage: buildStage ?? requireRecipeElement(root, recipeSelectors.buildStage, label),
+  };
+}
+
 export function resolveSpaceChatRecipeElements(
   root: ParentNode,
   label = "Space Chat recipe",
 ): SpaceChatRecipeElements {
+  const rootElement = requireRecipeElement<HTMLElement>(
+    root,
+    recipeSelectors.root,
+    label,
+  );
+  const legacyBuild = resolveLegacyBuildRecipeElements(
+    root,
+    rootElement.ownerDocument,
+    label,
+  );
   return {
-    root: requireRecipeElement(root, recipeSelectors.root, label),
+    root: rootElement,
     launch: requireRecipeElement(root, recipeSelectors.launch, label),
     launchLabel: requireRecipeElement(root, recipeSelectors.launchLabel, label),
     shell: requireRecipeElement(root, recipeSelectors.shell, label),
@@ -127,9 +172,7 @@ export function resolveSpaceChatRecipeElements(
     openingTitle: requireRecipeElement(root, recipeSelectors.openingTitle, label),
     openingSummary: requireRecipeElement(root, recipeSelectors.openingSummary, label),
     openingAgent: requireRecipeElement(root, recipeSelectors.openingAgent, label),
-    build: requireRecipeElement(root, recipeSelectors.build, label),
-    buildTitle: requireRecipeElement(root, recipeSelectors.buildTitle, label),
-    buildStage: requireRecipeElement(root, recipeSelectors.buildStage, label),
+    ...legacyBuild,
     hint: requireRecipeElement(root, recipeSelectors.hint, label),
     timeline: requireRecipeElement(root, recipeSelectors.timeline, label),
     composer: requireRecipeElement(root, recipeSelectors.composer, label),

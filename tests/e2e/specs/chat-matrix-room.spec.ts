@@ -355,7 +355,12 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(page.getByTestId('chat-app-shell'))
       .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
     const chat = await openAppChat(page)
-    await expect(chat.locator('script[data-vibechat-components="0.8.1"]')).toHaveCount(1)
+    await expect(chat.locator('script[data-vibechat-components="0.9.1"]')).toHaveCount(1)
+    const defaultAgentActivity = chat.getByTestId('agent-activity')
+    await expect(defaultAgentActivity).toBeVisible()
+    await expect(defaultAgentActivity).toHaveAttribute('role', 'group')
+    await expect(defaultAgentActivity.locator('[part="live"]'))
+      .toHaveAttribute('aria-live', 'polite')
     const messageText = `Default action menu ${Date.now()}`
     await chat.getByTestId('message-input').fill(messageText)
     await chat.getByTestId('send-message').click()
@@ -440,7 +445,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const created = await createdResponse.json()
     expect(created).toMatchObject({
       spaceId: 'space-focus',
-      spaceVersionId: 'tplv-space-focus-0-1-7',
+      spaceVersionId: 'tplv-space-focus-0-2-0',
       status: 'active',
     })
 
@@ -452,7 +457,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const root = frame.locator('#vcc-root')
     await expect(frame.getByRole('heading', { name: '苔原共创室' }))
       .toBeVisible({ timeout: 20_000 })
-    await expect(frame.locator('script[data-vibechat-components="0.8.1"]')).toHaveCount(1)
+    await expect(frame.locator('script[data-vibechat-components="0.9.1"]')).toHaveCount(1)
     await expect(frame.locator('#note')).toBeVisible()
     await expect(root).toHaveAttribute('data-mode', 'dock')
     await expect(root).toHaveAttribute('data-open', 'false')
@@ -463,6 +468,11 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(frame.locator('#board')).toContainText(noteText)
 
     const chat = await openAppChat(page)
+    const focusAgentActivity = chat.getByTestId('agent-activity')
+    await expect(focusAgentActivity).toBeVisible()
+    await expect(focusAgentActivity).toHaveAttribute('role', 'group')
+    await expect(focusAgentActivity.locator('[part="live"]'))
+      .toHaveAttribute('aria-live', 'polite')
     const messageText = `Focus 组件消息 ${Date.now()}`
     await chat.getByTestId('message-input').fill(messageText)
     await chat.getByTestId('send-message').click()
