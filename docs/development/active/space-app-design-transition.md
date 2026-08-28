@@ -11,7 +11,7 @@
 
 本文记录 2026-08-22 基于外部 demo 的 Space App 设计演进、产品校正、首版实现事实、剩余差距、实施顺序和完成条件。
 
-稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 member/Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据；2026-08-28 已补齐空白 Space、Default Chat bootstrap、固定 Template 后应用、不可变 Revision 历史、Kernel rollback、member Mention 和跨 initial-sync 历史分页的真实本地 E2E，并完成全新 D1 migration 与 Workers preview。真实 R2/external Engine 跨宿主、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和完整 #40 仍是后续门槛。
+稳定设计定义目标状态；本文描述实施事实。外部 demo 本身不构成本仓库证据；本仓库现已按相同对象边界和执行链完成首版纵向切片，并接入 Better Auth、实时 Matrix membership、结构化 member/Agent Mention、积分预留/真实 usage 结算、通用 Agent Adapter，以及受管 Agent virtual user 的 Matrix 回写。2026-08-26 已补齐生产 control-plane 代码、迁移、outbox 与确定性双 `SpaceInstanceServer` 接管测试；2026-08-27 已补齐真实 Pi/provider 的双 Chromium Matrix 回复与 ready Revision live 切换自动化证据；2026-08-28 已补齐空白 Space、Default Chat bootstrap、固定 Template 后应用、不可变 Revision 历史、Kernel rollback、member Mention、跨 initial-sync 历史分页，以及 Candidate/publish/App proxy/bridge 信任边界的真实本地 E2E，并完成全新 D1 migration 与 Workers preview。真实 R2/Object Store、external Engine 跨宿主、两个独立 Runtime 进程的 Synapse/AgentOS 故障演练和备份恢复仍是后续门槛。
 
 本次产品校正确认：
 
@@ -167,15 +167,15 @@ Space route
 | 范围 | 当前实现事实 | 新目标 |
 | --- | --- | --- |
 | 产品语义 | UI/代码同时存在 Space 与 Room 词汇 | UI/公开文档统一 Space；Matrix Room 只保留技术语境 |
-| Chat | A2 真实 Matrix timeline 和完整消息操作继续作为 Chat Core；Default Chat/Campfire 已通过同一双浏览器 contract，Host 通过受信 bridge 提供发送、回复、编辑、删除、Reaction、附件、重试、typing、已读、member/Agent Mention 与历史分页；Agent 回复也只经 Matrix timeline 投影 | 继续守住 #40 Candidate/publish/故障与信任边界回归 |
+| Chat | A2 真实 Matrix timeline 和完整消息操作继续作为 Chat Core；Default Chat/Campfire 已通过同一双浏览器 contract，Host 通过受信 bridge 提供发送、回复、编辑、删除、Reaction、附件、重试、typing、已读、member/Agent Mention 与历史分页；Agent 回复也只经 Matrix timeline 投影；本地 Candidate/publish/故障隔离与 bridge 信任边界已验证 | 继续守住生产跨宿主、容量和恢复回归 |
 | 创建 | 官方目录包含 Default Chat App 与四个差异化模板；新建允许零联系人，默认选择 Default Chat | 补齐已有 Space 后选模板与 Candidate 回退 |
 | 市场 | 五个官方条目已拆为独立 `agentos-app-v1` Project，当前版本为有序 patch `0.1.2`，并以官方/用户共用协议和 SemVer 门禁提供分类、详情、收藏和历史 lineage | 后续迁移数据库/对象存储并完成用户发布与审核上架 |
 | Space state | `room_index` 已原地增加稳定 instance/project/default-agent ID；Runtime Project/Instance/Turn/Lease/Outbox 表不另建 `space_instances`，Matrix v2 state 已由 outbox 投影 | 补齐 v1/v2 双读修复与真实 D1/R2 preview |
-| App | `/spaces/:spaceId` Host 已只保留顶部 Kernel Bar 与单一 iframe；Default Chat UI 和四个模板的 Chat 入口均属于 App Project 代码；Kernel 可显式恢复官方 Default Chat App | 补齐历史 rollback、可访问性与双浏览器 contract suite |
+| App | `/spaces/:spaceId` Host 已只保留顶部 Kernel Bar 与单一 opaque iframe；Default Chat UI 和四个模板的 Chat 入口均属于 App Project 代码；历史 rollback、显式 Default Chat 恢复、双浏览器 lifecycle 与 Runtime 非 2xx 已验证 | 补齐生产可访问性、跨宿主与备份恢复验收 |
 | Runtime | Node/Hono Runtime 只提供 Product DB/Object Store control plane；Turn queue、snapshot、lease/fencing、takeover 和周期 outbox reconciler 已接入 | 完成两个独立进程、真实 Synapse/AgentOS/Cloudflare 故障演练 |
-| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作、结构化 member/agent Mention 和受控 `chat.recent`，并由 Default Chat/Campfire 共用 contract 验证；Backend 会按精确 Matrix event 核验 Agent target，Runtime 私有 message 不进入 App Chat | 继续守住 bridge/ACL/计费与 Candidate 故障回归 |
+| SDK | contracts、SDK 与 Host bridge 已覆盖完整首版 Chat 操作、结构化 member/agent Mention 和受控 `chat.recent`，并由 Default Chat/Campfire 共用 contract 验证；Backend 会按精确 Matrix event 核验 Agent target，Runtime 私有 message 不进入 App Chat；nonce、sequence、64 KiB payload、10 秒 120 条限速与 header/credential 边界已有 unit/E2E | 继续守住服务端 ACL/计费、生产容量与跨宿主回归 |
 | Agent | provider-neutral Registry/Adapter/queue 已实现，默认 Pi，fake Adapter 提供确定性合约证据；Host Pi、token usage 结算、Matrix virtual-user 回写和幂等 outbox 已实现 | 增加取消、真实多副本恢复与第二真实 provider |
-| 版本 | 当前 Space 始终加载内部 dev/ready channel，Kernel 显示实时版本并可固化发布；不再提供 Dev/Live 画布切换；Default Chat 恢复走新的 ready Revision | 增加历史 rollback 与双浏览器实时切换证据 |
+| 版本 | 当前 Space 始终加载内部 dev/ready channel，Kernel 显示实时版本并可固化发布；历史 rollback、双浏览器 ready Revision 实时切换、fixed Revision publish、旧版本固定寻址和 Default Chat 新 Revision 恢复已验证 | 补齐生产 Object Store、跨宿主指针恢复和备份演练 |
 | 治理 | Admin 无 App/Agent 模块 | 新增 Template/Agent/Release 审核、冻结、撤销和审计 |
 
 A2 Matrix Chat、社交、profile、session、product state、Space 市场和 package 边界都是必须保留的实现事实。设计演进不授权删除这些已验证能力，也不能用 demo 的本地消息服务替换 Matrix。
@@ -246,7 +246,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 最终 `pnpm docs:check`、`pnpm build:docs`、全仓 `pnpm typecheck` 和包含 17 个 package/app 的 `pnpm build` 通过。全量 `pnpm test` 为 137 通过、1 跳过、3 个已知基线失败；失败仍是 `validators/user.test.ts` 1 个与 `email/cloudflare.test.ts` 2 个，与本切片无关。
 - 2026-08-23 默认 `pnpm dev` 已自动启动 Synapse 与五个应用，真实 Bootstrap 返回 `matrix.status=ready`；Synapse Appservice integration 1/1 通过，Chromium Bootstrap 与 Matrix Room/持久消息定向 E2E 5/5 通过。
 
-当前已经形成真实本地 Synapse 的双 Chromium Chat 与 Agent 回写基线证据；Agent 回复由受管 Matrix virtual user 写入唯一 timeline，Runtime SSE 不再作为第二条 Chat 消息来源。本切片和 A3/A4 仍保持 Active，因为空白 Space、历史 rollback、真实多进程/D1/R2 control-plane 演练和完整 #40 尚未完成。
+当前已经形成真实本地 Synapse 的双 Chromium Chat 与 Agent 回写基线证据；Agent 回复由受管 Matrix virtual user 写入唯一 timeline，Runtime SSE 不再作为第二条 Chat 消息来源。在本切片当时，空白 Space、历史 rollback、真实多进程/D1/R2 control-plane 演练和完整 #40 尚未完成；本地 #40 的后续闭环见 5.0.5–5.0.9，生产跨宿主门槛仍使 A3/A4 保持 Active。
 
 ### 5.0.1 2026-08-23 官方 Space Template 迁移（已验证切片）
 
@@ -257,7 +257,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 本地 Synapse + Alice 浏览器走查：历史夜航电台 `!qcRWjoykTSidOmkOix:localhost` 原地得到 v1 Project/Draft `3a849bb6345867b5`；从 v2 苔原共创室创建 `!JMBcNJQgAZDgcSmOpt:localhost`，在没有 Agent turn 时得到 Draft `85b251af233f07b6`，共享便签写入后刷新恢复，Matrix Chat composer 同时保持可用；重启完整 dev 栈后 presence 使用 Alice 的真实 `user_*` 身份且不再残留 legacy guest。
 - 定向 unit 共 13 个通过，覆盖四模板不同源码、v1/v2 解析、bootstrap 不覆盖后续 Revision、HTML SDK 注入、SpaceInstance queue、Room/目录契约；`pnpm docs:check`、Docs production build、全仓 18/18 package/app `pnpm typecheck` 与 `pnpm build` 均通过。
 
-本切片只完成官方内置模板的可执行迁移与本地 Runtime bootstrap；后续 2026-08-26 control-plane 切片已经提供 Product DB/Object Store 与多副本 lease 代码和 unit 证据。空白 Space、数据库化/第三方市场、真实多进程演练与完整 #40 E2E 仍未完成，因此 A3/A4 和本文保持 Active。
+本切片只完成官方内置模板的可执行迁移与本地 Runtime bootstrap；后续 2026-08-26 control-plane 切片已经提供 Product DB/Object Store 与多副本 lease 代码和 unit 证据。在本切片当时，空白 Space、数据库化/第三方市场、真实多进程演练与完整 #40 E2E 尚未完成；空白 Space 与本地 #40 已由后续 5.0.5–5.0.9 闭环，第三方市场和生产跨宿主演练仍使 A3/A4 与本文保持 Active。
 
 ### 5.0.2 2026-08-23 Space-first 路由迁移（已验证基线，页面形态已被校正）
 
@@ -270,7 +270,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 
 上述结果继续证明路由、Matrix、Runtime 和 App 可以共存，但“宿主固定 Chat + 并列 App”的页面形态已被 §3.4 替代，不能作为新前端完成证据。
 
-### 5.0.3 2026-08-23 实时 Space App Surface（首版已实现，完整验收进行中）
+### 5.0.3 2026-08-23 实时 Space App Surface（本地 #40 已验证，生产验收进行中）
 
 本轮已实现：
 
@@ -299,7 +299,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 2026-08-26 当前新账号欢迎额度从 100 调整为 1000 credits；交易 ID、账本类型和幂等语义保持不变，部署仍可通过 `CREDITS_NEW_USER_GRANT` 覆盖或关闭。上面的 100 credits 保留为 2026-08-24 实际走查的历史账务证据。
 - 2026-08-27 在明确授权外发测试 Project 源码与 Prompt 后，`chat-space-agent-collaboration.spec.ts` 的真实 Pi/provider 场景 2/2 通过：双 Chromium 对同一幂等 Matrix Agent event 刷新后仍各保留一条；真实 Agent 修改完整 Project 后，双方 live App 收敛到同一新 ready Revision，Published Release 保持不变。完整 E2E 同轮为 56 通过、0 失败、3 个 Agent 开关场景跳过；Fake Candidate 失败隔离继续沿用 2026-08-25 的独立 1/1 证据。
 
-尚未完成：#40 Candidate/publish/App 代理故障与信任边界剩余验收、真实 R2/external Engine 跨宿主，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管演练。Default/Custom 共用 Chat Core contract、member Mention 与跨 initial-sync 分页、空白 Space 后选模板、已有定制 Space 的历史 rollback、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护和真实 member kick/leave 全 gateway 撤权已经形成自动化证据，但不足以把 A3/A4 或本文标记 Complete。
+尚未完成：真实 R2/Object Store、external Engine 跨宿主，以及两个独立 Runtime 进程的 Synapse/AgentOS/R2 接管与备份恢复演练。Default/Custom 共用 Chat Core contract、member Mention 与跨 initial-sync 分页、空白 Space 后选模板、已有定制 Space 的历史 rollback、结构化 `@agent` Matrix 回写、真实 Agent ready Revision 切换、Candidate 失败保护、fixed Revision publish、App proxy 非 2xx、bridge 信任边界和真实 member kick/leave 全 gateway 撤权均已形成自动化证据。A3/A4 与本文仍保持 Active，是因为生产跨宿主与恢复门槛尚未完成，而不是本地 #40 lifecycle/security 缺失。
 
 完成条件：Default Chat App 与至少一个完全不同布局的 Template App 都能在双 Chromium 中完成人类双向聊天、Mention、`@agent`、回复/编辑/删除/Reaction/媒体/已读/typing；App 代码可以改变全部 Chat UI，但无法改变平台事件、身份、ACL、计费和调度语义。Candidate 失败继续运行最后 ready Revision，Kernel Bar 可恢复 Default Chat App；没有单独 Workspace/试验场产品入口。
 
@@ -378,7 +378,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 五个官方 Template 的同一普通 Project Chat 模块都提供“加载更早消息”入口、loading/no-more/error 状态、member Mention 高亮和 prepend 滚动锚点；`0.1.2` 保持 development 状态并重新签名 source/manifest/artifact lock，没有伪造新发布版本。
 - Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Backend `18102`、Web `18101`、Runtime `18107` 与 external Rivet Engine `16520` 上，新增 `chat-member-history.spec.ts` 1/1（2.5 分钟）通过。两个独立 Chromium Context 分别在 Default Chat 与 Campfire 中取回 initial sync 30 条窗口外的 35 条历史，重复分页和刷新后 event ID 唯一，滚动位置保持；member Mention 双方 `mentionedUserIds` 与 Matrix metadata 一致，Space Turn、credits 交易/余额和受管 Agent member 均不变。现有 `chat-matrix-operations.spec.ts` 1/1 通过。
 - 相关 Matrix/Template/contracts/SDK/bridge unit 9 个文件、26/26 通过；应用边界检查 431 个活动源码文件通过；五个 Template App typecheck、codegen/lock、20 个 package/app 逐 workspace typecheck，以及 15 个 package + Backend/Web/Site/Admin/Space Runtime build 均通过。根 Turbo 包装命令仍在任务执行前受 macOS Keychain/TLS 影响，使用逐 workspace 等价门禁收口。
-- 既有 `chat-matrix-room.spec.ts` 本轮未全绿：首次组合运行 1/3 Room 场景通过，另两项在 Runtime 热重载窗口返回 `SPACE_RUNTIME_UNAVAILABLE`；服务稳定后重跑为 2/3，publish/rollback 场景的 Release Build VM `npm install failed with exit code 1`；再次聚焦重跑又在新 Space Runtime 首次 snapshot 竞态返回 `SPACE_RUNTIME_UNAVAILABLE`。这些失败没有改写为通过，不影响本切片 1/1 与消息操作 1/1 的证据，也意味着完整 #40 继续保持 Active。
+- 既有 `chat-matrix-room.spec.ts` 本轮未全绿：首次组合运行 1/3 Room 场景通过，另两项在 Runtime 热重载窗口返回 `SPACE_RUNTIME_UNAVAILABLE`；服务稳定后重跑为 2/3，publish/rollback 场景的 Release Build VM `npm install failed with exit code 1`；再次聚焦重跑又在新 Space Runtime 首次 snapshot 竞态返回 `SPACE_RUNTIME_UNAVAILABLE`。这些失败没有改写为通过，不影响本切片 1/1 与消息操作 1/1 的证据；在该切片当时完整 #40 仍保持 Active，后续隔离 Engine DB 的闭环结果见 5.0.9。
 
 ### 5.0.8 Default/Custom Chat Core 共用 contract（P0 切片已验证）
 
@@ -390,7 +390,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 4. member Mention/历史分页沿用 5.0.7 的独立双 Chromium 证据，结构化 Agent Mention/credits/queue 沿用现有 collaboration spec；本切片不复制这些长链路。
 5. 先只修改 E2E 与实施记录；如果共用 contract 暴露生产缺陷，必须对具体 Host/Matrix/Template symbol 重新执行 impact，再以独立最小修复处理。
 
-完成条件：Default Chat 与 Campfire 的共享 runner 在真实 Synapse、双独立 Chromium Context 和目标 Space Runtime 上通过；TEST-CATALOG 记录实际结果；适用 docs、typecheck、Template codegen 与 GitNexus 变更检查通过。该条件已满足，但 Candidate/publish/信任边界仍未完成，所以完整 #40 继续保持 Active。
+完成条件：Default Chat 与 Campfire 的共享 runner 在真实 Synapse、双独立 Chromium Context 和目标 Space Runtime 上通过；TEST-CATALOG 记录实际结果；适用 docs、typecheck、Template codegen 与 GitNexus 变更检查通过。该条件已满足；Candidate/publish/信任边界的后续闭环见 5.0.9。
 
 本轮验证证据：
 
@@ -398,6 +398,20 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Web `8001`、Backend `8002`、Space Runtime `8007` 与 external Rivet Engine `6420` 上，最终完整文件 2/2 通过（44.5 秒），Campfire 聚焦重跑另为 1/1（8.7 秒）。两个 App 均覆盖双向文字、reply、Reaction 添加/移除/重加、typing、本人编辑/删除与对端不可管理、附件、离线 local echo/重试、显式 Matrix `m.read` receipt、刷新后的近期关系/附件/消息唯一恢复，以及 host localStorage 凭据/附件正文隔离。
 - 第一次扩展运行在刷新后等待已超出 initial-sync 30-event 窗口的最早 relation 根消息；第二次又在已无搜索输入的 Spaces 页等待历史 `space-search` selector。这两项属于过时测试假设，已从 contract 移除，没有触发生产代码修改。连续运行两个 Space 时 Reaction 传播出现异步抖动；最终 runner 使用发起端 local projection → 对端 Matrix projection 的两阶段屏障和 20 秒事件预算，没有加入固定 sleep。
 - 本切片只修改 E2E 与开发中文档；结合 5.0.7 的 Default/Campfire member Mention、历史分页与错误恢复证据，Chat Core contract 复选项已闭合。App 代理非 2xx/Candidate 故障、publish 与信任边界仍按原复选项单独推进。
+
+### 5.0.9 2026-08-28 Candidate lifecycle 与 App 信任边界（P0 本地闭环）
+
+本切片完成 TEST-CATALOG #40 的本地 Candidate/publish/App proxy/bridge trust-boundary 验收，不把本地 external Engine 或 filesystem storage 解释为生产跨宿主证据：
+
+1. Bridge command 使用版本化 envelope；每次 iframe revision/reload 生成新的随机 UUID nonce，SDK command 使用严格递增 sequence。Host 只接受当前 iframe `contentWindow`、当前 nonce、已知 action、合法 schema、最多 64 KiB payload，并按同一 surface 限制为 10 秒 120 条命令。
+2. Host→App init/event/result 同样绑定 nonce；旧 iframe、错 nonce、replay、未知 action、`app.publish` 和伪造 sender/member/agent/Space/Release 字段在进入高权限服务前拒绝。拒绝前后 Turn、Outbox、credits 与 Release 数量保持不变。
+3. App proxy 只转发公开内容协商、缓存与 range 请求头，不把 Backend→Runtime 的短期 `Authorization` credential 交给 Candidate App。opaque sandbox 与 CSP 阻止 parent DOM、Cookie、localStorage 和任意网络读取；Runtime 内部 API 无凭据仍返回 401。
+4. 双 Chromium lifecycle 以同一真实 Synapse Space 验证 Candidate→ready 双端切换、fixed Revision publish、后续 Candidate 不改写 Published Release、旧 Revision 固定 URL 可读、合法但不存在的 Revision 保留 Runtime 503 JSON、刷新继续挂载当前 ready Revision，以及 Kernel 显式恢复 Default Chat 时保持 Matrix timeline、成员、App State 与 Release。
+5. Node 24.19.0、本地 SQLite、Synapse `8008`、Web `18101`、Backend `18102`、Runtime `18107` 和使用独立临时数据库/Rivet 默认 `default` region 的 external Engine `16520` 上，lifecycle/security 聚焦 1/1（3.1 分钟）、完整 `chat-matrix-room.spec.ts` 4/4（7.0 分钟）通过。Fake Candidate failure 1/1；在干净 Engine DB 上 Default/Campfire Chat Core 2/2（44.3 秒）、member-history 1/1（2.5 分钟）通过；相关 contracts/SDK/Host/header unit 为 9 个文件、38/38。
+6. 连续复用已完成完整 lifecycle 的同一 Engine DB 会遗留 guest actor 并触发 Runtime capacity/guest RPC timeout。Chat Core 与 member-history 已分别使用新的独立 Engine DB 重跑通过；该容量事实继续保留为生产容量/回收门槛，不把隔离重跑写成同一 Engine 长时稳定证据。
+7. 最终文档与代码门禁使用缓存的 pnpm 9.4.0：`docs:check`、431 个活动源码文件的 `boundaries:check`、21/22 workspace 递归 typecheck/build 和 Docs App 直接 production build 均通过。根 `pnpm typecheck`、`pnpm build` 与 `pnpm build:docs` 的 Turbo 包装器在任务启动前因当前 macOS Keychain/TLS 无法创建 APIClient 而退出；直接 workspace 等价任务已跑齐，不把根包装器记录为通过。Backend build 仅保留 Wrangler 日志目录 `EPERM` warning，整体退出码为 0。
+
+本地 #40 lifecycle/security 已闭环。A3/A4 和本文继续保持 Active，仅因生产 R2/Object Store、目标区域 external Engine、双 Runtime 跨宿主接管、专属 worker 与备份恢复尚未验收。
 
 ### S0：兼容护栏与命名校正
 
@@ -482,18 +496,18 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 ## 7. 验收与完成条件
 
 - [x] UI 与公开文档以 Space 为产品语义，Matrix Room 只在技术说明出现。
-- [ ] Space 语义不出现 Workspace/试验场；进入后始终运行最后一个 ready Revision，Candidate 失败不替换当前 App。
+- [x] Space 语义不出现 Workspace/试验场；进入后始终运行最后一个 ready Revision，Candidate 失败不替换当前 App。
 - [x] 顶部 Kernel Bar 是唯一固定宿主 UI；其下全部来自 Space App Project，无宿主固定 Chat Panel 或 Studio 边界。
 - [x] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract，覆盖双向消息、媒体、回复、编辑、删除、Reaction、已读、typing 和历史。
 - [x] member/agent Mention 使用平台结构化 target；普通消息不触发 Agent，`@agent` 在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 和 queue。
-- [ ] 空白与市场模板两种创建模式通过真实 Matrix 双浏览器验证。
+- [x] 空白与市场模板两种创建模式通过真实 Matrix 双浏览器验证。
 - [ ] 历史私聊、历史群聊和新增多人 Space 都映射唯一 `spaceInstanceId`，共用同一 Repository、Instance Server、Project、SDK 和 queue。
 - [ ] 两个 Space Runtime replica 竞争同一实例时只有 lease owner 写入，接管后 sequence/snapshot/queue 可恢复。
 - [ ] Discover、分类、详情、收藏、版本和模板创建回归全绿。
-- [ ] Agent Adapter 契约由 Pi 和 fake/第二 provider 同时验证。
-- [ ] Template 应用、Candidate、ready Revision 实时切换、publish、rollback 和 v1/v2 migration 有 unit/contract/integration 证据。
-- [ ] App/Agent/Runtime 故障期间 Chat Core 保持可用，Kernel Bar 能恢复最后 ready Revision 或 Default Chat App。
-- [ ] 相关 TanStack E2E 全绿并在 TEST-CATALOG #40 记录环境、命令和结果。
-- [ ] `pnpm docs:check`、`pnpm typecheck`、`pnpm build` 以及适用 E2E 通过。
+- [x] Agent Adapter 契约由 Pi 和 fake/第二 provider 同时验证。
+- [x] Template 应用、Candidate、ready Revision 实时切换、publish、rollback 和 v1/v2 migration 有 unit/contract/integration 证据。
+- [x] App/Agent/Runtime 故障期间 Chat Core 保持可用，Kernel Bar 能恢复最后 ready Revision 或 Default Chat App。
+- [x] 相关本地 TanStack E2E 全绿并在 TEST-CATALOG #40 记录环境、命令和结果；生产跨宿主验收单独保留。
+- [x] `pnpm docs:check`、workspace 直接等价 typecheck/build、Docs production build 与适用 E2E 通过；根 Turbo 包装器的 macOS Keychain/TLS 环境失败已单独记录，未写成通过。
 
 在以上条件全部满足前，本文件保持 Active，稳定设计中的新增 Space App/Agent 能力不得标记为已实现。

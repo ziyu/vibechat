@@ -3,6 +3,7 @@ import {
   applySpaceTemplateRequestSchema,
   cancelSpaceAgentTurnRequestSchema,
   spaceAgentTurnCancellationSchema,
+  spaceAppBridgeCommandEnvelopeSchema,
   spaceAppBridgeRequestSchema,
   spaceRuntimeControlRequestSchema,
 } from '../../../packages/space-app-contracts/src'
@@ -120,5 +121,23 @@ describe('Space App S4 control contracts', () => {
       action: 'chat.recent',
       payload: { limit: 20, before: '$message-1' },
     })
+    expect(spaceAppBridgeCommandEnvelopeSchema.parse({
+      type: 'space:command',
+      version: 1,
+      id: 'command-1',
+      nonce: '9cb2a6c8-0fd9-4690-991f-857e93aaf61e',
+      sequence: 1,
+      action: 'chat.recent',
+      payload: { limit: 20, before: '$message-1' },
+    })).toMatchObject({ action: 'chat.recent', sequence: 1 })
+    expect(spaceAppBridgeCommandEnvelopeSchema.safeParse({
+      type: 'space:command',
+      version: 1,
+      id: 'command-1',
+      nonce: '9cb2a6c8-0fd9-4690-991f-857e93aaf61e',
+      sequence: 1,
+      action: 'app.publish',
+      payload: {},
+    }).success).toBe(false)
   })
 })

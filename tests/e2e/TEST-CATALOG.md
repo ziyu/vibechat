@@ -1324,10 +1324,10 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] 带 v1 模板 lineage 的历史房间原地 lazy bootstrap 到兼容 Project，不创建新 Matrix Room、Space Instance 或聊天记录。
 - [x] 新建模板 Space 后进入同一 Matrix 会话，两个已登录用户通过 Template App 的 Chat SDK 仍能发送、接收、回复、编辑、删除和 reaction。
 - [x] 在同一 Space 发送普通文本不会创建 Agent turn；App 提交平台结构化 `@agent` Mention 后，人类消息先进入 Matrix timeline，随后 Kernel 显示唯一 Agent turn。
-- [ ] 对同一 Matrix `event_id` 重试 Agent command 只接受一次；相邻 Agent 请求按接收顺序执行，publish 作为单独屏障。
-- [ ] Agent 修改 Project 后 Candidate 通过校验并实时切换为当前 ready Revision；另一位成员看到相同 App 与 App state。
-- [ ] Publish 将固定 ready Revision 固化为不可变 Release；后续实时更新不改写该 Release。
-- [ ] Agent/Candidate 构建失败时继续运行最后 ready Revision；Kernel Bar 可以恢复 Default Chat App，Chat Core 数据不受影响。
+- [x] 对同一 Matrix `event_id` 重试 Agent command 只接受一次；相邻 Agent 请求按接收顺序执行，publish 作为单独屏障。
+- [x] Agent 修改 Project 后 Candidate 通过校验并实时切换为当前 ready Revision；另一位成员看到相同 App 与 App state。
+- [x] Publish 将固定 ready Revision 固化为不可变 Release；后续实时更新不改写该 Release。
+- [x] Agent/Candidate 构建失败时继续运行最后 ready Revision；Kernel Bar 可以恢复 Default Chat App，Chat Core 数据不受影响。
 
 首版完成证据需记录真实命令、运行环境、两个用户/浏览器、Matrix event id、Space instance id、draft id 与 release id。缺少 Synapse、Pi/provider 凭据或 AgentOS Runtime 时，只能记录未覆盖项，不能勾选通过。
 
@@ -1360,10 +1360,23 @@ Web、Backend 与未来 Desktop 共用的契约和客户端能力必须通过真
 - [x] 空白 Space 复制 Default Chat App 作为初始 ready Revision；Chat UI 本身可由模板或 Agent 完全重写。
 - [x] Default Chat App 与至少一个完全不同布局的 Template App 都通过同一 Chat Core contract：文字、媒体、回复、编辑、删除、Reaction、已读、typing、历史与错误恢复保持正常。
 - [x] App 通过 SDK 查询平台结构化 member/agent Mention；member Mention 写入标准 Matrix metadata 且不调度 Agent/credits，带 Agent Mention 的消息在 Matrix event 确认后按 `eventId` 幂等执行 ACL、credits 与 queue；受管 Agent Matrix user 不进入 member target。
-- [ ] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
+- [x] Candidate 成功后对同一 Space 的双浏览器实时切换 ready Revision；失败保留最后 ready App；Publish 只固化固定 Revision，不把 Space 从“试验”变成“可用”。
 - [x] Space 冷启动期间只显示中性准备状态，不把 Default Chat App 当作超时占位；首个 ready Revision 就绪后只挂载对应 App。已有 ready App 在 Runtime 轮询、Agent 构建或暂时不可用期间保持显示，不回退到 Default Chat。
-- [ ] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
-- [ ] App 无法覆盖/伪造 Kernel Bar，不能读取 Matrix token、伪造身份、改写 Mention 解析、绕过屏蔽/ACL/计费或建立第二条消息 timeline。
+- [x] App 文档代理对 Runtime 非 2xx 保持原始失败状态，不在 Template Project 之外合成 Default Chat HTML；Candidate 使用隔离的版本实例构建，失败后原 ready Revision 在 iframe 重载与页面刷新时仍可按固定版本读取。恢复 Default Chat App 只能由 Kernel 的显式恢复操作创建新的受管 Revision。
+- [x] App 无法覆盖/伪造 Kernel Bar，不能读取 Matrix token、伪造身份、改写 Mention 解析、绕过屏蔽/ACL/计费或建立第二条消息 timeline。
+
+本轮 lifecycle/security 联合验收固定为一个真实 Synapse Space、两个独立 Chromium Context 和同一条 Product DB/Runtime 权威链路：先记录 ready Revision `R1` 与已有 Published Release `P0`，通过 Kernel Template Candidate 切换到 `R2`，显式发布时固定 `R2`，再切换到 `R3` 并断言 Published Release 仍指向 `R2`；旧 `R2` 必须继续能由固定 `version` URL 读取。对不存在但格式合法的 Revision 请求必须保留 Runtime 非 2xx、JSON 错误体和原状态，不注入 Space SDK 或 Default Chat HTML；两个浏览器的 iframe reload/页面刷新仍挂载 Project 当前 ready Revision。随后由 Kernel 显式恢复 Default Chat，产生新的 ready Revision `R4`，同时保持固定 Published Release、Matrix timeline、成员和 App State。
+
+同一验收还必须验证 opaque sandbox 与版本化 bridge 的信任边界：Kernel Bar 始终位于 iframe 外；App 不能访问 parent DOM、Cookie、Matrix token、Runtime 内部 credential 或 provider credential；Host 只接受当前 iframe `contentWindow`、本次随机 nonce、严格单调 sequence、受限速率和合法 action/payload。重放、错 nonce、未知 action、`app.publish`、伪造 sender/member/agent/Space/Release 字段和跨 Room Mention 必须在进入高权限服务前拒绝；成员身份始终由 Host/Backend 覆盖，Chat 写入只进入当前 Matrix Room，Agent 调度仍只来自确认后的结构化 Matrix Mention。拒绝路径不得新增 Space Turn、Outbox、credits reservation/settlement/refund、Release 或第二条消息存储。
+
+2026-08-28 lifecycle/security 完成证据：
+
+- Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Web `18101`、Backend `18102`、Runtime `18107`，以及使用独立临时数据库和 Rivet 默认 `default` region 的 external Engine `16520` 上，新增 lifecycle/security 双 Chromium 场景聚焦运行 1/1（3.1 分钟）、完整 `chat-matrix-room.spec.ts` 4/4（7.0 分钟）通过。
+- 同一真实 Space 中，Campfire `R1` ready 后显式 publish 固定 `R1`；Focus Candidate 切到 `R2` 时双方实时收敛而 Release 仍为 `R1`，`R1/R2` 固定 version URL 均可读；合法但不存在的 Revision 保留 Runtime 503 JSON 且不注入 SDK/Default Chat；双页刷新继续固定 `R2`；Kernel 显式恢复 Default Chat 后产生新 ready Revision，同时 Release、Matrix Chat、成员和 App State 保持。
+- Kernel 始终在 iframe 外；opaque sandbox/CSP 阻止 parent DOM、Cookie、localStorage 与任意网络读取。App proxy 不再转发 Backend→Runtime 的短期 `Authorization` credential，只允许公开内容协商/缓存/range 请求头。Runtime 内部 API 无 credential 返回 401，伪造 client/member/author/agent/Space 字段由 Host/Backend 身份覆盖。
+- Bridge 每次 iframe revision/reload 使用随机 nonce；Host 只接受当前 `contentWindow`、严格递增 sequence、64 KiB payload、10 秒 120 条命令和已知 action。错 nonce、replay、rate burst、未知 action 与 `app.publish` 均在 Host 拒绝；拒绝前后 Turn、Outbox、credits 与 Release 数量不变。
+- `chat-space-agent-collaboration.spec.ts` 在 Runtime 显式启用 Fake Adapter 时失败保护 1/1 通过（另两条真实 provider 条件用例按设计跳过）；`chat-matrix-operations.spec.ts` 在干净 Engine 上 Default/Campfire 2/2（44.3 秒）通过，`chat-member-history.spec.ts` 1/1（2.5 分钟）通过。连续复用已运行完整 lifecycle 的同一 Engine 会留下 guest actor 并触发 Runtime capacity/guest RPC timeout，因此两组 Chat 回归使用新的独立 Engine DB 重跑，未把容量失败改写为产品通过。
+- 定向 unit 9 个文件、38/38 通过，覆盖 contracts、bridge guard、App proxy header allowlist、SDK history、Runtime credential、Dev Preview、Publish 与 Restore；`space-app-contracts`、`space-app-sdk`、Web、Space Runtime TypeScript 检查通过。本组不包含生产 R2/Object Store/external Engine 跨宿主验收，A3/A4 因该生产门槛继续保持 Active。
 
 空白创建与模板后应用的实现验收：
 
@@ -1400,7 +1413,7 @@ Default/Custom Chat Core 共用 contract 定向验收：使用同一对真实 Ma
 - `chat-matrix-operations.spec.ts` 现以一次账号/好友初始化生成两个独立测试 case；`space-default` 与 `space-campfire` 的 Product/Runtime template identity 均先被固定断言，再调用同一个 `exerciseChatCoreContract`。测试不读取 Template 标题或复制 Template 专属操作逻辑。
 - Node 24.19.0、本地 SQLite、真实 Synapse `8008`、Web `8001`、Backend `8002`、Space Runtime `8007` 与 external Rivet Engine `6420` 上，最终完整文件 2/2 通过（44.5 秒）；Campfire 聚焦重跑另为 1/1（8.7 秒）。Default 与 Campfire 都覆盖双向文字、reply、Reaction 添加/移除/重加、typing、编辑/删除权限、附件、离线 local echo/重试、显式 `m.read` receipt 和刷新唯一恢复。
 - 初版扩展曾把早期 relation 根消息错误假设为仍在 Matrix initial-sync 30-event 窗口，并继续等待已不属于当前 Spaces 页的 `space-search`；两项都在测试结构中移除，没有据此修改生产逻辑。连续两个 Space 下 Reaction 传播存在正常异步抖动，最终 contract 先等待发起端 local projection，再在 20 秒 Matrix 预算内验证对端，不以固定 sleep 掩盖失败。
-- 结合 `chat-member-history.spec.ts` 的 Default/Campfire member Mention、跨 initial-sync 分页、失败保留和刷新去重 1/1 证据，#40 的 Chat Core contract 复选项已满足；Candidate/publish、App 代理失败和信任边界复选项继续保持未完成，完整 #40 仍为 Active。
+- 结合 `chat-member-history.spec.ts` 的 Default/Campfire member Mention、跨 initial-sync 分页、失败保留和刷新去重 1/1 证据，#40 的 Chat Core contract 复选项已满足。本条保留该切片当时 Candidate/publish、App 代理失败和信任边界尚未闭环的事实；后续完成证据见 40.2 的 2026-08-28 lifecycle/security 记录。
 
 完成证据必须包含 Default Chat App 源码、Custom Template App 源码、Host DOM 只有 Kernel Bar + iframe 的断言、两种 App 的 Chat Core contract suite、双 Chromium 实时 Revision 切换、Candidate 失败保护、结构化 `@agent` 去重和发布固化结果。
 
@@ -1535,7 +1548,7 @@ Default/Custom Chat Core 共用 contract 定向验收：使用同一对真实 Ma
 - 成员 API `GET /v1/rooms/:roomId/revisions` 通过 Better Auth 与实时 Matrix membership 后只返回 bounded 摘要；Kernel 固定历史 `revisionId`、幂等 `requestId` 和 `expectedReadyRevisionId`，Runtime 从 Product DB 权威记录读取并校验内容寻址对象，再经隔离 Candidate 移动 ready pointer。rollback 不调用 Agent、不消耗 credits，也不改变 Release、Chat、成员或 App State。
 - Revision 定向 unit 7 个文件、35/35，Space Runtime 相关全量 unit 31 个文件、138/138 通过。新增双 Chromium rollback E2E 1/1（2.9 分钟），完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）通过：两个独立 Context 在已有定制 Space 中收敛到同一历史 Revision，原 Matrix 消息、App State 和 64 位 Published Release 保持不变。
 - 全新隔离 Wrangler D1 从 `0000` 连续应用 19 个 migration 到 `0018_fair_white_queen.sql`，实际确认复合主键与最新 migration 记录；Workers `/api/health` 返回 200、database healthy，未登录 Revision API 返回 401。本地 SQLite migration、430 文件边界检查、20 个 package/app 逐 workspace typecheck，以及 packages/Runtime/Backend/Web/Site/Admin/Docs production build 均通过。
-- 本证据只覆盖 `0018` 基线后的历史；迁移前已失去 pointer 的对象不推断、不恢复。真实 R2/external Engine 跨宿主和完整 #40 继续保持未完成。
+- 本证据只覆盖 `0018` 基线后的历史；迁移前已失去 pointer 的对象不推断、不恢复。真实 R2/external Engine 跨宿主继续保持未完成；本地 #40 lifecycle/security 已由 40.2 的后续记录闭环。
 
 `chat-space-agent-collaboration.spec.ts` 的首个 P0 用例必须使用两个独立 Chromium Context 和同一个真实 Synapse Space：A/B 完成联系人与加入；A 发送普通消息并由 B 接收；A 再从 App 发送结构化 `@agent`；两端断言只有一条 Agent 回复，回复带 Agent 身份并关联原始事件；两端刷新后数量仍为一；若 Agent 修改 Project，则两端最终指向相同 ready Revision 且 Published Release 未被隐式改写。测试不得以 Runtime SSE message 或页面 fixture 充当 Agent Chat 成功证据。
 
@@ -1639,6 +1652,7 @@ Runtime 多副本故障用例必须提供可控 barrier/failpoint，而不是依
 
 | 日期 | 应用 | 通过 | 失败 | 跳过 | 备注 |
 |------|------|------|------|------|------|
+| 2026-08-28 | Space App lifecycle/security + Chat Core regression | 8 | 0 | 2 | 完整 `chat-matrix-room.spec.ts` 4/4（含 lifecycle/security 聚焦场景 1/1）、Fake Candidate failure 1/1、Default/Campfire Chat Core 2/2、member-history 1/1；两个真实 provider 条件场景按设计跳过；相关 unit 9 files/38 tests 通过。各 App-heavy 回归使用独立干净 Engine DB，不包含生产 R2/external Engine 跨宿主验收 |
 | 2026-08-28 | Revision 历史 + Kernel rollback + Synapse + 双 Chromium | 3 | 0 | 0 | 新增 rollback 场景 1/1（2.9 分钟），完整 `chat-matrix-room.spec.ts` 3/3（3.3 分钟）；Revision unit 35/35、Space Runtime 相关全量 unit 138/138 与 D1 `0018`/Workers preview 另行通过 |
 | 2026-08-27 | S5 完整 Chromium 回归尝试 | 39 | 8 | 3 | 另有 9 未运行；失败为 Better Auth 429、seed foreign key、commission 数据漂移、Matrix timeout 与 `SPACE_RUNTIME_UNAVAILABLE`，属于当前共享服务/数据环境事实，未声称回归全绿 |
 | 2026-08-27 | Space Runtime + disposable Rivet Engine + 独立 pool worker | 6 | 0 | 0 | Agent/build/serving 各两个独立 Node/Envoy 同时 active；停止一个 build 后为 `2/1/2`；这是 pool 进程隔离证据，不代表真实 D1/R2 + Synapse 跨宿主验收 |

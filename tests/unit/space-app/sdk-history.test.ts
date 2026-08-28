@@ -7,6 +7,7 @@ describe('Space App SDK Chat history', () => {
   })
 
   it('merges pages by event ID and preserves the timeline when a page fails', async () => {
+    const nonce = '9cb2a6c8-0fd9-4690-991f-857e93aaf61e'
     let onMessage: ((event: { source: unknown; data: Record<string, unknown> }) => void) | undefined
     let recentCalls = 0
     const parent = {
@@ -21,11 +22,13 @@ describe('Space App SDK Chat history', () => {
             data: failed ? {
               type: 'space:result',
               id: message.id,
+              nonce,
               ok: false,
               error: 'history unavailable',
             } : {
               type: 'space:result',
               id: message.id,
+              nonce,
               ok: true,
               result: {
                 messages: [
@@ -53,6 +56,7 @@ describe('Space App SDK Chat history', () => {
       data: {
         type: 'space:init',
         version: 1,
+        nonce,
         snapshot: {
           appId: 'space-1',
           chat: {

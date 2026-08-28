@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { completeChatOnboarding, signInViaAPI, signUpViaAPI } from '../helpers/auth'
 
@@ -16,6 +17,43 @@ async function openAppChat(page: Page, timeout = 30_000) {
   await expect(root).toHaveAttribute('data-open', 'true')
   await expect(input).toBeInViewport()
   return frame
+}
+
+async function mountedAppRevision(page: Page) {
+  const src = await page.locator('[data-testid="space-app-surface"] iframe').getAttribute('src')
+  return src ? new URL(src, page.url()).searchParams.get('version') : null
+}
+
+async function readRuntimeSideEffects(spaceInstanceId: string, userId: string) {
+  const sqlitePath = resolve(process.cwd(), process.env.SQLITE_DB_PATH || './data/local.sqlite')
+  const Database = (await import('better-sqlite3')).default
+  const db = new Database(sqlitePath, { readonly: true })
+  try {
+    const count = (sql: string, value: string) => (
+      db.prepare(sql).get(value) as { count: number }
+    ).count
+    const user = db.prepare(
+      'SELECT credit_balance FROM "user" WHERE id = ?',
+    ).get(userId) as { credit_balance: string } | undefined
+    expect(user).toBeTruthy()
+    return {
+      turnCount: count(
+        'SELECT COUNT(*) AS count FROM space_runtime_turn WHERE space_instance_id = ?',
+        spaceInstanceId,
+      ),
+      outboxCount: count(
+        'SELECT COUNT(*) AS count FROM space_runtime_outbox WHERE space_instance_id = ?',
+        spaceInstanceId,
+      ),
+      creditTransactionCount: count(
+        'SELECT COUNT(*) AS count FROM credit_transaction WHERE user_id = ?',
+        userId,
+      ),
+      creditBalance: user!.credit_balance,
+    }
+  } finally {
+    db.close()
+  }
 }
 
 test.describe('Vibe Chat real Matrix room and timeline', () => {
@@ -61,6 +99,376 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     await expect(applyTemplate.json()).resolves.toMatchObject({
       error: { code: 'AUTH_SESSION_REQUIRED' },
     })
+  })
+
+  test('pins the published Revision while ready Candidates change and enforces the App trust boundary', async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(480_000)
+    const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+    const email = `e2e-space-lifecycle-${suffix}@example.com`
+    const password = 'VibeChat-e2e-password-2026!'
+    const signUp = await signUpViaAPI(page, {
+      name: 'Space Lifecycle E2E',
+      email,
+      password,
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    const bootstrap = await bootstrapResponse.json()
+    expect(bootstrap.matrix.status).toBe('ready')
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-campfire',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `lifecycle-${crypto.randomUUID()}`,
+        name: 'Space lifecycle security E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+    const runtimeUrl = `/v1/spaces/instances/${encodeURIComponent(created.matrixRoomId)}`
+    const appUrl = `${runtimeUrl}/app?channel=dev`
+
+    const secondContext = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'http://localhost:8001',
+    })
+    try {
+      const secondPage = await secondContext.newPage()
+      const secondSignIn = await signInViaAPI(secondPage, { email, password })
+      expect(secondSignIn.ok(), await secondSignIn.text()).toBeTruthy()
+      await Promise.all([
+        page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`),
+        secondPage.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`),
+      ])
+      await Promise.all([
+        expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true'),
+        expect(secondPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true'),
+      ])
+
+      const initialResponse = await page.request.get(runtimeUrl)
+      expect(initialResponse.ok(), await initialResponse.text()).toBeTruthy()
+      const initial = await initialResponse.json()
+      const firstRevision = initial.project.draftId as string
+      expect(firstRevision).toMatch(/^[a-f0-9]{16}$/)
+      expect(initial.project.template.id).toBe('space-campfire')
+      await expect.poll(() => mountedAppRevision(page)).toBe(firstRevision)
+      await expect.poll(() => mountedAppRevision(secondPage)).toBe(firstRevision)
+
+      const messageText = `Lifecycle Matrix message ${suffix}`
+      const firstChat = await openAppChat(page, 90_000)
+      await firstChat.getByTestId('message-input').fill(messageText)
+      await firstChat.getByTestId('send-message').click()
+      await expect(firstChat.getByTestId('message-body').filter({ hasText: messageText }))
+        .toHaveCount(1)
+      await expect((await openAppChat(secondPage, 90_000)).getByTestId('message-body')
+        .filter({ hasText: messageText })).toHaveCount(1)
+
+      const stateValue = { marker: `lifecycle-${suffix}` }
+      const stateResponse = await page.request.post(`${runtimeUrl}/bridge`, {
+        data: {
+          action: 'state.set',
+          payload: { key: 'e2e.lifecycle', value: stateValue },
+        },
+      })
+      expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
+
+      const publishResponse = await page.request.post(`${runtimeUrl}/publish`, {
+        data: {
+          requestId: `publish-${crypto.randomUUID()}`,
+          expectedReadyRevisionId: firstRevision,
+        },
+      })
+      expect(publishResponse.status(), await publishResponse.text()).toBe(202)
+      await expect.poll(async () => {
+        const response = await page.request.get(runtimeUrl)
+        if (!response.ok()) return null
+        const snapshot = await response.json()
+        return snapshot.project.releaseId || null
+      }, { timeout: 240_000 }).not.toBeNull()
+      const publishedSnapshot = await (await page.request.get(runtimeUrl)).json()
+      const fixedReleaseId = publishedSnapshot.project.releaseId as string
+      expect(fixedReleaseId).toEqual(expect.any(String))
+
+      const publishedLive = await page.request.get(`${runtimeUrl}/app?channel=live`)
+      expect(publishedLive.ok(), await publishedLive.text()).toBeTruthy()
+      expect(await publishedLive.text()).toContain('<title>夜航电台</title>')
+
+      const applyResponse = await page.request.post(
+        `/v1/rooms/${encodeURIComponent(created.matrixRoomId)}/apply-template`,
+        {
+          data: {
+            requestId: `apply-focus-${crypto.randomUUID()}`,
+            expectedReadyRevisionId: firstRevision,
+            spaceTemplateId: 'space-focus',
+            spaceTemplateVersionId: 'tplv-space-focus-0-1-2',
+          },
+        },
+      )
+      expect(applyResponse.status(), await applyResponse.text()).toBe(202)
+      let secondRevision = ''
+      await expect.poll(async () => {
+        const response = await page.request.get(runtimeUrl)
+        if (!response.ok()) return null
+        const snapshot = await response.json()
+        secondRevision = snapshot.project.draftId
+        return {
+          changed: secondRevision !== firstRevision,
+          templateId: snapshot.project.template?.id,
+          previewState: snapshot.devPreview.state,
+          releaseId: snapshot.project.releaseId,
+          appState: snapshot.appState.state['e2e.lifecycle'],
+        }
+      }, { timeout: 120_000 }).toEqual({
+        changed: true,
+        templateId: 'space-focus',
+        previewState: 'ready',
+        releaseId: fixedReleaseId,
+        appState: stateValue,
+      })
+      expect(secondRevision).toMatch(/^[a-f0-9]{16}$/)
+      await expect.poll(() => mountedAppRevision(page)).toBe(secondRevision)
+      await expect.poll(() => mountedAppRevision(secondPage)).toBe(secondRevision)
+
+      const firstFixedApp = await page.request.get(`${appUrl}&version=${firstRevision}`)
+      expect(firstFixedApp.ok(), await firstFixedApp.text()).toBeTruthy()
+      expect(await firstFixedApp.text()).toContain('<title>夜航电台</title>')
+      const secondFixedApp = await page.request.get(`${appUrl}&version=${secondRevision}`)
+      expect(secondFixedApp.ok(), await secondFixedApp.text()).toBeTruthy()
+      expect(await secondFixedApp.text()).toContain('<title>苔原共创室</title>')
+
+      const missingRevisionResponse = await page.request.get(
+        `${appUrl}&version=0000000000000000`,
+      )
+      expect(missingRevisionResponse.status()).toBe(503)
+      expect(missingRevisionResponse.headers()['content-type']).toContain('application/json')
+      expect(missingRevisionResponse.headers()['x-vibechat-space-recovery']).toBeUndefined()
+      const missingRevisionBody = await missingRevisionResponse.text()
+      expect(missingRevisionBody).toContain('Space ready Revision 0000000000000000 is unavailable')
+      expect(missingRevisionBody).not.toContain('data-vibechat-space-sdk')
+      expect(missingRevisionBody).not.toContain('<title>Vibe Chat</title>')
+
+      await Promise.all([page.reload(), secondPage.reload()])
+      await Promise.all([
+        expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true'),
+        expect(secondPage.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true'),
+      ])
+      await expect.poll(() => mountedAppRevision(page)).toBe(secondRevision)
+      await expect.poll(() => mountedAppRevision(secondPage)).toBe(secondRevision)
+      await expect((await openAppChat(page)).getByTestId('message-body')
+        .filter({ hasText: messageText })).toHaveCount(1)
+
+      await expect(page.getByTestId('space-kernel-bar')).toBeVisible()
+      await expect(chatFrame(page).getByTestId('space-kernel-bar')).toHaveCount(0)
+      const fixedAppBody = await secondFixedApp.text()
+      expect(fixedAppBody).not.toContain(bootstrap.matrix.accessToken)
+      expect(fixedAppBody).not.toContain('SPACE_RUNTIME_INTERNAL_TOKEN')
+      expect(fixedAppBody).not.toContain('OPENAI_API_KEY')
+      expect(fixedAppBody).not.toContain('ANTHROPIC_API_KEY')
+
+      const directRuntime = await page.request.get(new URL(
+        `/api/apps/${encodeURIComponent(created.spaceInstanceId)}`,
+        process.env.SPACE_RUNTIME_ORIGIN || 'http://localhost:8007',
+      ).href)
+      expect(directRuntime.status()).toBe(401)
+
+      const forgedPresence = await page.request.post(`${runtimeUrl}/bridge`, {
+        data: {
+          clientId: 'kernel',
+          authorName: 'Kernel',
+          agentId: 'pi',
+          spaceInstanceId: 'another-space',
+          action: 'presence.update',
+          payload: { value: { mode: 'security-probe' } },
+        },
+      })
+      expect(forgedPresence.ok(), await forgedPresence.text()).toBeTruthy()
+      const identitySnapshot = await (await page.request.get(runtimeUrl)).json()
+      expect(identitySnapshot.appState.presence).toEqual(expect.arrayContaining([
+        expect.objectContaining({ clientId: bootstrap.user.id }),
+      ]))
+      expect(identitySnapshot.appState.presence).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ clientId: 'kernel' }),
+      ]))
+
+      const beforeRejectedCommands = (process.env.DB_DIALECT || 'sqlite') === 'sqlite'
+        ? await readRuntimeSideEffects(created.spaceInstanceId, bootstrap.user.id)
+        : null
+      const securityProbe = await chatFrame(page).locator('body').evaluate(async () => {
+        let parentAccessDenied = false
+        try {
+          void window.parent.document.body
+        } catch {
+          parentAccessDenied = true
+        }
+        let localStorageDenied = false
+        try {
+          void window.localStorage.length
+        } catch {
+          localStorageDenied = true
+        }
+        let cookie = ''
+        let cookieDenied = false
+        try {
+          cookie = document.cookie
+        } catch {
+          cookieDenied = true
+        }
+        let networkDenied = false
+        try {
+          await fetch('/v1/session/bootstrap')
+        } catch {
+          networkDenied = true
+        }
+
+        const nonce = await new Promise<string>((resolveNonce, reject) => {
+          const timeout = window.setTimeout(() => reject(new Error('bridge init timed out')), 5_000)
+          const listener = (event: MessageEvent) => {
+            if (
+              event.source === window.parent
+              && event.data?.type === 'space:init'
+              && typeof event.data.nonce === 'string'
+            ) {
+              window.clearTimeout(timeout)
+              window.removeEventListener('message', listener)
+              resolveNonce(event.data.nonce)
+            }
+          }
+          window.addEventListener('message', listener)
+          window.parent.postMessage({ type: 'space:bridge-ready', version: 1 }, '*')
+        })
+
+        const pending = new Map<string, (value: Record<string, unknown>) => void>()
+        const resultListener = (event: MessageEvent) => {
+          const id = event.data?.id
+          if (event.source !== window.parent || event.data?.type !== 'space:result' || typeof id !== 'string') return
+          pending.get(id)?.(event.data as Record<string, unknown>)
+          pending.delete(id)
+        }
+        window.addEventListener('message', resultListener)
+        const send = (value: Record<string, unknown>) => new Promise<Record<string, unknown>>((resolveResult, reject) => {
+          const id = String(value.id)
+          const timeout = window.setTimeout(() => {
+            pending.delete(id)
+            reject(new Error(`bridge result timed out: ${id}`))
+          }, 15_000)
+          pending.set(id, (result) => {
+            window.clearTimeout(timeout)
+            resolveResult(result)
+          })
+          window.parent.postMessage(value, '*')
+        })
+        const envelope = (id: string, sequence: number, action: string, payload = {}) => ({
+          type: 'space:command',
+          version: 1,
+          id,
+          nonce,
+          sequence,
+          action,
+          payload,
+        })
+
+        const publish = await send(envelope('forged-publish', 900_000, 'app.publish'))
+        const wrongNonce = await send({
+          ...envelope('wrong-nonce', 900_000, 'theme.set'),
+          nonce: 'b53b2817-0019-45d5-a352-ff46ba4b9fc5',
+        })
+        const forgedEvent = envelope('forged-identity', 1_000_000, 'event.emit', {
+          name: 'security.probe',
+          payload: {
+            clientId: 'kernel',
+            authorName: 'Kernel',
+            agentId: 'pi',
+            matrixRoomId: '!forged:localhost',
+            releaseId: 'forged-release',
+          },
+        })
+        const accepted = await send(forgedEvent)
+        const replay = await send({ ...forgedEvent, id: 'replayed-command' })
+        const burst = await Promise.all(Array.from({ length: 130 }, (_, index) =>
+          send(envelope(`burst-${index}`, 1_000_001 + index, 'theme.set')),
+        ))
+        window.removeEventListener('message', resultListener)
+        return {
+          parentAccessDenied,
+          localStorageDenied,
+          cookieDenied,
+          networkDenied,
+          cookie,
+          publish,
+          wrongNonce,
+          accepted,
+          replay,
+          burstErrors: burst.filter((result) => result.ok === false).map((result) => result.error),
+        }
+      })
+      expect(securityProbe).toMatchObject({
+        parentAccessDenied: true,
+        localStorageDenied: true,
+        cookieDenied: true,
+        networkDenied: true,
+        cookie: '',
+        publish: { ok: false, error: 'SPACE_APP_BRIDGE_COMMAND_INVALID' },
+        wrongNonce: { ok: false, error: 'SPACE_APP_BRIDGE_NONCE_INVALID' },
+        accepted: { ok: true },
+        replay: { ok: false, error: 'SPACE_APP_BRIDGE_SEQUENCE_INVALID' },
+      })
+      expect(securityProbe.burstErrors).toContain('SPACE_APP_BRIDGE_RATE_LIMITED')
+      if (beforeRejectedCommands) {
+        await expect.poll(() => readRuntimeSideEffects(
+          created.spaceInstanceId,
+          bootstrap.user.id,
+        )).toEqual(beforeRejectedCommands)
+      }
+
+      const restoreResponse = await page.request.post(`${runtimeUrl}/restore`, {
+        data: {
+          requestId: `restore-default-${crypto.randomUUID()}`,
+          target: 'default-chat',
+          expectedReadyRevisionId: secondRevision,
+        },
+      })
+      expect(restoreResponse.status(), await restoreResponse.text()).toBe(202)
+      let restoredRevision = ''
+      await expect.poll(async () => {
+        const response = await page.request.get(runtimeUrl)
+        if (!response.ok()) return null
+        const snapshot = await response.json()
+        restoredRevision = snapshot.project.draftId
+        return {
+          changed: restoredRevision !== secondRevision,
+          templateId: snapshot.project.template?.id,
+          previewState: snapshot.devPreview.state,
+          releaseId: snapshot.project.releaseId,
+          appState: snapshot.appState.state['e2e.lifecycle'],
+        }
+      }, { timeout: 120_000 }).toEqual({
+        changed: true,
+        templateId: 'space-default',
+        previewState: 'ready',
+        releaseId: fixedReleaseId,
+        appState: stateValue,
+      })
+      await expect.poll(() => mountedAppRevision(page)).toBe(restoredRevision)
+      await expect.poll(() => mountedAppRevision(secondPage)).toBe(restoredRevision)
+      await expect((await openAppChat(page)).getByTestId('message-body')
+        .filter({ hasText: messageText })).toHaveCount(1)
+      await expect((await openAppChat(secondPage)).getByTestId('message-body')
+        .filter({ hasText: messageText })).toHaveCount(1)
+
+      const unchangedLive = await page.request.get(`${runtimeUrl}/app?channel=live`)
+      expect(unchangedLive.ok(), await unchangedLive.text()).toBeTruthy()
+      expect(await unchangedLive.text()).toContain('<title>夜航电台</title>')
+      expect((await page.request.get(`${appUrl}&version=${firstRevision}`)).ok()).toBe(true)
+      expect((await page.request.get(`${appUrl}&version=${secondRevision}`)).ok()).toBe(true)
+    } finally {
+      await secondContext.close()
+    }
   })
 
   test('applies and rolls back a fixed Revision without replacing Chat, App state, or Release', async ({

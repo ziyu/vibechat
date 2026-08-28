@@ -358,6 +358,14 @@ export const spaceAppBridgeRequestSchema = z.object({
   payload: z.record(z.string(), z.unknown()).default({}),
 })
 
+export const spaceAppBridgeCommandEnvelopeSchema = spaceAppBridgeRequestSchema.extend({
+  type: z.literal('space:command'),
+  version: z.literal(1),
+  id: z.string().min(1).max(128),
+  nonce: z.string().uuid(),
+  sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+}).strict()
+
 export const spaceAppBridgeResponseSchema = z.object({
   ok: z.literal(true),
 }).passthrough()
@@ -382,4 +390,5 @@ export type SpaceProjectRevisionSummary = z.infer<typeof spaceProjectRevisionSum
 export type SpaceProjectRevisionList = z.infer<typeof spaceProjectRevisionListSchema>
 export type ApplySpaceTemplateRequest = z.infer<typeof applySpaceTemplateRequestSchema>
 export type SpaceAppBridgeRequest = z.infer<typeof spaceAppBridgeRequestSchema>
+export type SpaceAppBridgeCommandEnvelope = z.infer<typeof spaceAppBridgeCommandEnvelopeSchema>
 export type SpaceAppBridgeResponse = z.infer<typeof spaceAppBridgeResponseSchema>

@@ -7,6 +7,8 @@ const pendingCommands = new Map();
 let currentSnapshot = emptySnapshot();
 let readyResolved = false;
 let resolveReady;
+let bridgeNonce = null;
+let nextCommandSequence = 0;
 let lastPresenceSentAt = 0;
 let pendingPresenceValue;
 let pendingPresenceTimer;
@@ -76,15 +78,27 @@ function post(message) {
 }
 
 function command(action, payload = {}) {
+  if (!bridgeNonce) {
+    return Promise.reject(new Error("Space bridge is not initialized"));
+  }
   const id = globalThis.crypto?.randomUUID?.() ||
     `space-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  nextCommandSequence += 1;
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       pendingCommands.delete(id);
       reject(new Error(`Space command timed out: ${action}`));
     }, commandTimeoutMs);
     pendingCommands.set(id, { resolve, reject, timeout });
-    post({ type: "space:command", version: bridgeVersion, id, action, payload });
+    post({
+      type: "space:command",
+      version: bridgeVersion,
+      id,
+      nonce: bridgeNonce,
+      sequence: nextCommandSequence,
+      action,
+      payload,
+    });
   });
 }
 
@@ -259,14 +273,23 @@ async function flushPresence() {
 window.addEventListener("message", (event) => {
   if (event.source !== window.parent || !event.data) return;
   if (event.data.type === "space:init" && event.data.version === bridgeVersion) {
+    if (typeof event.data.nonce !== "string" || !event.data.nonce) return;
+    if (bridgeNonce !== event.data.nonce) {
+      bridgeNonce = event.data.nonce;
+      nextCommandSequence = 0;
+    }
     acceptSnapshot(event.data.snapshot);
     return;
   }
-  if (event.data.type === "space:event" && event.data.version === bridgeVersion) {
+  if (
+    event.data.type === "space:event" &&
+    event.data.version === bridgeVersion &&
+    event.data.nonce === bridgeNonce
+  ) {
     acceptEvent(event.data.event);
     return;
   }
-  if (event.data.type !== "space:result") return;
+  if (event.data.type !== "space:result" || event.data.nonce !== bridgeNonce) return;
   const pending = pendingCommands.get(event.data.id);
   if (!pending) return;
   clearTimeout(pending.timeout);

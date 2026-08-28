@@ -12,8 +12,10 @@ import type { ChatMessage } from '@vibechat/product-core'
 import { ProductApiClient } from '@vibechat/product-client'
 import { useTranslation } from '@/hooks/use-translation'
 import {
+  createSpaceAppBridgeGuard,
   selectReadySpaceAppTarget,
   shouldProjectRuntimeEventToApp,
+  validateSpaceAppBridgeCommand,
   type ReadySpaceAppTarget,
 } from './space-runtime-state'
 
@@ -272,6 +274,11 @@ export function SpaceAppSurface({
 }) {
   const { t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const bridgeNonce = useMemo(
+    () => globalThis.crypto.randomUUID(),
+    [appUrl, reloadKey, roomId],
+  )
+  const bridgeGuardRef = useRef(createSpaceAppBridgeGuard(bridgeNonce))
 
   const hostSnapshot = useMemo(() => {
     const agents = snapshot?.availableAgents?.length
@@ -324,9 +331,9 @@ export function SpaceAppSurface({
     }
   }, [locale, members, messages, meta, self, snapshot, typingMemberIds])
 
-  const postToApp = useCallback((value: unknown) => {
-    iframeRef.current?.contentWindow?.postMessage(value, '*')
-  }, [])
+  const postToApp = useCallback((value: Record<string, unknown>) => {
+    iframeRef.current?.contentWindow?.postMessage({ ...value, nonce: bridgeNonce }, '*')
+  }, [bridgeNonce])
 
   const initializeApp = useCallback(() => {
     postToApp({ type: 'space:init', version: bridgeVersion, snapshot: hostSnapshot })
@@ -355,22 +362,27 @@ export function SpaceAppSurface({
         return
       }
 
-      const parsed = spaceAppBridgeRequestSchema.safeParse({
-        action: data.action,
-        payload: data.payload,
-      })
-      if (!parsed.success) {
-        postToApp({ type: 'space:result', id: data.id, ok: false, error: 'Invalid Space command' })
+      if (bridgeGuardRef.current.nonce !== bridgeNonce) {
+        bridgeGuardRef.current = createSpaceAppBridgeGuard(bridgeNonce)
+      }
+      const guarded = validateSpaceAppBridgeCommand(data, bridgeGuardRef.current)
+      if (!guarded.ok) {
+        postToApp({ type: 'space:result', id: data.id, ok: false, error: guarded.code })
         return
       }
+      bridgeGuardRef.current = guarded.guard
+      const request = spaceAppBridgeRequestSchema.parse({
+        action: guarded.command.action,
+        payload: guarded.command.payload,
+      })
 
       void (async () => {
         try {
-          const result = parsed.data.action.startsWith('chat.')
-            ? await onChatCommand(parsed.data)
-            : parsed.data.action === 'theme.set'
+          const result = request.action.startsWith('chat.')
+            ? await onChatCommand(request)
+            : request.action === 'theme.set'
               ? undefined
-              : await productApi.sendSpaceAppCommand(roomId, parsed.data)
+              : await productApi.sendSpaceAppCommand(roomId, request)
           postToApp({ type: 'space:result', id: data.id, ok: true, result })
         } catch (error) {
           postToApp({
@@ -384,7 +396,7 @@ export function SpaceAppSurface({
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [initializeApp, onChatCommand, postToApp, roomId])
+  }, [bridgeNonce, initializeApp, onChatCommand, postToApp, roomId])
 
   if (!appUrl) {
     return (
