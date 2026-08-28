@@ -26,6 +26,8 @@
 
 同日完成 managed Registry/Object Store 生产接线和隔离 Cloudflare preview。Backend 新增不可变 package release 表、专用 publish/只读 resolve API 和规范化 JSON envelope；Runtime 生产模式只使用远程 provider，开发模式仅在远程未命中后回退 gitignored cache。隔离 D1/R2 实跑同时发布 `0.7.4`/`0.8.1`，重复 `0.8.1` 幂等返回原记录、内容漂移返回 409，Runtime 远程 provider 分别解析 66/74 个文件。包内 README 属于不可变发布内容，因此文档与发布工具变化没有重签 `0.8.1`，而是新增 browser API/behavior 不变的 patch `0.8.2`；其重复发布和 74 文件远程解析也已通过。该证据证明 Cloudflare D1/R2 路径和发布控制面可运行，但尚未向真实部署环境发布组件、生成本轮不可变 Space Release 或完成跨 Runtime 恢复，因此 C1/C3 继续保持 Active。
 
+组件库主线随后以向后兼容 minor 签锁 `@vibechat/space-app-components@0.9.0`，补齐 Agent P0 的 provider-neutral activity 层：`createSpaceAgentActivityView` 只投影有限 stage、queue count 和 activity label/detail，明确丢弃 provider `input/output/arguments/payload`；`createSpaceAgentController` 只订阅注入 SDK；`AgentQueueStatus`、`AgentActivity` 和 `AgentActivityPanelRecipe` 均为只读、SSR-safe，并提供文本状态、polite live region、forced-colors/reduced-motion fallback。离线 catalog 在同一 dark signal/light field-note DOM 中完成 390px 无横向溢出和无 console warning/error 走查。该版本没有升级任何官方 Template 或既有 Space，也没有修改 Runtime/Backend；下一切片才由 Template 显式升级后替换手写 build panel。
+
 ## 状态定义
 
 | 状态 | 含义 | 证据要求 |
@@ -40,21 +42,21 @@
 | ID | 工作流 | 设计章节 | 状态 | 当前证据 | 下一出口 |
 | --- | --- | --- | --- | --- | --- |
 | C0 | Package 与公共边界 | §5–§7 | Active | `packages/space-app-components`、显式 exports、边界策略、package/type/build 全绿 | 阶段 1 公共 API 与 SemVer 证据 |
-| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.8.2` tracked managed release、exact version/integrity、不可变 build、`0.7.4`/`0.8.1`/`0.8.2` 隔离 D1/R2 managed publish/resolve | 真实部署环境 publish 与不可变 Release 证据 |
+| C1 | Bundle 与版本 | §12、§15 阶段 0 | Active | `0.9.0` tracked managed release、exact version/integrity、不可变 build；`0.7.4`/`0.8.1`/`0.8.2` 已有隔离 D1/R2 publish/resolve | `0.9.0` 真实部署 publish 与不可变 Release 证据 |
 | C2 | Context 与 renderer | §7、§9 | Active | SDK 注入、snapshot controller、SSR-safe `vc-space-avatar` | component lifecycle/DOM/a11y 扩展 |
 | C3 | Project/Runtime 固化 | §12、§15 阶段 0 | Active | source/prepared 双 artifact、49 个定向 unit、本地真实 AgentOS Dev 与完整栈冷启动同 hash | 不可变 Release/生产 Object Store 同 hash |
-| C4 | User/Agent identity | §8、§15 阶段 1 | Active | `0.2.0` Foundation/User/Agent exports、两主题离线 catalog、unit/SSR/浏览器证据 | 真实 Template artifact 中完成 #40.3 a11y/E2E 场景 |
+| C4 | User/Agent identity/activity | §8、§15 阶段 1、3 | Active | `0.9.0` Agent activity view/controller/elements/recipe、两主题离线 catalog、unit/SSR/390px 浏览器证据 | Template 显式升级并完成 #40.3 完整 a11y/E2E 场景 |
 | C5 | Chat 与 Template 迁移 | §8、§15 阶段 2–4 | Active | 五个官方 Template 已共享 Chat；Default/Focus 使用 `0.8.1` Recipe，其他三个继续固定 `0.7.4`；单 Chromium 真实 Matrix 6/6 | 完成双浏览器 Matrix、不可变 Release、真实部署 publish 和完整 a11y 矩阵 |
 
 ## 当前 Active 切片
 
 Recipe 第一切片已完成：五个 Template 曾重复的 controller snapshot → Timeline/Composer/Mention/Error 装配、typed event、unread/read receipt 和 lifecycle 已收敛到语义化 `/recipes` 公共入口。Recipe 只接收注入 context、Template copy 和既有标准元素，不拥有主题、launcher markup、场景状态、Matrix/Agent 权威或 Kernel 操作。Default 全屏和 Focus 抽屉以相邻 development `0.1.7` 固定 exact `0.8.1`/integrity；另外三个 Template 与既有版本继续固定 `0.7.4`，由本地多版本 Registry 和 prepared artifact 保持可运行。
 
-managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cloudflare D1/R2 preview。下一切片转入不可变 Space Release、真实部署 publish、跨 Runtime 恢复、双浏览器 Matrix 与完整 a11y 验证；在这些证据完成前，不能把本地 preview 冒充生产上线。
+managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cloudflare D1/R2 preview；相关生产部署/跨 Runtime 工作继续保持独立，不在当前组件库分支扩展。当前组件库切片转入 Agent activity 公共能力：先在 package、catalog 和测试内固定 provider-neutral view/controller/element/recipe，再由后续 Template 相邻版本显式消费；在 Template/真实 iframe 和完整 a11y 证据完成前，不能把 package catalog 验证冒充用户链路完成。
 
 ### 目标
 
-建立所有生产 Space 共用的 managed package 发布与解析控制面：发布器把规范化 package object 写入内容寻址 Object Store，并幂等登记不可变 release；Runtime 只按 Project lock 的 exact name/version/integrity/project format 读取。相同版本重复发布相同内容返回同一记录；相同版本内容漂移、记录/object hash 不一致、对象缺失、对象篡改或不支持的 Project format全部 fail closed。现有 prepared Revision/Release 不重新解析依赖、不自动升级，`0.7.4` 与 `0.8.1` 必须可同时解析。
+在不增加 Agent 调用权威和 provider 泄漏的前提下，建立可由所有 Space 复用的 Agent activity 公共层：view model/controller 只消费注入 SDK，Queue/Activity element 提供稳定文字、ARIA、part 和 responsive contract，Panel recipe 只负责只读装配。新能力以 exact `0.9.0` 签锁；既有 Template、Revision 和 Release 不自动升级，Template 迁移留到独立相邻版本切片。
 
 ### 任务
 
@@ -95,6 +97,10 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - [x] 增加独立发布凭证、幂等 publish 与只读 resolve 内部 API；同版本同内容返回原记录，同版本内容漂移返回冲突，Runtime 凭证不能执行 publish。
 - [x] Runtime 生产默认只使用远程 Registry；开发模式可在远程未命中时使用 gitignored 多版本 cache，生产不得回退到 workspace `dist`。
 - [x] 覆盖无本地 `dist` 冷启动、`0.7.4`/`0.8.1` 共存、对象缺失/篡改、错误 integrity/project format 和 Existing Revision/Release 不升级，并完成 PG/SQLite/D1 migration 与 Cloudflare preview。
+- [x] 新增 provider-neutral Agent activity/queue view model；只保留有长度/数量上限的公开 stage、label、detail 和 count，不投影 provider payload、模型、积分或 Kernel 字段。
+- [x] 新增只读 Agent controller，复用注入 `SpaceAppClient`、去重等价 snapshot、幂等 dispose，不提供 `agent.invoke()` 或第二个 SDK client。
+- [x] 新增 `vc-space-agent-queue-status`、`vc-space-agent-activity` 和 `AgentActivityPanelRecipe`，保持普通入口 SSR-safe、registrar-only side effect、typed property、安全 attribute、公开 part 与英中内建文案。
+- [x] 将组件 package 升为向后兼容 `0.9.0`，更新离线双主题 catalog、package README、bundle gate 和 managed release lock；未升级任何官方 Template 或既有 Space。
 - [ ] 建立 long name、图片失败、keyboard、screen reader、200% 字体、high contrast 与 reduced motion 的 unit/DOM/浏览器证据。
 - [x] 在真实本地 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中验证相同 component artifact/revision hash。
 - [ ] 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中验证相同 component artifact hash。
@@ -109,6 +115,7 @@ managed Registry/Object Store 接线已完成代码、迁移、unit 和隔离 Cl
 - bundle 保持离线、自包含；Foundation/core 领域入口低于 20 KiB gzip，Chat 入口低于 35 KiB gzip，聚合入口按 Chat 预算治理；package、边界、unit、typecheck、build、文档与浏览器检查通过。
 - 受管 Registry 与 Runtime 接线已有代码/unit 和隔离 Cloudflare D1/R2 preview；本地真实 Dev/完整栈冷启动已通过，但不可变 Release、真实部署 Object Store 和跨 Runtime 恢复未验证前 C1/C3 保持 Active。
 - `0.8.1` Recipe、`space-default@0.1.7`、`space-focus@0.1.7` 与继续固定 `0.7.4` 的 `space-campfire@0.1.5`、`space-arcade@0.1.3`、`space-postcard@0.1.3` 已完成 package/bundle、定向 unit、真实 Matrix 单 Chromium E2E 和本地 ready Revision 验证，证据见本节后续记录。生产 managed publish、真实 Matrix 双浏览器消息交互、不可变 Release 和完整 a11y 矩阵继续保持未完成。
+- `0.9.0` Agent activity 公共 API 已完成 component typecheck、34/34 package unit、bundle/managed integrity 和离线 catalog 390px DOM 走查；真实 Template exact-version 消费、screen reader、200% 字体与强制 high-contrast/reduced-motion 浏览器矩阵未执行，因此 C4 与 #40.3 继续保持 Active。
 
 ## 2026-08-26 验证记录
 
@@ -296,6 +303,18 @@ Postcard `0.1.3` 的 source/artifact hash 为 `sha256:92d5f04f6f2c351fba6e0e61cd
 | Runtime exact resolve | 通过 | 远程 provider 从 workerd 按 exact lock 解析 `0.7.4` 66 个文件、`0.8.1`/`0.8.2` 各 74 个文件，无本地 package 解析依赖 |
 
 真实部署环境尚未执行 publish；本轮也没有生成不可变 Space Release 或跨 Runtime 恢复证据，因此不把 C1/C3 标记 Complete。
+
+### 2026-08-28 Agent activity 公共层验证
+
+`@vibechat/space-app-components@0.9.0` source/browser artifact/integrity 分别为 `sha256:b522904eaf23c94cda1850d5f49e52a7187dc13ffaf92b7bd699cb81e6e98856`、`sha256:dfa862ed56a5a5c098054ed84928ab30ad8d8ceca4a0b7961d8ab4b1685956c4`、`sha256:e4addfc9684062d79d192bde3c847185248b9930a46e390c357e7a624793a73e`。
+
+| 验证 | 结果 | 证据摘要 |
+| --- | --- | --- |
+| view/controller 安全边界 | 通过（unit） | activity 仅白名单投影 label/title/name/tool/stage 与 summary/detail，限制最多 12 条和单字段长度；`input/output/arguments` 测试载荷不进入序列化 view；等价 Agent 更新不重复通知，dispose 释放 listener |
+| elements/recipe contract | 通过（代码/unit） | QueueStatus/Activity 使用文字 + polite live region、typed property、安全 declarative attribute、公开 part；Panel recipe 只连接同一个 context/controller，幂等释放，不拥有 Agent 调度或 Template 状态 |
+| package/bundle | 通过 | 组件 TypeScript、34/34 package unit 与 managed integrity gate 通过；browser/foundation/user/agent/chat/recipes gzip 分别为 30,561 / 3,132 / 5,507 / 7,465 / 23,848 / 26,055 bytes，均低于预算；普通 `/agent`、`/recipes` SSR-safe且无远程 import |
+| offline catalog browser | 通过（本地单 Chromium） | Night relay/Field notes 两主题各渲染同一 `vc-space-agent-activity`；DOM snapshot 暴露 status、Agent identity、stage、queue 和两条文字 activity；390×844 下 `scrollWidth === clientWidth === 390`、两 panel 宽 321px 且无 console warning/error |
+| 真实 Template/完整 a11y | 未执行 | 本轮刻意不升级 Template 或修改 Runtime/Backend；screen reader、200% 字体、强制 high contrast/reduced motion 和真实 iframe Agent build 更新留给下一迁移切片 |
 
 ## 待决策清单
 

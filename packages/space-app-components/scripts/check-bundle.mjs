@@ -87,6 +87,20 @@ for (const requiredExport of [
     throw new Error(`Published component /chat entry is missing ${requiredExport}`);
   }
 }
+const agentModule = await import(
+  pathToFileURL(join(publishedPackageRoot, "agent", "index.js"))
+);
+for (const requiredExport of [
+  "createSpaceAgentActivityView",
+  "createSpaceAgentController",
+  "defineSpaceAgentActivityElements",
+  "renderSpaceAgentActivity",
+  "renderSpaceAgentQueueStatus",
+]) {
+  if (!(requiredExport in agentModule)) {
+    throw new Error(`Published component /agent entry is missing ${requiredExport}`);
+  }
+}
 const inlineModule = await import(
   pathToFileURL(join(publishedPackageRoot, "chat", "inline.js"))
 );
@@ -101,6 +115,7 @@ const recipesModule = await import(
   pathToFileURL(join(publishedPackageRoot, "recipes", "index.js"))
 );
 for (const requiredExport of [
+  "mountAgentActivityPanelRecipe",
   "mountDefaultChatRecipe",
   "mountChatDrawerRecipe",
   "resolveSpaceChatRecipeElements",
@@ -120,6 +135,8 @@ if (
   throw new Error("Published component /recipes/inline entry is not bound to the Recipe bundle");
 }
 for (const requiredElementName of [
+  "vc-space-agent-activity",
+  "vc-space-agent-queue-status",
   "vc-space-chat-timeline",
   "vc-space-chat-composer",
   "vc-space-mention-menu",

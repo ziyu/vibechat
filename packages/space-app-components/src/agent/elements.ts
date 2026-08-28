@@ -11,6 +11,7 @@ import {
   spaceStatusDotElementName,
 } from "../foundation/status-dot.js";
 import type { SpaceAgentIdentityView, SpaceAgentStatus } from "./view.js";
+import { defineSpaceAgentActivityElements } from "./activity-elements.js";
 
 export const spaceAgentAvatarElementName = "vc-space-agent-avatar" as const;
 export const spaceAgentBadgeElementName = "vc-space-agent-badge" as const;
@@ -363,5 +364,6 @@ export function defineSpaceAgentElements(
   defineSpaceElement(registry, spaceAgentBadgeElementName, createSpaceAgentBadgeElementClass);
   defineSpaceElement(registry, spaceAgentStatusElementName, createSpaceAgentStatusElementClass);
   defineSpaceElement(registry, spaceAgentCardElementName, createSpaceAgentCardElementClass);
+  defineSpaceAgentActivityElements(registry);
   return true;
 }

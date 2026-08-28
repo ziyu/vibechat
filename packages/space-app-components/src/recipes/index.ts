@@ -9,6 +9,12 @@ export {
   type SpaceChatRecipeOptions,
 } from "./chat.js";
 export {
+  mountAgentActivityPanelRecipe,
+  resolveSpaceAgentActivityPanelElement,
+  type SpaceAgentActivityPanelRecipeHandle,
+  type SpaceAgentActivityPanelRecipeOptions,
+} from "./agent.js";
+export {
   createSpaceComponentContext,
   type SpaceComponentContext,
   type SpaceComponentContextOptions,

@@ -44,6 +44,9 @@ export function renderSpaceComponentCatalogDocument(
         timelineLabel: "同一条 Matrix 时间线",
         aliceMessage: "我把沿河步道的三条岔路写进共享地图了；即使这段说明很长，消息也应该在窄屏里自然换行。",
         agentMessage: "已标记最安静的一条，并保留 Alice 作为来源作者。",
+        agentStage: "正在整理沿河路线",
+        agentActivityOne: "读取共享路线图",
+        agentActivityTwo: "标记低噪音路径",
         failedMessage: "这条消息保留明确的发送失败文字，不只依赖颜色。",
         deletedMessage: "已删除的原文不会重新暴露。",
         workbenchLabel: "可迁移 Chat 交互",
@@ -63,6 +66,9 @@ export function renderSpaceComponentCatalogDocument(
         timelineLabel: "The same Matrix timeline",
         aliceMessage: "I mapped all three forks along the river path. Even this deliberately long field note must reflow naturally on a narrow screen.",
         agentMessage: "Marked the quietest route while keeping Alice visible as the source author.",
+        agentStage: "Mapping the river route",
+        agentActivityOne: "Reading the shared route map",
+        agentActivityTwo: "Marking the quietest path",
         failedMessage: "This message keeps a visible failed-delivery label instead of relying on color alone.",
         deletedMessage: "Deleted source text is never exposed again.",
         workbenchLabel: "Migration-ready Chat interactions",
@@ -100,7 +106,8 @@ export function renderSpaceComponentCatalogDocument(
           <vc-space-agent-status name="Wayfinder" status="idle"></vc-space-agent-status>
           <vc-space-agent-status name="Wayfinder" status="queued" pending-count="2"></vc-space-agent-status>
           <vc-space-agent-status name="Wayfinder" status="failed"></vc-space-agent-status>
-        </div>`;
+        </div>
+        <vc-space-agent-activity data-catalog-agent-activity></vc-space-agent-activity>`;
 
   const alice: SpaceChatAuthorView = {
     id: "alice",
@@ -239,6 +246,34 @@ export function renderSpaceComponentCatalogDocument(
   ]).replaceAll("<", "\\u003c");
   const safeCatalogError = JSON.stringify(copy.catalogError).replaceAll("<", "\\u003c");
   const safeInteractionIdle = JSON.stringify(copy.interactionIdle).replaceAll("<", "\\u003c");
+  const safeAgentActivity = JSON.stringify({
+    agent: {
+      id: "wayfinder",
+      name: "Wayfinder",
+      avatarUrl: null,
+      status: "working",
+      summary: null,
+      activeCount: 1,
+      pendingCount: 2,
+    },
+    active: true,
+    stage: copy.agentStage,
+    queue: { activeCount: 1, pendingCount: 2 },
+    activities: [
+      {
+        id: "catalog-activity-read",
+        label: copy.agentActivityOne,
+        detail: null,
+        status: "completed",
+      },
+      {
+        id: "catalog-activity-map",
+        label: copy.agentActivityTwo,
+        detail: null,
+        status: "active",
+      },
+    ],
+  }).replaceAll("<", "\\u003c");
 
   return `<!doctype html>
 <html lang="${locale}">
@@ -265,6 +300,7 @@ export function renderSpaceComponentCatalogDocument(
       .world-copy p { max-width: 32rem; margin: 0; color: var(--vc-space-color-text-muted); font-size: .96rem; line-height: 1.48; }
       .identity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
       .status-line { display: flex; flex-wrap: wrap; gap: .75rem 1.2rem; margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--vc-space-color-border); }
+      vc-space-agent-activity { display: block; max-width: 47rem; margin: 1rem auto 0; }
       h3 { margin: 0; color: var(--vc-space-color-text-muted); font: 760 .78rem/1.3 var(--vc-space-font-body); letter-spacing: .09em; text-transform: uppercase; }
       .component-label { margin: 0 0 .72rem; color: var(--vc-space-color-text-muted); font: 760 .72rem/1.3 var(--vc-space-font-body); letter-spacing: .09em; text-transform: uppercase; }
       .chat-sample { display: grid; gap: 1rem; max-width: 47rem; margin: clamp(2rem, 5vw, 3.5rem) auto 0; padding-top: clamp(1.4rem, 3vw, 2rem); border-top: 1px solid var(--vc-space-color-border); }
@@ -315,7 +351,9 @@ ${chatComponents}
       const messages = ${safeMessages};
       const targets = ${safeMentionTargets};
       const initialLog = ${safeInteractionIdle};
+      const agentActivity = ${safeAgentActivity};
       for (const world of document.querySelectorAll(".world")) {
+        world.querySelector("[data-catalog-agent-activity]").activity = agentActivity;
         const timeline = world.querySelector("[data-catalog-timeline]");
         const composer = world.querySelector("[data-catalog-composer]");
         const mentions = world.querySelector("[data-catalog-mentions]");

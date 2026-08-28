@@ -78,6 +78,7 @@ describe("Space component bundle", () => {
     expect(html).toContain(current.manifest.artifactHash);
     expect(html).toContain("<vc-space-user-info-card");
     expect(html).toContain("<vc-space-agent-card");
+    expect(html).toContain("<vc-space-agent-activity");
     expect(html).toContain("<vc-space-chat-message");
     expect(html).toContain("<vc-space-typing-indicator");
     expect(html).toContain("theme-signal");
@@ -119,7 +120,7 @@ describe("Space component bundle", () => {
       projectFormat: "agentos-app-v1",
     });
 
-    expect(release.version).toBe("0.8.2");
+    expect(release.version).toBe("0.9.0");
     expect(release.packageFormat).toBe("npm-package-v1");
     expect(resolved?.files["chat/inline.js"]).toContain(
       "spaceChatInlineModule",

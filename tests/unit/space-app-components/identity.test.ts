@@ -106,9 +106,11 @@ describe("Space identity element contracts", () => {
     expect(defineSpaceElements(registry)).toBe(true);
     expect(defineSpaceElements(registry)).toBe(true);
     expect([...definitions.keys()].sort()).toEqual([
+      "vc-space-agent-activity",
       "vc-space-agent-avatar",
       "vc-space-agent-badge",
       "vc-space-agent-card",
+      "vc-space-agent-queue-status",
       "vc-space-agent-status",
       "vc-space-avatar",
       "vc-space-chat-attachment",

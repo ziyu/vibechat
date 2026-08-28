@@ -1487,6 +1487,16 @@ Recipe 第一切片 Spec：`@vibechat/space-app-components` 以向后兼容 mino
 
 2026-08-28 managed Registry/Object Store 接线证据：`vibechat.space-app-managed-package-object/v1` 规范化 JSON envelope 是主发布对象，npm tarball 只作为可选 mirror。PG/SQLite schema 与 0014 migrations、新的 immutable repository/service、publisher/Runtime credential 隔离和 production-only remote provider 均已接入；定向 10 files、31/31 tests 覆盖多个精确版本、幂等、漂移、缺失/篡改、错误权限和 Existing prepared Project 不升级。隔离 D1 已从 0000 应用到 0014；workerd/R2 实跑发布 `0.7.4` → object `5ac435ac84e0…`、`0.8.1` → `03c2a80bb33d…`、发布工具 patch `0.8.2` → `18fc0fdfa6b7…`，重复发布返回 Verified，漂移返回 HTTP 409。Runtime 远程 provider 在无本地 package 参与下解析 `0.7.4` 66 个文件与 `0.8.1`/`0.8.2` 各 74 个文件。`0.8.2` 只更新 package README/发行工具，browser artifact 仍为 `sha256:4d776ed9…`；Default/Focus 继续固定 `0.8.1`，历史锁未重签。Backend Node/Cloudflare build、Runtime/Backend/components typecheck 均通过。真实部署 publish、不可变 Space Release、跨 Runtime 恢复、双 Chromium 和完整 a11y 矩阵仍未执行，因此后续三个复合项保持未勾选。
 
+Agent activity P0 DOM/API 验收场景（先写 Spec，再迁移 Template）：
+
+- [x] `createSpaceAgentActivityView(snapshot.agent)` 只投影 provider-neutral name/status/stage、active/pending count 和数量受限的 activity label/detail；`input/output/arguments/payload`、provider/model、credits、turn source 和 Kernel 控制字段不进入 view model 或 DOM。
+- [x] `createSpaceAgentController(context)` 只复用注入的 `SpaceAppClient` 并订阅 Agent snapshot；等价更新不重复通知，`dispose()` 幂等释放 listener，组件库不增加 `agent.invoke()` 或第二个 Agent/SDK client。
+- [ ] `vc-space-agent-queue-status` 与 `vc-space-agent-activity` 同时提供可见文本和 polite live region，不用颜色作为 queued/working/completed/failed 的唯一信号；长 stage/activity 在 390px、200% 字体下无横向溢出，forced colors/reduced motion 有显式 fallback。
+- [ ] `mountAgentActivityPanelRecipe` 只把标准 element 接到只读 controller，不拥有 Template 主题、场景状态、Agent 调度或 Kernel 操作；Default Chat 与一个抽屉式 Template 显式升级 exact component version 后，删除各自手写 build panel 投影并保持 Matrix Chat/ready Revision 行为不变。
+- [x] `/agent`、`/recipes` 与 `/recipes/inline` 保持 SSR-safe、无远程 import、领域 tree-shaking 和 bundle budget；离线 catalog 在两套主题中使用同一 Agent activity DOM，并固定到同一 package/artifact hash。
+
+2026-08-28 Agent activity package 证据：`@vibechat/space-app-components@0.9.0` 新增只读 view/controller、`vc-space-agent-queue-status`、`vc-space-agent-activity` 与 `AgentActivityPanelRecipe`，source/browser artifact/integrity 为 `sha256:b522904eaf23c94cda1850d5f49e52a7187dc13ffaf92b7bd699cb81e6e98856` / `sha256:dfa862ed56a5a5c098054ed84928ab30ad8d8ceca4a0b7961d8ab4b1685956c4` / `sha256:e4addfc9684062d79d192bde3c847185248b9930a46e390c357e7a624793a73e`。组件 TypeScript、34/34 package unit、semantic export/SSR/offline/managed integrity gate 通过；agent/recipes gzip 为 7,465 / 26,055 bytes。离线 catalog 单 Chromium 的两主题 DOM 均暴露 Agent activity group、polite status、identity、stage、queue 和文字 activity；390×844 下页面 `scrollWidth === clientWidth === 390`、无 console warning/error。真实 Template 尚未升级，screen reader、200% 字体和强制 high-contrast/reduced-motion 浏览器矩阵未执行，因此后两项复合 a11y/迁移场景保持未勾选。
+
 阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
 
 - [ ] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。

@@ -21,7 +21,7 @@
 5. 以 TEST-CATALOG #40 推进 Kernel Bar + 全尺寸 App Surface、Default Chat App、完整 Chat/Mention SDK、结构化 Agent Mention、ready Revision 实时更新和 publish barrier。
 6. 以统一 `SpaceTemplate` / `SpaceTemplateVersion` / `SpaceTemplateMarketEntry` 协议补齐用户从固定 ready Revision 发布到市场的 Product DB/Object Store、审核和撤销链路；不得为官方和用户建立平行类型或市场表。
 7. 两个 `SpaceInstanceServer` 共用 SQLite control plane 的确定性故障注入已覆盖 M1→Publish→M2、active owner 超时接管、旧 owner fenced write 与 outbox ACK 丢失重放；下一步用两个独立 Runtime 进程和真实 Synapse/AgentOS/R2 重复相同场景。只有跨服务 Matrix reply、credits、Revision/Release 均无重复，才把生产接管标为完成。
-8. 按[Space App 基础组件库设计](./space-app-component-library-design.md)建立 SDK 之上的 User/Chat/Agent 组件层；五个官方 Template 已使用普通 package import、精确版本/integrity、受管 Registry 和 Revision-local prepared artifact 收敛重复 Chat/UI 源码，Default/Focus 又分别以 full/dock 消费首版 Chat Recipe。managed Registry 已完成不可变 DB 记录、内容寻址 Object Store、独立发布权限、Runtime 精确解析和隔离 Cloudflare D1/R2 preview。下一步完成真实部署 publish、双浏览器、不可变 Release、跨 Runtime 恢复和完整 a11y 矩阵，不能以仓库路径、Host 固定 UI、单版本本地缓存或浮动运行时脚本替代。
+8. 按[Space App 基础组件库设计](./space-app-component-library-design.md)建立 SDK 之上的 User/Chat/Agent 组件层；五个官方 Template 已使用普通 package import、精确版本/integrity、受管 Registry 和 Revision-local prepared artifact 收敛重复 Chat/UI 源码，Default/Focus 又分别以 full/dock 消费首版 Chat Recipe。组件库当前 `0.9.0` 进一步补齐 provider-neutral Agent activity view/controller、Queue/Activity element 和只读 Panel Recipe，但尚未升级任何 Template；下一步由相邻 Template 版本显式消费并完成真实 iframe/a11y。managed Registry 已完成不可变 DB 记录、内容寻址 Object Store、独立发布权限、Runtime 精确解析和隔离 Cloudflare D1/R2 preview；真实部署 publish、双浏览器、不可变 Release、跨 Runtime 恢复继续属于独立验证，不能以仓库路径、Host 固定 UI、单版本本地缓存或浮动运行时脚本替代。
 
 ## 当前实现事实
 

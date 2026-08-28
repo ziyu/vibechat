@@ -9,10 +9,10 @@ The package sits above `@vibechat/space-app-sdk` and below Space Templates. It p
 - `.` and `/core`: browser-safe APIs with no top-level browser-global access.
 - `/foundation`: Avatar、StatusDot、IconButton 与基础样式。
 - `/user`: member view model、UserAvatar、UserName 与 UserInfoCard。
-- `/agent`: provider-neutral Agent view model、AgentAvatar、Badge、Status 与 Card。
+- `/agent`: provider-neutral Agent identity/activity view model、只读 controller、AgentAvatar、Badge、Status、QueueStatus、Card 与 Activity。
 - `/chat`: Matrix timeline view、只读/可写 controller、Composer/Mention/Attachment/Reaction/Actions/Error/Timeline elements。
 - `/chat/inline`: 仅供返回自包含 HTML 的 `agentos-app-v1` Project 使用的预构建 Chat 浏览器模块；普通浏览器构建使用 `/chat`。
-- `/recipes`: `DefaultChatRecipe` / `ChatDrawerRecipe` 的装配与 lifecycle；只连接注入 context、标准 Chat elements 和 Template copy，不拥有主题、launcher markup 或场景状态。
+- `/recipes`: `DefaultChatRecipe` / `ChatDrawerRecipe` / `AgentActivityPanelRecipe` 的装配与 lifecycle；只连接注入 context、标准 elements 和 Template copy，不拥有主题、launcher markup 或场景状态。
 - `/recipes/inline`: 供自包含 HTML Project 使用的预构建 Recipe 浏览器模块；与 `/recipes` 共享同一公开 API、package version 和 artifact integrity。
 - `/register` 与 `/register/foundation|user|agent|chat`: 显式的 Custom Element 自动注册入口，也是 package 中仅有的 side-effect exports。
 - `/styles`: 可由 Template 覆盖的 semantic component token 与示例主题。
@@ -56,7 +56,7 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
-pnpm --filter @vibechat/space-app-components registry:publish -- 0.8.1
+pnpm --filter @vibechat/space-app-components registry:publish -- 0.9.0
 # Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
@@ -219,6 +219,30 @@ window.addEventListener("pagehide", () => context.dispose(), { once: true })
 
 Recipe 统一 controller snapshot、typed events、增量 render、unread/read receipt 和幂等 dispose；主题、launcher DOM、场景 App State、文案来源与页面布局仍由 Template 维护。
 
+Agent activity 使用同一个注入 SDK 的只读 snapshot，不提供绕过结构化 Chat Mention 的 Agent 调用入口。view model 只保留有限的 `stage`、queue count 和公开 activity label/detail，忽略 provider `input/output/arguments/payload`：
+
+```ts
+import {
+  mountAgentActivityPanelRecipe,
+  resolveSpaceAgentActivityPanelElement,
+} from "@vibechat/space-app-components/recipes"
+
+const activity = mountAgentActivityPanelRecipe({
+  context,
+  element: resolveSpaceAgentActivityPanelElement(document),
+  maxActivities: 5,
+})
+
+await activity.ready
+window.addEventListener("pagehide", () => activity.dispose(), { once: true })
+```
+
+对应 declarative markup 只需要标准元素；完整活动数组通过 typed `activity` property 注入，不序列化到 attribute：
+
+```html
+<vc-space-agent-activity density="compact"></vc-space-agent-activity>
+```
+
 `0.5.0` 保留 `0.4.1` 的 controller/element API，并建立 publishable ESM package、语义化 `/foundation|user|agent|chat` subpath、显式 `/register/*` side-effect entry、`/chat/inline` 自包含 HTML adapter 与 managed Registry provider。该版本把 Space 的正式消费方式从 Template 内相对 vendor 路径切换为普通 package specifier；组件交互语义、CSS token、Custom Element、typed event 和稳定 `data-testid` 不变。
 
 `0.6.0` 增加 Host 显式 Chat permissions、message action availability、Composer 的 `sendDisabled` / `attachmentDisabled`、Timeline 的 `interactive` / `interactionDisabled` / `reactionChoices` 公共 property、`chat-message-entry` test id 与嵌套 action/reaction `::part`。`vc-space-chat-message.showReactions`（对应 `hide-reactions` attribute）允许交互 Timeline 隐藏重复的只读 Reaction；`markRead()` 是去重且不占全局 command pending 的非阻塞命令。以上均为新增 API；旧的只读 Timeline 默认行为保持不变。
@@ -230,6 +254,8 @@ Recipe 统一 controller snapshot、typed events、增量 render、unread/read r
 `0.8.1` 新增 side-effect-free `/recipes` 与 `/recipes/inline`，公开 `mountDefaultChatRecipe`、`mountChatDrawerRecipe` 和 `resolveSpaceChatRecipeElements`。Recipe 只把五个官方 Template 已验证的 Chat 装配与 lifecycle 收敛到 package；既有 `/chat`、`/chat/inline`、Custom Element、typed event、token、part 和默认交互保持兼容。App 必须显式升级 exact version 并生成新 Revision，既有 Template/Space/Release 不自动切换。
 
 `0.8.2` 增加 managed Registry 发布脚本和对应发行说明：规范化 JSON package object 是 Runtime 主分发对象，npm tarball 只作为可选 mirror。浏览器 bundle、公开 export、Custom Element、Recipe 与交互行为均未改变；Default/Focus 继续固定 `0.8.1`，不会因发布工具 patch 自动升级。
+
+`0.9.0` 以向后兼容 minor 增加 provider-neutral `createSpaceAgentActivityView`、`createSpaceAgentController`、`vc-space-agent-queue-status`、`vc-space-agent-activity` 和 `mountAgentActivityPanelRecipe`。Activity 使用 polite live region、文本状态、forced-colors/reduced-motion fallback，并限制最多 12 条公开 activity；provider payload、Agent 调用、模型、积分和 Kernel 操作不进入组件 API。既有 Template 和 Space 仍固定原 exact version，不会自动升级。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 
