@@ -15,6 +15,7 @@ export function ServicesPage() {
   const [plansLoading, setPlansLoading] = useState(true)
   const [plansError, setPlansError] = useState(false)
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [storageProvider, setStorageProvider] = useState<StorageProvider>('r2')
@@ -36,6 +37,41 @@ export function ServicesPage() {
   }, [locale])
 
   useEffect(() => { void loadPlans() }, [loadPlans])
+  useEffect(() => {
+    if (!plans.length) {
+      setSelectedPlanId(null)
+      return
+    }
+    if (!selectedPlanId || !plans.some((plan) => plan.id === selectedPlanId)) {
+      setSelectedPlanId(plans.find((plan) => plan.recommended)?.id || plans[0].id)
+    }
+  }, [plans, selectedPlanId])
+
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) || plans[0]
+  const selectedLocalized = selectedPlan
+    ? selectedPlan.i18n[locale] || selectedPlan.i18n.en || Object.values(selectedPlan.i18n)[0]
+    : undefined
+  const selectedFeatures = Array.isArray(selectedLocalized?.features)
+    ? selectedLocalized.features
+    : String(selectedLocalized?.features || '').split('\n').filter(Boolean)
+
+  const handlePlanKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let nextIndex = index
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % plans.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + plans.length) % plans.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = plans.length - 1
+    else return
+
+    event.preventDefault()
+    setSelectedPlanId(plans[nextIndex].id)
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      [nextIndex]?.focus()
+  }
 
   const startCheckout = async (plan: PricingPlan) => {
     setCheckoutPlan(plan.id)
@@ -76,7 +112,6 @@ export function ServicesPage() {
     <section className="vc-services-page" data-testid="services-page">
       <header className="vc-product-page-header">
         <div>
-          <span className="vc-kicker">{t.chatApp.services.kicker}</span>
           <h1>{t.chatApp.services.title}</h1>
           <p>{t.chatApp.services.description}</p>
         </div>
@@ -84,33 +119,91 @@ export function ServicesPage() {
       </header>
 
       <section className="vc-services-section" data-testid="pricing-plans">
-        <header><div><span>01</span><h2>{t.chatApp.services.pricing}</h2></div><p>{t.chatApp.services.pricingDescription}</p></header>
+        <header><div><h2>{t.chatApp.services.pricing}</h2></div><p>{t.chatApp.services.pricingDescription}</p></header>
         {plansLoading ? <p className="vc-inline-state"><LoaderCircle className="vc-spin" />{t.chatApp.services.loadingPlans}</p> : null}
         {plansError ? <p className="vc-inline-state" role="alert">{t.chatApp.services.plansFailed}<button type="button" onClick={() => void loadPlans()}>{t.chatApp.account.retry}</button></p> : null}
         {!plansLoading && !plansError && !plans.length ? <p className="vc-empty-record">{t.chatApp.services.noPlans}</p> : null}
-        {plans.length ? <div className="vc-plan-grid">{plans.map((plan) => {
-          const localized = plan.i18n[locale] || plan.i18n.en || Object.values(plan.i18n)[0]
-          const features = Array.isArray(localized?.features) ? localized.features : String(localized?.features || '').split('\n').filter(Boolean)
-          return (
-            <article key={plan.id} data-recommended={plan.recommended || undefined}>
-              <small>{plan.provider}</small>
-              <h3>{localized?.name || plan.id}</h3>
-              <p>{localized?.description || ''}</p>
-              <strong><i>{plan.currency}</i>{plan.amount}</strong>
-              {plan.duration.type === 'credits' ? <b>{t.chatApp.services.creditsPack.replace('{count}', String(plan.credits || 0))}</b> : <b>{localized?.duration || plan.duration.type}</b>}
-              <ul>{features.map((feature) => <li key={feature}><Check size={12} />{feature.replace(/^[-*•]\s*/, '')}</li>)}</ul>
-              <button type="button" onClick={() => void startCheckout(plan)} disabled={checkoutPlan !== null}>
-                {checkoutPlan === plan.id ? t.chatApp.services.openingCheckout : t.chatApp.services.buy.replace('{provider}', plan.provider)}
-              </button>
-            </article>
-          )
-        })}</div> : null}
+        {plans.length ? (
+          <div className="vc-service-counter">
+            <div
+              className="vc-plan-list"
+              data-testid="service-plan-list"
+              role="tablist"
+              aria-label={t.chatApp.services.pricing}
+            >
+              {plans.map((plan, index) => {
+                const localized = plan.i18n[locale] || plan.i18n.en || Object.values(plan.i18n)[0]
+                const duration = plan.duration.type === 'credits'
+                  ? t.chatApp.services.creditsPack.replace('{count}', String(plan.credits || 0))
+                  : localized?.duration || plan.duration.type
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    id={`service-plan-${plan.id}`}
+                    className="vc-plan-entry"
+                    role="tab"
+                    aria-controls="service-plan-detail"
+                    aria-selected={selectedPlan?.id === plan.id}
+                    tabIndex={selectedPlan?.id === plan.id ? 0 : -1}
+                    data-active={selectedPlan?.id === plan.id || undefined}
+                    data-recommended={plan.recommended || undefined}
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    onKeyDown={(event) => handlePlanKeyDown(event, index)}
+                  >
+                    <span>
+                      <strong>{localized?.name || plan.id}</strong>
+                      <small>{localized?.description || ''}</small>
+                    </span>
+                    <span>
+                      <strong><i>{plan.currency}</i>{plan.amount}</strong>
+                      <small>{plan.provider} · {duration}</small>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedPlan ? (
+              <aside
+                className="vc-plan-threshold"
+                id="service-plan-detail"
+                role="tabpanel"
+                aria-labelledby={`service-plan-${selectedPlan.id}`}
+                tabIndex={0}
+                data-testid="service-plan-detail"
+              >
+                <span className="vc-plan-lamp" aria-hidden="true" />
+                <div>
+                  <h3>{selectedLocalized?.name || selectedPlan.id}</h3>
+                  <p>{selectedLocalized?.description || ''}</p>
+                </div>
+                <ul>
+                  {selectedFeatures.map((feature) => (
+                    <li key={feature}><Check size={14} />{feature.replace(/^[-*•]\s*/, '')}</li>
+                  ))}
+                </ul>
+                <footer>
+                  <span>
+                    <strong><i>{selectedPlan.currency}</i>{selectedPlan.amount}</strong>
+                    <small>{selectedPlan.provider} · {selectedPlan.duration.type === 'credits'
+                      ? t.chatApp.services.creditsPack.replace('{count}', String(selectedPlan.credits || 0))
+                      : selectedLocalized?.duration || selectedPlan.duration.type}</small>
+                  </span>
+                  <button type="button" onClick={() => void startCheckout(selectedPlan)} disabled={checkoutPlan !== null}>
+                    {checkoutPlan === selectedPlan.id ? t.chatApp.services.openingCheckout : t.chatApp.services.buy.replace('{provider}', selectedPlan.provider)}
+                  </button>
+                </footer>
+              </aside>
+            ) : null}
+          </div>
+        ) : null}
         {checkoutError ? <p className="vc-form-error" role="alert">{checkoutError}</p> : null}
       </section>
 
       <section className="vc-services-duo">
         <section className="vc-services-section vc-upload-panel" data-testid="upload-panel">
-          <header><div><span>02</span><h2>{t.chatApp.services.upload}</h2></div><p>{t.chatApp.services.uploadDescription}</p></header>
+          <header><div><h2>{t.chatApp.services.upload}</h2></div><p>{t.chatApp.services.uploadDescription}</p></header>
           <form onSubmit={upload}>
             <label className="vc-file-field">
               <UploadCloud size={23} />
@@ -135,7 +228,7 @@ export function ServicesPage() {
         </section>
 
         <section className="vc-services-section vc-ai-launcher" data-testid="ai-tools">
-          <header><div><span>03</span><h2>{t.chatApp.services.aiTools}</h2></div><p>{t.chatApp.services.aiDescription}</p></header>
+          <header><div><h2>{t.chatApp.services.aiTools}</h2></div><p>{t.chatApp.services.aiDescription}</p></header>
           <div>
             <ToolLink href={`/${locale}/ai`} icon={<Bot />} label={t.chatApp.services.aiChat} action={t.chatApp.services.open} />
             <ToolLink href={`/${locale}/image-generate`} icon={<ImageIcon />} label={t.chatApp.services.aiImage} action={t.chatApp.services.open} />

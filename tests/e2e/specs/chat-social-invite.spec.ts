@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 const password = 'VibeChat-e2e-password-2026!'
 
@@ -151,6 +152,8 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
 
       await bob.page.goto('/spaces')
       await expectMatrixReady(bob.page)
+      await bob.page.locator('.vc-rail-search').click()
+      await expect(bob.page.getByTestId('space-list')).toBeVisible()
       const invitedRoom = bob.page.locator(
         '[data-testid="space-row"][data-membership="invite"]',
       )
@@ -246,8 +249,7 @@ test.describe('Vibe Chat social trust and Matrix invitation', () => {
         blockedUserIds: [],
       })
     } finally {
-      await aliceContext.close()
-      await bobContext.close()
+      await closeBrowserContexts([aliceContext, bobContext])
     }
   })
 })

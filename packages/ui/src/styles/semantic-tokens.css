@@ -1,0 +1,29 @@
+/*
+ * VibeChat host semantic tokens.
+ *
+ * These aliases give every existing color scheme a safe host vocabulary.
+ * Individual schemes may refine the values without changing component APIs.
+ */
+:root {
+  --vc-color-canvas: var(--background);
+  --vc-color-surface: var(--card);
+  --vc-color-surface-raised: var(--popover);
+  --vc-color-surface-sunken: var(--muted);
+  --vc-color-overlay: var(--popover);
+  --vc-color-text: var(--foreground);
+  --vc-color-text-muted: var(--muted-foreground);
+  --vc-color-text-faint: color-mix(in oklab, var(--muted-foreground) 72%, transparent);
+  --vc-color-border: var(--border);
+  --vc-color-border-strong: color-mix(in oklab, var(--foreground) 22%, var(--border));
+  --vc-color-accent: var(--primary);
+  --vc-color-on-accent: var(--primary-foreground);
+  --vc-color-focus: var(--ring);
+  --vc-color-success: #3f7d55;
+  --vc-color-warning: #a36a26;
+  --vc-color-danger: var(--destructive);
+  --vc-shadow-low: 0 8px 24px rgb(22 24 20 / 7%);
+  --vc-shadow-medium: 0 18px 48px rgb(22 24 20 / 11%);
+  --vc-shadow-high: 0 32px 90px rgb(15 16 14 / 18%);
+  --vc-opacity-disabled: .42;
+  --vc-opacity-scrim: .58;
+}

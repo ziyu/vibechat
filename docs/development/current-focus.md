@@ -2,7 +2,7 @@
 
 > 生命周期：开发中
 > 状态：工程基线
-> 更新日期：2026-08-26
+> 更新日期：2026-08-28
 > 维护范围：当前实现事实、近期主线和跨应用工程约束
 > 稳定来源：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 
@@ -11,6 +11,10 @@
 仓库已完成 VibeChat 产品 Web 宿主、A2 真实聊天闭环，以及账户、定价、积分、推荐、提现、支付和 AI 能力迁移。Email OTP、产品 profile、Matrix identity/device、session revoke、真实 Matrix room/timeline、社交邀请、完整消息操作、Space 市场基础、产品状态和多应用/package 边界均有测试或浏览器证据。
 
 2026-08-23 产品设计进一步确认：**Space 是持续可用并实时更新的在线空间，不是 Workspace 或试验场**。顶部 Kernel Bar 是唯一固定宿主界面；其下全部由 Space App Project 渲染，默认 Chat UI 也只是可定制的 Default Chat App 代码。不可修改的是平台 Chat Core：Matrix timeline、成员、消息操作、Mention 与 `@agent` 调度始终通过 Space SDK 正常调用。Space 保留市场与模板创建，Pi 只是首个候选 Agent Adapter。Space Runtime 继续采用与 `chat-app-server` 同构的 Node/Hono、实例服务器、SSE/command、串行 Turn、ProjectStore、agentOS Apps 持续更新/Release 和 SDK 技术链。设计依据、demo 核验和差距见 [Space App 设计演进与实施记录](./active/space-app-design-transition.md)。
+
+2026-08-28 宿主界面首批“灯下房间”纵向切片已经完成结构纠偏：桌面一级导航位于左侧，搜索与账户沉到底部，移动端保留底部 Dock；`/spaces` 首屏由真实 Space 数据驱动紧凑的封面卡，单卡桌面宽度被限制在 320px 内，只显示模板身份封面、名称、人数、更新时间和未读状态，不再渲染吊灯、人物、气泡或房间地面布景；完整列表、搜索、未读筛选和管理收进 Finder（桌面侧抽屉、移动端 Bottom Sheet），不再沿用营销 Hero、Dashboard 或大型资源卡。账户页采用侧边记录索引与连续账本，不保留顶端 Tabs/指标卡；服务页采用可滚动方案架与单一购买门槛，不重复购买 CTA；联系人零状态将搜索、门廊与第一位联系人邀请组织成同一空间，而非后台分屏。Finder 已覆盖焦点进入、Tab 圈定、Escape、背景 inert 和关闭后焦点恢复；宿主标题已从块状展示字体切换到统一无衬线字体栈，Spaces 主标题使用 Regular 字重、更舒展的字距与行高，辅助文字保持长期可读尺度。宿主 Light 使用明亮暖白矿物表面，Dark 使用炭灰与少量暖光。实现采用 reuse-first：保留现有 `Theme`、`ColorScheme`、`.dark`、ThemeScript、ThemeProvider、存储链路和共享默认值，将 `lamplit` 作为新 `ColorScheme` 加入 `@vibechat/ui`，补充宿主语义 Token，并只在 Web 非 Space Shell 受控启用；不建立平行主题系统、不大拆现有 CSS。第一批覆盖全局 Shell、`/spaces` 与 Finder、发现、联系人、设置、账户和服务等非 Space 界面；`/spaces/:spaceId`、Chat、Kernel、Space Runtime、App Bridge 和 iframe 全部冻结。Light/Dark 的桌面与 390px 移动成对截图走查、此前四个基准视口走查和宿主聚合 E2E 2/2 已完成；封面卡精简后同一组桌面/移动真实 Chromium 回归再次 2/2 通过。完整本地服务栈上的 61 项全量 E2E 最终为 57 通过、0 失败、4 按配置跳过；跳过项为联盟开关关闭 1 项和未配置真实/Fake Space Agent provider 3 项。设计语言、Token、组件 recipe 与主题边界已固化到仓库根 [DESIGN.md](../../DESIGN.md)，具体分层与验证证据见 [VibeChat 宿主设计系统与主题工作流实施方案](./active/host-design-system-and-theme-workflow.md)。
+
+2026-08-28 运行中 Space 的 Kernel Lamplit 视觉刷新已经完成实现：可信 Header 重组为 Space 身份、运行上下文和可信操作三个区域；桌面为 68px 连续表面，390px 重组为身份/菜单与状态/操作两层；Light 使用明亮暖白矿物表面，Dark 使用独立炭灰表面，返回、reload、publish 和菜单均至少 44px。Runtime、Matrix、发布/恢复函数、Bridge、iframe URL 与用户 Space App 内容未修改。Kernel 聚合 E2E 真实 Chromium 2/2、Web typecheck/build、文档和边界检查通过；既有 `chat-matrix-room.spec.ts` 长流程在 iframe 内 Night Radio Chat drawer 点击后稳定超时，未到达后续 restore，因此完整 Matrix 回归尚未标绿。范围、证据和剩余项见 [Space Kernel Lamplit 视觉刷新实施记录](./active/space-kernel-lamplit-visual-refresh.md)。
 
 当前主线是 A3/A4 首版切片验证和生产化：
 

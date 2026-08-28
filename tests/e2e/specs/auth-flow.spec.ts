@@ -109,7 +109,7 @@ test.describe('Authentication Flow', () => {
 
       // Wait for client-side hydration so form handlers are attached
       await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true');
-      await page.getByRole('button', { name: 'Use password instead' }).click();
+      await page.getByTestId('signin-method-toggle').click();
       await expect(page.getByTestId('password-signin-form')).toHaveAttribute('data-ready', 'true');
 
       // Fill in the login form
@@ -130,7 +130,7 @@ test.describe('Authentication Flow', () => {
         // Possibly hydration wasn't complete — retry with fresh load
         await page.goto(PAGES.signin, { timeout: TIMEOUTS.navigation });
         await expect(page.getByTestId('signin-card')).toHaveAttribute('data-ready', 'true');
-        await page.getByRole('button', { name: 'Use password instead' }).click();
+        await page.getByTestId('signin-method-toggle').click();
         await expect(page.getByTestId('password-signin-form')).toHaveAttribute('data-ready', 'true');
         await page.locator('input#email').fill(sharedEmail);
         await page.locator('input#password').fill(password);
@@ -161,7 +161,7 @@ test.describe('Authentication Flow', () => {
       expect(signInRes.ok()).toBeTruthy();
 
       // Verify we CAN access the product first
-      await page.goto(`${PAGES.home}/spaces`, {
+      await page.goto(PAGES.spaces, {
         timeout: TIMEOUTS.navigation,
         waitUntil: 'commit',
       });
@@ -171,7 +171,7 @@ test.describe('Authentication Flow', () => {
       await signOutViaAPI(page);
 
       // After signing out, visiting the product should redirect to signin
-      await page.goto(`${PAGES.home}/spaces`, {
+      await page.goto(PAGES.spaces, {
         timeout: TIMEOUTS.navigation,
         waitUntil: 'commit',
       }).catch(() => null);

@@ -7,6 +7,7 @@ import {
   type Page,
 } from '@playwright/test'
 import { completeChatOnboarding, signUpViaAPI } from '../helpers/auth'
+import { closeBrowserContexts } from '../helpers/browser'
 
 const password = 'VibeChat-e2e-password-2026!'
 const e2eBaseUrl = process.env.E2E_BASE_URL || 'http://localhost:8001'
@@ -128,14 +129,10 @@ async function createMembershipFixture(
       owner,
       member,
       matrixRoomId: room.matrixRoomId,
-      close: async () => {
-        await ownerContext.close()
-        await memberContext.close()
-      },
+      close: () => closeBrowserContexts([ownerContext, memberContext]),
     }
   } catch (error) {
-    await ownerContext.close()
-    await memberContext.close()
+    await closeBrowserContexts([ownerContext, memberContext])
     throw error
   }
 }

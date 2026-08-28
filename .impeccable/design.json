@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-27T10:39:00Z",
+  "title": "Design System: VibeChat Host — Lamplit",
+  "extensions": {
+    "colorMeta": {
+      "ember-accent": {
+        "role": "primary",
+        "displayName": "Ember Accent",
+        "canonical": "#a95436",
+        "tonalRamp": ["oklch(18% 0.06 38)", "oklch(29% 0.09 38)", "oklch(40% 0.11 38)", "#a95436", "oklch(63% 0.12 38)", "oklch(74% 0.10 38)", "oklch(86% 0.06 38)", "oklch(95% 0.02 38)"]
+      },
+      "lamplight-accent": {
+        "role": "primary",
+        "displayName": "Lamplight Accent",
+        "canonical": "#e39a62",
+        "tonalRamp": ["oklch(18% 0.05 55)", "oklch(29% 0.08 55)", "oklch(40% 0.10 55)", "oklch(52% 0.12 55)", "oklch(64% 0.13 55)", "#e39a62", "oklch(86% 0.07 55)", "oklch(95% 0.025 55)"]
+      },
+      "warm-on-accent": {
+        "role": "neutral",
+        "displayName": "Warm On Accent",
+        "canonical": "#fff8f1",
+        "tonalRamp": ["oklch(15% 0.01 68)", "oklch(28% 0.012 68)", "oklch(41% 0.014 68)", "oklch(54% 0.016 68)", "oklch(67% 0.018 68)", "oklch(79% 0.019 68)", "oklch(90% 0.018 68)", "#fff8f1"]
+      },
+      "mineral-canvas": {
+        "role": "neutral",
+        "displayName": "Mineral Canvas",
+        "canonical": "#e9ece6",
+        "tonalRamp": ["oklch(15% 0.008 132)", "oklch(28% 0.009 132)", "oklch(41% 0.010 132)", "oklch(54% 0.011 132)", "oklch(67% 0.011 132)", "oklch(79% 0.010 132)", "#e9ece6", "oklch(95% 0.006 132)"]
+      },
+      "chalk-surface": {
+        "role": "neutral",
+        "displayName": "Chalk Surface",
+        "canonical": "#fbfcf8",
+        "tonalRamp": ["oklch(15% 0.006 112)", "oklch(28% 0.007 112)", "oklch(41% 0.008 112)", "oklch(54% 0.009 112)", "oklch(67% 0.009 112)", "oklch(80% 0.008 112)", "oklch(91% 0.006 112)", "#fbfcf8"]
+      },
+      "daylight-raised": {
+        "role": "neutral",
+        "displayName": "Daylight Raised",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(15% 0 0)", "oklch(28% 0 0)", "oklch(41% 0 0)", "oklch(54% 0 0)", "oklch(67% 0 0)", "oklch(80% 0 0)", "oklch(92% 0 0)", "#ffffff"]
+      },
+      "mineral-sunken": {
+        "role": "neutral",
+        "displayName": "Mineral Sunken",
+        "canonical": "#e4e8df",
+        "tonalRamp": ["oklch(15% 0.010 132)", "oklch(28% 0.012 132)", "oklch(41% 0.013 132)", "oklch(54% 0.014 132)", "oklch(67% 0.014 132)", "oklch(79% 0.013 132)", "#e4e8df", "oklch(95% 0.008 132)"]
+      },
+      "charcoal-text": {
+        "role": "neutral",
+        "displayName": "Charcoal Text",
+        "canonical": "#292c27",
+        "tonalRamp": ["oklch(15% 0.010 132)", "#292c27", "oklch(41% 0.014 132)", "oklch(54% 0.013 132)", "oklch(67% 0.011 132)", "oklch(79% 0.009 132)", "oklch(90% 0.006 132)", "oklch(95% 0.004 132)"]
+      },
+      "olive-muted": {
+        "role": "neutral",
+        "displayName": "Olive Muted",
+        "canonical": "#62685f",
+        "tonalRamp": ["oklch(15% 0.012 132)", "oklch(28% 0.014 132)", "#62685f", "oklch(54% 0.016 132)", "oklch(67% 0.014 132)", "oklch(79% 0.011 132)", "oklch(90% 0.007 132)", "oklch(95% 0.004 132)"]
+      },
+      "midnight-canvas": {
+        "role": "neutral",
+        "displayName": "Midnight Canvas",
+        "canonical": "#10110f",
+        "tonalRamp": ["#10110f", "oklch(28% 0.008 120)", "oklch(41% 0.009 120)", "oklch(54% 0.009 120)", "oklch(67% 0.008 120)", "oklch(79% 0.007 120)", "oklch(90% 0.005 120)", "oklch(95% 0.003 120)"]
+      },
+      "charcoal-surface": {
+        "role": "neutral",
+        "displayName": "Charcoal Surface",
+        "canonical": "#191a17",
+        "tonalRamp": ["oklch(15% 0.007 110)", "#191a17", "oklch(41% 0.009 110)", "oklch(54% 0.009 110)", "oklch(67% 0.008 110)", "oklch(79% 0.006 110)", "oklch(90% 0.004 110)", "oklch(95% 0.002 110)"]
+      },
+      "charcoal-raised": {
+        "role": "neutral",
+        "displayName": "Charcoal Raised",
+        "canonical": "#23231f",
+        "tonalRamp": ["oklch(15% 0.008 100)", "#23231f", "oklch(41% 0.010 100)", "oklch(54% 0.010 100)", "oklch(67% 0.008 100)", "oklch(79% 0.006 100)", "oklch(90% 0.004 100)", "oklch(95% 0.002 100)"]
+      },
+      "linen-text": {
+        "role": "neutral",
+        "displayName": "Linen Text",
+        "canonical": "#eeeae1",
+        "tonalRamp": ["oklch(15% 0.012 82)", "oklch(28% 0.015 82)", "oklch(41% 0.017 82)", "oklch(54% 0.019 82)", "oklch(67% 0.020 82)", "oklch(79% 0.019 82)", "#eeeae1", "oklch(95% 0.010 82)"]
+      },
+      "ash-muted": {
+        "role": "neutral",
+        "displayName": "Ash Muted",
+        "canonical": "#aaa69a",
+        "tonalRamp": ["oklch(15% 0.012 82)", "oklch(28% 0.016 82)", "oklch(41% 0.019 82)", "oklch(54% 0.022 82)", "#aaa69a", "oklch(79% 0.018 82)", "oklch(90% 0.012 82)", "oklch(95% 0.007 82)"]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Quiet Success",
+        "canonical": "#3f7d55",
+        "tonalRamp": ["oklch(15% 0.035 150)", "oklch(28% 0.060 150)", "#3f7d55", "oklch(54% 0.095 150)", "oklch(67% 0.085 150)", "oklch(79% 0.065 150)", "oklch(90% 0.038 150)", "oklch(95% 0.020 150)"]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Ochre Warning",
+        "canonical": "#9a672d",
+        "tonalRamp": ["oklch(15% 0.040 72)", "oklch(28% 0.070 72)", "#9a672d", "oklch(54% 0.105 72)", "oklch(67% 0.095 72)", "oklch(79% 0.070 72)", "oklch(90% 0.040 72)", "oklch(95% 0.020 72)"]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Brick Danger",
+        "canonical": "#a74336",
+        "tonalRamp": ["oklch(15% 0.050 28)", "oklch(28% 0.085 28)", "oklch(40% 0.115 28)", "#a74336", "oklch(64% 0.120 28)", "oklch(76% 0.090 28)", "oklch(88% 0.050 28)", "oklch(95% 0.022 28)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Room Sign", "purpose": "One dominant invitation or page identity per viewport." },
+      "headline": { "displayName": "Threshold Heading", "purpose": "Room and section thresholds." },
+      "title": { "displayName": "Object Title", "purpose": "Space, account, plan, and record names." },
+      "body": { "displayName": "Calm Body", "purpose": "Guidance and explanatory copy for long-lived use." },
+      "label": { "displayName": "Compact Label", "purpose": "Navigation, metadata, status, and compact actions." }
+    },
+    "shadows": [
+      { "name": "ambient-low", "value": "0 8px 24px rgb(44 49 40 / 7%)", "purpose": "Resting interactive cards, avatars, and small floating details in Light mode." },
+      { "name": "ambient-medium", "value": "0 18px 48px rgb(44 49 40 / 11%)", "purpose": "Hovered room entries and raised panels in Light mode." },
+      { "name": "ambient-high", "value": "0 32px 90px rgb(44 49 40 / 18%)", "purpose": "Dialogs and explicit overlays in Light mode." },
+      { "name": "charcoal-low", "value": "0 8px 24px rgb(0 0 0 / 24%)", "purpose": "Low Dark-mode elevation." },
+      { "name": "charcoal-medium", "value": "0 18px 48px rgb(0 0 0 / 34%)", "purpose": "Medium Dark-mode elevation." },
+      { "name": "charcoal-high", "value": "0 32px 90px rgb(0 0 0 / 48%)", "purpose": "Dark-mode dialogs and overlays." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "160ms ease", "purpose": "Button, switch, and compact control state changes." },
+      { "name": "surface-standard", "value": "180ms ease", "purpose": "Navigation, borders, and host surface transitions." },
+      { "name": "room-lift", "value": "200ms ease", "purpose": "Small room-card translation and shadow changes." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Effective transition and animation duration under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "719px" },
+      { "name": "compact-desktop", "value": "1099px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single clearest next action in a host region.",
+      "html": "<button class=\"ds-btn-primary\">进入 Space</button>",
+      "css": ".ds-btn-primary { min-height: 46px; padding: 0 20px; border: 1px solid var(--vc-color-accent); border-radius: 12px; background: var(--vc-color-accent); color: var(--vc-color-on-accent); font: 700 12px/1.35 'IBM Plex Sans', sans-serif; box-shadow: 0 10px 24px color-mix(in oklab, var(--vc-color-accent) 17%, transparent); cursor: pointer; transition: background-color 160ms ease, transform 160ms ease; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--vc-color-accent) 88%, var(--vc-color-text)); transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid var(--vc-color-focus); outline-offset: 3px; } .ds-btn-primary:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A secondary host action that stays visually behind the content.",
+      "html": "<button class=\"ds-btn-quiet\">浏览模板</button>",
+      "css": ".ds-btn-quiet { min-height: 44px; padding: 0 16px; border: 1px solid var(--vc-color-border); border-radius: 12px; background: transparent; color: var(--vc-color-text-muted); font: 650 12px/1.35 'IBM Plex Sans', sans-serif; cursor: pointer; transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease; } .ds-btn-quiet:hover { border-color: var(--vc-color-border-strong); background: var(--vc-color-surface-sunken); color: var(--vc-color-text); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--vc-color-focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "A sunken search threshold used by Finder and directory surfaces.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m21 21-4.35-4.35m2.35-5.15A7.5 7.5 0 1 1 4 11.5a7.5 7.5 0 0 1 15 0Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/></svg><input placeholder=\"查找 Space\" /></label>",
+      "css": ".ds-search { display: flex; min-height: 42px; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--vc-color-border); border-radius: 12px; background: var(--vc-color-surface-sunken); color: var(--vc-color-text-muted); transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; } .ds-search svg { width: 17px; height: 17px; flex: none; } .ds-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--vc-color-text); font: 400 12px/1.5 'IBM Plex Sans', sans-serif; } .ds-search:focus-within { border-color: var(--vc-color-border-strong); background: var(--vc-color-surface-raised); box-shadow: 0 0 0 3px color-mix(in oklab, var(--vc-color-accent) 9%, transparent); }"
+    },
+    {
+      "name": "Primary Rail Item",
+      "kind": "nav",
+      "refersTo": "primary-rail-item",
+      "description": "A centered desktop destination; active state is a quiet warm signal.",
+      "html": "<a class=\"ds-rail-item\" data-active href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 5.5h14v13H5zM8 2.5v6m8-6v6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg><span>空间</span></a>",
+      "css": ".ds-rail-item { display: flex; min-height: 56px; align-items: center; flex-direction: column; justify-content: center; gap: 4px; border-radius: 14px; color: var(--vc-color-text-muted); font: 650 11px/1.25 'IBM Plex Sans', sans-serif; text-decoration: none; transition: background-color 180ms ease, color 180ms ease; } .ds-rail-item svg { width: 19px; height: 19px; } .ds-rail-item:hover { background: var(--vc-color-surface-sunken); color: var(--vc-color-text); } .ds-rail-item[data-active] { background: color-mix(in oklab, var(--vc-color-accent) 13%, var(--vc-color-surface)); color: var(--vc-color-accent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--vc-color-accent) 14%, transparent); } .ds-rail-item:focus-visible { outline: 2px solid var(--vc-color-focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Mobile Dock Item",
+      "kind": "nav",
+      "refersTo": "mobile-dock-item",
+      "description": "A 56px thumb target for the five-item mobile host Dock.",
+      "html": "<a class=\"ds-dock-item\" data-active href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"m14.5 9.5-1.6 3.4-3.4 1.6 1.6-3.4z\" fill=\"currentColor\"/></svg><span>发现</span></a>",
+      "css": ".ds-dock-item { display: flex; min-height: 56px; align-items: center; flex-direction: column; justify-content: center; gap: 3px; border-radius: 12px; color: var(--vc-color-text-muted); font: 650 11px/1.25 'IBM Plex Sans', sans-serif; text-decoration: none; } .ds-dock-item svg { width: 19px; height: 19px; } .ds-dock-item:hover { background: var(--vc-color-surface-sunken); color: var(--vc-color-text); } .ds-dock-item[data-active] { background: color-mix(in oklab, var(--vc-color-accent) 13%, var(--vc-color-surface)); color: var(--vc-color-accent); } .ds-dock-item:focus-visible { outline: 2px solid var(--vc-color-focus); outline-offset: 2px; }"
+    },
+    {
+      "name": "Room Entrance",
+      "kind": "card",
+      "refersTo": "room-card",
+      "description": "The atmospheric but data-led entrance to an inhabited Space.",
+      "html": "<a class=\"ds-room\" href=\"#\"><div class=\"ds-room-light\"></div><span class=\"ds-room-message\">@pi 你好</span><footer><span><strong>默认 Chat</strong><small>1 人在这里 · 2 小时</small></span><b aria-hidden=\"true\">↗</b></footer></a>",
+      "css": ".ds-room { position: relative; display: block; min-height: 310px; overflow: hidden; border: 1px solid color-mix(in oklab, var(--vc-color-text) 14%, transparent); border-radius: 16px; background: #0d0f0d; color: #eeeae1; text-decoration: none; box-shadow: 0 18px 48px rgb(44 49 40 / 11%); transition: transform 200ms ease, box-shadow 200ms ease; } .ds-room:hover { transform: translateY(-3px); box-shadow: 0 32px 90px rgb(44 49 40 / 18%); } .ds-room-light { position: absolute; top: -30px; left: 50%; width: 260px; height: 250px; background: linear-gradient(180deg, color-mix(in oklab, var(--vc-color-accent) 34%, transparent), transparent); clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%); transform: translateX(-50%); } .ds-room-message { position: absolute; top: 43%; left: 8%; padding: 10px 14px; border-radius: 14px 14px 14px 5px; background: #fbfcf8; color: #292c27; font: 400 12px/1.4 'IBM Plex Sans', sans-serif; } .ds-room footer { position: absolute; right: 20px; bottom: 20px; left: 20px; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border: 1px solid rgb(238 234 225 / 14%); border-radius: 14px; background: rgb(16 17 15 / 88%); } .ds-room footer span { display: grid; gap: 4px; } .ds-room strong { font: 700 18px/1.2 'IBM Plex Sans', sans-serif; } .ds-room small { color: #aaa69a; font: 400 11px/1.3 'IBM Plex Sans', sans-serif; } .ds-room:focus-visible { outline: 3px solid var(--vc-color-focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Selection Index Row",
+      "kind": "custom",
+      "refersTo": "selection-index-row",
+      "description": "A keyboard-operable account or service index item with a physical threshold marker.",
+      "html": "<button class=\"ds-index-row\" role=\"tab\" aria-selected=\"true\"><span>01</span><strong>账户概览</strong><i aria-hidden=\"true\"></i></button>",
+      "css": ".ds-index-row { position: relative; display: grid; width: 100%; min-height: 48px; grid-template-columns: 24px minmax(0,1fr); align-items: center; gap: 10px; padding: 0 10px; border: 0; border-bottom: 1px solid var(--vc-color-border); background: transparent; color: var(--vc-color-text-muted); font: 400 12px/1.35 'IBM Plex Sans', sans-serif; text-align: left; cursor: pointer; } .ds-index-row span { color: var(--vc-color-accent); font-size: 11px; } .ds-index-row strong { font-weight: 650; } .ds-index-row i { position: absolute; right: -4px; width: 7px; height: 7px; border: 3px solid var(--vc-color-canvas); border-radius: 50%; background: transparent; } .ds-index-row:hover, .ds-index-row[aria-selected='true'] { color: var(--vc-color-text); } .ds-index-row[aria-selected='true'] i { background: var(--vc-color-accent); box-shadow: 0 5px 15px color-mix(in oklab, var(--vc-color-accent) 34%, transparent); } .ds-index-row:focus-visible { outline: 2px solid var(--vc-color-focus); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "灯下房间 / The Lamplit Room",
+    "overview": "The VibeChat host should feel like a bright corridor connecting inhabited rooms: quiet mineral surfaces, clear thresholds, and a small amount of warm light that tells people where life is happening. It is simple and creative rather than decorative, with enough material depth to remain comfortable during long sessions. It must never read as a SaaS dashboard, an editing tool, a magazine spread, or a colorful skin laid over the product.\n\nThe host exists to orient people, help them find friends and Spaces, and then step back. Once a running Space opens, its user-controlled App owns the visual world beneath the trusted Kernel. Lamplit styling belongs to the non-Space host and must not recolor, filter, dim, or otherwise compete with Space content.",
+    "keyCharacteristics": [
+      "Bright warm-mineral Light mode with visible but restrained surface separation.",
+      "Quiet charcoal Dark mode with low-frequency amber light, designed independently rather than inverted.",
+      "Room, doorway, pool-of-light, and threshold cues used as a reusable spatial language.",
+      "A slim left rail on desktop and a thumb-reachable bottom Dock on mobile.",
+      "Real activity and relationships lead; management controls wait behind deliberate entry points."
+    ],
+    "rules": [
+      { "name": "The Warm Light Rarity Rule", "body": "Accent color identifies action, focus, active location, or signs of life; it does not fill large decorative regions.", "section": "colors" },
+      { "name": "The Bright Without Blank Rule", "body": "Light mode may be bright, but every large region must retain legible depth through tonal separation, a fine boundary, atmosphere, or a soft shadow.", "section": "colors" },
+      { "name": "The One Sign Rule", "body": "A viewport gets one dominant display-typography moment. Repeating the display face across every module turns the product into a magazine.", "section": "typography" },
+      { "name": "The Room, Not Dashboard Rule", "body": "Do not introduce metric-card grids, marketing heroes, equal-weight plan walls, or persistent management panels when a spatial threshold, sequence, or Finder can express the task.", "section": "layout" },
+      { "name": "The Recompose Rule", "body": "Mobile layouts change task order and interaction surface; they are never a shrunken desktop composition.", "section": "layout" },
+      { "name": "The Threshold Rule", "body": "Elevation communicates a change in interaction plane. Static page sections do not receive shadows merely to look decorated.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use semantic host tokens so Light, Dark, and future themes can change without rewriting page selectors.",
+      "Do make activity, relationships, and the next human action visible before management controls.",
+      "Do preserve subtle material depth in bright Light mode through nearby tones, boundaries, and low ambient shadows.",
+      "Do verify both desktop and 390px mobile layouts, keyboard focus, reduced motion, and 11px minimum visible text.",
+      "Do keep the host theme outside the running Space App and beneath the trusted Kernel boundary."
+    ],
+    "donts": [
+      "Don't turn host pages into SaaS dashboards, analytics grids, pricing walls, editor chrome, or magazine spreads.",
+      "Don't use large colorful decoration or frequent orange fills that compete with Space content.",
+      "Don't place desktop primary navigation, search, and account management in a crowded top bar.",
+      "Don't treat Dark mode as a mechanical inversion of Light mode.",
+      "Don't shrink desktop layouts onto mobile or hide essential navigation in horizontally scrolling strips.",
+      "Don't recolor, filter, blur, dim, or otherwise theme user-controlled Space content from the host."
+    ]
+  }
+}
