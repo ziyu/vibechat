@@ -1,5 +1,6 @@
 import {
   ClientEvent,
+  EventTimeline,
   createClient,
   EventStatus,
   EventType,
@@ -21,6 +22,7 @@ import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type {
   ChatState,
   ChatMessage,
+  ChatMessagePage,
   ChatPerson,
   ChatReaction,
   ChatRoom,
@@ -96,6 +98,7 @@ export function sendMatrixText(
   transactionId: string,
   replyToId?: string,
   agentMentions: SpaceAgentMention[] = [],
+  memberMentionIds: string[] = [],
 ) {
   const room = client.getRoom(roomId)
   const pendingEvent = room?.getPendingEvents().find(
@@ -103,13 +106,61 @@ export function sendMatrixText(
   )
   if (room && pendingEvent) return client.resendEvent(pendingEvent, room)
 
-  const content = createMatrixTextContent(text, replyToId, agentMentions)
+  const content = createMatrixTextContent(
+    text,
+    replyToId,
+    agentMentions,
+    memberMentionIds,
+  )
   return client.sendEvent(
     roomId,
     EventType.RoomMessage,
     content,
     transactionId,
   )
+}
+
+export async function loadMatrixRoomMessages(
+  client: MatrixClient,
+  roomId: string,
+  options: { limit?: number; before?: string } = {},
+  pendingTransactionIds: ReadonlySet<string> = new Set(),
+): Promise<ChatMessagePage> {
+  const room = client.getRoom(roomId)
+  if (!room || room.getMyMembership() !== 'join') {
+    throw new Error('MATRIX_ROOM_NOT_JOINED')
+  }
+  const limit = options.limit ?? 20
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+    throw new Error('CHAT_HISTORY_LIMIT_INVALID')
+  }
+
+  let messages = projectRoomMessages(client, room, pendingTransactionIds)
+  let beforeIndex = options.before
+    ? messages.findIndex((message) => message.id === options.before)
+    : messages.length
+  if (options.before && beforeIndex < 0) {
+    throw new Error('CHAT_HISTORY_CURSOR_INVALID')
+  }
+
+  for (let attempt = 0; options.before && beforeIndex === 0 && attempt < 3; attempt += 1) {
+    if (!room.getLiveTimeline().getPaginationToken(EventTimeline.BACKWARDS)) break
+    await client.scrollback(room, limit)
+    messages = projectRoomMessages(client, room, pendingTransactionIds)
+    beforeIndex = messages.findIndex((message) => message.id === options.before)
+    if (beforeIndex < 0) throw new Error('CHAT_HISTORY_CURSOR_INVALID')
+  }
+
+  const end = options.before ? beforeIndex : messages.length
+  const start = Math.max(0, end - limit)
+  const page = messages.slice(start, end)
+  const hasMore = start > 0
+    || Boolean(room.getLiveTimeline().getPaginationToken(EventTimeline.BACKWARDS))
+  return {
+    messages: page,
+    nextBefore: hasMore ? page[0]?.id ?? options.before ?? null : null,
+    hasMore,
+  }
 }
 
 export function sendMatrixReaction(
@@ -319,6 +370,16 @@ function replyEventId(event: MatrixEvent) {
   return typeof eventId === 'string' ? eventId : undefined
 }
 
+function mentionedUserIds(content: Record<string, unknown>) {
+  const mentions = content['m.mentions']
+  if (!mentions || typeof mentions !== 'object') return []
+  const userIds = (mentions as Record<string, unknown>).user_ids
+  if (!Array.isArray(userIds)) return []
+  return [...new Set(userIds.filter(
+    (userId): userId is string => typeof userId === 'string' && userId.length > 0,
+  ))].slice(0, 50)
+}
+
 function roomAgentMatrixUsers(room: Room) {
   const identities = new Map<string, string>()
   for (const member of room.getJoinedMembers()) {
@@ -419,6 +480,7 @@ function projectRoomMessages(
       : {}
     const matrixContentUri = typeof content.url === 'string' ? content.url : undefined
     const agentMetadata = matrixAgentReplyMetadata(content)
+    const memberMentions = mentionedUserIds(content)
     const attachment = !deleted
       && (messageType === MsgType.Image || messageType === MsgType.File)
       && matrixContentUri
@@ -443,6 +505,7 @@ function projectRoomMessages(
       createdAt: new Date(event.getTs()).toISOString(),
       status: messageStatus(event, pendingTransactionIds),
       replyToId: replyEventId(event),
+      ...(memberMentions.length > 0 ? { mentionedUserIds: memberMentions } : {}),
       ...(agentMetadata ? {
         agent: true,
         agentId: agentMetadata.agentId,
@@ -507,7 +570,11 @@ export function projectMatrixChatState(
   for (const room of client.getRooms()) {
     const membership = room.getMyMembership()
     if (membership !== 'join' && membership !== 'invite') continue
-    const spaceId = roomSpaceId(room) || roomMetadata[room.roomId]?.spaceId || null
+    const metadata = roomMetadata[room.roomId]
+    const spaceId = roomSpaceId(room)
+      || metadata?.spaceTemplateId
+      || metadata?.spaceId
+      || (metadata?.startMode === 'blank' ? 'space-default' : null)
     if (!spaceId || !baseState.spaces.some((space) => space.id === spaceId)) continue
 
     const joinedMembers = room.getJoinedMembers()

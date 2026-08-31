@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Check, LockKeyhole, Search, UsersRound } from 'lucide-react'
+import { ArrowLeft, Check, LockKeyhole, MessageCircle, Search, UsersRound } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -28,9 +28,12 @@ export function NewSpaceDialog({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { state, createRoom } = useChat()
-  const [step, setStep] = useState(initialSpaceId ? 0 : 0)
+  const [step, setStep] = useState(0)
   const [query, setQuery] = useState('')
   const [participantIds, setParticipantIds] = useState<string[]>(initialParticipantIds ?? [])
+  const [startMode, setStartMode] = useState<'blank' | 'template'>(
+    initialSpaceId ? 'template' : 'blank',
+  )
   const [spaceId, setSpaceId] = useState(initialSpaceId ?? 'space-default')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(false)
@@ -40,6 +43,7 @@ export function NewSpaceDialog({
     setStep(0)
     setQuery('')
     setParticipantIds(initialParticipantIds ?? [])
+    setStartMode(initialSpaceId ? 'template' : 'blank')
     setSpaceId(initialSpaceId ?? 'space-default')
     setCreating(false)
     setCreateError(false)
@@ -61,6 +65,7 @@ export function NewSpaceDialog({
     .map((id) => state.people.find((person) => person.id === id))
     .filter((person): person is NonNullable<typeof person> => !!person)
   const selectedSpace = state.spaces.find((space) => space.id === spaceId)
+  const defaultChatSpace = state.spaces.find((space) => space.id === 'space-default')
 
   const togglePerson = (personId: string) => {
     setParticipantIds((current) =>
@@ -71,11 +76,21 @@ export function NewSpaceDialog({
   }
 
   const handleCreate = async () => {
-    if (!spaceId) return
+    if (startMode === 'template' && !selectedSpace) return
     setCreating(true)
     setCreateError(false)
     try {
-      const roomId = await createRoom({ participantIds, spaceId })
+      const roomId = await createRoom({
+        participantIds,
+        startMode,
+        name: startMode === 'blank'
+          ? t.chatApp.newSpace.blankName
+          : selectedSpace!.name,
+        ...(startMode === 'template' ? {
+          templateId: selectedSpace!.id,
+          templateVersionId: selectedSpace!.versionId,
+        } : {}),
+      })
       onOpenChange(false)
       navigate({
         to: '/spaces/$spaceId',
@@ -102,7 +117,7 @@ export function NewSpaceDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="vc-create-dialog"
+        className="vc-create-dialog theme-lamplit"
         data-testid="new-space-dialog"
         aria-describedby="new-space-description"
       >
@@ -169,15 +184,37 @@ export function NewSpaceDialog({
 
           {step === 1 ? (
             <div className="vc-space-picker">
+              <button
+                type="button"
+                className="vc-space-option"
+                data-testid="space-start-blank"
+                data-selected={startMode === 'blank' || undefined}
+                onClick={() => setStartMode('blank')}
+              >
+                {defaultChatSpace ? (
+                  <SpaceGlyph space={defaultChatSpace} />
+                ) : (
+                  <span className="vc-space-glyph" aria-hidden="true"><MessageCircle /></span>
+                )}
+                <span>
+                  <strong>{t.chatApp.newSpace.blank}</strong>
+                  <small>{t.chatApp.newSpace.blankDescription}</small>
+                  <b className="vc-template-version">{t.chatApp.newSpace.defaultChatIncluded}</b>
+                </span>
+                <i>{startMode === 'blank' ? <Check size={14} /> : null}</i>
+              </button>
               {state.spaces.map((space) => {
-                const selected = space.id === spaceId
+                const selected = startMode === 'template' && space.id === spaceId
                 return (
                   <button
                     key={space.id}
                     type="button"
                     className="vc-space-option"
                     data-selected={selected || undefined}
-                    onClick={() => setSpaceId(space.id)}
+                    onClick={() => {
+                      setStartMode('template')
+                      setSpaceId(space.id)
+                    }}
                   >
                     <SpaceGlyph space={space} />
                     <span>
@@ -197,18 +234,34 @@ export function NewSpaceDialog({
             </div>
           ) : null}
 
-          {step === 2 && selectedSpace ? (
+          {step === 2 ? (
             <div className="vc-create-review">
               <div className="vc-review-summary">
-                <SpaceGlyph space={selectedSpace} />
+                {startMode === 'template' && selectedSpace ? (
+                  <SpaceGlyph space={selectedSpace} />
+                ) : defaultChatSpace ? (
+                  <SpaceGlyph space={defaultChatSpace} />
+                ) : (
+                  <span className="vc-space-glyph" aria-hidden="true"><MessageCircle /></span>
+                )}
                 <span>
-                  <small>{t.chatApp.newSpace.template}</small>
-                  <strong>{selectedSpace.name}</strong>
+                  <small>
+                    {startMode === 'template'
+                      ? t.chatApp.newSpace.template
+                      : t.chatApp.newSpace.startMode}
+                  </small>
+                  <strong>
+                    {startMode === 'template' && selectedSpace
+                      ? selectedSpace.name
+                      : t.chatApp.newSpace.blank}
+                  </strong>
                   <em>
-                    {selectedSpace.author} · {t.chatApp.newSpace.templateVersion.replace(
-                      '{version}',
-                      selectedSpace.semanticVersion,
-                    )}
+                    {startMode === 'template' && selectedSpace
+                      ? `${selectedSpace.author} · ${t.chatApp.newSpace.templateVersion.replace(
+                          '{version}',
+                          selectedSpace.semanticVersion,
+                        )}`
+                      : t.chatApp.newSpace.defaultChatIncluded}
                   </em>
                 </span>
               </div>
@@ -228,10 +281,12 @@ export function NewSpaceDialog({
                 <span>
                   <small>{t.chatApp.newSpace.permissions}</small>
                   <strong>
-                    {t.chatApp.newSpace.permissionSummary.replace(
-                      '{count}',
-                      selectedSpace.permissions.length.toString(),
-                    )}
+                    {startMode === 'template' && selectedSpace
+                      ? t.chatApp.newSpace.permissionSummary.replace(
+                          '{count}',
+                          selectedSpace.permissions.length.toString(),
+                        )
+                      : t.chatApp.newSpace.blankPermissionSummary}
                   </strong>
                 </span>
               </div>
@@ -256,7 +311,8 @@ export function NewSpaceDialog({
             <button
               type="button"
               className="vc-button vc-button-primary"
-              disabled={step === 1 && !spaceId}
+              data-testid="new-space-next"
+              disabled={step === 1 && startMode === 'template' && !selectedSpace}
               onClick={() => setStep(step + 1)}
             >
               {t.actions.next}
@@ -265,6 +321,7 @@ export function NewSpaceDialog({
             <button
               type="button"
               className="vc-button vc-button-primary"
+              data-testid="new-space-create"
               onClick={handleCreate}
               disabled={creating}
             >

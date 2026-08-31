@@ -6,11 +6,14 @@ settings:
 
 patchedDependencies:
   '@rivet-dev/agentos-apps@0.2.15':
-    hash: temeowaqu46ixeolx5qiwbn2qm
+    hash: x2afhxzje3tv46haxmvebax3mq
     path: patches/@rivet-dev__agentos-apps@0.2.15.patch
   '@rivet-dev/agentos-core@0.2.15':
-    hash: i7m64e4phivdw5bveag4rky7jy
+    hash: bhoulik4illwxftwbbfumbg7ti
     path: patches/@rivet-dev__agentos-core@0.2.15.patch
+  '@rivet-dev/agentos@0.2.15':
+    hash: 473xi6kk64jjv6loj5sph2sshi
+    path: patches/@rivet-dev__agentos@0.2.15.patch
 
 importers:
 
@@ -70,6 +73,9 @@ importers:
       '@vibechat/product-core':
         specifier: workspace:*
         version: link:packages/product-core
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:packages/space-agent-contracts
       '@vibechat/space-app-components':
         specifier: workspace:*
         version: link:packages/space-app-components
@@ -238,7 +244,7 @@ importers:
         version: 1.166.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-start':
         specifier: ^1.120.3
-        version: 1.166.8(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
+        version: 1.166.8(crossws@0.4.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
       '@tanstack/react-table':
         specifier: 8.21.2
         version: 8.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -341,13 +347,16 @@ importers:
         version: 1.166.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-start':
         specifier: ^1.120.3
-        version: 1.166.8(crossws@0.4.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
+        version: 1.166.8(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
       '@vibechat/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
       '@vibechat/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../../packages/space-agent-contracts
       '@vibechat/space-app-sdk':
         specifier: workspace:*
         version: link:../../packages/space-app-sdk
@@ -549,6 +558,9 @@ importers:
 
   apps/space-runtime:
     dependencies:
+      '@agentos-software/claude-code':
+        specifier: 0.2.7
+        version: 0.2.7
       '@agentos-software/pi':
         specifier: 0.2.7
         version: 0.2.7(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)(zod@4.2.1)
@@ -557,10 +569,13 @@ importers:
         version: 2.0.11(hono@4.12.9)
       '@rivet-dev/agentos':
         specifier: 0.2.15
-        version: 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+        version: 0.2.15(patch_hash=473xi6kk64jjv6loj5sph2sshi)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       '@rivet-dev/agentos-apps':
         specifier: 0.2.15
-        version: 0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+        version: 0.2.15(patch_hash=x2afhxzje3tv46haxmvebax3mq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../../packages/space-agent-contracts
       '@vibechat/space-app-components':
         specifier: workspace:*
         version: link:../../packages/space-app-components
@@ -797,6 +812,9 @@ importers:
 
   packages/api-contracts:
     dependencies:
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../space-agent-contracts
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../space-app-contracts
@@ -953,6 +971,16 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/space-agent-contracts:
+    dependencies:
+      zod:
+        specifier: 4.2.1
+        version: 4.2.1
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/space-app-components:
     dependencies:
       '@vibechat/space-app-dependencies':
@@ -980,6 +1008,9 @@ importers:
 
   packages/space-app-contracts:
     dependencies:
+      '@vibechat/space-agent-contracts':
+        specifier: workspace:*
+        version: link:../space-agent-contracts
       zod:
         specifier: 4.2.1
         version: 4.2.1
@@ -14799,13 +14830,13 @@ snapshots:
     dependencies:
       '@secure-exec/core': 0.2.1
 
-  '@rivet-dev/agentos-apps@0.2.15(patch_hash=temeowaqu46ixeolx5qiwbn2qm)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
+  '@rivet-dev/agentos-apps@0.2.15(patch_hash=x2afhxzje3tv46haxmvebax3mq)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
     dependencies:
       '@agentos-software/apps-builder': 0.2.15
       '@agentos-software/sh': 0.2.15
       '@agentos-software/tar': 0.3.5
-      '@rivet-dev/agentos': 0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
-      '@rivet-dev/agentos-core': 0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
+      '@rivet-dev/agentos': 0.2.15(patch_hash=473xi6kk64jjv6loj5sph2sshi)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
+      '@rivet-dev/agentos-core': 0.2.15(patch_hash=bhoulik4illwxftwbbfumbg7ti)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
       '@rivet-dev/agentos-toolchain': 0.2.15
       hono: 4.12.9
       rivetkit: 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(ws@8.18.0)
@@ -14852,7 +14883,7 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@rivet-dev/agentos-core@0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)':
+  '@rivet-dev/agentos-core@0.2.15(patch_hash=bhoulik4illwxftwbbfumbg7ti)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)':
     dependencies:
       '@agentclientprotocol/sdk': 0.16.1(zod@4.2.1)
       '@agentos-software/claude-code': 0.2.7
@@ -14931,11 +14962,11 @@ snapshots:
     dependencies:
       '@rivetkit/bare-ts': 0.6.2
 
-  '@rivet-dev/agentos@0.2.15(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
+  '@rivet-dev/agentos@0.2.15(patch_hash=473xi6kk64jjv6loj5sph2sshi)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)':
     dependencies:
       '@agentclientprotocol/sdk': 0.16.1(zod@4.2.1)
       '@agentos-software/common': 0.2.15
-      '@rivet-dev/agentos-core': 0.2.15(patch_hash=i7m64e4phivdw5bveag4rky7jy)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
+      '@rivet-dev/agentos-core': 0.2.15(patch_hash=bhoulik4illwxftwbbfumbg7ti)(@modelcontextprotocol/sdk@1.30.0(zod@4.2.1))(ws@8.18.0)
       '@rivetkit/react': 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(ws@8.18.0)
       rivetkit: 2.3.9(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.4)(better-sqlite3@12.9.0)(drizzle-kit@0.30.5)(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(ws@8.18.0)
       zod: 4.2.1
@@ -18647,7 +18678,7 @@ snapshots:
       once: 1.4.0
       parseurl: 1.3.3
       proxy-addr: 2.0.7
-      qs: 6.14.0
+      qs: 6.15.3
       range-parser: 1.3.0
       router: 2.2.0
       send: 1.2.1
@@ -19114,7 +19145,7 @@ snapshots:
       extend: 3.0.2
       gaxios: 6.7.1
       google-auth-library: 9.15.1
-      qs: 6.14.0
+      qs: 6.15.3
       url-template: 2.0.8
       uuid: 9.0.1
     transitivePeerDependencies:

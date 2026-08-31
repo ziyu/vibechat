@@ -1,5 +1,6 @@
 import { DatabaseRoomRepository } from '@libs/rooms'
 import type { SpaceInstanceRecord } from '@libs/rooms/types'
+import { getPublishedSpaceTemplate } from '@config'
 import {
   signSpaceRuntimeCredential,
   spaceRuntimeAudience,
@@ -66,11 +67,18 @@ export async function ensureSpaceTemplateProject(
     'spaceInstanceId' | 'spaceId' | 'spaceVersionId'
   >,
 ) {
+  const template = instance.spaceId
+    ? getPublishedSpaceTemplate(instance.spaceId)
+    : getPublishedSpaceTemplate('space-default')
+  const templateVersionId = instance.spaceVersionId ?? template?.versionId
+  if (!template || !templateVersionId) {
+    throw new Error('Space bootstrap Template is unavailable')
+  }
   const response = await fetchSpaceRuntime(
     `/api/apps/${encodeURIComponent(instance.spaceInstanceId)}/bootstrap`,
     runtimeJsonInit({
-      templateId: instance.spaceId,
-      templateVersionId: instance.spaceVersionId,
+      templateId: template.id,
+      templateVersionId,
     }),
   )
   if (!response.ok) {

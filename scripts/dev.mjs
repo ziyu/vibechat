@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { fork, spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -79,6 +79,13 @@ const packageManagerShimDirectory = join(
   '.data',
   'corepack-bin',
 )
+const agentOsPoolWorkerPath = join(
+  repositoryRoot,
+  'apps',
+  'space-runtime',
+  'src',
+  'agentos-pool-worker.ts',
+)
 const sqliteSnapshotDirectory = join(
   repositoryRoot,
   'libs',
@@ -104,6 +111,25 @@ function resolveHostPiBinary() {
 }
 
 const hostPiBinary = resolveHostPiBinary()
+const agentProviderCredentialEnvironmentVariables = [
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+  'ANTHROPIC_OAUTH_TOKEN',
+  'OPENAI_API_KEY',
+  'GEMINI_API_KEY',
+  'OPENROUTER_API_KEY',
+  'ZAI_API_KEY',
+  'GROQ_API_KEY',
+  'CEREBRAS_API_KEY',
+  'XAI_API_KEY',
+  'MISTRAL_API_KEY',
+  'AI_GATEWAY_API_KEY',
+]
+const agentOsPoolWorkloads = [
+  'agentExecution',
+  'appBuild',
+  'releaseServing',
+]
 
 const developmentEnvironment = environmentForNode(process.execPath, {
   ...process.env,
@@ -128,6 +154,25 @@ const developmentEnvironment = environmentForNode(process.execPath, {
   MATRIX_USER_PREFIX: process.env.MATRIX_USER_PREFIX || 'vibe_',
   ...(hostPiBinary ? { PI_BIN: hostPiBinary } : {}),
   SPACE_AGENT_DEFAULT_ID: process.env.SPACE_AGENT_DEFAULT_ID || 'pi',
+  SPACE_RUNTIME_ENGINE_MODE:
+    process.env.SPACE_RUNTIME_ENGINE_MODE ||
+    (managesLocalRivetEngine ? 'managed' : 'external'),
+  SPACE_RUNTIME_REPLICA_ID:
+    process.env.SPACE_RUNTIME_REPLICA_ID || `dev-${process.pid}`,
+  SPACE_RUNTIME_REGION:
+    process.env.SPACE_RUNTIME_REGION || process.env.SPACE_AGENT_REGION || 'local',
+  SPACE_AGENT_EXECUTION_POOL_CLASS:
+    process.env.SPACE_AGENT_EXECUTION_POOL_CLASS || 'agent-execution',
+  SPACE_APP_BUILD_POOL_CLASS:
+    process.env.SPACE_APP_BUILD_POOL_CLASS || 'app-build',
+  SPACE_RELEASE_SERVING_POOL_CLASS:
+    process.env.SPACE_RELEASE_SERVING_POOL_CLASS || 'release-serving',
+  SPACE_AGENT_EGRESS_ALLOWLIST:
+    process.env.SPACE_AGENT_EGRESS_ALLOWLIST || 'allow',
+  SPACE_APP_BUILD_EGRESS_ALLOWLIST:
+    process.env.SPACE_APP_BUILD_EGRESS_ALLOWLIST || 'allow',
+  SPACE_RELEASE_EGRESS_ALLOWLIST:
+    process.env.SPACE_RELEASE_EGRESS_ALLOWLIST || 'allow',
   AGENTOS_APPS_DNS_SERVERS:
     process.env.AGENTOS_APPS_DNS_SERVERS || '1.1.1.1,8.8.8.8',
   AGENTOS_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
@@ -391,13 +436,128 @@ async function stopManagedRivetEngine(engine) {
   }
 }
 
+function environmentForAgentOsPool(workload) {
+  const environment = {
+    ...developmentEnvironment,
+    SPACE_RUNTIME_ENGINE_MODE: 'external',
+    SPACE_RUNTIME_POOL_WORKLOAD: workload,
+    SPACE_RUNTIME_REPLICA_ID: `dev-pool-${workload}-${process.pid}`,
+    SPACE_RUNTIME_TMP_DIR:
+      `${process.env.SPACE_RUNTIME_TMP_DIR?.trim() || '/tmp/vc-space-runtime'}`
+      + `-${workload}-${process.pid}`,
+    RIVET_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+    AGENTOS_ENDPOINT: configuredRivetEndpoint || localRivetEndpoint,
+    RIVET_RUN_ENGINE: '0',
+  }
+  if (workload !== 'agentExecution') {
+    for (const name of agentProviderCredentialEnvironmentVariables) {
+      delete environment[name]
+    }
+  }
+  return environment
+}
+
+async function startAgentOsPoolWorkers() {
+  const workers = new Map()
+  try {
+    await Promise.all(agentOsPoolWorkloads.map(async (workload) => {
+      const worker = fork(agentOsPoolWorkerPath, [], {
+        cwd: repositoryRoot,
+        env: environmentForAgentOsPool(workload),
+        execArgv: ['--import', 'tsx'],
+        stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+      })
+      workers.set(workload, worker)
+      await waitForAgentOsPoolWorker(worker, workload)
+    }))
+  } catch (error) {
+    await stopAgentOsPoolWorkers(workers)
+    throw error
+  }
+  console.log('[dev] AgentOS Agent/build/serving pool workers are ready')
+  return workers
+}
+
+function waitForAgentOsPoolWorker(worker, workload) {
+  return new Promise((resolveReady, rejectReady) => {
+    const timeout = setTimeout(() => {
+      cleanup()
+      rejectReady(
+        new Error(`${workload} pool worker did not become ready within 60 seconds`),
+      )
+    }, 60_000)
+    timeout.unref()
+
+    const cleanup = () => {
+      clearTimeout(timeout)
+      worker.off('message', onMessage)
+      worker.off('error', onError)
+      worker.off('exit', onExit)
+    }
+    const onMessage = (message) => {
+      if (
+        !message ||
+        message.type !== 'space-runtime-pool-ready' ||
+        message.workload !== workload
+      ) {
+        return
+      }
+      cleanup()
+      resolveReady()
+    }
+    const onError = (error) => {
+      cleanup()
+      rejectReady(error)
+    }
+    const onExit = (code, signal) => {
+      cleanup()
+      rejectReady(
+        new Error(
+          `${workload} pool worker exited before readiness (${signal || code || 'unknown'})`,
+        ),
+      )
+    }
+    worker.on('message', onMessage)
+    worker.once('error', onError)
+    worker.once('exit', onExit)
+  })
+}
+
+async function stopAgentOsPoolWorkers(workers) {
+  const running = [...workers.values()].filter(
+    (worker) => worker.exitCode === null && worker.signalCode === null,
+  )
+  const exitPromises = running.map((worker) => new Promise((resolveExit) => {
+    worker.once('exit', resolveExit)
+  }))
+  for (const worker of running) worker.kill('SIGTERM')
+  await Promise.race([
+    Promise.all(exitPromises),
+    new Promise((resolveDelay) => setTimeout(resolveDelay, 5_000)),
+  ])
+  for (const worker of running) {
+    if (worker.exitCode === null && worker.signalCode === null) {
+      worker.kill('SIGKILL')
+    }
+  }
+}
+
 await ensurePackageManagerShim()
 ensureLocalSpaceAppComponentPackage()
 await ensureCompatibleNativeDependencies()
 await ensureLocalDatabase()
 await ensureLocalSynapse()
 if (hostPiBinary) console.log(`[dev] Host Pi binary: ${hostPiBinary}`)
-const managedRivetEngine = await startManagedRivetEngine()
+let managedRivetEngine = null
+let agentOsPoolWorkers = new Map()
+try {
+  managedRivetEngine = await startManagedRivetEngine()
+  agentOsPoolWorkers = await startAgentOsPoolWorkers()
+} catch (error) {
+  await stopAgentOsPoolWorkers(agentOsPoolWorkers)
+  await stopManagedRivetEngine(managedRivetEngine)
+  throw error
+}
 
 console.log(
   '[dev] Starting VibeChat: Web 8001, Backend 8002, Site 8003, Admin 8005, Space Runtime 8007',
@@ -421,6 +581,7 @@ const child = spawn(
 
 let terminating = false
 let managedEngineFailed = false
+let poolWorkerFailed = false
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     terminating = true
@@ -430,8 +591,13 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 child.once('error', (error) => {
   console.error('[dev] Failed to start application processes', error)
-  void stopManagedRivetEngine(managedRivetEngine)
-  process.exitCode = 1
+  terminating = true
+  void Promise.all([
+    stopAgentOsPoolWorkers(agentOsPoolWorkers),
+    stopManagedRivetEngine(managedRivetEngine),
+  ]).finally(() => {
+    process.exitCode = 1
+  })
 })
 
 managedRivetEngine?.once('exit', (code, signal) => {
@@ -444,10 +610,23 @@ managedRivetEngine?.once('exit', (code, signal) => {
   child.kill('SIGTERM')
 })
 
+for (const [workload, worker] of agentOsPoolWorkers) {
+  worker.once('exit', (code, signal) => {
+    if (terminating) return
+    console.error(
+      `[dev] AgentOS ${workload} pool worker exited unexpectedly (${signal || code || 'unknown'})`,
+    )
+    poolWorkerFailed = true
+    terminating = true
+    child.kill('SIGTERM')
+  })
+}
+
 child.once('close', async (code) => {
   const expectedStop = terminating
   terminating = true
+  await stopAgentOsPoolWorkers(agentOsPoolWorkers)
   await stopManagedRivetEngine(managedRivetEngine)
   process.exitCode =
-    code ?? (expectedStop && !managedEngineFailed ? 0 : 1)
+    code ?? (expectedStop && !managedEngineFailed && !poolWorkerFailed ? 0 : 1)
 })

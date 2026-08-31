@@ -9,11 +9,13 @@
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
     "start": "node --env-file-if-exists=../../.env --import tsx src/server.ts",
+    "start:pool-worker": "node --env-file-if-exists=../../.env --import tsx src/agentos-pool-worker.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "deploy:project": "node --env-file-if-exists=../../.env --import tsx src/deploy-workspace.ts"
   },
   "dependencies": {
+    "@agentos-software/claude-code": "0.2.7",
     "@agentos-software/pi": "0.2.7",
     "@hono/node-server": "2.0.11",
     "@rivet-dev/agentos": "0.2.15",
@@ -21,6 +23,7 @@
     "@vibechat/space-app-components": "workspace:*",
     "@vibechat/space-app-contracts": "workspace:*",
     "@vibechat/space-app-dependencies": "workspace:*",
+    "@vibechat/space-agent-contracts": "workspace:*",
     "@vibechat/space-runtime-auth": "workspace:*",
     "@vibechat/space-templates": "workspace:*",
     "hono": "4.12.9",

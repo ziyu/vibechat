@@ -3,10 +3,12 @@
 > 生命周期：长期稳定
 > 文档类型：设计
 > 状态：生效
-> 更新日期：2026-08-24
+> 更新日期：2026-08-28
 > 维护范围：VibeChat Web/PWA、Space Kernel、Chat、Space App Runtime、Agent 协作生成、Space 市场、Matrix 消息底座与发布系统
 > 事实边界：本文定义目标状态；当前实现、迁移差距与完成证据见 [Active 实施跟踪](../../development/active/product-and-technical-implementation.md)
 > 设计演进：[Space App 设计演进与实施记录](../../development/active/space-app-design-transition.md)
+> Agent 聚焦设计：[Agent 架构与 AgentOS 部署设计](./agent-architecture-and-agentos-deployment.md)
+> 宿主设计系统实施：[VibeChat 宿主设计系统与主题工作流实施方案](../../development/active/host-design-system-and-theme-workflow.md)
 
 ## 1. 执行摘要
 
@@ -405,6 +407,8 @@ Space 技术方案不再保持 Runtime 实现中立。第一版必须沿用 demo
 - App iframe 与 Kernel 之间继续采用版本化 `postMessage` bridge；App 不直接连接 Matrix、Backend privileged API 或 Agent provider。
 
 Agent 仍保持 provider-neutral：确定的是 Space Instance/Project/Dev/Release 技术链，不是把 Pi 固定为唯一 Agent。Agent Adapter 与 agentOS Apps Runtime 是两个接口层。
+
+Agent Registry、`Space × Agent` session、区域级共享 AgentOS/Rivet Engine、Space/Revision/Release 逻辑隔离单位、worker pool 与生产多副本边界由 [Agent 架构与 AgentOS 部署设计](./agent-architecture-and-agentos-deployment.md) 统一定义；本文不重复维护其细节。
 
 ### 5.5 现有房间与多人 Space 的统一实例模型
 

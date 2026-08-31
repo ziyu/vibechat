@@ -45,12 +45,15 @@ import {
   type ImageGenerationInput,
   type VideoGenerationInput,
   spaceRuntimeSnapshotSchema,
+  spaceProjectRevisionListSchema,
   spaceAppBridgeResponseSchema,
   spaceTurnAcceptedSchema,
   type SpaceAppBridgeRequest,
   type CreateSpaceAgentTurnRequest,
   type PublishSpaceAppRequest,
   type RestoreSpaceAppRequest,
+  type ApplySpaceTemplateRequest,
+  type SpaceProjectRevisionList,
 } from '@vibechat/api-contracts'
 
 export interface ProductApiTransport {
@@ -235,6 +238,14 @@ export class ProductApiClient {
     )
   }
 
+  getSpaceProjectRevisions(matrixRoomId: string): Promise<SpaceProjectRevisionList> {
+    return this.request(
+      `/v1/rooms/${encodeURIComponent(matrixRoomId)}/revisions`,
+      spaceProjectRevisionListSchema,
+      'SPACE_PROJECT_REVISIONS_LOAD_FAILED',
+    )
+  }
+
   createSpaceAgentTurn(matrixRoomId: string, input: CreateSpaceAgentTurnRequest) {
     return this.request(
       `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/turns`,
@@ -258,6 +269,15 @@ export class ProductApiClient {
       `/v1/spaces/instances/${encodeURIComponent(matrixRoomId)}/restore`,
       spaceTurnAcceptedSchema,
       'SPACE_APP_RESTORE_FAILED',
+      this.jsonInit('POST', input),
+    )
+  }
+
+  applySpaceTemplate(matrixRoomId: string, input: ApplySpaceTemplateRequest) {
+    return this.request(
+      `/v1/rooms/${encodeURIComponent(matrixRoomId)}/apply-template`,
+      spaceTurnAcceptedSchema,
+      'SPACE_TEMPLATE_APPLY_FAILED',
       this.jsonInit('POST', input),
     )
   }

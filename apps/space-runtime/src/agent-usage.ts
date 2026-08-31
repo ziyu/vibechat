@@ -1,7 +1,13 @@
-export interface AgentUsage {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
+import type { AgentTokenUsage, AgentUsageV1 } from "@vibechat/space-agent-contracts";
+
+export type AgentUsage = AgentTokenUsage;
+
+export function versionAgentUsage(usage: AgentUsage): AgentUsageV1 {
+  return {
+    schemaVersion: "vibechat.agent-usage/v1",
+    unit: "tokens",
+    ...usage,
+  };
 }
 
 export function addAgentUsage(

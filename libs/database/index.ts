@@ -42,11 +42,13 @@ export type {
   NewSpaceRuntimeLeaseRow,
   NewSpaceRuntimeOutboxRow,
   NewSpaceRuntimeProjectRow,
+  NewSpaceRuntimeProjectRevisionRow,
   NewSpaceRuntimeTurnRow,
   SpaceRuntimeInstanceStateRow,
   SpaceRuntimeLeaseRow,
   SpaceRuntimeOutboxRow,
   SpaceRuntimeProjectRow,
+  SpaceRuntimeProjectRevisionRow,
   SpaceRuntimeTurnRow,
 } from './schema/pg/space-runtime-control'
 export type {
@@ -70,6 +72,16 @@ export type {
   NewSpaceAppManagedPackageReleaseRow,
   SpaceAppManagedPackageReleaseRow,
 } from './schema/pg/space-app-registry'
+export type {
+  NewSpaceAgentAuditEventRow,
+  NewSpaceAgentBindingRow,
+  NewSpaceAgentDefinitionRow,
+  NewSpaceAgentSessionRow,
+  SpaceAgentAuditEventRow,
+  SpaceAgentBindingRow,
+  SpaceAgentDefinitionRow,
+  SpaceAgentSessionRow,
+} from './schema/pg/space-agent'
 
 // Schema table exports (dialect-aware via proxy modules, Turbopack compatible)
 export { user } from './schema/user'
@@ -87,6 +99,7 @@ export {
   spaceRuntimeLease,
   spaceRuntimeOutbox,
   spaceRuntimeProject,
+  spaceRuntimeProjectRevision,
   spaceRuntimeTurn,
 } from './schema/space-runtime-control'
 export { roomUserPreference, spaceFavorite, userPreference } from './schema/product-state'
@@ -94,6 +107,12 @@ export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 export { aiGenerationTask } from './schema/ai-generation-task'
 export { spaceAppManagedPackageRelease } from './schema/space-app-registry'
+export {
+  spaceAgentAuditEvent,
+  spaceAgentBinding,
+  spaceAgentDefinition,
+  spaceAgentSession,
+} from './schema/space-agent'
 
 // Build a schema object for drizzle() initialization from proxy exports.
 // Proxy modules return the correct dialect's tables at runtime.
@@ -112,6 +131,7 @@ import {
   spaceRuntimeLease as _spaceRuntimeLease,
   spaceRuntimeOutbox as _spaceRuntimeOutbox,
   spaceRuntimeProject as _spaceRuntimeProject,
+  spaceRuntimeProjectRevision as _spaceRuntimeProjectRevision,
   spaceRuntimeTurn as _spaceRuntimeTurn,
 } from './schema/space-runtime-control'
 import {
@@ -130,6 +150,12 @@ import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-ta
 import {
   spaceAppManagedPackageRelease as _spaceAppManagedPackageRelease,
 } from './schema/space-app-registry'
+import {
+  spaceAgentAuditEvent as _spaceAgentAuditEvent,
+  spaceAgentBinding as _spaceAgentBinding,
+  spaceAgentDefinition as _spaceAgentDefinition,
+  spaceAgentSession as _spaceAgentSession,
+} from './schema/space-agent'
 
 const _schema = {
   user: _user, account: _account, session: _session, verification: _verification,
@@ -139,6 +165,7 @@ const _schema = {
   roomIndex: _roomIndex,
   spaceRuntimeInstanceState: _spaceRuntimeInstanceState,
   spaceRuntimeProject: _spaceRuntimeProject,
+  spaceRuntimeProjectRevision: _spaceRuntimeProjectRevision,
   spaceRuntimeTurn: _spaceRuntimeTurn,
   spaceRuntimeLease: _spaceRuntimeLease,
   spaceRuntimeOutbox: _spaceRuntimeOutbox,
@@ -149,6 +176,10 @@ const _schema = {
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
   aiGenerationTask: _aiGenerationTask,
   spaceAppManagedPackageRelease: _spaceAppManagedPackageRelease,
+  spaceAgentDefinition: _spaceAgentDefinition,
+  spaceAgentBinding: _spaceAgentBinding,
+  spaceAgentSession: _spaceAgentSession,
+  spaceAgentAuditEvent: _spaceAgentAuditEvent,
 }
 
 // ---------------------------------------------------------------------------

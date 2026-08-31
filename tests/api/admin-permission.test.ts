@@ -19,6 +19,10 @@ const ADMIN_ENDPOINTS: Array<{ method: string; path: string }> = [
   { method: 'GET', path: '/api/admin/blog' },
   { method: 'POST', path: '/api/admin/blog' },
   { method: 'GET', path: '/api/admin/blog/nonexistent-test-id' },
+  { method: 'GET', path: '/api/admin/agents' },
+  { method: 'POST', path: '/api/admin/agents/definitions' },
+  { method: 'PATCH', path: '/api/admin/agents/definitions/nonexistent/status' },
+  { method: 'PUT', path: '/api/admin/agents/bindings' },
   { method: 'GET', path: '/api/users/nonexistent-test-id' },
 ];
 

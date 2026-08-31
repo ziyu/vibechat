@@ -24,6 +24,7 @@ import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/inde
 import { Route as AdminCreditsIndexRouteImport } from './routes/admin/credits/index'
 import { Route as AdminCommissionsIndexRouteImport } from './routes/admin/commissions/index'
 import { Route as AdminBlogIndexRouteImport } from './routes/admin/blog/index'
+import { Route as AdminAgentsIndexRouteImport } from './routes/admin/agents/index'
 import { Route as AdminUsersIdIndexRouteImport } from './routes/admin/users/$id/index'
 import { Route as AdminPricingIdIndexRouteImport } from './routes/admin/pricing/$id/index'
 import { Route as AdminBlogIdIndexRouteImport } from './routes/admin/blog/$id/index'
@@ -103,6 +104,11 @@ const AdminBlogIndexRoute = AdminBlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAgentsIndexRoute = AdminAgentsIndexRouteImport.update({
+  id: '/agents/',
+  path: '/agents/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminUsersIdIndexRoute = AdminUsersIdIndexRouteImport.update({
   id: '/users/$id/',
   path: '/users/$id/',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/agents/': typeof AdminAgentsIndexRoute
   '/admin/blog/': typeof AdminBlogIndexRoute
   '/admin/commissions/': typeof AdminCommissionsIndexRoute
   '/admin/credits/': typeof AdminCreditsIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/agents': typeof AdminAgentsIndexRoute
   '/admin/blog': typeof AdminBlogIndexRoute
   '/admin/commissions': typeof AdminCommissionsIndexRoute
   '/admin/credits': typeof AdminCreditsIndexRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/$locale/$': typeof LocaleSplatRoute
   '/api/$': typeof ApiSplatRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/agents/': typeof AdminAgentsIndexRoute
   '/admin/blog/': typeof AdminBlogIndexRoute
   '/admin/commissions/': typeof AdminCommissionsIndexRoute
   '/admin/credits/': typeof AdminCreditsIndexRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/$locale/$'
     | '/api/$'
     | '/admin/'
+    | '/admin/agents/'
     | '/admin/blog/'
     | '/admin/commissions/'
     | '/admin/credits/'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/$locale/$'
     | '/api/$'
     | '/admin'
+    | '/admin/agents'
     | '/admin/blog'
     | '/admin/commissions'
     | '/admin/credits'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/$locale/$'
     | '/api/$'
     | '/admin/'
+    | '/admin/agents/'
     | '/admin/blog/'
     | '/admin/commissions/'
     | '/admin/credits/'
@@ -356,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBlogIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/agents/': {
+      id: '/admin/agents/'
+      path: '/agents'
+      fullPath: '/admin/agents/'
+      preLoaderRoute: typeof AdminAgentsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/users/$id/': {
       id: '/admin/users/$id/'
       path: '/users/$id'
@@ -393,6 +412,7 @@ const LocaleRouteWithChildren =
 
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminAgentsIndexRoute: typeof AdminAgentsIndexRoute
   AdminBlogIndexRoute: typeof AdminBlogIndexRoute
   AdminCommissionsIndexRoute: typeof AdminCommissionsIndexRoute
   AdminCreditsIndexRoute: typeof AdminCreditsIndexRoute
@@ -408,6 +428,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminAgentsIndexRoute: AdminAgentsIndexRoute,
   AdminBlogIndexRoute: AdminBlogIndexRoute,
   AdminCommissionsIndexRoute: AdminCommissionsIndexRoute,
   AdminCreditsIndexRoute: AdminCreditsIndexRoute,

@@ -1,4 +1,4 @@
-import { User, CreditCard, ShoppingCart, LayoutDashboard, Coins, FileText, DollarSign, Wallet, Tag, ArrowUpRight } from "lucide-react"
+import { User, CreditCard, ShoppingCart, LayoutDashboard, Coins, FileText, DollarSign, Wallet, Tag, ArrowUpRight, Bot } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
 import { useRouterState } from "@tanstack/react-router"
 
@@ -45,6 +45,11 @@ export function AppSidebar() {
       title: t.navigation.admin.credits,
       url: `/admin/credits`,
       icon: Coins,
+    },
+    {
+      title: t.navigation.admin.agents,
+      url: `/admin/agents`,
+      icon: Bot,
     },
     {
       title: t.navigation.admin.pricing || 'Pricing',

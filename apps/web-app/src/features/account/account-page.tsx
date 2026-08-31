@@ -153,11 +153,28 @@ export function AccountPage() {
     ['security', t.chatApp.account.tabs.security, ShieldCheck],
   ] as const, [t])
 
+  const handleAccountTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let nextIndex = index
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = tabs.length - 1
+    else return
+
+    event.preventDefault()
+    setActiveTab(tabs[nextIndex][0])
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      [nextIndex]?.focus()
+  }
+
   return (
     <section className="vc-account-page" data-testid="account-page">
       <header className="vc-product-page-header">
         <div>
-          <span className="vc-kicker">{t.chatApp.account.kicker}</span>
           <h1>{t.chatApp.account.title}</h1>
           <p>{t.chatApp.account.description}</p>
         </div>
@@ -166,43 +183,76 @@ export function AccountPage() {
         </Link>
       </header>
 
-      <nav className="vc-product-tabs" aria-label={t.chatApp.account.title}>
-        {tabs.map(([id, label, Icon]) => (
-          <button key={id} type="button" data-active={activeTab === id || undefined} onClick={() => setActiveTab(id)}>
-            <Icon size={15} />{label}
-          </button>
-        ))}
-      </nav>
+      <div className="vc-account-room">
+        <nav className="vc-account-index" aria-label={t.chatApp.account.title} role="tablist">
+          {tabs.map(([id, label, Icon], index) => (
+            <button
+              key={id}
+              type="button"
+              id={`account-tab-${id}`}
+              role="tab"
+              aria-controls={`account-panel-${id}`}
+              aria-selected={activeTab === id}
+              tabIndex={activeTab === id ? 0 : -1}
+              data-testid={`account-tab-${id}`}
+              data-active={activeTab === id || undefined}
+              onClick={() => setActiveTab(id)}
+              onKeyDown={(event) => handleAccountTabKeyDown(event, index)}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
 
-      {loading ? <AccountState icon={<RefreshCcw className="vc-spin" />} text={t.chatApp.account.loading} /> : null}
-      {!loading && coreError ? (
-        <AccountState icon={<RefreshCcw />} text={t.chatApp.account.loadFailed}>
-          <button type="button" onClick={() => void loadAccount()}>{t.chatApp.account.retry}</button>
-        </AccountState>
-      ) : null}
+        <div
+          className="vc-account-stage"
+          id={`account-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`account-tab-${activeTab}`}
+          tabIndex={0}
+        >
+          {loading ? <AccountState icon={<RefreshCcw className="vc-spin" />} text={t.chatApp.account.loading} /> : null}
+          {!loading && coreError ? (
+            <AccountState icon={<RefreshCcw />} text={t.chatApp.account.loadFailed}>
+              <button type="button" onClick={() => void loadAccount()}>{t.chatApp.account.retry}</button>
+            </AccountState>
+          ) : null}
 
       {!loading && core && activeTab === 'overview' ? (
         <div className="vc-account-overview" data-testid="account-overview">
-          <MetricCard icon={<CreditCard />} label={t.chatApp.account.subscription} value={
-            core.subscription.isLifetime ? t.chatApp.account.lifetime
-              : core.subscription.hasSubscription ? t.chatApp.account.activePlan
-                : t.chatApp.account.noSubscription
-          }>
-            {core.subscription.hasSubscription && !core.subscription.isLifetime ? (
-              <button type="button" onClick={() => void manageSubscription()} disabled={portalLoading}>
-                {t.chatApp.account.manageSubscription}
-              </button>
-            ) : null}
-          </MetricCard>
-          <MetricCard icon={<Coins />} label={t.chatApp.account.availableCredits} value={String(core.creditStatus.credits.balance)}>
-            <span>{t.chatApp.account.purchased} {core.creditStatus.credits.totalPurchased} · {t.chatApp.account.consumed} {core.creditStatus.credits.totalConsumed}</span>
-          </MetricCard>
-          <MetricCard icon={<History />} label={t.chatApp.account.orders} value={String(core.orders.total)}>
-            <button type="button" onClick={() => setActiveTab('orders')}>{t.chatApp.common.viewAll}</button>
-          </MetricCard>
-          <MetricCard icon={<BadgeDollarSign />} label={t.chatApp.account.commissionBalance} value={affiliate ? `${affiliate.stats.commissionBalance} ${affiliate.stats.currency}` : '—'}>
-            <button type="button" onClick={() => setActiveTab('affiliate')}>{t.chatApp.common.viewAll}</button>
-          </MetricCard>
+          <section className="vc-account-summary" aria-label={t.chatApp.account.tabs.overview}>
+            <header><WalletCards size={17} /><h2>{t.chatApp.account.tabs.overview}</h2></header>
+            <AccountOverviewRow
+              icon={<CreditCard />}
+              label={t.chatApp.account.subscription}
+              value={core.subscription.isLifetime ? t.chatApp.account.lifetime
+                : core.subscription.hasSubscription ? t.chatApp.account.activePlan
+                  : t.chatApp.account.noSubscription}
+            >
+              {core.subscription.hasSubscription && !core.subscription.isLifetime ? (
+                <button type="button" onClick={() => void manageSubscription()} disabled={portalLoading}>
+                  {t.chatApp.account.manageSubscription}
+                </button>
+              ) : null}
+            </AccountOverviewRow>
+            <AccountOverviewRow
+              icon={<Coins />}
+              label={t.chatApp.account.availableCredits}
+              value={String(core.creditStatus.credits.balance)}
+              description={`${t.chatApp.account.purchased} ${core.creditStatus.credits.totalPurchased} · ${t.chatApp.account.consumed} ${core.creditStatus.credits.totalConsumed}`}
+            />
+            <AccountOverviewRow icon={<History />} label={t.chatApp.account.orders} value={String(core.orders.total)}>
+              <button type="button" onClick={() => setActiveTab('orders')}>{t.chatApp.common.viewAll}</button>
+            </AccountOverviewRow>
+            <AccountOverviewRow
+              icon={<BadgeDollarSign />}
+              label={t.chatApp.account.commissionBalance}
+              value={affiliate ? `${affiliate.stats.commissionBalance} ${affiliate.stats.currency}` : '—'}
+            >
+              <button type="button" onClick={() => setActiveTab('affiliate')}>{t.chatApp.common.viewAll}</button>
+            </AccountOverviewRow>
+          </section>
           <section className="vc-ledger-card vc-overview-ledger">
             <header><Coins size={17} /><h2>{t.chatApp.account.recentActivity}</h2></header>
             <LedgerRows rows={core.transactions.transactions.slice(0, 5)} empty={t.chatApp.account.noTransactions} formatDate={formatDate} />
@@ -304,6 +354,8 @@ export function AccountPage() {
       {!loading && core && activeTab === 'security' ? (
         <AccountSecurityPanel hasActiveSubscription={core.subscription.hasSubscription && !core.subscription.isLifetime} />
       ) : null}
+        </div>
+      </div>
     </section>
   )
 }
@@ -312,8 +364,27 @@ function AccountState({ icon, text, children }: { icon: React.ReactNode; text: s
   return <section className="vc-account-state">{icon}<p>{text}</p>{children}</section>
 }
 
-function MetricCard({ icon, label, value, children }: { icon: React.ReactNode; label: string; value: string; children?: React.ReactNode }) {
-  return <article className="vc-metric-card"><span>{icon}</span><small>{label}</small><strong>{value}</strong><div>{children}</div></article>
+function AccountOverviewRow({
+  icon,
+  label,
+  value,
+  description,
+  children,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  description?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <article className="vc-account-summary-row">
+      <span>{icon}</span>
+      <div><small>{label}</small>{description ? <p>{description}</p> : null}</div>
+      <strong>{value}</strong>
+      <div>{children}</div>
+    </article>
+  )
 }
 
 function LedgerRows({ rows, empty, formatDate }: { rows: CreditTransactionsResponse['transactions']; empty: string; formatDate: (value: string | Date) => string }) {

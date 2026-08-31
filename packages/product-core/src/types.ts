@@ -41,6 +41,7 @@ export interface ChatMessage {
   createdAt: string
   status: MessageDeliveryStatus
   replyToId?: string
+  mentionedUserIds?: string[]
   agentMentions?: Array<{ type: 'agent'; id: string }>
   agent?: boolean
   agentId?: string
@@ -50,6 +51,12 @@ export interface ChatMessage {
   deleted?: boolean
   attachment?: ChatAttachment
   reactions: ChatReaction[]
+}
+
+export interface ChatMessagePage {
+  messages: ChatMessage[]
+  nextBefore: string | null
+  hasMore: boolean
 }
 
 export interface ChatRoom {
@@ -131,5 +138,8 @@ export interface ChatState {
 
 export interface CreateRoomInput {
   participantIds: string[]
-  spaceId: string
+  startMode: 'blank' | 'template'
+  name: string
+  templateId?: string
+  templateVersionId?: string
 }

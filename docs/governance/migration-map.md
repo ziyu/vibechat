@@ -2,7 +2,7 @@
 
 > 文档类型：迁移记录
 > 状态：生效
-> 更新日期：2026-08-11
+> 更新日期：2026-08-26
 > 迁移范围：首轮仓库级文档治理
 
 ## 迁移摘要
@@ -20,6 +20,7 @@
 | `docs/release/*` | `docs/stable/release-notes/*` | 长期稳定 / 发布说明 | 已发生的交付事实 |
 | `ROADMAP.md` | `docs/stable/plans/product-roadmap.md` | 长期稳定 / 计划 | 用当前产品阶段重写旧路线图 |
 | `TEST_PLAN.md` | `docs/stable/runbooks/testing/manual-and-api-testing.md` | 长期稳定 / Runbook | 改为可执行的手动与 API 测试步骤 |
+| 新增聚焦设计 | `docs/stable/designs/agent-architecture-and-agentos-deployment.md` | 长期稳定 / 设计 | 从 MVP 总设计中抽取并固化 Agent Registry/Adapter、会话隔离和 AgentOS 区域级共享部署边界；当前差距继续记录在 Active 实施跟踪 |
 
 中间迁移曾使用 `docs/archive/legacy-tinyship/` 和 `docs/stable-design/`，现已移除；它们不是最终文档入口。
 

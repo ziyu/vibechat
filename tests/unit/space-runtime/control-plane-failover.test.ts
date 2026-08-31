@@ -28,6 +28,55 @@ afterAll(() => {
 });
 
 describe("durable Space Runtime control plane", () => {
+  it("persists the pinned Agent snapshot and does not overwrite it on event retry", async () => {
+    const original = await control.enqueueTurn({
+      turnId: "turn-pinned-snapshot",
+      spaceInstanceId: "space-instance-pinned-snapshot",
+      externalRequestId: "matrix-pinned-snapshot",
+      kind: "message",
+      agentId: "pi",
+      agentDefinitionId: "agent-definition-pi-v1",
+      agentDefinitionVersion: "1.0.0",
+      adapterKey: "pi",
+      adapterVersion: "0.2.7",
+      sessionGeneration: 3,
+      policySnapshotHash: `sha256:${"a".repeat(64)}`,
+      reservationTransactionId: "ai-chat:reservation-fixed",
+      payloadSchemaVersion: "vibechat.agent-turn-input/v1",
+      payload: { requestText: "original" },
+    });
+    const duplicate = await control.enqueueTurn({
+      turnId: "turn-pinned-snapshot-duplicate",
+      spaceInstanceId: "space-instance-pinned-snapshot",
+      externalRequestId: "matrix-pinned-snapshot",
+      kind: "message",
+      agentId: "other-agent",
+      agentDefinitionId: "other-definition",
+      agentDefinitionVersion: "9.9.9",
+      adapterKey: "other",
+      adapterVersion: "9.9.9",
+      sessionGeneration: 99,
+      policySnapshotHash: `sha256:${"b".repeat(64)}`,
+      reservationTransactionId: "other-reservation",
+      payloadSchemaVersion: "other-schema/v9",
+      payload: { requestText: "duplicate" },
+    });
+
+    expect(duplicate.turnId).toBe(original.turnId);
+    expect(await control.getTurn(original.turnId)).toMatchObject({
+      agentId: "pi",
+      agentDefinitionId: "agent-definition-pi-v1",
+      agentDefinitionVersion: "1.0.0",
+      adapterKey: "pi",
+      adapterVersion: "0.2.7",
+      sessionGeneration: 3,
+      policySnapshotHash: `sha256:${"a".repeat(64)}`,
+      reservationTransactionId: "ai-chat:reservation-fixed",
+      payloadSchemaVersion: "vibechat.agent-turn-input/v1",
+      payload: { requestText: "original" },
+    });
+  });
+
   it("preserves M1/P/M2 ordering, fences the old owner, and deduplicates takeover effects", async () => {
     const instanceId = "space-instance-failover";
     const leaseA = await control.claimLease(instanceId, "replica-a", 5_000);
@@ -71,6 +120,9 @@ describe("durable Space Runtime control plane", () => {
     now = new Date(now.getTime() + 6_000);
     const leaseB = await control.claimLease(instanceId, "replica-b", 5_000);
     expect(leaseB?.fencingToken).toBe(2);
+    await expect(control.assertLease(leaseA!)).rejects.toMatchObject({
+      code: "SPACE_RUNTIME_FENCED",
+    });
     const recoveredPublish = await control.claimNextTurn(instanceId, leaseB!);
     expect(recoveredPublish).toMatchObject({ turnId: "turn-p", attempt: 2 });
     expect(await control.getTurn("turn-p")).toMatchObject({
@@ -110,37 +162,140 @@ describe("durable Space Runtime control plane", () => {
       publishedRevisionId: "1111111111111111",
       releaseId: "release-m1",
     });
+    expect(await control.listProjectRevisions(instanceId)).toMatchObject([
+      {
+        revisionId: "2222222222222222",
+        parentRevisionId: "1111111111111111",
+        sourceObjectKey: "space-runtime/objects/source-m2",
+      },
+      {
+        revisionId: "1111111111111111",
+        parentRevisionId: null,
+        sourceObjectKey: "space-runtime/objects/source-m1",
+      },
+    ]);
+    await control.saveProject({
+      ...(await control.loadProject(instanceId))!,
+      sourceObjectKey: "space-runtime/objects/source-m2-publish-save",
+    }, leaseB!);
+    expect(await control.loadProjectRevision(
+      instanceId,
+      "2222222222222222",
+    )).toMatchObject({
+      sourceObjectKey: "space-runtime/objects/source-m2",
+      sourceHash: "sha256:source-m2",
+    });
     await control.completeTurn("turn-m2", leaseB!, "completed");
     await expect(control.releaseLease(leaseB!)).resolves.toBe(true);
     const leaseC = await control.claimLease(instanceId, "replica-c", 5_000);
     expect(leaseC?.fencingToken).toBe(3);
 
-    const reply = await control.enqueueOutbox({
-      eventId: "outbox-reply-1",
-      spaceInstanceId: instanceId,
-      eventType: "agent_reply",
-      dedupeKey: "turn-m2",
-      payload: { transactionId: "space-agent-turn-m2" },
-    });
-    const duplicate = await control.enqueueOutbox({
-      eventId: "outbox-reply-duplicate",
-      spaceInstanceId: instanceId,
-      eventType: "agent_reply",
-      dedupeKey: "turn-m2",
-      payload: { transactionId: "space-agent-turn-m2" },
-    });
-    expect(duplicate.eventId).toBe(reply.eventId);
+    const outboxFixtures = [
+      {
+        eventId: "outbox-reply-1",
+        eventType: "agent_reply" as const,
+        dedupeKey: "turn-m2",
+        payload: { transactionId: "space-agent-turn-m2" },
+      },
+      {
+        eventId: "outbox-credits-1",
+        eventType: "credits_callback" as const,
+        dedupeKey: "credits-reservation-m2",
+        payload: { transactionId: "credits-reservation-m2" },
+      },
+      {
+        eventId: "outbox-state-1",
+        eventType: "matrix_v2_state" as const,
+        dedupeKey: "space-instance-failover:revision-m2:release-m1",
+        payload: { readyRevisionId: "2222222222222222" },
+      },
+    ];
+    for (const fixture of outboxFixtures) {
+      const original = await control.enqueueOutbox({
+        ...fixture,
+        spaceInstanceId: instanceId,
+      });
+      const duplicate = await control.enqueueOutbox({
+        ...fixture,
+        eventId: `${fixture.eventId}-duplicate`,
+        spaceInstanceId: instanceId,
+      });
+      expect(duplicate.eventId).toBe(original.eventId);
+    }
 
     const firstDelivery = await control.claimOutbox("reconciler-a");
-    expect(firstDelivery).toHaveLength(1);
+    expect(firstDelivery).toHaveLength(3);
     const exactlyOnceSink = new Set<string>();
-    exactlyOnceSink.add(firstDelivery[0]!.dedupeKey);
+    for (const event of firstDelivery) {
+      exactlyOnceSink.add(`${event.eventType}:${event.dedupeKey}`);
+    }
     now = new Date(now.getTime() + 61_000);
     const retriedDelivery = await control.claimOutbox("reconciler-b");
-    expect(retriedDelivery[0]).toMatchObject({ eventId: reply.eventId, attempt: 2 });
-    exactlyOnceSink.add(retriedDelivery[0]!.dedupeKey);
-    await control.completeOutbox(reply.eventId, "reconciler-b");
-    expect(exactlyOnceSink.size).toBe(1);
+    expect(retriedDelivery).toHaveLength(3);
+    for (const event of retriedDelivery) {
+      expect(event.attempt).toBe(2);
+      exactlyOnceSink.add(`${event.eventType}:${event.dedupeKey}`);
+      await control.completeOutbox(event.eventId, "reconciler-b");
+    }
+    expect(exactlyOnceSink.size).toBe(3);
+  });
+
+  it("persists cancellation once and keeps terminal Turns immutable", async () => {
+    const instanceId = "space-instance-cancellation";
+    const firstRequestedAt = new Date(now);
+    firstRequestedAt.setMilliseconds(0);
+    await control.enqueueTurn({
+      turnId: "turn-cancelled",
+      spaceInstanceId: instanceId,
+      externalRequestId: "matrix-cancelled",
+      kind: "message",
+      payload: { clientId: "member-1" },
+    });
+
+    await expect(
+      control.requestTurnCancellation("turn-cancelled", firstRequestedAt),
+    ).resolves.toEqual(firstRequestedAt);
+    await expect(
+      control.requestTurnCancellation(
+        "turn-cancelled",
+        new Date(firstRequestedAt.getTime() + 1_000),
+      ),
+    ).resolves.toEqual(firstRequestedAt);
+
+    const lease = await control.claimLease(instanceId, "runtime-cancel", 5_000);
+    expect(await control.claimNextTurn(instanceId, lease!)).toMatchObject({
+      turnId: "turn-cancelled",
+      cancelRequestedAt: firstRequestedAt,
+    });
+    await control.completeTurn("turn-cancelled", lease!, "failed");
+    await expect(
+      control.requestTurnCancellation(
+        "turn-cancelled",
+        new Date(firstRequestedAt.getTime() + 2_000),
+      ),
+    ).resolves.toEqual(firstRequestedAt);
+
+    await control.enqueueTurn({
+      turnId: "turn-completed-without-cancel",
+      spaceInstanceId: instanceId,
+      externalRequestId: "matrix-completed-without-cancel",
+      kind: "message",
+      payload: { clientId: "member-1" },
+    });
+    expect(await control.claimNextTurn(instanceId, lease!)).toMatchObject({
+      turnId: "turn-completed-without-cancel",
+    });
+    await control.completeTurn(
+      "turn-completed-without-cancel",
+      lease!,
+      "completed",
+    );
+    await expect(
+      control.requestTurnCancellation(
+        "turn-completed-without-cancel",
+        firstRequestedAt,
+      ),
+    ).resolves.toBeNull();
   });
 
   it("lets a second SpaceInstanceServer take over an interrupted turn without duplicate completion", async () => {
@@ -201,7 +356,9 @@ function requestInput(
   } as const;
 }
 
-function durableAdapter(ownerId: string) {
+function durableAdapter(
+  ownerId: string,
+): import("../../../apps/space-runtime/src/durable-space-control").DurableSpaceControl {
   let lease: import("@libs/space-runtime-control").RuntimeLease | null = null;
   const ensureLease = async (spaceInstanceId: string) => {
     if (lease && lease.expiresAt > now) return lease;
@@ -255,6 +412,28 @@ function durableAdapter(ownerId: string) {
       status: "completed" | "failed",
     ) {
       return control.completeTurn(turnId, await ensureLease(spaceInstanceId), status);
+    },
+    async loadAgentSession() {
+      return null;
+    },
+    async saveAgentSession() {
+      throw new Error("Agent sessions are not used by this failover fixture");
+    },
+    async rebuildAgentSession() {
+      throw new Error("Agent sessions are not used by this failover fixture");
+    },
+    async recordAgentAudit() {
+      throw new Error("Agent audits are not used by this failover fixture");
+    },
+    async getAgentTurnControl(spaceInstanceId: string, turnId: string) {
+      const turn = await control.getTurn(turnId);
+      if (!turn || turn.spaceInstanceId !== spaceInstanceId) {
+        throw new Error(`turn not found for ${spaceInstanceId}`);
+      }
+      return {
+        status: turn.status,
+        cancelRequestedAt: turn.cancelRequestedAt?.toISOString() || null,
+      };
     },
     async heartbeat(spaceInstanceId: string) {
       await ensureLease(spaceInstanceId);
