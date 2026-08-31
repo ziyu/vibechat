@@ -15,4 +15,18 @@ describe('Matrix Agent mention metadata', () => {
       [spaceAgentMentionsEventContentKey]: [{ type: 'agent', id: 'pi' }],
     }))
   })
+
+  it('keeps Matrix member mentions separate from logical Agent mentions', () => {
+    const content = createMatrixTextContent(
+      '@Bob @pi hello',
+      undefined,
+      [{ type: 'agent', id: 'pi' }],
+      ['@bob:localhost', '@bob:localhost', 'not-a-matrix-user'],
+    )
+
+    expect(content).toMatchObject({
+      [spaceAgentMentionsEventContentKey]: [{ type: 'agent', id: 'pi' }],
+      'm.mentions': { user_ids: ['@bob:localhost'] },
+    })
+  })
 })

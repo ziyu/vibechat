@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { GenerationProgress } from "./generator.js";
+import {
+  agentTurnInputV1Schema,
+  type AgentTurnInputV1,
+} from "@vibechat/space-agent-contracts";
+import type { GenerationProgress } from "./adapters/contract.js";
 import { assertAppId } from "./app-id.js";
 import type { ProjectFiles } from "./project-store.js";
 import type { DurableSpaceControl } from "./durable-space-control.js";
@@ -87,12 +91,14 @@ interface LocalSpace {
 }
 
 interface BeginTurnInput {
+  turnId?: string;
   clientId: string;
   authorName: string;
   text: string;
   kind?: SpaceTurnKind;
   externalRequestId: string;
   agentId: string;
+  agentTurn?: AgentTurnInputV1;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
   publication?: SpaceTurnPublication;
@@ -100,10 +106,19 @@ interface BeginTurnInput {
 
 export type SpaceTurnKind = "message" | "publish" | "restore";
 
-export interface SpaceTurnRecovery {
+export type SpaceTurnRecovery = {
   target: "default-chat";
   expectedReadyRevisionId: string;
-}
+} | {
+  target: "revision";
+  expectedReadyRevisionId: string;
+  revisionId: string;
+} | {
+  target: "template";
+  expectedReadyRevisionId: string;
+  templateId: string;
+  templateVersionId: string;
+};
 
 export interface SpaceTurnPublication {
   expectedReadyRevisionId: string;
@@ -118,6 +133,7 @@ export interface SpaceTurnRequest {
   createdAt: string;
   externalRequestId: string;
   agentId: string;
+  agentTurn?: AgentTurnInputV1;
   billing?: SpaceTurnBilling;
   recovery?: SpaceTurnRecovery;
   publication?: SpaceTurnPublication;
@@ -333,7 +349,7 @@ export class SpaceInstanceServer {
     if (completed) {
       return { turnId: completed.turnId, queuePosition: 0, deduplicated: true };
     }
-    const turnId = randomUUID();
+    const turnId = input.turnId || randomUUID();
     const createdAt = new Date().toISOString();
     const turnRequest: SpaceTurnRequest = {
       turnId,
@@ -344,6 +360,7 @@ export class SpaceInstanceServer {
       createdAt,
       externalRequestId: input.externalRequestId,
       agentId: input.agentId,
+      ...(input.agentTurn ? { agentTurn: input.agentTurn } : {}),
       ...(input.billing ? { billing: input.billing } : {}),
       ...(input.recovery ? { recovery: input.recovery } : {}),
       ...(input.publication ? { publication: input.publication } : {}),
@@ -709,16 +726,36 @@ function isSpaceTurnRequest(value: unknown): value is SpaceTurnRequest {
     typeof request.createdAt === "string" &&
     typeof request.externalRequestId === "string" &&
     typeof request.agentId === "string" &&
-    (request.kind !== "restore" || (
-      request.recovery?.target === "default-chat" &&
-      typeof request.recovery.expectedReadyRevisionId === "string" &&
-      /^[a-f0-9]{16}$/.test(request.recovery.expectedReadyRevisionId)
+    (!request.agentTurn || (
+      agentTurnInputV1Schema.safeParse(request.agentTurn).success &&
+      request.agentTurn.turnId === request.turnId &&
+      request.agentTurn.agentId === request.agentId
     )) &&
+    (request.kind !== "restore" || isSpaceTurnRecovery(request.recovery)) &&
     (request.kind !== "publish" || (
       typeof request.publication?.expectedReadyRevisionId === "string" &&
       /^[a-f0-9]{16}$/.test(request.publication.expectedReadyRevisionId)
     ))
   );
+}
+
+function isSpaceTurnRecovery(value: unknown): value is SpaceTurnRecovery {
+  if (!value || typeof value !== "object") return false;
+  const recovery = value as Partial<SpaceTurnRecovery>;
+  if (
+    typeof recovery.expectedReadyRevisionId !== "string"
+    || !/^[a-f0-9]{16}$/.test(recovery.expectedReadyRevisionId)
+  ) return false;
+  if (recovery.target === "default-chat") return true;
+  if (recovery.target === "revision") {
+    return typeof recovery.revisionId === "string"
+      && /^[a-f0-9]{16}$/.test(recovery.revisionId);
+  }
+  return recovery.target === "template"
+    && typeof recovery.templateId === "string"
+    && recovery.templateId.length > 0
+    && typeof recovery.templateVersionId === "string"
+    && recovery.templateVersionId.length > 0;
 }
 
 function normalizeAppKey(value: unknown) {

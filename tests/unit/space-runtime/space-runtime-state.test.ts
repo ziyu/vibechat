@@ -1,8 +1,10 @@
 import type { SpaceRuntimeSnapshot } from '@vibechat/space-app-contracts'
 import { describe, expect, it } from 'vitest'
 import {
+  createSpaceAppBridgeGuard,
   selectReadySpaceAppTarget,
   shouldProjectRuntimeEventToApp,
+  validateSpaceAppBridgeCommand,
   type ReadySpaceAppTarget,
 } from '../../../apps/web-app/src/features/chat/space-runtime-state'
 
@@ -185,5 +187,56 @@ describe('Space Runtime ready App selection', () => {
       previous,
       baseUrl: '/v1/spaces/instances/other/app?channel=dev',
     })).toBeNull()
+  })
+})
+
+describe('Space App bridge guard', () => {
+  const nonce = '9cb2a6c8-0fd9-4690-991f-857e93aaf61e'
+  const command = (sequence: number, overrides: Record<string, unknown> = {}) => ({
+    type: 'space:command',
+    version: 1,
+    id: `command-${sequence}`,
+    nonce,
+    sequence,
+    action: 'theme.set',
+    payload: {},
+    ...overrides,
+  })
+
+  it('requires the mounted iframe nonce and a strictly increasing sequence', () => {
+    const initial = createSpaceAppBridgeGuard(nonce, 1_000)
+    expect(validateSpaceAppBridgeCommand(command(1, { nonce: crypto.randomUUID() }), initial, 1_001))
+      .toEqual({ ok: false, code: 'SPACE_APP_BRIDGE_NONCE_INVALID' })
+
+    const accepted = validateSpaceAppBridgeCommand(command(1), initial, 1_002)
+    expect(accepted.ok).toBe(true)
+    if (!accepted.ok) throw new Error('expected command to be accepted')
+    expect(validateSpaceAppBridgeCommand(command(1), accepted.guard, 1_003))
+      .toEqual({ ok: false, code: 'SPACE_APP_BRIDGE_SEQUENCE_INVALID' })
+  })
+
+  it('rejects unknown actions, oversized payloads, and bursts above the bounded rate', () => {
+    const initial = createSpaceAppBridgeGuard(nonce, 1_000)
+    expect(validateSpaceAppBridgeCommand(command(1, { action: 'app.publish' }), initial, 1_001))
+      .toEqual({ ok: false, code: 'SPACE_APP_BRIDGE_COMMAND_INVALID' })
+    expect(validateSpaceAppBridgeCommand(command(1, {
+      payload: { value: 'x'.repeat(64 * 1024) },
+    }), initial, 1_001)).toEqual({
+      ok: false,
+      code: 'SPACE_APP_BRIDGE_PAYLOAD_TOO_LARGE',
+    })
+
+    let guard = initial
+    for (let sequence = 1; sequence <= 120; sequence += 1) {
+      const accepted = validateSpaceAppBridgeCommand(command(sequence), guard, 1_002)
+      expect(accepted.ok).toBe(true)
+      if (!accepted.ok) throw new Error('expected command to be accepted')
+      guard = accepted.guard
+    }
+    expect(validateSpaceAppBridgeCommand(command(121), guard, 1_003)).toEqual({
+      ok: false,
+      code: 'SPACE_APP_BRIDGE_RATE_LIMITED',
+    })
+    expect(validateSpaceAppBridgeCommand(command(121), guard, 11_001).ok).toBe(true)
   })
 })

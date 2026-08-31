@@ -1,10 +1,14 @@
-import { and, asc, eq, gt, inArray, lt, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import {
   db,
+  isD1Dialect,
+  isSqliteDialect,
+  runD1Batch,
   spaceRuntimeInstanceState,
   spaceRuntimeLease,
   spaceRuntimeOutbox,
   spaceRuntimeProject,
+  spaceRuntimeProjectRevision,
   spaceRuntimeTurn,
 } from "@libs/database";
 import type {
@@ -12,6 +16,8 @@ import type {
   RuntimeLease,
   RuntimeOutboxEvent,
   RuntimeProjectPointer,
+  RuntimeProjectRevision,
+  RuntimeTurnEnqueue,
   RuntimeTurnRecord,
   SpaceRuntimeControlPlane,
 } from "./contracts";
@@ -70,6 +76,22 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     return stored ? this.project(stored) : null;
   }
 
+  async loadProjectRevision(spaceInstanceId: string, revisionId: string) {
+    const [stored] = await db.select().from(spaceRuntimeProjectRevision).where(and(
+      eq(spaceRuntimeProjectRevision.spaceInstanceId, spaceInstanceId),
+      eq(spaceRuntimeProjectRevision.revisionId, revisionId),
+    )).limit(1);
+    return stored ? this.projectRevision(stored) : null;
+  }
+
+  async listProjectRevisions(spaceInstanceId: string, limit = 50) {
+    const rows = await db.select().from(spaceRuntimeProjectRevision)
+      .where(eq(spaceRuntimeProjectRevision.spaceInstanceId, spaceInstanceId))
+      .orderBy(desc(spaceRuntimeProjectRevision.createdAt), desc(spaceRuntimeProjectRevision.revisionId))
+      .limit(Math.max(1, Math.min(50, limit)));
+    return rows.map((row) => this.projectRevision(row));
+  }
+
   async saveProject(
     project: Omit<RuntimeProjectPointer, "fencingToken" | "updatedAt">,
     lease: RuntimeLease,
@@ -91,10 +113,7 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       updatedAt,
     };
     const existing = await this.loadProject(project.spaceInstanceId);
-    if (!existing) {
-      await db.insert(spaceRuntimeProject).values(values).onConflictDoNothing();
-    } else {
-      const updated = await db.update(spaceRuntimeProject).set({
+    const updateValues = {
         sourceObjectKey: project.sourceObjectKey,
         sourceHash: project.sourceHash,
         artifactObjectKey: project.artifactObjectKey,
@@ -104,16 +123,115 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
         releaseId: project.releaseId,
         metadataJson: project.metadata,
         updatedAt,
-      }).where(and(
+      };
+    const updateWhere = and(
         eq(spaceRuntimeProject.projectId, project.projectId),
         eq(spaceRuntimeProject.spaceInstanceId, project.spaceInstanceId),
         eq(spaceRuntimeProject.fencingToken, lease.fencingToken),
-      )).returning({ projectId: spaceRuntimeProject.projectId });
-      if (!updated.length) throw new RuntimeFencingError(project.spaceInstanceId);
+      );
+    const revisionValues = project.readyRevisionId
+      && project.sourceObjectKey
+      && project.sourceHash
+      ? {
+          spaceInstanceId: project.spaceInstanceId,
+          projectId: project.projectId,
+          revisionId: project.readyRevisionId,
+          parentRevisionId: existing?.readyRevisionId !== project.readyRevisionId
+            ? existing?.readyRevisionId ?? null
+            : null,
+          sourceObjectKey: project.sourceObjectKey,
+          sourceHash: project.sourceHash,
+          metadataJson: project.metadata,
+          fencingToken: lease.fencingToken,
+          createdAt: updatedAt,
+        }
+      : null;
+
+    if (isD1Dialect()) {
+      const pointerWrite = existing
+        ? db.update(spaceRuntimeProject).set(updateValues).where(updateWhere)
+        : db.insert(spaceRuntimeProject).values(values).onConflictDoNothing();
+      if (revisionValues) {
+        const revisionWrite = db.insert(spaceRuntimeProjectRevision).select(
+          db.select({
+            spaceInstanceId: spaceRuntimeProject.spaceInstanceId,
+            projectId: spaceRuntimeProject.projectId,
+            revisionId: sql<string>`${revisionValues.revisionId}`,
+            parentRevisionId: sql<string | null>`${revisionValues.parentRevisionId}`,
+            sourceObjectKey: spaceRuntimeProject.sourceObjectKey,
+            sourceHash: spaceRuntimeProject.sourceHash,
+            metadataJson: spaceRuntimeProject.metadataJson,
+            fencingToken: spaceRuntimeProject.fencingToken,
+            createdAt: spaceRuntimeProject.updatedAt,
+          }).from(spaceRuntimeProject).where(and(
+            eq(spaceRuntimeProject.spaceInstanceId, project.spaceInstanceId),
+            eq(spaceRuntimeProject.projectId, project.projectId),
+            eq(spaceRuntimeProject.fencingToken, lease.fencingToken),
+            eq(spaceRuntimeProject.readyRevisionId, revisionValues.revisionId),
+            eq(spaceRuntimeProject.sourceObjectKey, revisionValues.sourceObjectKey),
+            eq(spaceRuntimeProject.sourceHash, revisionValues.sourceHash),
+          )) as never,
+        ).onConflictDoNothing();
+        await runD1Batch([pointerWrite, revisionWrite] as const);
+      } else {
+        await runD1Batch([pointerWrite] as const);
+      }
+    } else if (isSqliteDialect()) {
+      (db as any).transaction((transaction: any) => {
+        if (existing) {
+          const result = transaction.update(spaceRuntimeProject).set(updateValues)
+            .where(updateWhere).run();
+          if (result.changes !== 1) throw new RuntimeFencingError(project.spaceInstanceId);
+        } else {
+          transaction.insert(spaceRuntimeProject).values(values).onConflictDoNothing().run();
+        }
+        const persisted = transaction.select().from(spaceRuntimeProject)
+          .where(eq(spaceRuntimeProject.spaceInstanceId, project.spaceInstanceId))
+          .limit(1).get();
+        if (!persisted || !matchesProjectWrite(persisted, project, lease)) {
+          throw new RuntimeFencingError(project.spaceInstanceId);
+        }
+        if (revisionValues) {
+          transaction.insert(spaceRuntimeProjectRevision).values(revisionValues)
+            .onConflictDoNothing().run();
+        }
+      });
+    } else {
+      await db.transaction(async (transaction) => {
+        if (existing) {
+          const updated = await transaction.update(spaceRuntimeProject).set(updateValues)
+            .where(updateWhere).returning({ projectId: spaceRuntimeProject.projectId });
+          if (updated.length !== 1) throw new RuntimeFencingError(project.spaceInstanceId);
+        } else {
+          await transaction.insert(spaceRuntimeProject).values(values).onConflictDoNothing();
+        }
+        const [persisted] = await transaction.select().from(spaceRuntimeProject)
+          .where(eq(spaceRuntimeProject.spaceInstanceId, project.spaceInstanceId)).limit(1);
+        if (!persisted || !matchesProjectWrite(persisted, project, lease)) {
+          throw new RuntimeFencingError(project.spaceInstanceId);
+        }
+        if (revisionValues) {
+          await transaction.insert(spaceRuntimeProjectRevision).values(revisionValues)
+            .onConflictDoNothing();
+        }
+      });
     }
     const persisted = await this.loadProject(project.spaceInstanceId);
-    if (!persisted || persisted.fencingToken !== lease.fencingToken) {
+    if (!persisted || !matchesProjectWrite(persisted, project, lease)) {
       throw new RuntimeFencingError(project.spaceInstanceId);
+    }
+    if (revisionValues) {
+      const revision = await this.loadProjectRevision(
+        project.spaceInstanceId,
+        revisionValues.revisionId,
+      );
+      if (
+        !revision
+        || revision.projectId !== project.projectId
+        || revision.sourceHash !== revisionValues.sourceHash
+      ) {
+        throw new Error(`Space Project Revision ${revisionValues.revisionId} is inconsistent`);
+      }
     }
     return { ...project, fencingToken: lease.fencingToken, updatedAt };
   }
@@ -143,7 +261,7 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
   }
 
   async enqueueTurn(
-    turn: Omit<RuntimeTurnRecord, "status" | "attempt" | "ownerId" | "fencingToken" | "createdAt" | "updatedAt">,
+    turn: RuntimeTurnEnqueue,
   ) {
     const createdAt = this.now();
     await db.insert(spaceRuntimeTurn).values({
@@ -152,7 +270,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       externalRequestId: turn.externalRequestId,
       kind: turn.kind,
       status: "queued",
+      agentId: turn.agentId ?? null,
+      agentDefinitionId: turn.agentDefinitionId ?? null,
+      agentDefinitionVersion: turn.agentDefinitionVersion ?? null,
+      adapterKey: turn.adapterKey ?? null,
+      adapterVersion: turn.adapterVersion ?? null,
+      sessionGeneration: turn.sessionGeneration ?? null,
+      policySnapshotHash: turn.policySnapshotHash ?? null,
+      reservationTransactionId: turn.reservationTransactionId ?? null,
+      payloadSchemaVersion: turn.payloadSchemaVersion ?? null,
       payloadJson: turn.payload,
+      resultSchemaVersion: turn.resultSchemaVersion ?? null,
+      resultJson: turn.result ?? null,
+      cancelRequestedAt: turn.cancelRequestedAt ?? null,
       attempt: 0,
       fencingToken: 0,
       createdAt,
@@ -170,6 +300,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     const [stored] = await db.select().from(spaceRuntimeTurn)
       .where(eq(spaceRuntimeTurn.turnId, turnId)).limit(1);
     return stored ? this.turn(stored) : null;
+  }
+
+  async requestTurnCancellation(turnId: string, requestedAt: Date) {
+    const updated = await db.update(spaceRuntimeTurn).set({
+      cancelRequestedAt: requestedAt,
+      updatedAt: this.now(),
+    }).where(and(
+      eq(spaceRuntimeTurn.turnId, turnId),
+      inArray(spaceRuntimeTurn.status, ["queued", "active"]),
+      isNull(spaceRuntimeTurn.cancelRequestedAt),
+    )).returning({ cancelRequestedAt: spaceRuntimeTurn.cancelRequestedAt });
+    if (updated[0]?.cancelRequestedAt) return updated[0].cancelRequestedAt;
+    return (await this.getTurn(turnId))?.cancelRequestedAt ?? null;
   }
 
   async claimNextTurn(spaceInstanceId: string, lease: RuntimeLease) {
@@ -391,7 +534,7 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     return updated.length === 1;
   }
 
-  private async assertLease(lease: RuntimeLease) {
+  async assertLease(lease: RuntimeLease) {
     const [stored] = await db.select().from(spaceRuntimeLease).where(and(
       eq(spaceRuntimeLease.spaceInstanceId, lease.spaceInstanceId),
       eq(spaceRuntimeLease.ownerId, lease.ownerId),
@@ -460,6 +603,22 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
     };
   }
 
+  private projectRevision(
+    row: typeof spaceRuntimeProjectRevision.$inferSelect,
+  ): RuntimeProjectRevision {
+    return {
+      spaceInstanceId: row.spaceInstanceId,
+      projectId: row.projectId,
+      revisionId: row.revisionId,
+      parentRevisionId: row.parentRevisionId,
+      sourceObjectKey: row.sourceObjectKey,
+      sourceHash: row.sourceHash,
+      metadata: row.metadataJson,
+      fencingToken: row.fencingToken,
+      createdAt: row.createdAt,
+    };
+  }
+
   private turn(row: typeof spaceRuntimeTurn.$inferSelect): RuntimeTurnRecord {
     return {
       turnId: row.turnId,
@@ -467,7 +626,19 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       externalRequestId: row.externalRequestId,
       kind: row.kind as RuntimeTurnRecord["kind"],
       status: row.status as RuntimeTurnRecord["status"],
+      agentId: row.agentId,
+      agentDefinitionId: row.agentDefinitionId,
+      agentDefinitionVersion: row.agentDefinitionVersion,
+      adapterKey: row.adapterKey,
+      adapterVersion: row.adapterVersion,
+      sessionGeneration: row.sessionGeneration,
+      policySnapshotHash: row.policySnapshotHash,
+      reservationTransactionId: row.reservationTransactionId,
+      payloadSchemaVersion: row.payloadSchemaVersion,
       payload: row.payloadJson,
+      resultSchemaVersion: row.resultSchemaVersion,
+      result: row.resultJson,
+      cancelRequestedAt: row.cancelRequestedAt,
       attempt: row.attempt,
       ownerId: row.ownerId,
       fencingToken: row.fencingToken,
@@ -492,4 +663,29 @@ export class DatabaseSpaceRuntimeControlPlane implements SpaceRuntimeControlPlan
       updatedAt: row.updatedAt,
     };
   }
+}
+
+function matchesProjectWrite(
+  persisted: Pick<
+    RuntimeProjectPointer,
+    | "projectId"
+    | "spaceInstanceId"
+    | "sourceObjectKey"
+    | "sourceHash"
+    | "readyRevisionId"
+    | "publishedRevisionId"
+    | "releaseId"
+    | "fencingToken"
+  >,
+  expected: Omit<RuntimeProjectPointer, "fencingToken" | "updatedAt">,
+  lease: RuntimeLease,
+) {
+  return persisted.projectId === expected.projectId
+    && persisted.spaceInstanceId === expected.spaceInstanceId
+    && persisted.sourceObjectKey === expected.sourceObjectKey
+    && persisted.sourceHash === expected.sourceHash
+    && persisted.readyRevisionId === expected.readyRevisionId
+    && persisted.publishedRevisionId === expected.publishedRevisionId
+    && persisted.releaseId === expected.releaseId
+    && persisted.fencingToken === lease.fencingToken;
 }

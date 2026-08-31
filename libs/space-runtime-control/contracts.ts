@@ -28,6 +28,18 @@ export interface RuntimeProjectPointer {
   updatedAt: Date;
 }
 
+export interface RuntimeProjectRevision {
+  spaceInstanceId: string;
+  projectId: string;
+  revisionId: string;
+  parentRevisionId: string | null;
+  sourceObjectKey: string;
+  sourceHash: string;
+  metadata: Record<string, unknown>;
+  fencingToken: number;
+  createdAt: Date;
+}
+
 export type RuntimeTurnKind = "message" | "publish" | "restore";
 export type RuntimeTurnStatus = "queued" | "active" | "completed" | "failed";
 
@@ -37,13 +49,50 @@ export interface RuntimeTurnRecord {
   externalRequestId: string;
   kind: RuntimeTurnKind;
   status: RuntimeTurnStatus;
+  agentId: string | null;
+  agentDefinitionId: string | null;
+  agentDefinitionVersion: string | null;
+  adapterKey: string | null;
+  adapterVersion: string | null;
+  sessionGeneration: number | null;
+  policySnapshotHash: string | null;
+  reservationTransactionId: string | null;
+  payloadSchemaVersion: string | null;
   payload: Record<string, unknown>;
+  resultSchemaVersion: string | null;
+  result: Record<string, unknown> | null;
+  cancelRequestedAt: Date | null;
   attempt: number;
   ownerId: string | null;
   fencingToken: number;
   createdAt: Date;
   updatedAt: Date;
 }
+
+type RuntimeTurnSnapshotField =
+  | "agentId"
+  | "agentDefinitionId"
+  | "agentDefinitionVersion"
+  | "adapterKey"
+  | "adapterVersion"
+  | "sessionGeneration"
+  | "policySnapshotHash"
+  | "reservationTransactionId"
+  | "payloadSchemaVersion"
+  | "resultSchemaVersion"
+  | "result"
+  | "cancelRequestedAt";
+
+export type RuntimeTurnEnqueue = Omit<
+  RuntimeTurnRecord,
+  | "status"
+  | "attempt"
+  | "ownerId"
+  | "fencingToken"
+  | "createdAt"
+  | "updatedAt"
+  | RuntimeTurnSnapshotField
+> & Partial<Pick<RuntimeTurnRecord, RuntimeTurnSnapshotField>>;
 
 export type RuntimeOutboxEventType =
   | "matrix_v2_state"
@@ -73,6 +122,8 @@ export interface InstanceRepository {
 
 export interface ProjectRepository {
   loadProject(spaceInstanceId: string): Promise<RuntimeProjectPointer | null>;
+  loadProjectRevision(spaceInstanceId: string, revisionId: string): Promise<RuntimeProjectRevision | null>;
+  listProjectRevisions(spaceInstanceId: string, limit?: number): Promise<RuntimeProjectRevision[]>;
   saveProject(project: Omit<RuntimeProjectPointer, "fencingToken" | "updatedAt">, lease: RuntimeLease): Promise<RuntimeProjectPointer>;
   publishProject(input: {
     spaceInstanceId: string;
@@ -86,7 +137,8 @@ export interface ProjectRepository {
 
 export interface TurnRepository {
   getTurn(turnId: string): Promise<RuntimeTurnRecord | null>;
-  enqueueTurn(turn: Omit<RuntimeTurnRecord, "status" | "attempt" | "ownerId" | "fencingToken" | "createdAt" | "updatedAt">): Promise<RuntimeTurnRecord>;
+  requestTurnCancellation(turnId: string, requestedAt: Date): Promise<Date | null>;
+  enqueueTurn(turn: RuntimeTurnEnqueue): Promise<RuntimeTurnRecord>;
   claimNextTurn(spaceInstanceId: string, lease: RuntimeLease): Promise<RuntimeTurnRecord | null>;
   completeTurn(turnId: string, lease: RuntimeLease, status: "completed" | "failed"): Promise<boolean>;
   recoverInterruptedTurns(spaceInstanceId: string, lease: RuntimeLease): Promise<number>;
@@ -94,6 +146,7 @@ export interface TurnRepository {
 }
 
 export interface LeaseRepository {
+  assertLease(lease: RuntimeLease): Promise<void>;
   claimLease(spaceInstanceId: string, ownerId: string, ttlMs: number): Promise<RuntimeLease | null>;
   renewLease(lease: RuntimeLease, ttlMs: number): Promise<RuntimeLease | null>;
   releaseLease(lease: RuntimeLease): Promise<boolean>;

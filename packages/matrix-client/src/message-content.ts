@@ -8,6 +8,7 @@ export function createMatrixTextContent(
   text: string,
   replyToId?: string,
   agentMentions: SpaceAgentMention[] = [],
+  memberMentionIds: string[] = [],
 ) {
   const content = (replyToId ? {
     msgtype: 'm.text',
@@ -21,6 +22,12 @@ export function createMatrixTextContent(
   }) as RoomMessageEventContent & Record<string, unknown>
   if (agentMentions.length > 0) {
     content[spaceAgentMentionsEventContentKey] = agentMentions
+  }
+  const mentionedUserIds = [...new Set(memberMentionIds)]
+    .filter((userId) => userId.startsWith('@') && userId.includes(':'))
+    .slice(0, 50)
+  if (mentionedUserIds.length > 0) {
+    content['m.mentions'] = { user_ids: mentionedUserIds }
   }
   return content
 }

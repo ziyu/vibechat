@@ -1089,6 +1089,10 @@
 .vc-space-option small { display: -webkit-box; overflow: hidden; margin-top: 3px; color: var(--vc-muted); font-size: 11px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .vc-template-version { display: inline-flex; margin-top: 6px; border: 1px solid var(--vc-line); border-radius: 999px; padding: 2px 6px; color: var(--vc-accent); font-size: 11px; font-weight: 700; letter-spacing: .04em; }
 .vc-person-option > i, .vc-space-option > i { display: grid; width: 21px; height: 21px; place-items: center; border: 1px solid var(--vc-line); border-radius: 7px; color: var(--vc-accent); font-style: normal; }
+.vc-space-revision-history { max-height: min(46vh, 420px); overflow-y: auto; }
+.vc-space-revision-history .vc-space-option:disabled { cursor: default; opacity: .72; }
+.vc-space-revision-icon { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--vc-line); border-radius: 10px; background: var(--vc-canvas); color: var(--vc-accent); }
+.vc-space-revision-empty { margin: 0; padding: 20px 10px; color: var(--vc-muted); font-size: 11px; text-align: center; }
 .vc-create-review { display: flex; flex-direction: column; gap: 10px; }
 .vc-review-summary, .vc-review-row { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 11px; align-items: center; padding: 13px; border: 1px solid var(--vc-line); border-radius: 13px; background: var(--vc-canvas); }
 .vc-review-summary > span, .vc-review-row > span { display: flex; flex-direction: column; }

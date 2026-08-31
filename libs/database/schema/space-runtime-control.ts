@@ -7,11 +7,13 @@ export type {
   NewSpaceRuntimeLeaseRow,
   NewSpaceRuntimeOutboxRow,
   NewSpaceRuntimeProjectRow,
+  NewSpaceRuntimeProjectRevisionRow,
   NewSpaceRuntimeTurnRow,
   SpaceRuntimeInstanceStateRow,
   SpaceRuntimeLeaseRow,
   SpaceRuntimeOutboxRow,
   SpaceRuntimeProjectRow,
+  SpaceRuntimeProjectRevisionRow,
   SpaceRuntimeTurnRow,
 } from "./pg/space-runtime-control";
 
@@ -21,6 +23,7 @@ const implementation = (
 
 export const spaceRuntimeInstanceState = implementation.spaceRuntimeInstanceState;
 export const spaceRuntimeProject = implementation.spaceRuntimeProject;
+export const spaceRuntimeProjectRevision = implementation.spaceRuntimeProjectRevision;
 export const spaceRuntimeTurn = implementation.spaceRuntimeTurn;
 export const spaceRuntimeLease = implementation.spaceRuntimeLease;
 export const spaceRuntimeOutbox = implementation.spaceRuntimeOutbox;

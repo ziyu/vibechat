@@ -14,7 +14,15 @@ test.describe('Independent Admin App', () => {
     const signedOutContext = await browser.newContext()
     const signedOutPage = await signedOutContext.newPage()
     await signedOutPage.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
-    await expect(signedOutPage).toHaveURL(/\/signin$/)
+    await expect(signedOutPage).toHaveURL((url) => {
+      const returnTo = url.searchParams.get('returnTo')
+      if (url.origin !== WEB_ORIGIN || url.pathname !== '/signin' || !returnTo) return false
+      const destination = new URL(returnTo)
+      return destination.origin === ADMIN_ORIGIN && (
+        destination.pathname === '/admin'
+        || /^\/(?:en|zh-CN)\/admin$/.test(destination.pathname)
+      )
+    })
     await expect(signedOutPage.getByTestId('signin-card')).toBeVisible()
     expect((await signedOutPage.request.get(`${ADMIN_ORIGIN}/api/admin/stats`)).status()).toBe(401)
     await signedOutContext.close()
@@ -49,7 +57,9 @@ test.describe('Independent Admin App', () => {
 
     await page.goto(adminUrl(), { timeout: TIMEOUTS.navigation })
     await expect(page.getByTestId('admin-shell')).toBeVisible()
-    await expect(page.getByTestId('admin-dashboard')).toBeVisible()
+    const dashboard = page.getByTestId('admin-dashboard')
+    await expect(dashboard).toBeVisible()
+    await expect(dashboard.getByRole('heading').first()).toBeVisible()
 
     const endpoints = [
       '/api/admin/stats',
@@ -58,6 +68,7 @@ test.describe('Independent Admin App', () => {
       '/api/admin/subscriptions?limit=10&offset=0',
       '/api/admin/orders?limit=10&offset=0',
       '/api/admin/credits/transactions?limit=10&offset=0',
+      '/api/admin/agents?auditLimit=10',
       '/api/admin/pricing-plans',
       '/api/admin/blog?limit=10&offset=0',
       '/api/admin/commissions?limit=10&offset=0',
@@ -84,6 +95,7 @@ test.describe('Independent Admin App', () => {
       { route: '/subscriptions', apiPath: '/api/admin/subscriptions' },
       { route: '/orders', apiPath: '/api/admin/orders' },
       { route: '/credits', apiPath: '/api/admin/credits/transactions' },
+      { route: '/agents', apiPath: '/api/admin/agents' },
       { route: '/pricing', apiPath: '/api/admin/pricing-plans' },
       { route: '/blog', apiPath: '/api/admin/blog' },
       { route: '/commissions', apiPath: '/api/admin/commissions' },
@@ -100,6 +112,79 @@ test.describe('Independent Admin App', () => {
       expect(apiResponse.headers()['content-type']).toContain('application/json')
       await expect(apiResponse.json()).resolves.toBeDefined()
       await expect(page.locator('h1').first()).toBeVisible()
+    }
+    await context.close()
+  })
+
+  test('admin governs immutable Agent definitions without exposing secrets or source', async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+    const page = await context.newPage()
+    const signIn = await signInViaAPI(page, ADMIN_USER)
+    expect(signIn.ok(), await signIn.text()).toBeTruthy()
+
+    const snapshotResponse = page.waitForResponse((response) => (
+      new URL(response.url()).pathname === '/api/admin/agents'
+      && response.request().method() === 'GET'
+    ))
+    await page.goto(adminUrl('/agents'), { timeout: TIMEOUTS.navigation })
+    expect((await snapshotResponse).status()).toBe(200)
+    await expect(page.getByTestId('admin-agent-governance')).toBeVisible()
+    await expect(page.getByTestId('agent-binding-form')).toBeVisible()
+    await expect(page.getByTestId('agent-governance-audit')).toBeVisible()
+
+    const read = await page.request.get(`${ADMIN_ORIGIN}/api/admin/agents?auditLimit=10`)
+    expect(read.ok(), await read.text()).toBeTruthy()
+    const snapshot = await read.json() as {
+      definitions: Array<Record<string, unknown> & {
+        definitionId: string
+        agentId: string
+        version: string
+        status: string
+      }>
+    }
+    expect(snapshot.definitions.length).toBeGreaterThanOrEqual(2)
+    const serialized = JSON.stringify(snapshot).toLowerCase()
+    expect(serialized).not.toContain('api_key')
+    expect(serialized).not.toContain('credential')
+    expect(serialized).not.toContain('projectsource')
+
+    const definition = snapshot.definitions.find((candidate) => candidate.status === 'active')
+    expect(definition).toBeDefined()
+    if (!definition) throw new Error('Expected an active Agent Definition')
+    const immutableConflict = await page.request.post(
+      `${ADMIN_ORIGIN}/api/admin/agents/definitions`,
+      {
+        data: {
+          agentId: definition.agentId,
+          version: definition.version,
+          adapterKey: definition.adapterKey,
+          adapterVersion: definition.adapterVersion,
+          provider: definition.provider,
+          model: definition.model,
+          capabilities: definition.capabilities,
+          toolPolicyId: definition.toolPolicyId,
+          pricingPolicyId: definition.pricingPolicyId,
+          maxBudgetCredits: definition.maxBudgetCredits,
+          maxConcurrency: definition.maxConcurrency,
+          dataRegionPolicy: definition.dataRegionPolicy,
+          executionPoolPolicy: definition.executionPoolPolicy,
+          displayName: definition.displayName,
+          description: definition.description,
+          availability: definition.availability,
+        },
+      },
+    )
+    expect(immutableConflict.status()).toBe(409)
+
+    const statusUrl = `${ADMIN_ORIGIN}/api/admin/agents/definitions/${encodeURIComponent(definition.definitionId)}/status`
+    try {
+      const freeze = await page.request.patch(statusUrl, { data: { frozen: true } })
+      expect(freeze.ok(), await freeze.text()).toBeTruthy()
+      expect((await freeze.json() as { definition: { status: string } }).definition.status)
+        .toBe('frozen')
+    } finally {
+      const restore = await page.request.patch(statusUrl, { data: { frozen: false } })
+      expect(restore.ok(), await restore.text()).toBeTruthy()
     }
     await context.close()
   })

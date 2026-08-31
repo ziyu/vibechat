@@ -13,7 +13,9 @@ import {
   type ChatState,
   type ChatLocale,
   type ChatMessage,
+  type ChatMessagePage,
   type ChatPerson,
+  type ChatRoom,
   type CreateRoomInput,
 } from '@vibechat/product-core'
 import { ProductApiClient, ProductApiClientError } from '@vibechat/product-client'
@@ -51,7 +53,12 @@ interface ChatContextValue {
     text: string,
     replyToId?: string,
     agentMentions?: SpaceAgentMention[],
+    memberMentionIds?: string[],
   ) => Promise<string>
+  loadRoomMessages: (
+    roomId: string,
+    options?: { limit?: number; before?: string },
+  ) => Promise<ChatMessagePage>
   requestSpaceAgent: (
     roomId: string,
     matrixEventId: string,
@@ -166,6 +173,7 @@ export function ChatProvider({
   const socialBlockedUserIdsRef = useRef<string[]>([])
   const roomMetadataRef = useRef<Record<string, RoomBootstrap>>({})
   const roomMetadataLookupRef = useRef(new Set<string>())
+  const pendingCreatedRoomsRef = useRef(new Map<string, ChatRoom>())
 
   const refreshMatrixState = useCallback(() => {
     const client = matrixClientRef.current
@@ -187,6 +195,21 @@ export function ChatProvider({
         },
         roomMetadataRef.current,
       )
+      for (const [roomId, pendingRoom] of pendingCreatedRoomsRef.current) {
+        if (projected.rooms.some((room) => room.id === roomId)) {
+          pendingCreatedRoomsRef.current.delete(roomId)
+          continue
+        }
+        const membership = client.getRoom(roomId)?.getMyMembership()
+        if (membership === 'leave' || membership === 'ban') {
+          pendingCreatedRoomsRef.current.delete(roomId)
+          continue
+        }
+        projected = {
+          ...projected,
+          rooms: [...projected.rooms, pendingRoom],
+        }
+      }
       const optimisticMessages = [...optimisticMessagesRef.current.values()]
       for (const optimistic of optimisticMessages) {
         projected = {
@@ -420,6 +443,7 @@ export function ChatProvider({
       runtimeModuleRef.current = null
       roomMetadataRef.current = {}
       roomMetadataLookupRef.current.clear()
+      pendingCreatedRoomsRef.current.clear()
       optimisticMessagesRef.current.clear()
       pendingTransactionIdsRef.current.clear()
       reconnectRetryAttemptsRef.current.clear()
@@ -486,6 +510,7 @@ export function ChatProvider({
           transactionId,
           message.replyToId,
           message.agentMentions,
+          message.mentionedUserIds,
         )
         pendingTransactionIdsRef.current.delete(transactionId)
         optimisticMessagesRef.current.delete(transactionId)
@@ -529,6 +554,7 @@ export function ChatProvider({
       text: string,
       replyToId?: string,
       agentMentions: SpaceAgentMention[] = [],
+      memberMentionIds: string[] = [],
     ) => {
       const client = matrixClientRef.current
       const matrixRuntime = runtimeModuleRef.current
@@ -544,6 +570,7 @@ export function ChatProvider({
         createdAt: new Date().toISOString(),
         status: 'sending',
         replyToId,
+        ...(memberMentionIds.length > 0 ? { mentionedUserIds: memberMentionIds } : {}),
         ...(agentMentions.length > 0 ? { agentMentions } : {}),
         reactions: [],
       }
@@ -553,6 +580,23 @@ export function ChatProvider({
     },
     [deliverOptimisticMessage, state.currentUserId],
   )
+
+  const loadRoomMessages = useCallback(async (
+    roomId: string,
+    options: { limit?: number; before?: string } = {},
+  ) => {
+    const client = matrixClientRef.current
+    const matrixRuntime = runtimeModuleRef.current
+    if (!client || !matrixRuntime) throw new Error('MATRIX_NOT_READY')
+    const page = await matrixRuntime.loadMatrixRoomMessages(
+      client,
+      roomId,
+      options,
+      pendingTransactionIdsRef.current,
+    )
+    refreshMatrixState()
+    return page
+  }, [refreshMatrixState])
 
   const requestSpaceAgent = useCallback(async (
     roomId: string,
@@ -653,23 +697,51 @@ export function ChatProvider({
   }, [deliverOptimisticMessage])
 
   const createRoom = useCallback(async (input: CreateRoomInput) => {
-    if (!matrixClientRef.current) throw new Error('MATRIX_NOT_READY')
-    const space = state.spaces.find((candidate) => candidate.id === input.spaceId)
+    const client = matrixClientRef.current
+    if (!client) throw new Error('MATRIX_NOT_READY')
+    const space = input.startMode === 'template'
+      ? state.spaces.find((candidate) =>
+          candidate.id === input.templateId
+          && candidate.versionId === input.templateVersionId)
+      : null
     const participants = input.participantIds
       .map((id) => state.people.find((person) => person.id === id))
       .filter((person): person is NonNullable<typeof person> => !!person)
-    if (!space) throw new Error('ROOM_SPACE_NOT_FOUND')
+    if (input.startMode === 'template' && !space) throw new Error('ROOM_SPACE_NOT_FOUND')
+    const name = participants.length
+      ? `${input.name} · ${participants.map((person) => person.displayName).join('、')}`
+      : input.name
     const room = await productApi.createRoom({
-      spaceId: input.spaceId,
+      startMode: input.startMode,
+      ...(space ? {
+        spaceTemplateId: space.id,
+        spaceTemplateVersionId: space.versionId,
+      } : {}),
       participantUserIds: input.participantIds,
       instanceConfig: {},
       clientRequestId: globalThis.crypto.randomUUID(),
-      name: participants.length
-        ? `${space.name} · ${participants.map((person) => person.displayName).join('、')}`
-        : space.name,
+      name,
     })
+    roomMetadataRef.current[room.matrixRoomId] = room
+    roomMetadataLookupRef.current.add(room.matrixRoomId)
+    pendingCreatedRoomsRef.current.set(room.matrixRoomId, {
+      id: room.matrixRoomId,
+      name,
+      memberIds: [...new Set([
+        client.getUserId()!,
+        ...participants.map((person) => person.matrixUserId || person.id),
+      ])],
+      spaceId: room.spaceTemplateId || room.spaceId || 'space-default',
+      lastMessage: '',
+      updatedAt: room.createdAt,
+      unreadCount: 0,
+      pinned: false,
+      muted: false,
+      membership: 'join',
+    })
+    refreshMatrixState()
     return room.matrixRoomId
-  }, [locale, state.people, state.spaces])
+  }, [refreshMatrixState, state.people, state.spaces])
 
   const searchUsers = useCallback(async (query: string) => {
     return productApi.searchUsers(query)
@@ -778,6 +850,7 @@ export function ChatProvider({
     toggleRoomPinned: (roomId) => updateRoomPreference(roomId, 'pinned'),
     toggleRoomMuted: (roomId) => updateRoomPreference(roomId, 'muted'),
     sendMessage,
+    loadRoomMessages,
     requestSpaceAgent,
     sendAttachment,
     editMessage,
@@ -813,6 +886,7 @@ export function ChatProvider({
     rejectRoomInvite,
     retryConnection,
     sendMessage,
+    loadRoomMessages,
     requestSpaceAgent,
     sendAttachment,
     editMessage,

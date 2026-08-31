@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hostPiSessionId } from '../../../apps/space-runtime/src/generator'
+import { hostPiSessionId } from '../../../apps/space-runtime/src/adapters/pi/session'
 
 describe('Host Pi session identity', () => {
   it('derives a stable valid UUID per Space without colliding across Spaces', () => {

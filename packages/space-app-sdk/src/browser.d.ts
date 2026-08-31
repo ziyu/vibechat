@@ -27,6 +27,7 @@ export interface SpaceChatMessage {
   createdAt: string
   status: 'sending' | 'sent' | 'failed'
   replyToId?: string
+  mentionedUserIds?: string[]
   agent?: boolean
   agentId?: string
   agentTurnId?: string
@@ -35,6 +36,12 @@ export interface SpaceChatMessage {
   deleted?: boolean
   attachment?: Record<string, unknown>
   reactions: Array<{ emoji: string; userIds: string[] }>
+}
+
+export interface SpaceChatMessagePage {
+  messages: SpaceChatMessage[]
+  nextBefore: string | null
+  hasMore: boolean
 }
 
 export interface SpaceAppPresence extends SpaceAppMember {
@@ -123,6 +130,7 @@ export interface SpaceAppClient {
     delete(messageId: string): Promise<unknown>
     toggleReaction(messageId: string, emoji: string): Promise<unknown>
     retry(messageId: string): Promise<unknown>
+    recent(options?: { limit?: number; before?: string }): Promise<SpaceChatMessagePage>
     setTyping(isTyping: boolean): Promise<unknown>
     markRead(): Promise<unknown>
     on(handler: (messages: SpaceChatMessage[]) => void): Unsubscribe

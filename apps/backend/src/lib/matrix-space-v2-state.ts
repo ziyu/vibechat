@@ -1,6 +1,8 @@
 import { DatabaseIdentityRepository, readMatrixRuntimeConfig } from '@libs/identity'
 import { DatabaseRoomRepository } from '@libs/rooms'
 import { spaceRuntimeStateCallbackSchema } from '@vibechat/api-contracts'
+import { loadSpaceAgentPublicView } from './space-agent-public-view'
+import { createMatrixSpaceV2Content } from './matrix-space-v2-content'
 
 export async function writeMatrixSpaceV2State(value: unknown) {
   const state = spaceRuntimeStateCallbackSchema.parse(value)
@@ -11,6 +13,7 @@ export async function writeMatrixSpaceV2State(value: unknown) {
   if (!identity || identity.status !== 'active' || config.status !== 'ready') {
     throw new Error('MATRIX_SPACE_STATE_UNAVAILABLE')
   }
+  const agentView = await loadSpaceAgentPublicView(instance)
   const url = new URL(
     `/_matrix/client/v3/rooms/${encodeURIComponent(instance.matrixRoomId)}/state/${encodeURIComponent('io.vibechat.space.instance.v2')}/`,
     config.homeserverUrl,
@@ -22,17 +25,12 @@ export async function writeMatrixSpaceV2State(value: unknown) {
       authorization: `Bearer ${config.appserviceToken}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      schemaVersion: 'vibechat.space-instance/v2',
-      spaceInstanceId: instance.spaceInstanceId,
-      projectId: instance.projectId,
-      defaultAgentId: instance.defaultAgentId,
-      readyRevisionId: state.readyRevisionId,
-      publishedRevisionId: state.publishedRevisionId,
-      releaseId: state.releaseId,
-      sourceHash: state.sourceHash,
-      sequence: state.sequence,
-    }),
+    body: JSON.stringify(createMatrixSpaceV2Content({
+      instance,
+      state,
+      defaultAgentId: agentView.defaultAgentId,
+      agents: agentView.agents,
+    })),
   })
   if (!response.ok) throw new Error(`MATRIX_SPACE_STATE_FAILED_${response.status}`)
 }

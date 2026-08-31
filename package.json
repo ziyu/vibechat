@@ -53,6 +53,10 @@
     "test:e2e:cf": "E2E_DB_DIALECT=d1 npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:ui": "node scripts/test-e2e.mjs --ui",
     "test:matrix:integration": "RUN_SYNAPSE_INTEGRATION=1 vitest run tests/integration/synapse-appservice.integration.test.ts",
+    "test:a3-a4:repository": "vitest run tests/unit/space-runtime/agentos-patch-regression.test.ts tests/unit/space-runtime/recovery-manifest.test.ts tests/unit/space-runtime/control-plane-failover.test.ts tests/integration/space-runtime-replica-failover.integration.test.ts",
+    "test:a3-a4:target": "node --env-file-if-exists=.env.a3-a4 scripts/run-a3-a4-target-acceptance.mjs",
+    "a3-a4:recovery:capture": "node --env-file-if-exists=.env.a3-a4 --import tsx scripts/space-runtime-recovery-checkpoint.ts capture",
+    "a3-a4:recovery:verify": "node --env-file-if-exists=.env.a3-a4 --import tsx scripts/space-runtime-recovery-checkpoint.ts verify",
     "typecheck": "node scripts/check-app-boundaries.mjs && turbo run typecheck --filter='./packages/*' --filter=@vibechat/backend --filter=@vibechat/web-app --filter=@vibechat/site-app --filter=@vibechat/admin-app --filter=@vibechat/space-runtime",
     "typecheck:packages": "turbo run typecheck --filter='./packages/*'",
     "email:compile": "tsx libs/email/templates/compile.ts",
@@ -86,6 +90,7 @@
     "@vibechat/api-contracts": "workspace:*",
     "@vibechat/i18n": "workspace:*",
     "@vibechat/product-core": "workspace:*",
+    "@vibechat/space-agent-contracts": "workspace:*",
     "@vibechat/space-templates": "workspace:*",
     "@vibechat/validators": "workspace:*",
     "@ai-sdk/deepseek": "1.0.23",
@@ -129,6 +134,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
+      "@rivet-dev/agentos@0.2.15": "patches/@rivet-dev__agentos@0.2.15.patch",
       "@rivet-dev/agentos-apps@0.2.15": "patches/@rivet-dev__agentos-apps@0.2.15.patch",
       "@rivet-dev/agentos-core@0.2.15": "patches/@rivet-dev__agentos-core@0.2.15.patch"
     }

@@ -3,6 +3,8 @@ import type { SpaceSdk } from "../../browser/sdk.js";
 export interface ChatElements {
   root: HTMLElement;
   timeline: HTMLElement;
+  history: HTMLButtonElement;
+  historyStatus: HTMLElement;
   form: HTMLFormElement;
   input: HTMLTextAreaElement;
   send: HTMLButtonElement;
@@ -31,6 +33,8 @@ export function getChatElements(): ChatElements {
   return {
     root: requireElement<HTMLElement>("#vcc-root"),
     timeline: requireElement<HTMLElement>("#vcc-timeline"),
+    history: requireElement<HTMLButtonElement>("#vcc-history"),
+    historyStatus: requireElement<HTMLElement>("#vcc-history-status"),
     form: requireElement<HTMLFormElement>("#vcc-form"),
     input: requireElement<HTMLTextAreaElement>("#vcc-input"),
     send: requireElement<HTMLButtonElement>("#vcc-send"),

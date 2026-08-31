@@ -5,14 +5,17 @@ import { Bot, CircleCheck, LoaderCircle, RefreshCw, Rocket } from 'lucide-react'
 import {
   spaceAppBridgeRequestSchema,
   type SpaceAppBridgeRequest,
+  type SpaceProjectRevisionSummary,
   type SpaceRuntimeSnapshot,
 } from '@vibechat/space-app-contracts'
 import type { ChatMessage } from '@vibechat/product-core'
 import { ProductApiClient } from '@vibechat/product-client'
 import { useTranslation } from '@/hooks/use-translation'
 import {
+  createSpaceAppBridgeGuard,
   selectReadySpaceAppTarget,
   shouldProjectRuntimeEventToApp,
+  validateSpaceAppBridgeCommand,
   type ReadySpaceAppTarget,
 } from './space-runtime-state'
 
@@ -28,6 +31,12 @@ export function useSpaceRuntime(roomId: string) {
   const [publishing, setPublishing] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
+  const [applyingTemplate, setApplyingTemplate] = useState(false)
+  const [applyTemplateError, setApplyTemplateError] = useState(false)
+  const [revisions, setRevisions] = useState<SpaceProjectRevisionSummary[]>([])
+  const [revisionsLoading, setRevisionsLoading] = useState(false)
+  const [revisionsError, setRevisionsError] = useState(false)
+  const [restoringRevisionId, setRestoringRevisionId] = useState<string | null>(null)
   const [readyAppTarget, setReadyAppTarget] = useState<ReadySpaceAppTarget | null>(null)
   const mounted = useRef(true)
   const activeRoomId = useRef(roomId)
@@ -51,6 +60,12 @@ export function useSpaceRuntime(roomId: string) {
     setUnavailable(false)
     setRestoring(false)
     setRestoreError(false)
+    setApplyingTemplate(false)
+    setApplyTemplateError(false)
+    setRevisions([])
+    setRevisionsLoading(false)
+    setRevisionsError(false)
+    setRestoringRevisionId(null)
     void refresh()
     const timer = window.setInterval(() => void refresh(), 1_500)
     const events = new EventSource(productApi.spaceEventsUrl(roomId), { withCredentials: true })
@@ -119,6 +134,68 @@ export function useSpaceRuntime(roomId: string) {
     }
   }, [refresh, roomId, snapshot?.project.draftId])
 
+  const applyTemplate = useCallback(async (
+    spaceTemplateId: string,
+    spaceTemplateVersionId: string,
+  ) => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
+    setApplyingTemplate(true)
+    setApplyTemplateError(false)
+    try {
+      await productApi.applySpaceTemplate(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        expectedReadyRevisionId,
+        spaceTemplateId,
+        spaceTemplateVersionId,
+      })
+      await refresh()
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setApplyTemplateError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setApplyingTemplate(false)
+    }
+  }, [refresh, roomId, snapshot?.project.draftId])
+
+  const loadRevisions = useCallback(async () => {
+    setRevisionsLoading(true)
+    setRevisionsError(false)
+    try {
+      const result = await productApi.getSpaceProjectRevisions(roomId)
+      if (mounted.current && activeRoomId.current === roomId) {
+        setRevisions(result.revisions)
+      }
+      return result.revisions
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsLoading(false)
+    }
+  }, [roomId])
+
+  const restoreRevision = useCallback(async (revisionId: string) => {
+    const expectedReadyRevisionId = snapshot?.project.draftId
+    if (!expectedReadyRevisionId) throw new Error('SPACE_READY_REVISION_REQUIRED')
+    setRestoringRevisionId(revisionId)
+    setRevisionsError(false)
+    try {
+      await productApi.restoreSpaceApp(roomId, {
+        requestId: globalThis.crypto.randomUUID(),
+        target: 'revision',
+        revisionId,
+        expectedReadyRevisionId,
+      })
+      await refresh()
+    } catch (error) {
+      if (mounted.current && activeRoomId.current === roomId) setRevisionsError(true)
+      throw error
+    } finally {
+      if (mounted.current && activeRoomId.current === roomId) setRestoringRevisionId(null)
+    }
+  }, [refresh, roomId, snapshot?.project.draftId])
+
   const appUrl = readyAppTarget?.roomId === roomId ? readyAppTarget.url : null
 
   return {
@@ -128,8 +205,17 @@ export function useSpaceRuntime(roomId: string) {
     publishing,
     restoring,
     restoreError,
+    applyingTemplate,
+    applyTemplateError,
+    revisions,
+    revisionsLoading,
+    revisionsError,
+    restoringRevisionId,
     publish,
     restoreDefaultChat,
+    applyTemplate,
+    loadRevisions,
+    restoreRevision,
     refresh,
     appUrl,
   }
@@ -188,6 +274,11 @@ export function SpaceAppSurface({
 }) {
   const { t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const bridgeNonce = useMemo(
+    () => globalThis.crypto.randomUUID(),
+    [appUrl, reloadKey, roomId],
+  )
+  const bridgeGuardRef = useRef(createSpaceAppBridgeGuard(bridgeNonce))
 
   const hostSnapshot = useMemo(() => {
     const agents = snapshot?.availableAgents?.length
@@ -240,9 +331,9 @@ export function SpaceAppSurface({
     }
   }, [locale, members, messages, meta, self, snapshot, typingMemberIds])
 
-  const postToApp = useCallback((value: unknown) => {
-    iframeRef.current?.contentWindow?.postMessage(value, '*')
-  }, [])
+  const postToApp = useCallback((value: Record<string, unknown>) => {
+    iframeRef.current?.contentWindow?.postMessage({ ...value, nonce: bridgeNonce }, '*')
+  }, [bridgeNonce])
 
   const initializeApp = useCallback(() => {
     postToApp({ type: 'space:init', version: bridgeVersion, snapshot: hostSnapshot })
@@ -271,22 +362,27 @@ export function SpaceAppSurface({
         return
       }
 
-      const parsed = spaceAppBridgeRequestSchema.safeParse({
-        action: data.action,
-        payload: data.payload,
-      })
-      if (!parsed.success) {
-        postToApp({ type: 'space:result', id: data.id, ok: false, error: 'Invalid Space command' })
+      if (bridgeGuardRef.current.nonce !== bridgeNonce) {
+        bridgeGuardRef.current = createSpaceAppBridgeGuard(bridgeNonce)
+      }
+      const guarded = validateSpaceAppBridgeCommand(data, bridgeGuardRef.current)
+      if (!guarded.ok) {
+        postToApp({ type: 'space:result', id: data.id, ok: false, error: guarded.code })
         return
       }
+      bridgeGuardRef.current = guarded.guard
+      const request = spaceAppBridgeRequestSchema.parse({
+        action: guarded.command.action,
+        payload: guarded.command.payload,
+      })
 
       void (async () => {
         try {
-          const result = parsed.data.action.startsWith('chat.')
-            ? await onChatCommand(parsed.data)
-            : parsed.data.action === 'theme.set'
+          const result = request.action.startsWith('chat.')
+            ? await onChatCommand(request)
+            : request.action === 'theme.set'
               ? undefined
-              : await productApi.sendSpaceAppCommand(roomId, parsed.data)
+              : await productApi.sendSpaceAppCommand(roomId, request)
           postToApp({ type: 'space:result', id: data.id, ok: true, result })
         } catch (error) {
           postToApp({
@@ -300,7 +396,7 @@ export function SpaceAppSurface({
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [initializeApp, onChatCommand, postToApp, roomId])
+  }, [bridgeNonce, initializeApp, onChatCommand, postToApp, roomId])
 
   if (!appUrl) {
     return (
@@ -353,7 +449,14 @@ export function SpaceKernelControls({
   onReload: () => void
 }) {
   const { t } = useTranslation()
-  const { snapshot, unavailable, publishing, publish } = runtime
+  const {
+    snapshot,
+    unavailable,
+    publishing,
+    restoring,
+    applyingTemplate,
+    publish,
+  } = runtime
   const building = Boolean(snapshot?.build) || snapshot?.devPreview.state === 'building'
   const revision = snapshot?.project.draftId?.slice(0, 7)
   return (
@@ -386,7 +489,13 @@ export function SpaceKernelControls({
           type="button"
           className="vc-space-publish"
           data-testid="space-kernel-publish"
-          disabled={!snapshot?.project.draftId || publishing || unavailable}
+          disabled={
+            !snapshot?.project.draftId
+            || publishing
+            || restoring
+            || applyingTemplate
+            || unavailable
+          }
           onClick={() => void publish().catch(() => undefined)}
         >
           <Rocket size={15} />

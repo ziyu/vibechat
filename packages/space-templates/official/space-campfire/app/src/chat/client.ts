@@ -1,6 +1,6 @@
 import { escapeHtml } from "../browser/html.js";
 import { renderModuleScript } from "../browser/module-script.js";
-import { bootstrapChat } from "./client/bootstrap.js";
+import { bootstrapChat, loadEarlierMessages } from "./client/bootstrap.js";
 import {
   attachSelectedFile,
   chooseMention,
@@ -46,7 +46,8 @@ export const chatClient = renderModuleScript({
     updateComposerMentions,
     chooseMention,
     attachSelectedFile,
+    loadEarlierMessages,
     bootstrapChat,
   ],
-  bootstrap: 'await bootstrapChat(space, "dock");',
+  bootstrap: 'await bootstrapChat(space, "full");',
 });

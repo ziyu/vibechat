@@ -9,6 +9,7 @@ import type { RoomIndexRecord } from "./types";
 
 export type RoomServiceErrorCode =
   | "ROOM_SPACE_NOT_FOUND"
+  | "ROOM_SPACE_VERSION_NOT_FOUND"
   | "ROOM_PARTICIPANT_NOT_READY";
 
 export class RoomServiceError extends Error {
@@ -27,7 +28,9 @@ export interface CreateRoomServiceInput {
   accessToken: string;
   clientRequestId: string;
   participantUserIds: string[];
-  spaceId: string;
+  startMode: "blank" | "template";
+  spaceTemplateId: string | null;
+  spaceTemplateVersionId: string | null;
   instanceConfig: Record<string, unknown>;
   name: string;
 }
@@ -49,8 +52,19 @@ export class RoomService {
     );
     if (existing) return existing;
 
-    const space = this.options.spaces.find((candidate) => candidate.id === input.spaceId);
-    if (!space) throw new RoomServiceError("ROOM_SPACE_NOT_FOUND");
+    const space = input.startMode === "template"
+      ? this.options.spaces.find((candidate) => candidate.id === input.spaceTemplateId) ?? null
+      : null;
+    if (input.startMode === "template" && !space) {
+      throw new RoomServiceError("ROOM_SPACE_NOT_FOUND");
+    }
+    if (
+      space
+      && input.spaceTemplateVersionId
+      && space.versionId !== input.spaceTemplateVersionId
+    ) {
+      throw new RoomServiceError("ROOM_SPACE_VERSION_NOT_FOUND");
+    }
 
     const participantUserIds = input.participantUserIds.filter(
       (userId) => userId !== input.creatorUserId,
@@ -66,22 +80,28 @@ export class RoomService {
       throw new RoomServiceError("ROOM_PARTICIPANT_NOT_READY");
     }
 
+    const spaceInstanceId = `space-${globalThis.crypto.randomUUID()}`;
+    const projectId = `project-${globalThis.crypto.randomUUID()}`;
+    const defaultAgentId = "pi";
     const created = await this.options.matrix.createRoom({
       creatorMatrixUserId: input.creatorMatrixUserId,
       accessToken: input.accessToken,
       name: input.name,
       inviteMatrixUserIds: identities.map((identity) => identity!.matrixUserId),
+      spaceInstanceId,
+      projectId,
+      defaultAgentId,
       space,
       instanceConfig: input.instanceConfig,
     });
     const record: RoomIndexRecord = {
       matrixRoomId: created.matrixRoomId,
-      spaceInstanceId: `space-${globalThis.crypto.randomUUID()}`,
-      projectId: `project-${globalThis.crypto.randomUUID()}`,
-      defaultAgentId: "pi",
+      spaceInstanceId,
+      projectId,
+      defaultAgentId,
       clientRequestId: input.clientRequestId,
-      spaceId: space.id,
-      spaceVersionId: space.versionId,
+      spaceId: space?.id ?? null,
+      spaceVersionId: space?.versionId ?? null,
       creatorUserId: input.creatorUserId,
       participantUserIds: Array.from(new Set([
         input.creatorUserId,

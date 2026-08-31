@@ -121,6 +121,18 @@ describe("Space Template publication protocol", () => {
       expect(project!.files["src/chat/client/messages.ts"]).toContain(
         "renderMessageHtml",
       );
+      expect(project!.files["src/browser/sdk.ts"]).toContain(
+        "recent(options?",
+      );
+      expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+        "space.chat.recent({ limit: 30, before })",
+      );
+      expect(project!.files["src/chat/client/render.ts"]).toContain(
+        "state.historyAnchor.scrollTop",
+      );
+      expect(project!.files["src/chat/client/messages.ts"]).toContain(
+        'data-mentioned="${String(mentioned)}"',
+      );
       expect(project!.files["src/chat/styles.ts"]).toContain(
         './styles/composer.js',
       );
@@ -131,6 +143,7 @@ describe("Space Template publication protocol", () => {
         ".vcc-compose-wrap {\n  position: relative;",
       );
       const markup = project!.files["src/chat/markup.ts"];
+      expect(markup).toContain('data-testid="load-earlier-messages"');
       expect(markup.indexOf('id="vcc-attach"')).toBeLessThan(
         markup.indexOf('id="vcc-input"'),
       );

@@ -1,11 +1,16 @@
 import {
+  spaceAgentBillingCallbackSchema,
   spaceAgentCompletionCallbackSchema,
-} from "@vibechat/space-app-contracts";
+} from "@vibechat/space-agent-contracts";
 import {
   signSpaceRuntimeCredential,
   spaceBackendCallbackAudience,
 } from "@vibechat/space-runtime-auth";
-import { splitAgentUsage, type AgentUsage } from "./agent-usage.js";
+import {
+  splitAgentUsage,
+  type AgentUsage,
+  versionAgentUsage,
+} from "./agent-usage.js";
 import type {
   ClaimedSpaceTurn,
   SpaceTurnBilling,
@@ -67,24 +72,28 @@ export async function reportTurnBilling(input: {
       billing.callbackUrl,
       input.signingSecret,
     );
+    const payload = spaceAgentBillingCallbackSchema.parse({
+      schemaVersion: "vibechat.space-agent-billing/v1",
+      spaceInstanceId: billing.spaceInstanceId,
+      turnId: input.turn.turnId,
+      userId: billing.userId,
+      requestId: billing.requestId,
+      provider: billing.provider,
+      model: billing.model,
+      reservedCredits: billing.reservedCredits,
+      transactionId: billing.transactionId,
+      status: input.status,
+      ...(input.status === "completed"
+        ? { usage: versionAgentUsage(allocatedUsage[index] ?? {}) }
+        : {}),
+    });
     const response = await fetchImpl(billing.callbackUrl, {
       method: "POST",
       headers: {
         authorization,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        spaceInstanceId: billing.spaceInstanceId,
-        turnId: input.turn.turnId,
-        userId: billing.userId,
-        requestId: billing.requestId,
-        provider: billing.provider,
-        model: billing.model,
-        reservedCredits: billing.reservedCredits,
-        transactionId: billing.transactionId,
-        status: input.status,
-        ...(input.status === "completed" ? { usage: allocatedUsage[index] ?? {} } : {}),
-      }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error(`billing callback returned ${response.status}`);
   }));
@@ -102,6 +111,7 @@ export async function reportTurnCompletion(input: {
   const completion = billing?.completion;
   if (!billing || !completion) return;
   const payload = spaceAgentCompletionCallbackSchema.parse({
+    schemaVersion: "vibechat.space-agent-completion/v1",
     userId: billing.userId,
     spaceInstanceId: completion.spaceInstanceId,
     matrixRoomId: completion.matrixRoomId,

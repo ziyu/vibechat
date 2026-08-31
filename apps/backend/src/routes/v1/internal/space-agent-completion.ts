@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DatabaseRoomRepository } from '@libs/rooms'
-import { spaceAgentCompletionCallbackSchema } from '@vibechat/api-contracts'
+import { spaceAgentCompletionCallbackSchema } from '@vibechat/space-agent-contracts'
 import { DatabaseSpaceRuntimeControlPlane } from '@libs/space-runtime-control'
 import { authorizeSpaceRuntimeCallback } from '@/lib/space-runtime-callback-auth'
+import { acceptsSpaceAgentCompletionCallback } from '@/lib/space-agent-callbacks'
 import { reconcileSpaceRuntimeOutbox } from '@/lib/space-runtime-outbox-reconciler'
 import { withCfDb } from '@/lib/with-request-db'
 
@@ -26,18 +27,13 @@ export const Route = createFileRoute('/v1/internal/space-agent-completion')({
         if (
           !instance
           || instance.spaceInstanceId !== parsed.data.spaceInstanceId
-          || instance.defaultAgentId !== parsed.data.agentId
         ) {
           return Response.json({ error: 'space_agent_callback_not_allowed' }, { status: 403 })
         }
 
         const control = new DatabaseSpaceRuntimeControlPlane()
         const turn = await control.getTurn(parsed.data.turnId)
-        if (
-          !turn
-          || turn.spaceInstanceId !== parsed.data.spaceInstanceId
-          || turn.status !== 'completed'
-        ) {
+        if (!acceptsSpaceAgentCompletionCallback(turn, instance, parsed.data)) {
           return Response.json({ error: 'space_agent_callback_fenced' }, { status: 409 })
         }
         const outbox = await control.enqueueOutbox({

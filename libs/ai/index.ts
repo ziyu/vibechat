@@ -23,6 +23,7 @@ export {
   reserveChatCredits,
   settleChatCredits,
   refundChatCredits,
+  type ChatBillingContext,
 } from './chat-billing';
 export { 
   generateImageResponse, 

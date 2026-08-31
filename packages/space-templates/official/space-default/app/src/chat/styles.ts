@@ -3,7 +3,7 @@ import { chatFoundationStyles } from "./styles/foundation.js";
 import { chatResponsiveStyles } from "./styles/responsive.js";
 import { chatTimelineStyles } from "./styles/timeline.js";
 
-export const chatStyles = `<style data-vibechat-default-chat data-vibechat-chat-contract="3">
+export const chatStyles = `<style data-vibechat-default-chat data-vibechat-chat-contract="4">
 ${chatFoundationStyles}
 ${chatTimelineStyles}
 ${chatComposerStyles}

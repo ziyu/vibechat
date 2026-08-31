@@ -20,7 +20,9 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     await expect(page.getByTestId('product-app-shell')).toBeVisible()
     await expect(page.getByTestId('account-overview')).toBeVisible()
     await page.getByTestId('account-tab-security').click()
-    await expect(page.getByTestId('account-security')).toBeVisible()
+    const security = page.getByTestId('account-security')
+    await expect(security).toBeVisible()
+    await expect(security.locator('article')).toHaveCount(1)
     await expect(page.getByTestId('security-current-password')).toBeVisible()
     await expect(page.getByTestId('security-change-password')).toBeVisible()
   })
@@ -262,12 +264,13 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     await page.goto('/account')
     await expect(page.getByTestId('account-overview')).toBeVisible()
     await page.getByTestId('account-tab-security').click()
-    await expect(page.getByTestId('account-security')).toBeVisible()
+    const security = page.getByTestId('account-security')
+    await expect(security).toBeVisible()
     await page.getByTestId('security-current-password').fill(originalPassword)
     await page.getByTestId('security-new-password').fill(nextPassword)
     await page.getByTestId('security-confirm-password').fill(nextPassword)
     await page.getByTestId('security-change-password').click()
-    await expect(page.getByRole('status')).toBeVisible()
+    await expect(security.getByRole('status')).toBeVisible()
     await signOutViaAPI(page)
     expect((await signInViaAPI(page, { email, password: nextPassword })).ok()).toBeTruthy()
   })
@@ -276,7 +279,12 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     const referrerSession = await page.request.get('/api/auth/get-session')
     const referrer = (await referrerSession.json() as { user: { id: string; email: string } }).user
     const stats = await page.request.get('/api/affiliate/stats')
-    const statsPayload = await stats.json() as { referralCode: string; enabled: boolean }
+    const statsPayload = await stats.json() as {
+      referralCode: string
+      enabled: boolean
+      referrerSignupBonus: number
+      refereeSignupBonus: number
+    }
     test.skip(!statsPayload.enabled, 'Requires AFFILIATE_ENABLED=true')
     const referralCode = statsPayload.referralCode
     const beforeReferrerCreditsResponse = await page.request.get('/api/credits/status')
@@ -293,6 +301,10 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     const signupPayload = await signup.json().catch(() => null) as { user?: { id: string }; message?: string } | null
     expect(signup.ok(), JSON.stringify(signupPayload)).toBeTruthy()
     expect(signupPayload?.user?.id).toBeTruthy()
+    const initialRefereeCredits = await page.request.get('/api/credits/status')
+    const initialRefereeBalance = (await initialRefereeCredits.json() as {
+      credits: { balance: number }
+    }).credits.balance
     const claim = await page.request.post('/api/affiliate/claim')
     const claimPayload = await claim.json().catch(() => null)
     expect(claim.ok(), JSON.stringify(claimPayload)).toBeTruthy()
@@ -302,12 +314,14 @@ test.describe('Account, services, AI and payment return surfaces', () => {
     expect(repeated.ok()).toBeTruthy()
     expect(await repeated.json()).toMatchObject({ applied: false, reason: 'no_referral_code' })
     const refereeCredits = await page.request.get('/api/credits/status')
-    expect((await refereeCredits.json() as { credits: { balance: number } }).credits.balance).toBe(110)
+    expect((await refereeCredits.json() as { credits: { balance: number } }).credits.balance)
+      .toBe(initialRefereeBalance + statsPayload.refereeSignupBonus)
 
     await signOutViaAPI(page)
     expect((await signInViaAPI(page, { email: referrer.email, password: 'TestPassword123!' })).ok()).toBeTruthy()
     const referrerCredits = await page.request.get('/api/credits/status')
-    expect((await referrerCredits.json() as { credits: { balance: number } }).credits.balance).toBe(beforeReferrerCredits + 10)
+    expect((await referrerCredits.json() as { credits: { balance: number } }).credits.balance)
+      .toBe(beforeReferrerCredits + statsPayload.referrerSignupBonus)
     const updatedStats = await page.request.get('/api/affiliate/stats')
     expect(await updatedStats.json()).toMatchObject({ totalRegisteredReferrals: 1 })
   })

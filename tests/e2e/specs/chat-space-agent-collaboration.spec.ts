@@ -53,10 +53,73 @@ async function setSpaceDefaultAgent(matrixRoomId: string, agentId: string) {
   const Database = (await import('better-sqlite3')).default
   const db = new Database(sqlitePath)
   try {
-    const result = db.prepare(
-      'UPDATE room_index SET default_agent_id = ?, updated_at = ? WHERE matrix_room_id = ?',
-    ).run(agentId, Math.floor(Date.now() / 1000), matrixRoomId)
-    expect(result.changes).toBe(1)
+    if (agentId !== 'fake') {
+      throw new Error(`No deterministic E2E Definition is configured for ${agentId}.`)
+    }
+    const room = db.prepare(
+      'SELECT space_instance_id FROM room_index WHERE matrix_room_id = ?',
+    ).get(matrixRoomId) as { space_instance_id?: string } | undefined
+    expect(room?.space_instance_id).toBeTruthy()
+    const spaceInstanceId = room!.space_instance_id!
+    const timestamp = Math.floor(Date.now() / 1000)
+    const definitionId = 'agent-definition-fake-e2e-v1'
+    const transaction = db.transaction(() => {
+      db.prepare(`
+        INSERT OR IGNORE INTO space_agent_definition (
+          definition_id, agent_id, version, adapter_key, adapter_version,
+          provider, model, capabilities_json, tool_policy_id, pricing_policy_id,
+          usage_schema_version, max_budget_credits, max_concurrency,
+          data_region_policy_json, display_name, description, status,
+          availability, created_at, updated_at
+        ) VALUES (?, 'fake', '1.0.0', 'fake', '1.0.0', 'fake', 'deterministic',
+          '["conversation","project_patch"]', 'space-agent-tools-default',
+          'space-agent-pricing-default', 'vibechat.agent-usage/v1', 1000, 1,
+          '{"mode":"any","regions":[]}', 'Fake Agent',
+          'Deterministic E2E-only Agent', 'active', 'available', ?, ?)
+      `).run(definitionId, timestamp, timestamp)
+      const storedDefinition = db.prepare(`
+        SELECT definition_id
+        FROM space_agent_definition
+        WHERE agent_id = 'fake' AND version = '1.0.0'
+      `).get() as { definition_id?: string } | undefined
+      expect(storedDefinition?.definition_id).toBeTruthy()
+      db.prepare(`
+        UPDATE space_agent_binding
+        SET is_default = 0, updated_at = ?
+        WHERE space_instance_id = ?
+      `).run(timestamp, spaceInstanceId)
+      db.prepare(`
+        INSERT INTO space_agent_binding (
+          binding_id, space_instance_id, agent_id, definition_id,
+          definition_version, is_default, permission_policy_id, tool_policy_id,
+          budget_policy_json, policy_snapshot_hash, status, created_at, updated_at
+        ) VALUES (?, ?, 'fake', ?, '1.0.0', 1,
+          'space-agent-permissions-default', 'space-agent-tools-default',
+          '{"maxCreditsPerTurn":1000,"maxInputTokens":128000,"maxOutputTokens":16000}',
+          ?, 'active', ?, ?)
+        ON CONFLICT(space_instance_id, agent_id) DO UPDATE SET
+          definition_id = excluded.definition_id,
+          definition_version = excluded.definition_version,
+          is_default = 1,
+          permission_policy_id = excluded.permission_policy_id,
+          tool_policy_id = excluded.tool_policy_id,
+          budget_policy_json = excluded.budget_policy_json,
+          policy_snapshot_hash = excluded.policy_snapshot_hash,
+          status = 'active',
+          updated_at = excluded.updated_at
+      `).run(
+        `space-agent-binding:${spaceInstanceId}:fake`,
+        spaceInstanceId,
+        storedDefinition!.definition_id!,
+        `sha256:${'f'.repeat(64)}`,
+        timestamp,
+        timestamp,
+      )
+      return db.prepare(
+        'UPDATE room_index SET default_agent_id = ?, updated_at = ? WHERE matrix_room_id = ?',
+      ).run(agentId, timestamp, matrixRoomId)
+    })
+    expect(transaction().changes).toBe(1)
   } finally {
     db.close()
   }
@@ -224,6 +287,36 @@ test.describe('Space Agent collaboration through the Matrix timeline', () => {
       )
       expect(beforeResponse.ok(), await beforeResponse.text()).toBeTruthy()
       const before = await beforeResponse.json()
+      expect(before).toMatchObject({
+        defaultAgentId: 'pi',
+        availableAgents: [{ id: 'pi', name: 'Pi', available: true }],
+        agents: [{
+          binding: {
+            agentId: 'pi',
+            isDefault: true,
+            status: 'active',
+          },
+          definition: {
+            agentId: 'pi',
+            displayName: 'Pi',
+            status: 'active',
+            availability: 'available',
+          },
+        }],
+      })
+      const matrixV2StateResponse = await first.page.request.get(
+        `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(room.matrixRoomId)}/state/${encodeURIComponent('io.vibechat.space.instance.v2')}/`,
+        { headers: { authorization: `Bearer ${first.bootstrap.matrix.accessToken}` } },
+      )
+      expect(matrixV2StateResponse.ok(), await matrixV2StateResponse.text()).toBeTruthy()
+      await expect(matrixV2StateResponse.json()).resolves.toMatchObject({
+        schemaVersion: 'vibechat.space-instance/v2',
+        defaultAgentId: 'pi',
+        agents: [{
+          binding: { agentId: 'pi', isDefault: true, status: 'active' },
+          definition: { agentId: 'pi', displayName: 'Pi', availability: 'available' },
+        }],
+      })
       const replyToken = `AGENT_MATRIX_${suffix.replaceAll('-', '_')}`
       const agentPrompt = `@pi 请只回复 ${replyToken}，不要修改任何 App 代码。`
       await firstChat.getByTestId('message-input').fill(agentPrompt)

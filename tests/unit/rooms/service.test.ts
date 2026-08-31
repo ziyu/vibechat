@@ -99,7 +99,9 @@ const input = {
   accessToken: "matrix-secret-token",
   clientRequestId: "request-12345678",
   participantUserIds: ["friend-1"],
-  spaceId: space.id,
+  startMode: "template" as const,
+  spaceTemplateId: space.id,
+  spaceTemplateVersionId: space.versionId,
   instanceConfig: { ambient: "night" },
   name: "Afterglow · Friend",
 };
@@ -121,14 +123,17 @@ describe("RoomService", () => {
       participantUserIds: [input.creatorUserId, "friend-1"],
       instanceConfig: input.instanceConfig,
     });
-    expect(createRoom).toHaveBeenCalledWith({
+    expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({
       creatorMatrixUserId: input.creatorMatrixUserId,
       accessToken: input.accessToken,
       name: input.name,
       inviteMatrixUserIds: ["@vibe_friend_1:localhost"],
       space,
       instanceConfig: input.instanceConfig,
-    });
+      spaceInstanceId: expect.stringMatching(/^space-/),
+      projectId: expect.stringMatching(/^project-/),
+      defaultAgentId: "pi",
+    }));
     expect(repository.records).toHaveLength(1);
     await expect(service.getAccessibleSpaceInstance(
       input.creatorUserId,
@@ -147,13 +152,38 @@ describe("RoomService", () => {
     expect(repository.records).toHaveLength(1);
   });
 
+  it("creates a blank Space without Template lineage", async () => {
+    const { createRoom, service } = createService();
+
+    const result = await service.createRoom({
+      ...input,
+      clientRequestId: "request-blank-12345678",
+      startMode: "blank",
+      spaceTemplateId: null,
+      spaceTemplateVersionId: null,
+    });
+
+    expect(result).toMatchObject({ spaceId: null, spaceVersionId: null });
+    expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({
+      space: null,
+      spaceInstanceId: result.spaceInstanceId,
+      projectId: result.projectId,
+    }));
+  });
+
   it("rejects unknown spaces and participants without active Matrix identities", async () => {
     const { createRoom, service } = createService();
 
-    await expect(service.createRoom({ ...input, spaceId: "missing-space" }))
+    await expect(service.createRoom({ ...input, spaceTemplateId: "missing-space" }))
       .rejects.toEqual(expect.objectContaining<Partial<RoomServiceError>>({
         code: "ROOM_SPACE_NOT_FOUND",
       }));
+    await expect(service.createRoom({
+      ...input,
+      spaceTemplateVersionId: "missing-version",
+    })).rejects.toEqual(expect.objectContaining<Partial<RoomServiceError>>({
+      code: "ROOM_SPACE_VERSION_NOT_FOUND",
+    }));
     await expect(service.createRoom({
       ...input,
       clientRequestId: "request-missing-person",

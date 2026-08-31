@@ -104,6 +104,28 @@ export async function loadProject(appId: string): Promise<StoredProject | null> 
   return { ...project, files, sourceHash };
 }
 
+export async function loadProjectRevision(
+  appId: string,
+  revisionId: string,
+): Promise<StoredProject | null> {
+  assertAppId(appId);
+  const project = await projectStore().loadRevision(appId, revisionId);
+  if (!project) return null;
+  const files = validateFiles(project.files);
+  const sourceHash = hashSpaceTemplateProjectFiles(files);
+  if (project.sourceHash !== sourceHash) {
+    throw new StoredProjectIntegrityError(
+      appId,
+      project.sourceHash,
+      sourceHash,
+    );
+  }
+  if (project.draftId !== revisionId) {
+    throw new Error(`Stored Space Project Revision ${revisionId} is mismatched`);
+  }
+  return { ...project, files, sourceHash };
+}
+
 export async function saveProject(
   project: Omit<StoredProject, "sourceHash">,
 ) {

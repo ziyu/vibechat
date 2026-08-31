@@ -3,6 +3,7 @@
 本目录保存已经启动、正在持续推进的开发工作。`active` 是“开发中”生命周期里的工作状态视图，不是新的生命周期，也不是新的文档类型。
 
 - [VibeChat MVP 产品与技术设计实施跟踪](./product-and-technical-implementation.md)
+- [Agent 架构实施结构计划](./agent-architecture-implementation-plan.md)
 - [Space App 设计演进与实施记录](./space-app-design-transition.md)
 - [VibeChat 宿主设计系统与主题工作流实施方案](./host-design-system-and-theme-workflow.md)
 - [Space Kernel Lamplit 视觉刷新实施记录](./space-kernel-lamplit-visual-refresh.md)

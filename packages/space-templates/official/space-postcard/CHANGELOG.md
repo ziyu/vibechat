@@ -6,6 +6,7 @@
 - Keep the full Space identity in the Kernel Bar, move attachment controls into the Composer, and fix its responsive layout without changing Chat Core capabilities.
 - Describe Agent work neutrally because a turn may answer in Chat without changing the Space App.
 - Resolve Agent message authors from logical Mention targets instead of exposing managed Matrix users as members.
+- Add bounded Chat Core history pagination with stable prepend scrolling, retry/no-more states, and visible member Mention projection.
 
 ## 0.1.1
 

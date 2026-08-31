@@ -1,0 +1,90 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 489aeaa..e4c2c4e 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -114,7 +114,8 @@ interface VmFetchStreamChunk {
+ interface AgentOsEventHooks<TContext = AnyContext> {
+     onSessionEvent?: (c: TContext, sessionId: string, event: SessionStreamEntry) => void | Promise<void>;
+ }
+-declare function createAgentOsActions(options?: AgentOsOptions, hooks?: AgentOsEventHooks, preview?: AgentOsActorExtras["preview"], maxSessionSubscriptions?: number, maxDynamicMounts?: number, maxLinkedSoftware?: number): {
++type AgentOsSessionEnvironmentResolver<TContext = AnyContext> = (c: TContext, input: OpenSessionInput) => Record<string, string> | Promise<Record<string, string>>;
++declare function createAgentOsActions(options?: AgentOsOptions, hooks?: AgentOsEventHooks, preview?: AgentOsActorExtras["preview"], maxSessionSubscriptions?: number, maxDynamicMounts?: number, maxLinkedSoftware?: number, resolveSessionEnvironment?: AgentOsSessionEnvironmentResolver): {
+     readFile: (c: AnyContext, path: string) => Promise<Uint8Array<ArrayBufferLike>>;
+     writeFile: (c: AnyContext, path: string, content: string | Uint8Array<ArrayBufferLike>) => Promise<void>;
+     readFiles: (c: AnyContext, paths: string[]) => Promise<_rivet_dev_agentos_core.BatchReadResult[]>;
+@@ -338,6 +339,8 @@ interface AgentOsActorExtras extends AgentOsOptions {
+      * database cannot be replaced.
+      */
+     resolveOptions?: (c: AnyContext) => AgentOsOptions | Promise<AgentOsOptions>;
++    /** Resolve trusted session environment inside the actor worker immediately before opening a session. */
++    resolveSessionEnvironment?: AgentOsSessionEnvironmentResolver;
+     /** Start long-lived processes after each VM boot. Trusted host code only. */
+     onVmStart?: (c: AnyContext, vm: AgentOs) => void | Promise<void>;
+     /** Gracefully stop long-lived processes before the VM is disposed. */
+@@ -366,4 +369,4 @@ declare function createAgentOS<TState = undefined, TConnParams = undefined, TCon
+  */
+ declare const setup: typeof setup$1;
+-
++
+-export { type ActorData, type ActorLanguageSpawnOptions, type ActorSpawnOptions, type AgentOsActorConfigInput as AgentOSActorConfigInput, type AgentOsActorConfigInput as AgentOSConfigInput, type AgentOsActions, type AgentOsActorConfigInput, type AgentOsActorExtras, type AgentOsEventHooks, type AgentOsEvents, type ProcessExitPayload, type ProcessOutputPayload, type SerializableCronAction, type SerializableCronEvent, type SerializableCronJobInfo, type SerializableCronJobOptions, type ShellDataPayload, type ShellExitPayload, type VmBootedPayload, type VmFetchOptions, type VmFetchResponse, type VmFetchStreamChunk, type VmFetchStreamHead, type VmShutdownPayload, createAgentOS as agentOS, createAgentOS, createAgentOsActions, setup };
++export { type ActorData, type ActorLanguageSpawnOptions, type ActorSpawnOptions, type AgentOsActorConfigInput as AgentOSActorConfigInput, type AgentOsActorConfigInput as AgentOSConfigInput, type AgentOsActions, type AgentOsActorConfigInput, type AgentOsActorExtras, type AgentOsEventHooks, type AgentOsEvents, type AgentOsSessionEnvironmentResolver, type ProcessExitPayload, type ProcessOutputPayload, type SerializableCronAction, type SerializableCronEvent, type SerializableCronJobInfo, type SerializableCronJobOptions, type ShellDataPayload, type ShellExitPayload, type VmBootedPayload, type VmFetchOptions, type VmFetchResponse, type VmFetchStreamChunk, type VmFetchStreamHead, type VmShutdownPayload, createAgentOS as agentOS, createAgentOS, createAgentOsActions, setup };
+diff --git a/dist/index.js b/dist/index.js
+index 22c13e9..0949155 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -478,7 +478,7 @@ async function runActorSpawn(c, operation, options) {
+   );
+   return process;
+ }
+-function createAgentOsActions(options, hooks = {}, preview = {}, maxSessionSubscriptions = DEFAULT_MAX_SESSION_SUBSCRIPTIONS, maxDynamicMounts = DEFAULT_MAX_DYNAMIC_MOUNTS, maxLinkedSoftware = DEFAULT_MAX_LINKED_SOFTWARE) {
++function createAgentOsActions(options, hooks = {}, preview = {}, maxSessionSubscriptions = DEFAULT_MAX_SESSION_SUBSCRIPTIONS, maxDynamicMounts = DEFAULT_MAX_DYNAMIC_MOUNTS, maxLinkedSoftware = DEFAULT_MAX_LINKED_SOFTWARE, resolveSessionEnvironment) {
+   const defaultPreviewTtlSeconds = preview.defaultExpiresInSeconds ?? DEFAULT_PREVIEW_TTL_SECONDS;
+   const maxPreviewTtlSeconds = preview.maxExpiresInSeconds ?? MAX_PREVIEW_TTL_SECONDS;
+   const maxActivePreviewTokens = preview.maxActiveTokens ?? DEFAULT_MAX_ACTIVE_PREVIEW_TOKENS;
+@@ -872,7 +872,11 @@ function createAgentOsActions(options, hooks = {}, preview = {}, maxSessionSubsc
+     openSession: async (c, input) => {
+       const vm = await ensureVm(c, options);
+       try {
+-        await vm.sessions.open(input);
++        const resolvedEnvironment = await resolveSessionEnvironment?.(c, input);
++        await vm.sessions.open(resolvedEnvironment ? {
++          ...input,
++          env: { ...input.env, ...resolvedEnvironment }
++        } : input);
+       } catch (error) {
+         const message = error instanceof Error ? error.message : String(error);
+         const causeCode = typeof error?.code === "string" ? error.code : void 0;
+@@ -1298,6 +1302,7 @@ function splitConfig(config) {
+   const onVmStart = actorConfig.onVmStart;
+   const onVmStop = actorConfig.onVmStop;
+   const onVmDisposed = actorConfig.onVmDisposed;
++  const resolveSessionEnvironment = actorConfig.resolveSessionEnvironment;
+   const maxSessionSubscriptions = actorConfig.maxSessionSubscriptions;
+   const maxDynamicMounts = actorConfig.maxDynamicMounts;
+   const maxLinkedSoftware = actorConfig.maxLinkedSoftware;
+@@ -1307,6 +1312,7 @@ function splitConfig(config) {
+   delete actorConfig.onVmStart;
+   delete actorConfig.onVmStop;
+   delete actorConfig.onVmDisposed;
++  delete actorConfig.resolveSessionEnvironment;
+   delete actorConfig.maxSessionSubscriptions;
+   delete actorConfig.maxDynamicMounts;
+   delete actorConfig.maxLinkedSoftware;
+@@ -1319,6 +1325,7 @@ function splitConfig(config) {
+     onVmStart,
+     onVmStop,
+     onVmDisposed,
++    resolveSessionEnvironment,
+     maxSessionSubscriptions,
+     maxDynamicMounts,
+     maxLinkedSoftware
+@@ -1368,7 +1375,8 @@ function createAgentOS(config = {}) {
+     preview,
+     maxSessionSubscriptions,
+     maxDynamicMounts,
+-    maxLinkedSoftware
++    maxLinkedSoftware,
++    split.resolveSessionEnvironment
+   );
+   assertNoReservedKeys("action", actorConfig.actions, actions);
+   assertNoReservedKeys("event", actorConfig.events, builtInEvents);
