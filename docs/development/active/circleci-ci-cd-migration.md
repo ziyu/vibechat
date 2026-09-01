@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：计划
 > 状态：Active
-> 更新日期：2026-08-26
+> 更新日期：2026-09-01
 > 维护范围：仓库级持续集成、Web 容器构建验证与 Backend Cloudflare Workers 持续部署
 > 稳定来源：[CircleCI CI/CD Runbook](../../stable/runbooks/circleci.md)
 
@@ -88,6 +88,14 @@ CircleCI GitHub App 已获得 `ziyu/vibechat` 仓库访问权，项目、`vibech
 | `circleci config validate .circleci/config.yml` | 通过，CircleCI CLI 版本 `1.0.48692` |
 
 CircleCI PR checks 已有云端绿色证据。真实生产部署仍是未覆盖项，因此整体迁移记录继续保持 Active。
+
+## 2026-09-01 Verify 构建内存峰值修复
+
+PR #11 的首轮 workflow `5760de5c-e448-436f-b54f-4aa78b3c791c` 中，`docs:check`、全仓边界/typecheck 和 Web Docker build 均通过；`verify` 的产品构建在 19/22 tasks 完成后以 exit 137 失败。失败点是 Backend SSR/Cloudflare build 与 Web/Admin 构建并发时进程被 Linux 直接输出 `Killed`，没有 TypeScript、Vite transform 或组件 bundle 错误，因此归类为 CircleCI `large` executor 的瞬时内存峰值，而不是产品构建失败。
+
+修复保持 `pnpm build` 的全部 filter 与现有 `NODE_OPTIONS=--max-old-space-size=4096`，仅在 CircleCI `Build product applications` 步骤向 Turbo 传入 `--concurrency=2`。这样最多同时运行两个 workspace build，避免多个 Node 构建进程各自接近 heap 上限；不跳过 Backend，不拆除产品门禁，也不把单进程 heap 提高到宿主总内存以上。
+
+完成条件：CircleCI 配置校验和本地参数解析通过，并由 PR #11 的新 workflow 完整通过 `verify`。当前已取得前两项证据；新 workflow URL 与结果在云端复跑后补入本节，在此之前不把本次资源修复写成已验证完成。
 
 ## 进度更新规则
 

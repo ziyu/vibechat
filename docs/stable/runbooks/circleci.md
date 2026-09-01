@@ -3,7 +3,7 @@
 > 生命周期：长期稳定
 > 文档类型：Runbook
 > 状态：生效
-> 更新日期：2026-08-26
+> 更新日期：2026-09-01
 > 维护范围：仓库级持续集成、Web 容器构建验证与 Backend Cloudflare Workers 持续部署
 
 ## 当前边界
@@ -18,6 +18,8 @@
 | `docker-build` | CircleCI 构建的所有分支 | 使用 `apps/web-app/Dockerfile` 验证 Web 生产镜像 | 否 |
 | `hold-production` | 仅 `main` | 在所有 CI job 成功后等待人工批准 | 否 |
 | `deploy-backend-production` | 仅 `main`，且批准后 | 部署 Backend Cloudflare Worker 并检查生产健康地址 | 是，仅 `vibechat-production` Context |
+
+`verify` 的产品构建仍覆盖全部产品应用和 workspace package，但固定使用 Turbo `--concurrency=2`。CircleCI `large` executor 在 Web、Admin 与 Backend SSR/Cloudflare 构建同时进入高峰时可能超过宿主内存；限制任务并发只降低瞬时内存峰值，不减少构建目标，也不改变各 package 的构建命令。
 
 Web、Site、Admin、Docs 和 Space Runtime 当前只有构建或容器契约，没有统一的生产托管平台发布命令。为这些目标选定平台并提交可验证的部署契约前，不把它们描述为自动部署。
 
@@ -87,3 +89,4 @@ circleci config validate .circleci/config.yml
 - Wrangler 鉴权失败：检查 API token 的账号范围和最小部署权限，轮换后重跑批准后的部署 job。
 - 部署成功但健康检查失败：保持 job 失败状态，查看 Worker 日志、binding、生产 URL 和数据库状态；按回滚流程恢复上一版本。
 - Docker build 与本机结果不同：确认构建上下文是仓库根目录，并检查 workspace、`patches/` 和 lockfile 是否完整。
+- 产品构建以 exit 137 / `Killed` 结束：先确认日志中没有更早的编译错误；若多个 Vite/Nitro/Cloudflare 构建并发运行，保持 `verify` 的 Turbo 并发上限，不要通过跳过 Backend、提高单进程 `NODE_OPTIONS` 或删除构建目标规避门禁。修改资源级别或并发后必须用新的 CircleCI workflow 取得完整 `verify` 绿色证据。
