@@ -65,7 +65,7 @@ import {
 ```bash
 pnpm --filter @vibechat/space-app-components release:prepare
 pnpm --filter @vibechat/space-app-components check:bundle
-pnpm --filter @vibechat/space-app-components registry:publish 0.10.3
+pnpm --filter @vibechat/space-app-components registry:publish 0.11.1
 # Optional npm-compatible mirror only:
 pnpm --filter @vibechat/space-app-components release:pack
 ```
@@ -310,6 +310,8 @@ Panel Recipe 默认只在 Agent 正在执行或队列中存在请求时显示，
 `0.10.2` 修正 `/user/inline` 的浏览器入口：它使用独立 bundle 同时显式注册 User elements 并导出 `/user` API 与 `createSpaceComponentContext`。`/register/user` 继续保持纯 side effect，普通 `/user` 继续 side-effect-free；已写入 Registry 的 `0.10.1` 不覆盖，首个 Template 消费直接固定 `0.10.2`。
 
 `0.10.3` 是文档一致性 patch：代码 API 与 `0.10.2` 相同，只修正发布包 README 对 immutable `0.10.1` 的历史说明。因为 README 属于 package 内容，发布后不能原地修改 `0.10.2`；Campfire 已验证的 exact `0.10.2` 依赖保持不变。
+
+`0.11.1` 在公共 Chat Timeline 中接入消息作者卡：可见作者名通过 hover/focus 预览、click/tap 固定同一个共享 top-layer 浮层，成员复用 `UserInfoCard`，Agent 复用 `AgentCard`。`SpaceChatAuthorView` 以可选字段补充 member presence 与 provider-neutral Agent status/summary/queue，旧手工 author 对象继续使用 offline/unavailable fallback；组件不新增 profile 网络请求或 Agent 调用入口。键盘 Escape 关闭后会恢复作者按钮焦点，并抑制这一次恢复焦点产生的预览，避免卡片立即重开。
 
 主题只能通过 `--vc-space-*` semantic token、公开 property/attribute、slot 与 `::part` 扩展。交互 Timeline 对外提供 `controls`、`message-actions`、`message-action-more|menu|menu-title|menu-close|reply|edit|delete|retry`、`message-reaction-choices|choice`、`reaction-bar` 和 `reaction` parts；消费方不得查询或修改组件 Shadow DOM。组件不读取全局 `space`，Agent identity 也不会触发 Agent、指定 provider/model 或伪造 Kernel 操作。Chat timeline 只投影 `snapshot.chat.messages`，不会把 Agent build/progress 或 `snapshot.agent.messages` 合并成 Matrix 消息。
 

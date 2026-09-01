@@ -1,0 +1,127 @@
+---
+title: Space App Components
+description: Stable User, Chat, and Agent UI APIs for reusable Space Apps
+---
+
+import { SpaceComponentPlayground } from '@/components/space-component-playground'
+
+# Space App Components
+
+`@vibechat/space-app-components` is the framework-neutral UI layer above the Space App SDK. It gives every Space the same tested User, Chat, and Agent semantics without moving product authority into UI code.
+
+<SpaceComponentPlayground
+  locale="en"
+  copy={{
+    eyebrow: 'LIVE COMPONENT CATALOG · 0.10.3',
+    title: 'One contract. Many Space worlds.',
+    description: 'Switch the atmosphere, run the Agent, select a member, and send a local catalog message. The underlying components and typed events stay unchanged.',
+    signalTheme: 'Signal dark',
+    paperTheme: 'Field paper',
+    startAgent: 'Run Agent activity',
+    stopAgent: 'Return Agent to idle',
+    userPanel: 'User and members',
+    agentPanel: 'Agent activity',
+    chatPanel: 'Interactive Chat',
+    selectedMember: 'Selected',
+    noMemberSelected: 'Choose a member with pointer or keyboard',
+    agentStage: 'Mapping reusable component boundaries',
+    agentActivityRead: 'Reading the managed component manifest',
+    agentActivityWrite: 'Composing a revision-safe interface',
+    firstMessage: 'The same member identity remains clear in every Template theme.',
+    secondMessage: 'I will keep provider details and Kernel operations outside the App UI contract.',
+  }}
+/>
+
+## Install and pin
+
+Space Projects use normal semantic package imports. They must pin the exact version in `package.json` and the managed artifact integrity in `space-app-dependencies.json`:
+
+```json title="package.json"
+{
+  "dependencies": {
+    "@vibechat/space-app-components": "0.10.3"
+  }
+}
+```
+
+```json title="space-app-dependencies.json"
+{
+  "schemaVersion": "vibechat.space-app-dependencies/v1",
+  "packages": {
+    "@vibechat/space-app-components": {
+      "version": "0.10.3",
+      "integrity": "sha256:939d4e1c6e73fe91d816a187efba3fb9cd52dfbf5630fae596c9d994f879017b"
+    }
+  }
+}
+```
+
+Runtime resolves that exact release from the managed Registry, verifies the package and integrity, then writes a revision-local prepared artifact. Editable source never imports a Registry path, a version directory, or a CDN URL.
+
+## Public subpaths
+
+| Import | Use |
+| --- | --- |
+| `/core` | Injected SDK context, snapshot lifecycle, translation, and disposal |
+| `/foundation` | Avatar base, IconButton, StatusDot, safety helpers, and tokens |
+| `/user` | User identity, presence, MemberList, structured mention target, and directory controller |
+| `/agent` | Agent identity, status, queue/activity view, and read-only controller |
+| `/chat` | Chat controller, Timeline, Composer, Mention, attachments, reactions, and message actions |
+| `/recipes` | Full Chat, drawer Chat, and Agent Activity Panel composition |
+| `/styles` | Stable `--vc-space-*` semantic token contract |
+| `/register/*` | Explicit Custom Element registration; these are the only side-effect entries |
+| `/user/inline`, `/chat/inline`, `/recipes/inline` | Prebuilt delivery adapters for self-contained `agentos-app-v1` HTML |
+
+Normal browser bundlers should import the side-effect-free domain entry. Inline entries are delivery adapters for the current self-contained App format, not a second component API.
+
+## Minimal composition
+
+```ts
+import { space } from '/v1/space-app-sdk'
+import { createSpaceComponentContext } from '@vibechat/space-app-components/core'
+import {
+  mountDefaultChatRecipe,
+  resolveSpaceChatRecipeElements,
+} from '@vibechat/space-app-components/recipes'
+
+await space.ready
+const context = createSpaceComponentContext({ sdk: space })
+const chat = mountDefaultChatRecipe({
+  context,
+  elements: resolveSpaceChatRecipeElements(document, 'Space Chat'),
+  copy: () => getChatCopy(space.locale),
+})
+
+window.addEventListener('pagehide', () => {
+  chat.dispose()
+  context.dispose()
+}, { once: true })
+```
+
+The component context receives the existing SDK client. It never creates another Matrix client, Agent client, identity store, or billing path.
+
+## Extension rules
+
+- Use typed properties for objects, typed bubbling events for intent, slots for content, `::part` for stable internal surfaces, and `--vc-space-*` tokens for themes.
+- Do not query or mutate a component Shadow DOM. Undocumented nodes and data attributes are private.
+- Agent requests still enter Chat through a structured Agent Mention. Components do not expose `agent.invoke()`.
+- Publishing, restore, ACL, credentials, credits, and Agent management remain Kernel operations and cannot be moved into an App component.
+- An upgrade creates a new Project Revision. Existing ready Revisions and immutable Releases never float to a newer component version.
+
+## Migration workflow
+
+1. Choose the exact managed release and update both dependency files together.
+2. Replace Template-local state machines with a controller or recipe while retaining Template layout, copy, theme, and scene state.
+3. Build a Candidate and verify the prepared artifact dependency and hash.
+4. Exercise the real Matrix timeline and Agent activity in the Space iframe.
+5. Promote only the ready Revision; publish an immutable Release separately through Kernel.
+
+Repository maintainers can audit the current managed release with:
+
+```bash
+pnpm --filter @vibechat/space-app-components check:bundle
+pnpm space-components:migration-plan -- \
+  packages/space-templates/official/space-campfire/app
+```
+
+Add `--write` only after reviewing the plan. The tool updates the two editable dependency files; it never writes vendor files, a Template lock, a Project Revision, or a Release.

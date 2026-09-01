@@ -185,7 +185,14 @@ async function openTemplateDocument(
   await expect(activity).toHaveAttribute('hidden', '')
   if (mode === 'dock') await page.locator('#vcc-launch').click()
 
-  await expect(page.locator('script[data-vibechat-components="0.9.3"]')).toHaveCount(1)
+  // This source-level browser harness resolves the current workspace package.
+  // Template exact-version/integrity pins are enforced by catalog and Registry tests.
+  const componentScript = page.locator('script[data-vibechat-components]')
+  await expect(componentScript).toHaveCount(1)
+  await expect(componentScript).toHaveAttribute(
+    'data-vibechat-components-integrity',
+    /^sha256:/,
+  )
   await expect(page.locator('#vcc-build')).toHaveCount(0)
   await expect(activity).toBeVisible()
   await expect(activity).not.toHaveAttribute('hidden', '')

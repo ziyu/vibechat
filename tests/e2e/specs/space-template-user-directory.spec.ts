@@ -26,7 +26,7 @@ const longNameMember = {
   displayName: "Morgan 夜航电台的超长多语言显示名称 Without Truncating Identity",
   handle: "morgan_with_a_long_radio_handle",
   initials: "M",
-  avatarUrl: null,
+  avatarUrl: "/broken-avatar.png",
   presence: "away",
 };
 const snapshot = {
@@ -163,6 +163,14 @@ async function openCampfireDocument(page: Page) {
   page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.stack ?? error.message}`))
   await page.route(`${previewOrigin}/**`, async (route) => {
     const url = new URL(route.request().url())
+    if (url.pathname === '/broken-avatar.png') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: 'not-a-decodable-image',
+      })
+      return
+    }
     if (url.pathname === '/v1/space-app-sdk') {
       await route.fulfill({
         status: 200,
@@ -206,6 +214,21 @@ test.describe('Campfire shared User Directory', () => {
     await expect(options.nth(0)).toContainText('在线')
     await expect(options.nth(1)).toContainText('Morgan 夜航电台的超长多语言显示名称')
     await expect(options.nth(1)).toContainText('@morgan_with_a_long_radio_handle')
+    await expect(options.nth(1)).toHaveAccessibleName(
+      'Morgan 夜航电台的超长多语言显示名称 Without Truncating Identity，@morgan_with_a_long_radio_handle，暂离',
+    )
+    await expect(memberList).toMatchAriaSnapshot(`
+      - listbox "Space 成员":
+        - option "Alice，@alice，在线" [selected=false]
+        - option "Morgan 夜航电台的超长多语言显示名称 Without Truncating Identity，@morgan_with_a_long_radio_handle，暂离" [selected=false]
+    `)
+    const failedAvatar = options.nth(1).locator('vc-space-avatar')
+    await expect(failedAvatar).toHaveAttribute(
+      'aria-label',
+      'Morgan 夜航电台的超长多语言显示名称 Without Truncating Identity的头像',
+    )
+    await expect(failedAvatar.locator('[part="image"]')).toHaveCount(0)
+    await expect(failedAvatar.locator('[part="initials"]')).toHaveText('M夜')
     await expect(page.locator('#copy')).toContainText('2 位听众')
     await expect.poll(() => page.evaluate(
       () => (globalThis as typeof globalThis & {

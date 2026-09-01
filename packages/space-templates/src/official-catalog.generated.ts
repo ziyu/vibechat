@@ -23,7 +23,7 @@ export const officialTemplateDefinitions = [
       "icon": "✦",
       "accent": "#ffd84d",
       "canvas": "#34274f",
-      "currentVersionId": "tplv-space-arcade-0-1-3"
+      "currentVersionId": "tplv-space-arcade-0-1-4"
     },
     "versions": [
       {
@@ -177,6 +177,47 @@ export const officialTemplateDefinitions = [
           "sourceHash": "sha256:6cfd57f84f9972b3f1081817c70dba189ef1e96cdd3fcd899a1ecc5ebb12dd6e",
           "manifestHash": "sha256:46366ddea6e8e441bd9d25fb5e9252ccfbee9f3b632dbbe7b26e96a96d03cc69"
         }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-arcade-0-1-4",
+          "semanticVersion": "0.1.4",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read",
+              "interactions.send",
+              "state.shared.write"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-arcade/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9",
+          "manifestHash": "sha256:e355f3feef8a131639070d6688ef0badc8e9e0ebc7edb6a5699a0508f147fe49"
+        }
       }
     ]
   },
@@ -203,7 +244,7 @@ export const officialTemplateDefinitions = [
       "icon": "◐",
       "accent": "#ff6b42",
       "canvas": "#171b20",
-      "currentVersionId": "tplv-space-campfire-0-1-6"
+      "currentVersionId": "tplv-space-campfire-0-1-7"
     },
     "versions": [
       {
@@ -476,6 +517,46 @@ export const officialTemplateDefinitions = [
           "sourceHash": "sha256:13a9ae94303f79451e67214f0dc433ec6bb73e4f27d849d81516ae47f9553b59",
           "manifestHash": "sha256:1989528dcbfaa55c13523a6210a9ec2968fc7448952bf7e86a75ca715f210241"
         }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-campfire-0-1-7",
+          "semanticVersion": "0.1.7",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read",
+              "interactions.send"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-campfire/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-0a85d1d88d9b35c7543ffefe467532d12d742587ca0765fe104e2ea8c831fe74",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:0a85d1d88d9b35c7543ffefe467532d12d742587ca0765fe104e2ea8c831fe74"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:0a85d1d88d9b35c7543ffefe467532d12d742587ca0765fe104e2ea8c831fe74",
+          "manifestHash": "sha256:00db99f640f6d990575963172865722de167647435a15662014b25bbcbb997a2"
+        }
       }
     ]
   },
@@ -502,7 +583,7 @@ export const officialTemplateDefinitions = [
       "icon": "V",
       "accent": "#ff5a3d",
       "canvas": "#10120f",
-      "currentVersionId": "tplv-space-default-0-2-0"
+      "currentVersionId": "tplv-space-default-0-2-1"
     },
     "versions": [
       {
@@ -855,6 +936,45 @@ export const officialTemplateDefinitions = [
           "sourceHash": "sha256:b58d32037d74a0c548ce19a73fda90c5503bfd9184c934e40df85c079313da50",
           "manifestHash": "sha256:298878233ce79fcefbecc39aff272a41ea991d882b373e2c527edfd202318117"
         }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-default-0-2-1",
+          "semanticVersion": "0.2.1",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-default/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-d7e7c4f9990a8774b71302b5f455c9fa18e87aa806a7aa3e6b0211385dd6117f",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:d7e7c4f9990a8774b71302b5f455c9fa18e87aa806a7aa3e6b0211385dd6117f"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:d7e7c4f9990a8774b71302b5f455c9fa18e87aa806a7aa3e6b0211385dd6117f",
+          "manifestHash": "sha256:1aa2e1609d32b211a6b2e87ecd7ce6cb32c0302305311ab9de5c44c4a73a97da"
+        }
       }
     ]
   },
@@ -881,7 +1001,7 @@ export const officialTemplateDefinitions = [
       "icon": "⌁",
       "accent": "#b7d66d",
       "canvas": "#23342b",
-      "currentVersionId": "tplv-space-focus-0-2-0"
+      "currentVersionId": "tplv-space-focus-0-2-1"
     },
     "versions": [
       {
@@ -1234,6 +1354,46 @@ export const officialTemplateDefinitions = [
           "sourceHash": "sha256:fadc4694a2a186a90a53116b199b39de9bde5200e47cf5deca4647a9cf3aba0d",
           "manifestHash": "sha256:0e85b4d7d9a97228a64b4370f738603170003d1abd0d01f2141d9afa19081ea4"
         }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-focus-0-2-1",
+          "semanticVersion": "0.2.1",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read",
+              "state.shared.write"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-focus/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-874e658b7dbd7c1ba269d50c98ed12bb128a004386743fdfe44524414e887e2b",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:874e658b7dbd7c1ba269d50c98ed12bb128a004386743fdfe44524414e887e2b"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:874e658b7dbd7c1ba269d50c98ed12bb128a004386743fdfe44524414e887e2b",
+          "manifestHash": "sha256:9d5ad38a128ae30254f8dedd5a0fef1f99f793eff2fcb266bfc36573308d0228"
+        }
       }
     ]
   },
@@ -1260,7 +1420,7 @@ export const officialTemplateDefinitions = [
       "icon": "◇",
       "accent": "#d84b42",
       "canvas": "#efe5d2",
-      "currentVersionId": "tplv-space-postcard-0-1-3"
+      "currentVersionId": "tplv-space-postcard-0-1-4"
     },
     "versions": [
       {
@@ -1413,6 +1573,47 @@ export const officialTemplateDefinitions = [
           "schemaVersion": "vibechat.space-template-version-lock/v1",
           "sourceHash": "sha256:92d5f04f6f2c351fba6e0e61cd5a69bfbdf6ed1ca5f3922211ddc5f2c3c28360",
           "manifestHash": "sha256:0ecadc2d72e2464d57995e731e96ae18de940bbf186a5b0f19c7a2dd5954fad4"
+        }
+      },
+      {
+        "manifest": {
+          "schemaVersion": "vibechat.space-template-version/v1",
+          "id": "tplv-space-postcard-0-1-4",
+          "semanticVersion": "0.1.4",
+          "projectFormat": "agentos-app-v1",
+          "compatibility": {
+            "spaceAppSdk": "v1",
+            "runtime": "agentos-apps-0.2"
+          },
+          "capabilities": {
+            "permissions": [
+              "messages.read",
+              "messages.send",
+              "messages.manage-own",
+              "mentions.read",
+              "agents.invoke",
+              "members.read",
+              "interactions.send",
+              "state.shared.write"
+            ],
+            "networkDomains": []
+          },
+          "provenance": {
+            "origin": "repository",
+            "publisherId": "publisher-vibechat",
+            "sourcePath": "packages/space-templates/official/space-postcard/app"
+          }
+        },
+        "artifact": {
+          "schemaVersion": "vibechat.space-template-artifact/v1",
+          "id": "tpla-173ed38ea465021e6d8424584806ca0431973fcc1acac1666c3b4279a66aa107",
+          "format": "agentos-app-v1",
+          "sourceHash": "sha256:173ed38ea465021e6d8424584806ca0431973fcc1acac1666c3b4279a66aa107"
+        },
+        "lock": {
+          "schemaVersion": "vibechat.space-template-version-lock/v1",
+          "sourceHash": "sha256:173ed38ea465021e6d8424584806ca0431973fcc1acac1666c3b4279a66aa107",
+          "manifestHash": "sha256:c4b5531ab593babd01545ac1ca073f51d91273b64ed6bbc23f8c79061f6a74d3"
         }
       }
     ]

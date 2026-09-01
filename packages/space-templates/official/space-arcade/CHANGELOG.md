@@ -1,5 +1,9 @@
 # Pixel Saturday
 
+## 0.1.4
+
+- Upgrade to exact `@vibechat/space-app-components@0.11.1` so the docked Chat gains the shared member/Agent author card while preserving the badge scene and historical locks.
+
 ## 0.1.3
 
 - Pin `@vibechat/space-app-components@0.7.4` through the managed dependency lock and replace the duplicated drawer Chat renderer, Composer, Mention, message actions, and state machine with the shared Chat controller and elements.

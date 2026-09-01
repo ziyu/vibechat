@@ -1,7 +1,7 @@
 {
   "title": "API Reference",
   "pages": [
-    "index"
+    "index",
+    "space-app-components"
   ]
 }
-

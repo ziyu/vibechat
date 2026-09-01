@@ -1,6 +1,6 @@
 {
   "name": "@vibechat/space-app-components",
-  "version": "0.10.3",
+  "version": "0.11.1",
   "private": false,
   "description": "Framework-neutral User, Chat, and Agent UI components for VibeChat Space Apps",
   "license": "MIT",

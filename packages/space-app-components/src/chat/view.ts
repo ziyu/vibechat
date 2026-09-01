@@ -3,6 +3,11 @@ import type {
   SpaceAppSnapshot,
   SpaceChatMessage,
 } from "@vibechat/space-app-sdk";
+import {
+  createSpaceAgentIdentityView,
+  type SpaceAgentStatus,
+} from "../agent/view.js";
+import type { SpaceAvatarStatus } from "../foundation/avatar.js";
 import { sanitizeSpaceMediaUrl } from "../foundation/safety.js";
 
 export type SpaceChatAuthorKind = "member" | "agent";
@@ -14,6 +19,13 @@ export interface SpaceChatAuthorView {
   readonly handle: string | null;
   readonly avatarUrl: string | null;
   readonly isSelf: boolean;
+  /** Current member presence when the SDK identifies this author as a member. */
+  readonly presence?: SpaceAvatarStatus;
+  /** Provider-neutral Agent identity fields used by the shared author card. */
+  readonly agentStatus?: SpaceAgentStatus;
+  readonly agentSummary?: string | null;
+  readonly agentActiveCount?: number;
+  readonly agentPendingCount?: number;
 }
 
 export interface SpaceChatReactionView {
@@ -130,6 +142,7 @@ function memberAuthor(
     handle: member.handle?.trim() || null,
     avatarUrl: sanitizeSpaceMediaUrl(member.avatarUrl),
     isSelf: member.id === selfId,
+    presence: member.presence ?? "offline",
   });
 }
 
@@ -141,6 +154,9 @@ function agentAuthor(
     (item) => item.type === "agent" && item.id === id,
   );
   const isSnapshotAgent = !snapshot.agent.id || snapshot.agent.id === id;
+  const identity = isSnapshotAgent
+    ? createSpaceAgentIdentityView(snapshot.agent)
+    : null;
   return Object.freeze({
     id,
     kind: "agent" as const,
@@ -148,8 +164,13 @@ function agentAuthor(
       || (isSnapshotAgent ? snapshot.agent.name?.trim() : "")
       || "Agent",
     handle: target?.handle?.trim() || null,
-    avatarUrl: null,
+    avatarUrl: identity?.avatarUrl ?? null,
     isSelf: false,
+    agentStatus: identity?.status
+      ?? (target?.available === false ? "unavailable" : "idle"),
+    agentSummary: identity?.summary ?? null,
+    agentActiveCount: identity?.activeCount ?? 0,
+    agentPendingCount: identity?.pendingCount ?? 0,
   });
 }
 
@@ -169,6 +190,7 @@ export function resolveSpaceChatAuthor(
     handle: null,
     avatarUrl: null,
     isSelf: id.length > 0 && id === snapshot.self?.id,
+    presence: "offline",
   });
 }
 

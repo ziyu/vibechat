@@ -1,0 +1,224 @@
+.frame {
+  --catalog-ink: #f2f4ed;
+  --catalog-muted: #abb2a5;
+  --catalog-paper: #111510;
+  --catalog-panel: #191f18;
+  --catalog-line: #465044;
+  --catalog-signal: #ff5c35;
+  --vc-space-color-text: var(--catalog-ink);
+  --vc-space-color-text-muted: var(--catalog-muted);
+  --vc-space-color-surface: var(--catalog-paper);
+  --vc-space-color-surface-raised: var(--catalog-panel);
+  --vc-space-color-border: var(--catalog-line);
+  --vc-space-color-accent: var(--catalog-signal);
+  --vc-space-color-positive: #82d173;
+  --vc-space-color-warning: #f5ba53;
+  --vc-space-color-neutral: #899386;
+  --vc-space-font-body: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+  position: relative;
+  isolation: isolate;
+  margin: 2rem 0;
+  overflow: hidden;
+  border: 1px solid var(--catalog-line);
+  border-radius: 1.25rem;
+  background: var(--catalog-paper);
+  color: var(--catalog-ink);
+  box-shadow: 0 1.75rem 5rem rgb(0 0 0 / 18%);
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.frame::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--catalog-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--catalog-line) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+  content: "";
+  opacity: .13;
+  pointer-events: none;
+}
+
+.frame[data-theme="paper"] {
+  --catalog-ink: #28271f;
+  --catalog-muted: #6d6a5e;
+  --catalog-paper: #ede9dc;
+  --catalog-panel: #f8f4e8;
+  --catalog-line: #aaa38e;
+  --catalog-signal: #b83c20;
+  --vc-space-color-positive: #356e49;
+  --vc-space-color-warning: #925f13;
+  --vc-space-color-neutral: #747064;
+  box-shadow: .6rem .7rem 0 #413e34;
+}
+
+.masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: end;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--catalog-line);
+}
+
+.eyebrow {
+  display: block;
+  margin-block-end: .8rem;
+  color: var(--catalog-signal);
+  font: 720 .7rem/1 ui-monospace, "SFMono-Regular", monospace;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.masthead h2 {
+  max-inline-size: 15ch;
+  margin: 0;
+  color: var(--catalog-ink);
+  font: 600 clamp(2rem, 5vw, 4.6rem)/.9 Georgia, "Times New Roman", serif;
+  letter-spacing: -.055em;
+}
+
+.masthead p {
+  max-inline-size: 58ch;
+  margin: 1rem 0 0;
+  color: var(--catalog-muted);
+  font: 520 .88rem/1.65 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.controls {
+  display: grid;
+  gap: .65rem;
+  min-inline-size: min(100%, 15rem);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--catalog-line);
+  background: var(--catalog-panel);
+}
+
+.segmented button,
+.agentToggle {
+  min-block-size: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--catalog-ink);
+  font: 700 .7rem/1 ui-monospace, "SFMono-Regular", monospace;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+.segmented button + button { border-inline-start: 1px solid var(--catalog-line); }
+.segmented button[aria-pressed="true"] { background: var(--catalog-signal); color: #fff; }
+
+.agentToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  border: 1px solid var(--catalog-line);
+  background: var(--catalog-panel);
+}
+
+.agentToggle span {
+  inline-size: .55rem;
+  block-size: .55rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: var(--vc-space-color-neutral);
+}
+
+.agentToggle[aria-pressed="true"] span {
+  background: var(--vc-space-color-positive);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--vc-space-color-positive) 20%, transparent);
+}
+
+.segmented button:focus-visible,
+.agentToggle:focus-visible {
+  outline: 3px solid var(--catalog-signal);
+  outline-offset: 3px;
+}
+
+.catalogGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, .72fr);
+  align-items: stretch;
+}
+
+.panel {
+  min-inline-size: 0;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  background: color-mix(in srgb, var(--catalog-panel) 92%, transparent);
+}
+
+.panel > header {
+  display: flex;
+  gap: .7rem;
+  align-items: center;
+  margin-block-end: 1rem;
+}
+
+.panel > header span {
+  display: grid;
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+  place-items: center;
+  border: 1px solid var(--catalog-signal);
+  border-radius: 50%;
+  color: var(--catalog-signal);
+  font: 800 .65rem/1 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.panel > header h3 {
+  margin: 0;
+  color: var(--catalog-ink);
+  font: 700 .82rem/1.2 ui-monospace, "SFMono-Regular", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.userPanel { border-inline-end: 1px solid var(--catalog-line); }
+.agentPanel { align-self: stretch; }
+.chatPanel { grid-column: 1 / -1; border-top: 1px solid var(--catalog-line); }
+.userCard { margin-block-end: .8rem; }
+.selection { display: block; min-block-size: 1.3rem; margin-block-start: .8rem; color: var(--catalog-signal); font: 700 .72rem/1.5 ui-monospace, "SFMono-Regular", monospace; }
+
+.chatStack {
+  display: grid;
+  grid-template-rows: minmax(18rem, 27rem) auto;
+  overflow: hidden;
+  border: 1px solid var(--catalog-line);
+  border-radius: .9rem;
+  background: var(--catalog-paper);
+}
+
+.chatStack vc-space-chat-timeline { min-block-size: 18rem; overflow: auto; }
+.chatStack vc-space-chat-composer { border-top: 1px solid var(--catalog-line); }
+
+@media (max-width: 54rem) {
+  .masthead { grid-template-columns: 1fr; align-items: start; }
+  .catalogGrid { grid-template-columns: 1fr; }
+  .userPanel { border-inline-end: 0; }
+  .agentPanel, .chatPanel { grid-column: 1; border-top: 1px solid var(--catalog-line); }
+}
+
+@media (max-width: 30rem) {
+  .masthead { padding: 1rem; }
+  .panel { padding: 1rem; }
+  .chatStack { grid-template-rows: minmax(20rem, 28rem) auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame { transition: none; }
+  .agentToggle[aria-pressed="true"] span { box-shadow: none; }
+}
+
+@media (forced-colors: active) {
+  .frame,
+  .segmented,
+  .agentToggle,
+  .chatStack { border: 2px solid CanvasText; box-shadow: none; }
+  .segmented button[aria-pressed="true"] { background: Highlight; color: HighlightText; }
+}

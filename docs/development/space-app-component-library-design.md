@@ -3,7 +3,7 @@
 > 生命周期：开发中
 > 文档类型：设计
 > 状态：评审中
-> 更新日期：2026-08-27
+> 更新日期：2026-09-01
 > 维护范围：Space App 组件模型、User/Chat/Agent 领域组件、组件分发、Template 组合、版本治理与验证
 > 稳定约束：[VibeChat MVP 产品与技术设计](../stable/designs/vibechat-mvp-product-and-technical-design.md)
 > 当前实现：[Space App 设计演进与实施记录](./active/space-app-design-transition.md)
@@ -229,6 +229,8 @@ P0 不在浏览器维护第二条消息数据库。分页、虚拟列表、富�
 Host 必须在 SDK snapshot 中显式提供 Chat permissions；空 snapshot 和缺失字段一律 fail closed。message view 只允许把全局 permission 与消息 ownership/status 组合成每条消息的 action availability，Template 和 presentational component 都不能通过 `isOwn`、`isAgent` 或 DOM 状态自行猜测 ACL。交互 Timeline 通过公开 property、typed event、稳定 test id 与 `::part` 组合 Actions/Reaction；只读 Timeline 保持默认呈现，消费方不得进入 Shadow DOM 添加控件或注入样式。
 
 交互 Timeline 的默认信息密度也属于公共行为契约：已有 Reaction 只保留一套可交互呈现，不与 Message 内只读 Reaction 重复；未使用的候选 Reaction、reply/edit/delete/retry 通过 compact MessageActions 渐进披露，Delete 必须使用危险语义和显式二次确认。compact 模式要同时覆盖桌面浮层、窄屏 action sheet、焦点进入/循环/恢复、Escape、外部点击、forced colors 与 reduced motion。支持 Popover API 时，浮层必须进入浏览器 top layer，并由 native light-dismiss 与 `::backdrop` 负责关闭和遮罩；只有不支持 Popover 时才使用 viewport fixed 菜单、显式 backdrop 和 document pointer fallback。Template 的 `transform`、`filter`、`backdrop-filter` 与 `overflow` 不得成为组件正确性的前置条件，指针关闭后必须在点击默认动作完成后恢复 trigger 焦点。独立 MessageActions 默认仍为 inline，以保持已有消费方兼容。相邻同作者且时间间隔不超过五分钟的消息可以组合为 `single/first/middle/last`，隐藏重复作者和时间，并只在组尾/单条保留非本人头像；分组只改变呈现，不改变 message key、timeline 顺序或 Chat Core 语义。
+
+每个可见消息作者名还必须是公共身份预览入口，而不是由 Template 自行补充链接。指针 hover 或键盘 focus 提供非固定预览，点击、Enter 或触摸固定同一浮层；Escape、外部点击与再次激活关闭，固定浮层关闭时按触发方式恢复焦点。成员作者复用 `UserInfoCard`，Agent 作者复用 `AgentCard`，未知身份使用安全 fallback；卡片数据只能来自当前 SDK snapshot，不额外连接 Matrix、Backend 或 Agent provider。Timeline 只维护一个共享作者卡浮层，支持 Popover API 时进入 top layer，不为每条消息常驻复制卡片 DOM。作者卡必须覆盖 390px、200% 字体、长名字、RTL、forced colors、reduced motion、键盘和触摸，并保持消息分组、顺序与命令行为不变。
 
 ### 8.4 Agent
 
@@ -553,11 +555,12 @@ pnpm build:docs
 
 阶段 0 已确定：component release job 生成不可变 managed package；Runtime Registry 解析并 materialize 到 prepared artifact；Default Chat 继续把已验证的 `chat.js` source 内联进自身文档，不增加浏览器网络入口。公共 npm 发布不是 Space Runtime 的依赖条件。
 
+阶段 5 已确定：公开 Component catalog、交互 playground 与 API 参考进入 `apps/docs-app`，package 自带的离线 catalog 继续承担 bundle/视觉门禁；不为此新增 Space Runtime 专用 Preview route、权限或浮动 URL。仓库级迁移工具默认只生成计划，显式写入也只更新 `package.json` 与 `space-app-dependencies.json`，不会写 prepared artifact、Template lock、Revision 或 Release。
+
 以下细节仍可后续决策，不影响本文确定的边界：
 
-1. Component catalog 使用独立开发应用还是复用 Space Runtime 的专用只读 Preview route。
-2. 何时为大型媒体/recipe artifact 增加 revision-local hashed asset handler；它不能替代当前 package/integrity 契约。
-3. React adapter 的触发门槛、package 名称和是否随 `1.0.0` 后提供长期兼容承诺。
+1. 何时为大型媒体/recipe artifact 增加 revision-local hashed asset handler；它不能替代当前 package/integrity 契约。
+2. React adapter 已在阶段 5 评估并延后：只有 Space App Project 稳定支持 JSX、browser bundling 和可重复依赖解析后才定义 package 名称与长期兼容承诺；任何 adapter 都必须复用同一 controller、typed event 和 contract tests。
 
 无论选择哪种实现，都必须满足：不新增浮动运行时 URL、artifact 可离线重建、版本可审计、既有 Space 不静默变化、组件不拥有平台业务权威。
 

@@ -1,5 +1,9 @@
 # Vibe Chat
 
+## 0.2.1
+
+- Upgrade to exact `@vibechat/space-app-components@0.11.1` so every visible member or Agent message author opens the shared accessible identity card without Template-owned profile logic.
+
 ## 0.2.0
 
 - Upgrade to exact `@vibechat/space-app-components@0.9.1` and replace the Template-owned Agent build banner with the provider-neutral `AgentActivityPanelRecipe`.

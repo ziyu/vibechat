@@ -154,6 +154,7 @@ describe("Space Chat view models", () => {
     expect(views[0]).toMatchObject({
       isOwn: true,
       edited: true,
+      author: { presence: "online" },
       actions: {
         reply: true,
         edit: true,
@@ -175,6 +176,12 @@ describe("Space Chat view models", () => {
       author: { id: "wayfinder", name: "Wayfinder", kind: "agent" },
       reply: { state: "available", text: "Opening note" },
       actions: { reply: true, edit: false, delete: false, react: true },
+    });
+    expect(views[2]?.author).toMatchObject({
+      agentStatus: "working",
+      agentSummary: null,
+      agentActiveCount: 1,
+      agentPendingCount: 0,
     });
     expect(views[3]).toMatchObject({
       text: "",
@@ -212,6 +219,7 @@ describe("Space Chat view models", () => {
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<img onerror");
     expect(html).not.toContain("javascript:");
+    expect(html).toContain('author-presence="online"');
     expect(typing).toContain("&lt;script&gt;");
     expect(typing).not.toContain("<script>");
   });

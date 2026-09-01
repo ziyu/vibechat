@@ -126,6 +126,18 @@ if (
 ) {
   throw new Error("Published component /chat/inline entry is not bound to the Chat bundle");
 }
+for (const requiredElementName of [
+  "vc-space-user-info-card",
+  "vc-space-agent-card",
+  "vc-space-chat-message-meta",
+  "vc-space-chat-timeline",
+]) {
+  if (!inlineModule.spaceChatInlineModule.source.includes(requiredElementName)) {
+    throw new Error(
+      `Published component /chat/inline does not register ${requiredElementName}`,
+    );
+  }
+}
 const userInlineModule = await import(
   pathToFileURL(join(publishedPackageRoot, "user", "inline.js"))
 );

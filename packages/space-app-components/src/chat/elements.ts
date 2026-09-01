@@ -8,6 +8,7 @@ import {
 import {
   defineSpaceElements as defineSpaceAvatarElement,
   spaceAvatarElementName,
+  type SpaceAvatarStatus,
 } from "../foundation/avatar.js";
 import { defineSpaceElement, type SpaceElementRegistry } from "../foundation/element.js";
 import {
@@ -22,6 +23,10 @@ import type {
   SpaceChatReplyState,
   SpaceChatReplyView,
 } from "./view.js";
+import {
+  emitSpaceChatAuthorCardEvent,
+  spaceChatAuthorCardEventNames,
+} from "./author-card.js";
 import { defineSpaceChatInteractiveElements } from "./interactive-elements.js";
 
 export const spaceChatMessageMetaElementName = "vc-space-chat-message-meta" as const;
@@ -61,6 +66,11 @@ const messageAttributes = [
   "author-id",
   "author-kind",
   "author-name",
+  "author-presence",
+  "agent-active-count",
+  "agent-pending-count",
+  "agent-status",
+  "agent-summary",
   "created-at",
   "deleted",
   "edited",
@@ -100,6 +110,17 @@ function authorKind(value: string | null): SpaceChatAuthorView["kind"] {
   return value === "agent" ? "agent" : "member";
 }
 
+function authorPresence(value: string | null): SpaceAvatarStatus {
+  return value === "online" || value === "away" || value === "none"
+    ? value
+    : "offline";
+}
+
+function authorCount(value: string | null) {
+  const count = Number(value);
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
+
 function replyState(value: string | null): SpaceChatReplyState {
   return value === "deleted" || value === "missing" ? value : "available";
 }
@@ -112,6 +133,11 @@ function authorFromAttributes(element: HTMLElement): SpaceChatAuthorView {
     handle: element.getAttribute("author-handle")?.trim() || null,
     avatarUrl: sanitizeSpaceMediaUrl(element.getAttribute("author-avatar")),
     isSelf: element.hasAttribute("own"),
+    presence: authorPresence(element.getAttribute("author-presence")),
+    agentStatus: element.getAttribute("agent-status") as SpaceChatAuthorView["agentStatus"],
+    agentSummary: element.getAttribute("agent-summary")?.trim() || null,
+    agentActiveCount: authorCount(element.getAttribute("agent-active-count")),
+    agentPendingCount: authorCount(element.getAttribute("agent-pending-count")),
   };
 }
 
@@ -230,18 +256,41 @@ export const spaceChatMessageMetaStyles = `
   line-height: 1.35;
 }
 .author {
+  display: inline-flex;
+  align-items: center;
   min-inline-size: 0;
+  min-block-size: 1.75rem;
+  margin: -.22rem -.32rem;
+  padding: .22rem .32rem;
+  border: 0;
+  border-radius: var(--vc-space-radius-control, .55rem);
   color: var(--vc-space-color-text, #172026);
+  background: transparent;
+  font-family: inherit;
   font-size: .82rem;
   font-weight: 780;
+  line-height: 1.25;
+  text-align: inherit;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
+.author:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
+.author:focus-visible { outline: 3px solid var(--vc-space-color-focus, #2366d1); outline-offset: 2px; }
 .time, .state { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .state[data-status="failed"] { color: var(--vc-space-color-negative, #a33b43); font-weight: 760; }
 .state[data-status="sending"] { font-style: italic; }
 @media (forced-colors: active), (prefers-contrast: more) {
   :host, .author, .state[data-status] { color: CanvasText; }
+  .author { border: 1px solid ButtonText; background: ButtonFace; }
+  .author:hover { background: Highlight; color: HighlightText; }
   .state[data-status="failed"] { text-decoration: underline; }
+}
+@media (pointer: coarse) {
+  .meta { min-block-size: 2.75rem; align-items: center; }
+  .author { min-block-size: 2.75rem; margin-block: -.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .author { scroll-behavior: auto; }
 }
 `;
 
@@ -287,10 +336,59 @@ function createSpaceChatMessageMetaElementClass() {
       meta.className = "meta";
       meta.setAttribute("part", "meta");
       if (showHeader) {
-        const author = this.ownerDocument.createElement("strong");
+        const author = this.ownerDocument.createElement("button");
+        author.type = "button";
         author.className = "author";
         author.setAttribute("part", "author");
+        author.setAttribute("data-testid", "chat-author-trigger");
+        author.setAttribute("aria-haspopup", "dialog");
+        author.setAttribute("aria-expanded", "false");
+        author.setAttribute(
+          "aria-label",
+          translate("space.components.chat.author.card.open", {
+            author: message.author.name,
+          }),
+        );
         author.textContent = message.author.name;
+        author.addEventListener("pointerenter", (event) => {
+          if (event.pointerType !== "touch") {
+            emitSpaceChatAuthorCardEvent(
+              author,
+              spaceChatAuthorCardEventNames.preview,
+              message.author,
+            );
+          }
+        });
+        author.addEventListener("pointerleave", (event) => {
+          if (event.pointerType !== "touch") {
+            emitSpaceChatAuthorCardEvent(
+              author,
+              spaceChatAuthorCardEventNames.dismiss,
+              message.author,
+            );
+          }
+        });
+        author.addEventListener("focus", () => {
+          emitSpaceChatAuthorCardEvent(
+            author,
+            spaceChatAuthorCardEventNames.preview,
+            message.author,
+          );
+        });
+        author.addEventListener("blur", () => {
+          emitSpaceChatAuthorCardEvent(
+            author,
+            spaceChatAuthorCardEventNames.dismiss,
+            message.author,
+          );
+        });
+        author.addEventListener("click", () => {
+          emitSpaceChatAuthorCardEvent(
+            author,
+            spaceChatAuthorCardEventNames.toggle,
+            message.author,
+          );
+        });
         meta.append(author);
         if (message.isAgent) {
           const badge = this.ownerDocument.createElement(spaceAgentBadgeElementName);
@@ -696,6 +794,11 @@ function createSpaceChatMessageElementClass() {
         this.ownerDocument.createElement(spaceChatMessageMetaElementName) as SpaceChatMessageMetaElement,
         message,
       );
+      meta.setAttribute("part", "meta");
+      meta.setAttribute(
+        "exportparts",
+        "meta:message-meta,author:author-trigger,agent-badge:author-agent-badge,time:message-time,state:message-state",
+      );
       meta.setAttribute("group-position", this.groupPosition);
       const bubble = setMessageProperty(
         this.ownerDocument.createElement(spaceChatBubbleElementName) as SpaceChatBubbleElement,
@@ -874,6 +977,11 @@ export function renderSpaceChatMessage(message: SpaceChatMessageView) {
   appendAttribute(attributes, "author-kind", message.author.kind);
   appendAttribute(attributes, "author-name", message.author.name);
   appendAttribute(attributes, "author-handle", message.author.handle);
+  appendAttribute(attributes, "author-presence", message.author.presence);
+  appendAttribute(attributes, "agent-status", message.author.agentStatus);
+  appendAttribute(attributes, "agent-summary", message.author.agentSummary);
+  appendAttribute(attributes, "agent-active-count", message.author.agentActiveCount);
+  appendAttribute(attributes, "agent-pending-count", message.author.agentPendingCount);
   appendAttribute(
     attributes,
     "author-avatar",

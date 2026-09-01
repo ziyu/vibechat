@@ -126,7 +126,7 @@ describe("Space component bundle", () => {
       projectFormat: "agentos-app-v1",
     });
 
-    expect(release.version).toBe("0.10.3");
+    expect(release.version).toBe("0.11.1");
     expect(release.packageFormat).toBe("npm-package-v1");
     expect(resolved?.files["user/inline.js"]).toContain(
       "spaceUserInlineModule",

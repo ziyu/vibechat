@@ -1,5 +1,9 @@
 # Moss Studio
 
+## 0.2.1
+
+- Upgrade to exact `@vibechat/space-app-components@0.11.1` and use the shared top-layer member/Agent author card inside the transformed Chat drawer.
+
 ## 0.2.0
 
 - Upgrade to exact `@vibechat/space-app-components@0.9.1` and replace the dock-owned Agent build banner with the provider-neutral `AgentActivityPanelRecipe`.

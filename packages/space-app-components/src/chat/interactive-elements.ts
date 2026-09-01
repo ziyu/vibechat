@@ -1,6 +1,16 @@
 import type { SpaceMentionTarget } from "@vibechat/space-app-sdk";
+import {
+  defineSpaceAgentElements,
+  spaceAgentCardElementName,
+  type SpaceAgentCardElement,
+} from "../agent/elements.js";
 import { createSpaceComponentTranslator } from "../core/context.js";
 import { defineSpaceElement, type SpaceElementRegistry } from "../foundation/element.js";
+import {
+  defineSpaceUserIdentityElements,
+  spaceUserInfoCardElementName,
+  type SpaceUserInfoCardElement,
+} from "../user/elements.js";
 import {
   defineSpaceMentionTargetItemElement,
   spaceMentionTargetItemElementName,
@@ -22,6 +32,12 @@ import type {
   SpaceChatReactionView,
 } from "./view.js";
 import type { SpaceChatMessageGroupPosition } from "./elements.js";
+import {
+  createSpaceChatAuthorAgentView,
+  createSpaceChatAuthorUserView,
+  spaceChatAuthorCardEventNames,
+  type SpaceChatAuthorCardEventDetail,
+} from "./author-card.js";
 
 export const spaceChatTimelineElementName = "vc-space-chat-timeline" as const;
 export const spaceChatComposerElementName = "vc-space-chat-composer" as const;
@@ -1202,9 +1218,31 @@ export const spaceChatTimelineStyles = `
 .controls[data-own="true"] { justify-content:flex-end; margin-inline-start:auto; }
 .controls[hidden] { display:none; }
 .typing { margin-block-start:.65rem; }
+.author-card {
+  box-sizing:border-box;
+  display:none;
+  position:fixed;
+  inset:auto;
+  z-index:20;
+  inline-size:min(20rem,calc(100vw - 1.5rem));
+  max-block-size:calc(100vh - 1.5rem);
+  margin:0;
+  padding:0;
+  overflow:auto;
+  border:0;
+  border-radius:var(--vc-space-radius-card,.9rem);
+  color:var(--vc-space-color-text,#172026);
+  background:transparent;
+  box-shadow:0 18px 48px color-mix(in srgb,var(--vc-space-color-text,#172026) 18%,transparent);
+}
+.author-card[data-fallback-open="true"] { display:block; }
+.author-card::backdrop { background:transparent; }
+.author-card ${spaceUserInfoCardElementName},.author-card ${spaceAgentCardElementName} { display:block; min-inline-size:0; inline-size:100%; }
 .viewport:focus-visible { outline:3px solid var(--vc-space-color-focus,#2366d1); outline-offset:2px; }
-@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName},.controls { max-inline-size:100%; margin-inline-start:0; } .controls[data-own="true"] { margin-inline-start:auto; } }
-@media (forced-colors:active),(prefers-contrast:more) { .viewport { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .status { color:CanvasText; } }
+@supports selector(:popover-open) { .author-card:popover-open { display:block; } }
+@media (max-width:24rem) { .viewport { padding:.55rem; } .entry ${spaceChatAttachmentElementName},.controls { max-inline-size:100%; margin-inline-start:0; } .controls[data-own="true"] { margin-inline-start:auto; } .author-card { inline-size:calc(100vw - 1.5rem); } }
+@media (forced-colors:active),(prefers-contrast:more) { .viewport { border:2px solid CanvasText; background:Canvas; color:CanvasText; } .status { color:CanvasText; } .author-card { border:2px solid CanvasText; color:CanvasText; background:Canvas; box-shadow:none; } }
+@media (prefers-reduced-motion:reduce) { .author-card { scroll-behavior:auto; } }
 `;
 
 const spaceChatMessageGroupWindowMs = 5 * 60 * 1_000;
@@ -1261,6 +1299,11 @@ const noSpaceChatActions: SpaceChatActionAvailability = Object.freeze({
   react: false,
 });
 
+type SpaceChatAuthorCardPopover = HTMLElement & {
+  showPopover?: () => void;
+  hidePopover?: () => void;
+};
+
 function createSpaceChatTimelineElementClass() {
   return class VcSpaceChatTimelineElement extends HTMLElement implements SpaceChatTimelineElement {
     static readonly observedAttributes = [
@@ -1280,6 +1323,15 @@ function createSpaceChatTimelineElementClass() {
     #list: HTMLElement | null = null;
     #typing: HTMLElement & { users?: readonly SpaceChatAuthorView[] } | null = null;
     #entries = new Map<string, TimelineEntry>();
+    #authorCard: SpaceChatAuthorCardPopover | null = null;
+    #authorCardTrigger: HTMLButtonElement | null = null;
+    #authorCardKey: string | null = null;
+    #authorCardOpen = false;
+    #authorCardPinned = false;
+    #authorCardUsesPopover = false;
+    #authorCardCloseTimer: number | null = null;
+    #authorCardLifecycleCleanup: (() => void) | null = null;
+    #authorCardSuppressPreviewTrigger: HTMLButtonElement | null = null;
 
     get messages() { return this.#messages; }
     set messages(value) { this.#messages = Object.freeze([...(value ?? [])]); if (this.isConnected) this.update(); }
@@ -1305,8 +1357,13 @@ function createSpaceChatTimelineElementClass() {
 
     connectedCallback() {
       if (!this.shadowRoot) this.build();
+      this.connectAuthorCardLifecycle();
       this.syncAttributes();
       this.update();
+    }
+    disconnectedCallback() {
+      this.disconnectAuthorCardLifecycle();
+      this.closeAuthorCard(false);
     }
     attributeChangedCallback() { if (this.isConnected) { this.syncAttributes(); this.update(); } }
 
@@ -1332,11 +1389,250 @@ function createSpaceChatTimelineElementClass() {
       typing.setAttribute("part", "typing");
       typing.setAttribute("data-testid", "typing-indicator");
       viewport.append(status, list, typing);
-      root.replaceChildren(style, viewport);
+      const authorCard = this.ownerDocument.createElement("div") as SpaceChatAuthorCardPopover;
+      authorCard.className = "author-card";
+      authorCard.tabIndex = -1;
+      authorCard.setAttribute("part", "author-card-popover");
+      authorCard.setAttribute("data-testid", "chat-author-card");
+      authorCard.setAttribute("popover", "manual");
+      authorCard.setAttribute("role", "dialog");
+      authorCard.addEventListener("pointerenter", () => this.clearAuthorCardCloseTimer());
+      authorCard.addEventListener("pointerleave", () => this.scheduleAuthorCardClose());
+      root.addEventListener(
+        spaceChatAuthorCardEventNames.preview,
+        this.handleAuthorCardEvent as EventListener,
+      );
+      root.addEventListener(
+        spaceChatAuthorCardEventNames.dismiss,
+        this.handleAuthorCardEvent as EventListener,
+      );
+      root.addEventListener(
+        spaceChatAuthorCardEventNames.toggle,
+        this.handleAuthorCardEvent as EventListener,
+      );
+      root.replaceChildren(style, viewport, authorCard);
       this.#viewport = viewport;
       this.#status = status;
       this.#list = list;
       this.#typing = typing;
+      this.#authorCard = authorCard;
+    }
+
+    private authorKey(author: SpaceChatAuthorView) {
+      return `${author.kind}:${author.id}:${author.name}`;
+    }
+
+    private handleAuthorCardEvent = (event: Event) => {
+      const detail = (event as CustomEvent<SpaceChatAuthorCardEventDetail>).detail;
+      if (!detail?.trigger || !detail.author) return;
+      event.stopPropagation();
+      if (event.type === spaceChatAuthorCardEventNames.preview) {
+        if (this.#authorCardSuppressPreviewTrigger === detail.trigger) return;
+        if (!this.#authorCardPinned) this.openAuthorCard(detail, false);
+        return;
+      }
+      if (event.type === spaceChatAuthorCardEventNames.dismiss) {
+        this.scheduleAuthorCardClose();
+        return;
+      }
+      const sameAuthor = this.#authorCardKey === this.authorKey(detail.author);
+      if (this.#authorCardOpen && this.#authorCardPinned && sameAuthor) {
+        this.closeAuthorCard(false);
+      } else {
+        this.openAuthorCard(detail, true);
+      }
+    };
+
+    private connectAuthorCardLifecycle() {
+      if (this.#authorCardLifecycleCleanup) return;
+      const document = this.ownerDocument;
+      const view = document.defaultView;
+      const onPointerDown = (event: PointerEvent) => {
+        if (!this.#authorCardOpen) return;
+        const path = event.composedPath();
+        if (
+          (this.#authorCard && path.includes(this.#authorCard))
+          || (this.#authorCardTrigger && path.includes(this.#authorCardTrigger))
+        ) return;
+        this.closeAuthorCard(false);
+      };
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== "Escape" || !this.#authorCardOpen) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.closeAuthorCard(true);
+      };
+      const onViewportChange = () => {
+        if (this.#authorCardOpen) this.closeAuthorCard(false);
+      };
+      document.addEventListener("pointerdown", onPointerDown, true);
+      document.addEventListener("keydown", onKeyDown, true);
+      view?.addEventListener("resize", onViewportChange);
+      this.#viewport?.addEventListener("scroll", onViewportChange, { passive: true });
+      this.#authorCardLifecycleCleanup = () => {
+        document.removeEventListener("pointerdown", onPointerDown, true);
+        document.removeEventListener("keydown", onKeyDown, true);
+        view?.removeEventListener("resize", onViewportChange);
+        this.#viewport?.removeEventListener("scroll", onViewportChange);
+      };
+    }
+
+    private disconnectAuthorCardLifecycle() {
+      this.#authorCardLifecycleCleanup?.();
+      this.#authorCardLifecycleCleanup = null;
+      this.clearAuthorCardCloseTimer();
+    }
+
+    private clearAuthorCardCloseTimer() {
+      if (this.#authorCardCloseTimer === null) return;
+      this.ownerDocument.defaultView?.clearTimeout(this.#authorCardCloseTimer);
+      this.#authorCardCloseTimer = null;
+    }
+
+    private scheduleAuthorCardClose() {
+      if (!this.#authorCardOpen || this.#authorCardPinned) return;
+      this.clearAuthorCardCloseTimer();
+      const view = this.ownerDocument.defaultView;
+      if (!view) {
+        this.closeAuthorCard(false);
+        return;
+      }
+      this.#authorCardCloseTimer = view.setTimeout(() => {
+        this.#authorCardCloseTimer = null;
+        const triggerActive = this.#authorCardTrigger?.matches(":hover, :focus") === true;
+        const cardActive = this.#authorCard?.matches(":hover, :focus-within") === true;
+        if (!triggerActive && !cardActive) this.closeAuthorCard(false);
+      }, 120);
+    }
+
+    private renderAuthorCard(author: SpaceChatAuthorView) {
+      const card = this.#authorCard;
+      if (!card) return;
+      const translate = createSpaceComponentTranslator(localeFor(this));
+      card.dataset.kind = author.kind;
+      card.setAttribute(
+        "aria-label",
+        translate("space.components.chat.author.card.open", { author: author.name }),
+      );
+      if (author.kind === "agent") {
+        const profile = this.ownerDocument.createElement(
+          spaceAgentCardElementName,
+        ) as SpaceAgentCardElement;
+        profile.agent = createSpaceChatAuthorAgentView(author);
+        profile.setAttribute("density", "compact");
+        profile.setAttribute("locale", localeFor(this));
+        profile.setAttribute("part", "author-card");
+        card.replaceChildren(profile);
+      } else {
+        const profile = this.ownerDocument.createElement(
+          spaceUserInfoCardElementName,
+        ) as SpaceUserInfoCardElement;
+        profile.user = createSpaceChatAuthorUserView(author);
+        profile.setAttribute("density", "compact");
+        profile.setAttribute("locale", localeFor(this));
+        profile.setAttribute("part", "author-card");
+        card.replaceChildren(profile);
+      }
+    }
+
+    private positionAuthorCard() {
+      const card = this.#authorCard;
+      const trigger = this.#authorCardTrigger;
+      const view = this.ownerDocument.defaultView;
+      if (!card || !trigger || !view) return;
+      const margin = 12;
+      const gap = 8;
+      const triggerRect = trigger.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const width = cardRect.width || Math.min(320, view.innerWidth - margin * 2);
+      const height = cardRect.height || 160;
+      const alignEnd = triggerRect.left + triggerRect.width / 2 > view.innerWidth / 2;
+      const desiredLeft = alignEnd ? triggerRect.right - width : triggerRect.left;
+      const left = Math.min(
+        Math.max(margin, desiredLeft),
+        Math.max(margin, view.innerWidth - width - margin),
+      );
+      const below = triggerRect.bottom + gap;
+      const above = triggerRect.top - height - gap;
+      const top = below + height <= view.innerHeight - margin
+        ? below
+        : Math.max(margin, above);
+      card.style.left = `${Math.round(left)}px`;
+      card.style.top = `${Math.round(top)}px`;
+    }
+
+    private openAuthorCard(
+      detail: SpaceChatAuthorCardEventDetail,
+      pinned: boolean,
+    ) {
+      const card = this.#authorCard;
+      if (!card) return;
+      this.clearAuthorCardCloseTimer();
+      if (this.#authorCardTrigger !== detail.trigger) {
+        this.#authorCardTrigger?.setAttribute("aria-expanded", "false");
+      }
+      this.#authorCardTrigger = detail.trigger;
+      this.#authorCardKey = this.authorKey(detail.author);
+      this.#authorCardPinned = pinned;
+      card.dataset.pinned = String(pinned);
+      detail.trigger.setAttribute("aria-expanded", "true");
+      this.renderAuthorCard(detail.author);
+      if (!this.#authorCardOpen) {
+        this.#authorCardUsesPopover = false;
+        try {
+          if (typeof card.showPopover === "function") {
+            card.showPopover();
+            this.#authorCardUsesPopover = true;
+          }
+        } catch {
+          this.#authorCardUsesPopover = false;
+        }
+        if (!this.#authorCardUsesPopover) {
+          card.dataset.fallbackOpen = "true";
+        }
+        this.#authorCardOpen = true;
+      }
+      this.positionAuthorCard();
+      if (pinned) {
+        Promise.resolve().then(() => {
+          if (this.#authorCardOpen && this.#authorCardPinned && this.#authorCard === card) {
+            card.focus({ preventScroll: true });
+          }
+        });
+      }
+    }
+
+    private closeAuthorCard(restoreFocus: boolean) {
+      this.clearAuthorCardCloseTimer();
+      const card = this.#authorCard;
+      const trigger = this.#authorCardTrigger;
+      if (card && this.#authorCardOpen) {
+        if (this.#authorCardUsesPopover) {
+          try {
+            card.hidePopover?.();
+          } catch {
+            // The host may already be disconnected from the top layer.
+          }
+        }
+        delete card.dataset.fallbackOpen;
+        delete card.dataset.pinned;
+        card.replaceChildren();
+      }
+      trigger?.setAttribute("aria-expanded", "false");
+      this.#authorCardOpen = false;
+      this.#authorCardPinned = false;
+      this.#authorCardUsesPopover = false;
+      this.#authorCardTrigger = null;
+      this.#authorCardKey = null;
+      if (restoreFocus && trigger?.isConnected) {
+        this.#authorCardSuppressPreviewTrigger = trigger;
+        Promise.resolve().then(() => {
+          trigger.focus({ preventScroll: true });
+          if (this.#authorCardSuppressPreviewTrigger === trigger) {
+            this.#authorCardSuppressPreviewTrigger = null;
+          }
+        });
+      }
     }
 
     private syncAttributes() {
@@ -1384,7 +1680,7 @@ function createSpaceChatTimelineElementClass() {
             messageElement.setAttribute("part", "message");
             messageElement.setAttribute(
               "exportparts",
-              "message:message-body,avatar:message-avatar,content:message-content,reactions:readonly-reactions,reaction:readonly-reaction",
+              "message:message-body,avatar:message-avatar,content:message-content,message-meta:message-meta,author-trigger:message-author,author-agent-badge:message-author-agent-badge,message-time:message-time,message-state:message-state,reactions:readonly-reactions,reaction:readonly-reaction",
             );
             const controls = this.ownerDocument.createElement("div");
             controls.className = "controls";
@@ -1479,6 +1775,9 @@ function createSpaceChatTimelineElementClass() {
         }
       }
       this.updateTyping();
+      if (this.#authorCardTrigger && !this.#authorCardTrigger.isConnected) {
+        this.closeAuthorCard(false);
+      }
       if (nearBottom || previousCount === 0) {
         Promise.resolve().then(() => {
           if (this.#viewport) this.#viewport.scrollTop = this.#viewport.scrollHeight;
@@ -1513,6 +1812,8 @@ export function defineSpaceChatInteractiveElements(
   registry: SpaceElementRegistry | undefined = globalThis.customElements,
 ) {
   if (!registry || typeof globalThis.HTMLElement !== "function") return false;
+  defineSpaceUserIdentityElements(registry);
+  defineSpaceAgentElements(registry);
   defineSpaceMentionTargetItemElement(registry);
   defineSpaceElement(registry, spaceChatComposerElementName, createSpaceChatComposerElementClass);
   defineSpaceElement(registry, spaceMentionMenuElementName, createSpaceMentionMenuElementClass);

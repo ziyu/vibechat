@@ -592,6 +592,10 @@ describe("Space Chat migration-ready view contracts", () => {
     expect(spaceMentionMenuStyles).toContain("min-block-size:44px");
     expect(spaceChatTimelineStyles).toContain("overflow:auto");
     expect(spaceChatTimelineStyles).toContain("inline-size:fit-content");
+    expect(spaceChatTimelineStyles).toContain(".author-card:popover-open");
+    expect(spaceChatTimelineStyles).toContain('data-fallback-open="true"');
+    expect(spaceChatTimelineStyles).toContain("vc-space-user-info-card");
+    expect(spaceChatTimelineStyles).toContain("vc-space-agent-card");
     expect(spaceReactionBarStyles).toContain(":host([hidden])");
     expect(spaceMessageActionsStyles).toContain("position:fixed");
     expect(spaceMessageActionsStyles).toContain(".menu::backdrop");

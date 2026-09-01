@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "build": "next build --webpack",
-    "dev": "next dev --turbo",
+    "dev": "next dev --webpack",
     "start": "next start",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "@vibechat/i18n": "workspace:*",
+    "@vibechat/space-app-components": "workspace:*",
     "@vibechat/ui": "workspace:*",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

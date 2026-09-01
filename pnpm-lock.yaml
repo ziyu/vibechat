@@ -424,6 +424,9 @@ importers:
       '@vibechat/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:../../packages/space-app-components
       '@vibechat/ui':
         specifier: workspace:*
         version: link:../../packages/ui

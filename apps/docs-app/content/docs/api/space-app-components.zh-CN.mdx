@@ -1,0 +1,127 @@
+---
+title: Space App 基础组件
+description: 可复用 Space App 的稳定 User、Chat 与 Agent UI API
+---
+
+import { SpaceComponentPlayground } from '@/components/space-component-playground'
+
+# Space App 基础组件
+
+`@vibechat/space-app-components` 是 Space App SDK 之上的框架中立 UI 层。它让所有 Space 复用经过验证的 User、Chat 与 Agent 语义，同时不把产品权威下沉到 UI 代码。
+
+<SpaceComponentPlayground
+  locale="zh-CN"
+  copy={{
+    eyebrow: '实时组件目录 · 0.10.3',
+    title: '一份契约，多种 Space 世界。',
+    description: '切换氛围、运行 Agent、选择成员并发送一条本地目录消息。底层组件与 typed event 始终保持相同。',
+    signalTheme: '夜间信号',
+    paperTheme: '田野纸张',
+    startAgent: '运行 Agent 活动',
+    stopAgent: '让 Agent 回到空闲',
+    userPanel: '用户与成员',
+    agentPanel: 'Agent 活动',
+    chatPanel: '可交互 Chat',
+    selectedMember: '已选择',
+    noMemberSelected: '使用指针或键盘选择成员',
+    agentStage: '梳理可复用组件边界',
+    agentActivityRead: '读取受管组件 manifest',
+    agentActivityWrite: '组合可安全生成 Revision 的界面',
+    firstMessage: '同一位成员的身份在不同 Template 主题中仍然清楚一致。',
+    secondMessage: '我会把 provider 细节和 Kernel 操作留在 App UI 契约之外。',
+  }}
+/>
+
+## 安装与固定版本
+
+Space Project 使用普通的语义化 package import，并且必须同时在 `package.json` 固定精确版本、在 `space-app-dependencies.json` 固定受管 artifact integrity：
+
+```json title="package.json"
+{
+  "dependencies": {
+    "@vibechat/space-app-components": "0.10.3"
+  }
+}
+```
+
+```json title="space-app-dependencies.json"
+{
+  "schemaVersion": "vibechat.space-app-dependencies/v1",
+  "packages": {
+    "@vibechat/space-app-components": {
+      "version": "0.10.3",
+      "integrity": "sha256:939d4e1c6e73fe91d816a187efba3fb9cd52dfbf5630fae596c9d994f879017b"
+    }
+  }
+}
+```
+
+Runtime 从受管 Registry 解析这个精确 Release，校验 package 与 integrity，再生成 Revision-local prepared artifact。可编辑源码不会导入 Registry 路径、版本目录或 CDN URL。
+
+## 公共子路径
+
+| Import | 用途 |
+| --- | --- |
+| `/core` | 注入 SDK context、snapshot lifecycle、翻译与释放 |
+| `/foundation` | Avatar base、IconButton、StatusDot、安全 helper 与 token |
+| `/user` | User identity、presence、MemberList、结构化 mention target 与目录 controller |
+| `/agent` | Agent identity、status、queue/activity view 与只读 controller |
+| `/chat` | Chat controller、Timeline、Composer、Mention、附件、Reaction 与消息操作 |
+| `/recipes` | 全尺寸 Chat、抽屉 Chat 与 Agent Activity Panel 组合 |
+| `/styles` | 稳定的 `--vc-space-*` semantic token 契约 |
+| `/register/*` | 显式注册 Custom Element；只有这些入口带 side effect |
+| `/user/inline`、`/chat/inline`、`/recipes/inline` | 面向自包含 `agentos-app-v1` HTML 的预构建 delivery adapter |
+
+普通浏览器 bundler 应使用 side-effect-free 的领域入口。inline 入口只是当前自包含 App 格式的交付适配，不是第二套组件 API。
+
+## 最小组合
+
+```ts
+import { space } from '/v1/space-app-sdk'
+import { createSpaceComponentContext } from '@vibechat/space-app-components/core'
+import {
+  mountDefaultChatRecipe,
+  resolveSpaceChatRecipeElements,
+} from '@vibechat/space-app-components/recipes'
+
+await space.ready
+const context = createSpaceComponentContext({ sdk: space })
+const chat = mountDefaultChatRecipe({
+  context,
+  elements: resolveSpaceChatRecipeElements(document, 'Space Chat'),
+  copy: () => getChatCopy(space.locale),
+})
+
+window.addEventListener('pagehide', () => {
+  chat.dispose()
+  context.dispose()
+}, { once: true })
+```
+
+组件 context 只接收现有 SDK client，不创建第二份 Matrix client、Agent client、身份存储或计费链路。
+
+## 扩展规则
+
+- 对象使用 typed property，交互意图使用 bubbling typed event，内容使用 slot，稳定内部表面使用 `::part`，主题使用 `--vc-space-*` token。
+- 不查询或修改组件 Shadow DOM；没有公开的节点和 data attribute 都属于私有实现。
+- Agent 请求仍通过 Chat 的结构化 Agent Mention 进入；组件不暴露 `agent.invoke()`。
+- 发布、恢复、ACL、凭据、积分和 Agent 管理属于 Kernel 操作，不能进入 App 组件。
+- 升级组件会创建新的 Project Revision；既有 ready Revision 与不可变 Release 永远不会漂移到新组件版本。
+
+## 迁移流程
+
+1. 选择精确的受管 Release，同时更新两份依赖文件。
+2. 用 controller 或 recipe 替换 Template-local 状态机，同时保留 Template 的布局、文案、主题和场景状态。
+3. 构建 Candidate，并核对 prepared artifact 的依赖与 hash。
+4. 在 Space iframe 中走查真实 Matrix timeline 与 Agent activity。
+5. 只提升 ready Revision；不可变 Release 由 Kernel 单独发布。
+
+仓库维护者可以用以下命令审计当前受管 Release：
+
+```bash
+pnpm --filter @vibechat/space-app-components check:bundle
+pnpm space-components:migration-plan -- \
+  packages/space-templates/official/space-campfire/app
+```
+
+只有审阅 plan 后才附加 `--write`。工具只更新两份可编辑依赖文件，不会写 vendor 文件、Template lock、Project Revision 或 Release。

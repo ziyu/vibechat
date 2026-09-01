@@ -1507,7 +1507,7 @@ Default/Custom Chat Core 共用 contract 定向验收：使用同一对真实 Ma
 - [x] 相同 component artifact 在本地真实 Rivet/AgentOS Dev 与完整开发栈冷启动恢复中保持同一 hash/ready Revision。
 - [x] Managed publish 把规范化 package object 写入私有内容寻址 Object Store，并登记不可变 name/version/integrity/project formats/object key/hash；相同版本同内容幂等，相同版本内容漂移冲突，Runtime 只读凭证不能发布。
 - [x] Runtime 在没有 workspace package、`dist/package` 或本地 Registry cache 的冷启动中，按 exact name/version/integrity/project format 从远程 Registry 同时解析 `0.7.4` 与 `0.8.1`；对象缺失、pointer/hash/envelope/file integrity 篡改全部 fail closed，最后 ready Revision/Published Release 与 Existing Space 依赖版本不变。
-- [ ] 相同 component artifact 在不可变 Release、生产 Object Store 和跨 Runtime 恢复中保持同一 hash；Registry 缺失或 hash 不匹配时 Candidate 失败且最后 ready Revision 不变。
+- [x] 相同 prepared/component dependency artifact 在 Focus 不可变 Release、受管 Object Store pointer 和第二独立 Runtime 恢复中保持同一 hash；Registry 缺失或 hash 不匹配时 Candidate 失败且最后 ready Revision 不变。真实云生产部署仍单独跟踪。
 - [ ] Default Chat 与至少一个抽屉式 Template 固定同一组件版本，只保留各自布局、主题和场景代码；Chat Core contract、双浏览器 Matrix timeline 与 Existing custom Project 不静默升级。
 - [ ] User/Agent identity 和 Chat 组件覆盖 keyboard、IME、screen reader、200% 字体、high contrast、reduced motion、长文案、图片失败、空/错/disabled/权限拒绝状态。
 
@@ -1578,13 +1578,34 @@ Campfire User Directory 首个 Template 消费验收场景（`space-campfire@0.1
 
 2026-08-28 Campfire 消费证据：`0.10.0` 已完成本地受管 publish、重复幂等和 88 文件 exact resolve。首次提供 `/user/inline` 的 immutable `0.10.1` 在 Chromium 中暴露只注册 elements、未导出 controller/context 的缺口，因此没有覆盖；`0.10.2` 改用独立 inline browser entry，source/browser/integrity 为 `sha256:31bea66c93a6033aabde4c16f3b105186a12525ed9e1759759690a0e23235274` / `sha256:f9a8f552156fde6bf96a046c27ba5664172f7959a6441288835c13f42ea2827e` / `sha256:4ace2dc2efdb24f0698edba7a641d128fbe68d8e5808b27b6289904a178a6128`。该版本在隔离完整栈完成真实 Registry Published + 重复 Verified；Runtime POST 短期鉴权 exact resolve 返回 90 文件并确认 inline context/controller API。Campfire `0.1.6` source/manifest 为 `sha256:13a9ae94303f79451e67214f0dc433ec6bb73e4f27d849d81516ae47f9553b59` / `sha256:1989528dcbfaa55c13523a6210a9ec2968fc7448952bf7e86a75ca715f210241`。组件与 Template 定向 unit 7 files、48/48、Campfire App typecheck、catalog lock/codegen、组件 catalog + Campfire Chromium 2/2 与 Impeccable detector 均通过；真实 `chat-matrix-room.spec.ts` 全文件 6/6，Campfire iframe 精确加载 `0.10.2`，`vc-space-member-list` 投影 Matrix 成员，并覆盖发送、回复、Reaction、刷新唯一恢复与 Default 恢复，Default/Focus 同时断言 `0.9.3` idle hidden 契约，另外三个官方 Template 无回归。发布包 README 的历史说明修正又由 immutable gate 推进为 API 不变的 `0.10.3`，source/browser/integrity 为 `sha256:9cb78ff26721f90282f5914ba4c9e4a1faee08c1c5d7ff521c5f3973b1717cf1` / `sha256:f9a8f552156fde6bf96a046c27ba5664172f7959a6441288835c13f42ea2827e` / `sha256:939d4e1c6e73fe91d816a187efba3fb9cd52dfbf5630fae596c9d994f879017b`；Registry Published + 重复 Verified 与 90 文件 exact resolve 通过，Campfire 不因文档 patch 改签。
 
+Chat Author Card 公共接入验收场景（先写 Spec，再签锁相邻版本）：
+
+- [x] `SpaceChatAuthorView` 从同一 SDK snapshot 投影成员 presence 或 Agent status/summary/queue；未知成员、非当前 Agent 与旧版手工 author 对象使用明确 fallback，不额外请求 Matrix、Backend 或 provider。
+- [x] 每个可见 `ChatMessageMeta` 作者名使用原生 button、非空 accessible name、`aria-haspopup` 与展开状态；hover/focus 只预览，click/Enter/tap 固定，再次激活、Escape 或外部点击关闭。
+- [x] 每个 Timeline 只创建一个共享作者卡容器；成员内容使用真实 `vc-space-user-info-card`，Agent 内容使用真实 `vc-space-agent-card`。支持 Popover API 时进入 top layer，无支持时 fixed fallback 可用，Template 的 transform/blur/overflow 不影响正确性。
+- [x] 指针从触发器移动到卡片时预览不闪退；键盘固定时焦点进入信息卡容器，Escape 返回原触发器；滚动、消息删除、断开连接和重复 render 都关闭或重新定位且不泄漏 document listener/timer。
+- [x] 1280px 与 390px、200% 字体、超长 CJK/RTL 名称、坏头像、forced-colors、reduced-motion 下无横向溢出、遮挡 Composer 或 console/page error；触摸路径不依赖 hover。
+- [ ] Default/Focus/Campfire/Arcade/Postcard 的相邻 development 版本固定同一 exact component version/integrity，full/dock Chat 均可打开成员与 Agent 卡；历史锁和 Existing Space/Revision/Release 不自动升级。
+
+2026-09-01 Chat Author Card 工程与隔离浏览器证据：`@vibechat/space-app-components@0.11.1` 的 source/browser/integrity 为 `sha256:b945847c966506ab142fdb7f0292d67191f71a7782e462b7e796efd38d98294a` / `sha256:05488b66327d21b370db2e024dc3e39cc40682c7e8d5e6eda6ab488cda653ed6` / `sha256:e44df709c57b798bff752b27a7206642991a8bc7e45ca17ebea11bc492596100`。组件与 Template catalog 定向 unit 8 files、51/51，package/五 Template TypeScript、bundle gate 和 generated catalog 通过；browser/chat/recipes gzip 为 35,108 / 27,424 / 29,942 bytes。`space-template-chat-author-card.spec.ts` 使用真实 Default/Focus Template document 与可控 SDK snapshot，Chromium 3/3 覆盖 full、dock、touch、成员/Agent/unknown fallback、单一卡片、hover/focus/Enter/click/tap、Escape 焦点恢复、外部/再次激活关闭、scroll/re-render/disconnect/message deletion、1280/390px、200%、CJK/RTL、forced-colors/reduced-motion 和无 console/page error。五个 current development lock 已统一 exact `0.11.1`：Default/Focus `0.2.1`、Campfire `0.1.7`、Arcade/Postcard `0.1.4`；但本轮尚未在当前五个真实 Matrix Space 中逐一打开两类卡片，也未执行 Existing Space/Revision/Release 不升级的端到端证据，因此最后一条复合场景保持未勾选。
+
 阶段 1 identity DOM 验收场景（先写 Spec，再实现 selector）：
 
-- [ ] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。
-- [ ] UserInfoCard 的长 display name/handle 在 390px 与 200% 根字体下不产生页面横向溢出；图片加载失败后保留 initials 与可访问名称。
-- [ ] IconButton 是原生 button 语义，具有可见 focus、44×44 touch target、disabled/loading 状态和非空 accessible name；键盘 Enter/Space 不依赖自定义 click 模拟。
-- [ ] User presence 与 Agent idle/queued/working/unavailable/failed 均同时提供文本和视觉信号；Agent badge 明确区分成员与 Agent，不暴露 provider、模型、积分或 Kernel 操作。
-- [ ] 所有 identity element 可重复注册、SSR import-safe；Custom Element disconnect/reconnect 不创建 SDK、timer、observer 或泄漏 listener，high contrast/reduced motion 有显式 CSS fallback。
+- [x] 同一份 `vc-space-user-*` / `vc-space-agent-*` DOM 在 dark signal 与 light field-note 两个容器中渲染；主题只覆盖 `--vc-space-*` token，组件标签、view model 和身份文案不分叉。
+- [x] UserInfoCard/MemberList 的长 display name/handle 在 390px 与 200% 根字体下不产生页面横向溢出；真实 Campfire Template 中图片加载失败后移除坏图并保留 initials 与完整可访问名称。
+- [x] IconButton 与 MemberList selection 使用原生 button/option 语义，具有可见 focus、44×44 touch target、disabled/loading 状态和非空 accessible name；Enter/Space 与 Arrow/Home/End 均由真实 DOM 键盘事件覆盖。
+- [x] User presence 与 Agent idle/queued/working/unavailable/failed 均同时提供文本和视觉信号；Agent badge 明确区分成员与 Agent，不暴露 provider、模型、积分或 Kernel 操作。
+- [x] 所有 identity element 可重复注册、SSR import-safe；Custom Element disconnect/reconnect 不创建 SDK、timer、observer 或泄漏 listener，forced-colors/reduced-motion 有显式 CSS fallback 与 Chromium 模拟证据。
+
+2026-08-31 identity 异常态证据：`space-template-user-directory.spec.ts` 从真实 Campfire artifact 注入不可解码头像，确认失败后 `<img>` 被移除、`M夜` initials 与 avatar accessible name 保留；ARIA snapshot 固定 listbox/option 的 role/name/state，并覆盖长名字、ArrowUp/ArrowDown/Home/End/Enter/Space、390px、200% 字体、forced-colors、reduced-motion 和无横向溢出。这里的 screen-reader 证据严格指浏览器 accessibility tree、accessible name 和 live-region/role 语义，不声明已经完成 VoiceOver/NVDA 人工实测。
+
+阶段 5 开发者体验验收场景：
+
+- [x] 公开 Docs 中英文页面使用普通 `@vibechat/space-app-components` package dependency，列出 exact version/integrity、领域 subpath、最小 recipe、扩展边界与迁移流程，不引用 Registry/object-key/版本目录。
+- [x] 交互 playground 真实注册 UserInfoCard、MemberList、Agent Activity、Timeline 与 Composer；双主题、active/idle、pointer 与 Arrow/Home/End/Enter、typed submit 均可操作。
+- [x] 390×844 下 document/catalog `scrollWidth === clientWidth`，中英文页面无 console warning/error；Docs dev 使用 webpack ESM extension alias，production build 继续消费标准 package exports。
+- [x] `space-components:migration-plan` 默认 dry-run、未知 lock schema fail closed，只有显式 `--write` 才更新 `package.json` 与 `space-app-dependencies.json`，不创建 vendor/prepared/Template/Revision/Release 文件。
+- [x] Space Pi generator 内建 `/core|foundation|user|chat|agent|recipes` 公共 catalog、exact version/integrity 与禁止复制内部源码/读取 Shadow DOM/引用 Registry 路径约束；React adapter 因 JSX/browser build 契约未稳定继续延后。
 
 阶段 2 Chat timeline 第一切片 DOM/API 验收场景（先写 Spec，再实现 selector）：
 
