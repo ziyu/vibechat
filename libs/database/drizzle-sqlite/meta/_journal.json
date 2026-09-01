@@ -134,6 +134,13 @@
       "when": 1787849424628,
       "tag": "0018_fair_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788172703345,
+      "tag": "0019_worthless_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

@@ -54,14 +54,31 @@ describe("Space Template publication protocol", () => {
         id: "publisher-vibechat",
         verification: "official",
       });
-      expect(template.versions.map((item) => item.semanticVersion)).toEqual([
-        "0.1.0",
-        "0.1.1",
-        "0.1.2",
-      ]);
+      const expectedCurrentVersion = template.id === "space-default"
+        ? "0.2.1"
+        : template.id === "space-focus"
+          ? "0.2.1"
+          : template.id === "space-campfire"
+          ? "0.1.7"
+          : template.id === "space-arcade"
+            ? "0.1.4"
+          : "0.1.4";
+      expect(template.versions.map((item) => item.semanticVersion)).toEqual(
+        template.id === "space-default"
+          ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7", "0.2.0", "0.2.1"]
+          : template.id === "space-focus"
+            ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7", "0.2.0", "0.2.1"]
+            : template.id === "space-campfire"
+            ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7"]
+            : template.id === "space-arcade"
+              ? ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4"]
+            : ["0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4"],
+      );
       expect(version).toMatchObject({
-        id: expect.stringMatching(/^tplv-.+-0-1-2$/),
-        semanticVersion: "0.1.2",
+        id: expect.stringMatching(
+          new RegExp(`^tplv-.+-${expectedCurrentVersion.replaceAll(".", "-")}$`),
+        ),
+        semanticVersion: expectedCurrentVersion,
         sourceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         manifestHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         projectFormat: "agentos-app-v1",
@@ -94,7 +111,7 @@ describe("Space Template publication protocol", () => {
       expect(Object.keys(project!.files)).toEqual(
         expect.arrayContaining([...spaceTemplateRequiredProjectPaths]),
       );
-      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(24);
+      expect(Object.keys(project!.files).length).toBeGreaterThanOrEqual(20);
       expect(project!.files["src/index.ts"].length).toBeLessThan(1_000);
       expect(project!.files["src/index.ts"]).toContain("./runtime.js");
       expect(project!.files["src/index.ts"]).toContain("./page.js");
@@ -115,24 +132,6 @@ describe("Space Template publication protocol", () => {
       expect(project!.files["src/chat/client.ts"]).toContain(
         './client/bootstrap.js',
       );
-      expect(project!.files["src/chat/client/composer.ts"]).toContain(
-        "submitChatMessage",
-      );
-      expect(project!.files["src/chat/client/messages.ts"]).toContain(
-        "renderMessageHtml",
-      );
-      expect(project!.files["src/browser/sdk.ts"]).toContain(
-        "recent(options?",
-      );
-      expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
-        "space.chat.recent({ limit: 30, before })",
-      );
-      expect(project!.files["src/chat/client/render.ts"]).toContain(
-        "state.historyAnchor.scrollTop",
-      );
-      expect(project!.files["src/chat/client/messages.ts"]).toContain(
-        'data-mentioned="${String(mentioned)}"',
-      );
       expect(project!.files["src/chat/styles.ts"]).toContain(
         './styles/composer.js',
       );
@@ -143,13 +142,153 @@ describe("Space Template publication protocol", () => {
         ".vcc-compose-wrap {\n  position: relative;",
       );
       const markup = project!.files["src/chat/markup.ts"];
-      expect(markup).toContain('data-testid="load-earlier-messages"');
-      expect(markup.indexOf('id="vcc-attach"')).toBeLessThan(
-        markup.indexOf('id="vcc-input"'),
-      );
-      expect(markup.indexOf('id="vcc-input"')).toBeLessThan(
-        markup.indexOf('id="vcc-send"'),
-      );
+      if (
+        template.id === "space-default"
+        || template.id === "space-focus"
+        || template.id === "space-campfire"
+        || template.id === "space-arcade"
+        || template.id === "space-postcard"
+      ) {
+        const usesRecipe = template.id === "space-default"
+          || template.id === "space-focus";
+        if (usesRecipe) {
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            template.id === "space-default"
+              ? "mountDefaultChatRecipe"
+              : "mountChatDrawerRecipe",
+          );
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            "resolveSpaceChatRecipeElements",
+          );
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            "mountAgentActivityPanelRecipe",
+          );
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            "resolveSpaceAgentActivityPanelElement",
+          );
+          expect(project!.files["src/chat/client/bootstrap.ts"]).not.toContain(
+            "createSpaceChatController",
+          );
+          expect(project!.files["src/chat/client.ts"]).toContain(
+            'from "@vibechat/space-app-components/recipes/inline"',
+          );
+          expect(JSON.parse(project!.files["package.json"]).dependencies)
+            .toMatchObject({ "@vibechat/space-app-components": "0.11.1" });
+          expect(JSON.parse(
+            project!.files["space-app-dependencies.json"],
+          ).packages["@vibechat/space-app-components"]).toEqual({
+            version: "0.11.1",
+            integrity: "sha256:e44df709c57b798bff752b27a7206642991a8bc7e45ca17ebea11bc492596100",
+          });
+          expect(markup).toContain("<vc-space-agent-activity");
+          expect(markup).not.toContain('id="vcc-build"');
+          expect(project!.files["src/chat/styles/timeline.ts"])
+            .not.toContain(".vcc-build");
+        } else {
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            "createSpaceChatController",
+          );
+          expect(project!.files["src/chat/client/bootstrap.ts"]).toContain(
+            "spaceChatEventNames",
+          );
+          expect(project!.files["src/chat/client.ts"]).toContain(
+            'from "@vibechat/space-app-components/chat/inline"',
+          );
+          const expectedComponents = {
+            version: "0.11.1",
+            integrity: "sha256:e44df709c57b798bff752b27a7206642991a8bc7e45ca17ebea11bc492596100",
+          };
+          expect(JSON.parse(project!.files["package.json"]).dependencies)
+            .toMatchObject({
+              "@vibechat/space-app-components": expectedComponents.version,
+            });
+          expect(JSON.parse(
+            project!.files["space-app-dependencies.json"],
+          ).packages["@vibechat/space-app-components"])
+            .toEqual(expectedComponents);
+        }
+        expect(project!.files["src/vendor/space-app-components-chat.ts"])
+          .toBeUndefined();
+        expect(project!.files["src/chat/client/composer.ts"]).toBeUndefined();
+        expect(project!.files["src/chat/client/messages.ts"]).toBeUndefined();
+        expect(Object.entries(project!.files)
+          .filter(([path]) => path.startsWith("src/chat/"))
+          .map(([, source]) => source)
+          .join("\n")).not.toContain(
+          "innerHTML",
+        );
+        expect(markup.indexOf('id="vcc-timeline"')).toBeLessThan(
+          markup.indexOf('id="vcc-composer"'),
+        );
+        if (
+          template.id === "space-focus"
+          || template.id === "space-campfire"
+          || template.id === "space-arcade"
+          || template.id === "space-postcard"
+        ) {
+          expect(project!.files["src/chat/client.ts"]).toContain(
+            'bootstrapChat(space, components, "dock"',
+          );
+        }
+        if (template.id === "space-focus") {
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.state.get<unknown>("studio.notes")',
+          );
+        }
+        if (template.id === "space-campfire") {
+          expect(project!.files["src/app/client.ts"]).toContain(
+            'from "@vibechat/space-app-components/user/inline"',
+          );
+          expect(project!.files["src/app/client.ts"]).toContain(
+            "data-vibechat-user-components",
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            "createSpaceComponentContext",
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            "createSpaceUserDirectoryController",
+          );
+          expect(project!.files["src/app/controller.ts"]).not.toContain(
+            "innerHTML",
+          );
+          expect(project!.files["src/app/markup.ts"]).toContain(
+            '<vc-space-member-list',
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.updatePresence({ scene: "radio", status: "listening" })',
+          );
+        }
+        if (template.id === "space-arcade") {
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.state.get("arcade.badges")',
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.updatePresence({ scene: "arcade", status: "playing" })',
+          );
+        }
+        if (template.id === "space-postcard") {
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.state.get<unknown>("postcard.messages")',
+          );
+          expect(project!.files["src/app/controller.ts"]).toContain(
+            'space.updatePresence({ scene: "postcard", status: "writing" })',
+          );
+        }
+      } else {
+        expect(project!.files["src/chat/client/composer.ts"]).toContain(
+          "submitChatMessage",
+        );
+        expect(project!.files["src/chat/client/messages.ts"]).toContain(
+          "renderMessageHtml",
+        );
+        expect(markup.indexOf('id="vcc-attach"')).toBeLessThan(
+          markup.indexOf('id="vcc-input"'),
+        );
+        expect(markup.indexOf('id="vcc-input"')).toBeLessThan(
+          markup.indexOf('id="vcc-send"'),
+        );
+        expect(project!.files["src/app/controller.ts"]).toBeTruthy();
+      }
       if (template.id !== "space-default") {
         expect(project!.files["src/app/controller.ts"]).toBeTruthy();
       }
@@ -222,7 +361,7 @@ describe("Space Template publication protocol", () => {
   it("creates an App-published user Template with exactly the same protocol", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-2",
+      "tplv-space-default-0-2-1",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -297,7 +436,7 @@ describe("Space Template publication protocol", () => {
   it("enforces one ordered SemVer sequence without empty or skipped releases", async () => {
     const officialVersion = getOfficialSpaceTemplateVersion(
       "space-default",
-      "tplv-space-default-0-1-2",
+      "tplv-space-default-0-2-1",
     )!;
     const officialProject = await loadOfficialSpaceTemplateArtifact(
       "space-default",
@@ -405,11 +544,11 @@ describe("Space Template publication protocol", () => {
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "builtin-space-campfire-v5",
-      )?.id).toBe("tplv-space-campfire-0-1-2");
+      )?.id).toBe("tplv-space-campfire-0-1-7");
       expect(getOfficialSpaceTemplateVersion(
         "space-campfire",
         "tplv-space-campfire-5-0-0",
-      )?.id).toBe("tplv-space-campfire-0-1-2");
+      )?.id).toBe("tplv-space-campfire-0-1-7");
       const initialized = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
@@ -417,7 +556,7 @@ describe("Space Template publication protocol", () => {
       );
       expect(initialized.project.template).toMatchObject({
         id: "space-campfire",
-        versionId: "tplv-space-campfire-0-1-2",
+        versionId: "tplv-space-campfire-0-1-7",
         sourceHash: initialized.project.sourceHash,
         projectFormat: "agentos-app-v1",
       });
@@ -432,7 +571,7 @@ describe("Space Template publication protocol", () => {
       const first = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-2",
+        "tplv-space-campfire-0-1-7",
       );
       const customized = {
         ...first.project,
@@ -447,12 +586,12 @@ describe("Space Template publication protocol", () => {
       const repeated = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-2",
+        "tplv-space-campfire-0-1-7",
       );
       expect(repeated.created).toBe(false);
       expect(repeated.project.summary).toBe("Agent customized this Project");
       expect(repeated.project.template?.versionId).toBe(
-        "tplv-space-campfire-0-1-2",
+        "tplv-space-campfire-0-1-7",
       );
       expect(repeated.project.files["src/app/styles.ts"]).toContain(
         "// Agent revision",
@@ -468,7 +607,7 @@ describe("Space Template publication protocol", () => {
       const first = await initializeProjectFromTemplate(
         appId,
         "space-campfire",
-        "tplv-space-campfire-0-1-2",
+        "tplv-space-campfire-0-1-7",
       );
       const customized = await saveProject({
         ...first.project,
@@ -486,17 +625,25 @@ describe("Space Template publication protocol", () => {
       const candidate = await createProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-2",
+        "tplv-space-default-0-2-1",
       );
       const stillReady = await loadProject(appId);
 
       expect(candidate.template).toMatchObject({
         id: "space-default",
-        versionId: "tplv-space-default-0-1-2",
+        versionId: "tplv-space-default-0-2-1",
       });
-      expect(candidate.files["src/chat/client/composer.ts"]).toContain(
-        "space.chat",
+      expect(candidate.files["src/chat/client/bootstrap.ts"]).toContain(
+        "mountDefaultChatRecipe",
       );
+      expect(candidate.files["src/chat/client.ts"]).toContain(
+        "@vibechat/space-app-components/recipes/inline",
+      );
+      expect(candidate.files["space-app-dependencies.json"]).toContain(
+        "sha256:e44df709c57b798bff752b27a7206642991a8bc7e45ca17ebea11bc492596100",
+      );
+      expect(candidate.files["src/vendor/space-app-components-chat.ts"])
+        .toBeUndefined();
       expect(stillReady).toMatchObject({
         sourceHash: customized.sourceHash,
         summary: "Current ready custom App",
@@ -516,7 +663,7 @@ describe("Space Template publication protocol", () => {
       await initializeProjectFromTemplate(
         appId,
         "space-default",
-        "tplv-space-default-0-1-2",
+        "tplv-space-default-0-2-1",
       );
       const stored = structuredClone(projectRecords.get(appId)) as {
         files: Record<string, string>;

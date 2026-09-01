@@ -5,6 +5,7 @@
 - [VibeChat MVP 产品与技术设计实施跟踪](./product-and-technical-implementation.md)
 - [Agent 架构实施结构计划](./agent-architecture-implementation-plan.md)
 - [Space App 设计演进与实施记录](./space-app-design-transition.md)
+- [Space App 基础组件库实施跟踪](./space-app-component-library-implementation.md)
 - [VibeChat 宿主设计系统与主题工作流实施方案](./host-design-system-and-theme-workflow.md)
 - [Space Kernel Lamplit 视觉刷新实施记录](./space-kernel-lamplit-visual-refresh.md)
 - [CircleCI CI/CD 迁移实施记录](./circleci-ci-cd-migration.md)

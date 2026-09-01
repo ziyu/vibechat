@@ -28,6 +28,7 @@ Web 的 `/account` 展示当前用户余额与流水，Admin 的 `/admin/credits
 - 交易 ID 固定为 `signup:welcome:<userId>`，类型为 `bonus`，交易代码为 `new_user_bonus`。账号创建重试或 hook 重放只会命中同一交易，不重复增加余额。
 - 欢迎积分与推荐奖励是两笔独立交易。启用推荐后，被推荐人余额是欢迎积分加推荐奖励，不能把推荐 claim 当作欢迎积分实现。
 - 测试“余额不足”时必须显式把余额设置为 `0`；新注册账号不再天然表示零余额。
+- 本地 `db:seed:*` 直接创建的普通测试账号与 Chat 测试账号会调用同一个 `grantNewUserCredits()` 幂等核验欢迎积分，不能因绕过 Better Auth HTTP 注册而保持零余额；专门用于空状态验收的 `blank@vibechat.test` 仍显式保持空白。
 
 ## 写入不变量
 

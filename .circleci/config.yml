@@ -51,7 +51,7 @@ jobs:
           name: Build product applications
           environment:
             NODE_ENV: production
-          command: pnpm build
+          command: pnpm build --concurrency=2
       - run:
           name: Build documentation site
           environment:

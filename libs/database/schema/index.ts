@@ -10,3 +10,4 @@ export * from './blog-post';
 export * from './pricing-plan';
 export * from './identity';
 export * from './ai-generation-task';
+export * from './space-app-registry';

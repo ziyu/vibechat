@@ -28,6 +28,12 @@ describe('Space App HTML host injection', () => {
     const html = await response.text()
 
     expect(response.status).toBe(200)
+    expect(response.headers.get('content-security-policy')).toContain(
+      "script-src 'unsafe-inline' blob:",
+    )
+    expect(response.headers.get('content-security-policy')).toContain(
+      "connect-src 'none'",
+    )
     expect(html).toContain('data-vibechat-space-sdk')
     expect(html).not.toContain('from "/v1/space-app-sdk"')
   })

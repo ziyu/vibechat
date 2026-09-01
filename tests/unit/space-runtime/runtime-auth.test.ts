@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   signSpaceRuntimeCredential,
+  spaceAppPackageRegistryAudience,
   spaceBackendCallbackAudience,
   spaceRuntimeAudience,
   verifySpaceRuntimeCredential,
@@ -58,6 +59,34 @@ describe("Space Runtime short-lived credentials", () => {
       path: "/api/apps/space-1/publish",
       now: new Date("2026-08-26T00:00:40.000Z"),
       clockSkewSeconds: 0,
+    })).resolves.toBeNull();
+  });
+
+  it("keeps package publication credentials separate from Runtime callbacks", async () => {
+    const credential = await signSpaceRuntimeCredential({
+      secret,
+      audience: spaceAppPackageRegistryAudience,
+      subject: "space-app-package-publisher",
+      method: "PUT",
+      path: "/v1/internal/space-app-managed-packages",
+      now: issuedAt,
+    });
+
+    await expect(verifySpaceRuntimeCredential(credential, {
+      secret,
+      audience: spaceAppPackageRegistryAudience,
+      subject: "space-app-package-publisher",
+      method: "PUT",
+      path: "/v1/internal/space-app-managed-packages",
+      now: issuedAt,
+    })).resolves.toBeTruthy();
+    await expect(verifySpaceRuntimeCredential(credential, {
+      secret,
+      audience: spaceBackendCallbackAudience,
+      subject: "space-runtime",
+      method: "PUT",
+      path: "/v1/internal/space-app-managed-packages",
+      now: issuedAt,
     })).resolves.toBeNull();
   });
 });

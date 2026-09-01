@@ -1,12 +1,21 @@
 # Tomorrow Postcard
 
+## 0.1.4
+
+- Upgrade to exact `@vibechat/space-app-components@0.11.1` so the docked Chat gains the shared member/Agent author card without changing postcard state or layout.
+
+## 0.1.3
+
+- Replace the Template-owned Chat renderer, Composer, Mention, message actions, and state machine with exact `@vibechat/space-app-components@0.7.4` package imports.
+- Preserve postcard writing, shared card state, presence, warm paper theme, dock launcher, unread behavior, and responsive drawer layout.
+- Add the managed package integrity lock and declare the complete Chat capability set used by the shared controller.
+
 ## 0.1.2
 
 - Refactor the App and default Chat UI into type-checked, responsibility-focused modules.
 - Keep the full Space identity in the Kernel Bar, move attachment controls into the Composer, and fix its responsive layout without changing Chat Core capabilities.
 - Describe Agent work neutrally because a turn may answer in Chat without changing the Space App.
 - Resolve Agent message authors from logical Mention targets instead of exposing managed Matrix users as members.
-- Add bounded Chat Core history pagination with stable prepend scrolling, retry/no-more states, and visible member Mention projection.
 
 ## 0.1.1
 

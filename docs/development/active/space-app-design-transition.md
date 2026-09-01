@@ -253,7 +253,7 @@ room_index row == SpaceInstance == Matrix Room == logical SpaceInstanceServer
 - 新增 `@vibechat/space-templates` 作为 Backend 目录与 Node/Hono Runtime 的共享事实源；夜航电台、苔原共创室、像素星期六和明日明信片各自携带不同的可执行 `agentos-app-v1` Project 源码，当前目录固定到 v2，同时保留 v1 lineage 的兼容 Project。
 - `room_index.spaceId/spaceVersionId` 继续作为 Template lineage。Backend 在 snapshot、events、App、bridge、Agent turn 和 publish 入口幂等调用 Runtime bootstrap；已经存在的 Project 永不被模板覆盖。
 - Runtime bootstrap 复制 Template Project 后直接准备 Dev draft。历史 v1 Space 在原 Matrix Room/SpaceInstance 上 lazy bootstrap，不创建平行实例、成员或聊天记录。
-- opaque iframe 不增加 `allow-same-origin`。Backend 在 HTML 响应中注入受信任 Space SDK shim，并保留 `connect-src 'none'`；生成源码的 `/v1/space-app-sdk` import 在响应边界改写为本地全局绑定。
+- opaque iframe 不增加 `allow-same-origin`。Backend 在 HTML 响应中注入受信任 Space SDK shim，脚本只允许 inline 与受管 `/chat/inline` adapter 所需的 `blob:` ESM，并保留 `connect-src 'none'`；生成源码的 `/v1/space-app-sdk` import 在响应边界改写为本地全局绑定。
 - 本地 Synapse + Alice 浏览器走查：历史夜航电台 `!qcRWjoykTSidOmkOix:localhost` 原地得到 v1 Project/Draft `3a849bb6345867b5`；从 v2 苔原共创室创建 `!JMBcNJQgAZDgcSmOpt:localhost`，在没有 Agent turn 时得到 Draft `85b251af233f07b6`，共享便签写入后刷新恢复，Matrix Chat composer 同时保持可用；重启完整 dev 栈后 presence 使用 Alice 的真实 `user_*` 身份且不再残留 legacy guest。
 - 定向 unit 共 13 个通过，覆盖四模板不同源码、v1/v2 解析、bootstrap 不覆盖后续 Revision、HTML SDK 注入、SpaceInstance queue、Room/目录契约；`pnpm docs:check`、Docs production build、全仓 18/18 package/app `pnpm typecheck` 与 `pnpm build` 均通过。
 

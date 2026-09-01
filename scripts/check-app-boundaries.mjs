@@ -39,6 +39,7 @@ const activeRoots = [
   'packages/product-core/src',
   'packages/space-agent-contracts/src',
   'packages/space-app-contracts/src',
+  'packages/space-app-components/src',
   'packages/space-app-sdk/src',
 ]
 const files = (await Promise.all(activeRoots.map(sourceFiles))).flat()
@@ -108,8 +109,13 @@ const packageDependencyPolicy = {
   '@vibechat/auth-client': new Set(),
   '@vibechat/i18n': new Set(),
   '@vibechat/product-core': new Set(),
+  '@vibechat/space-app-dependencies': new Set(),
   '@vibechat/space-agent-contracts': new Set(),
   '@vibechat/space-app-contracts': new Set(['@vibechat/space-agent-contracts']),
+  '@vibechat/space-app-components': new Set([
+    '@vibechat/space-app-dependencies',
+    '@vibechat/space-app-sdk',
+  ]),
   '@vibechat/space-app-sdk': new Set(['@vibechat/space-app-contracts']),
   '@vibechat/platform-contracts': new Set(),
   '@vibechat/ui': new Set(),

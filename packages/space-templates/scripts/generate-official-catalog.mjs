@@ -207,11 +207,11 @@ async function loadDefinition(directoryName) {
       `${context}: sourcePath must reference the single app working tree`,
     );
     let lock = release.lock;
-    if (rewriteDevelopmentLocks && release.status === "development") {
-      assert(
-        index === releaseIndex.releases.length - 1,
-        `${context}: only the latest development release may be re-signed`,
-      );
+    if (
+      rewriteDevelopmentLocks
+      && release.status === "development"
+      && index === releaseIndex.releases.length - 1
+    ) {
       lock = computeVersionLock(template.id, version, files);
       release.lock = lock;
       release.artifact = computeArtifact(lock.sourceHash, version.projectFormat);

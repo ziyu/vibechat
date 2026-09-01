@@ -76,6 +76,12 @@ importers:
       '@vibechat/space-agent-contracts':
         specifier: workspace:*
         version: link:packages/space-agent-contracts
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:packages/space-app-components
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:packages/space-app-dependencies
       '@vibechat/space-templates':
         specifier: workspace:*
         version: link:packages/space-templates
@@ -238,7 +244,7 @@ importers:
         version: 1.166.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-start':
         specifier: ^1.120.3
-        version: 1.166.8(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
+        version: 1.166.8(crossws@0.4.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
       '@tanstack/react-table':
         specifier: 8.21.2
         version: 8.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -341,7 +347,7 @@ importers:
         version: 1.166.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-start':
         specifier: ^1.120.3
-        version: 1.166.8(crossws@0.4.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
+        version: 1.166.8(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.103.0(esbuild@0.19.12))
       '@vibechat/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
@@ -418,6 +424,9 @@ importers:
       '@vibechat/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:../../packages/space-app-components
       '@vibechat/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -570,9 +579,15 @@ importers:
       '@vibechat/space-agent-contracts':
         specifier: workspace:*
         version: link:../../packages/space-agent-contracts
+      '@vibechat/space-app-components':
+        specifier: workspace:*
+        version: link:../../packages/space-app-components
       '@vibechat/space-app-contracts':
         specifier: workspace:*
         version: link:../../packages/space-app-contracts
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:../../packages/space-app-dependencies
       '@vibechat/space-runtime-auth':
         specifier: workspace:*
         version: link:../../packages/space-runtime-auth
@@ -969,6 +984,31 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/space-app-components:
+    dependencies:
+      '@vibechat/space-app-dependencies':
+        specifier: workspace:*
+        version: link:../space-app-dependencies
+      '@vibechat/space-app-sdk':
+        specifier: workspace:*
+        version: link:../space-app-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^22.16.0
+        version: 22.20.1
+      '@vibechat/space-runtime-auth':
+        specifier: workspace:*
+        version: link:../space-runtime-auth
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/space-app-contracts:
     dependencies:
       '@vibechat/space-agent-contracts':
@@ -977,6 +1017,16 @@ importers:
       zod:
         specifier: 4.2.1
         version: 4.2.1
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/space-app-dependencies:
+    dependencies:
+      '@noble/hashes':
+        specifier: 2.0.1
+        version: 2.0.1
     devDependencies:
       typescript:
         specifier: ^5.8.3

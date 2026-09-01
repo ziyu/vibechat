@@ -69,6 +69,10 @@ export type {
 } from './schema/pg/social'
 export type { AiGenerationTask, NewAiGenerationTask } from './schema/pg/ai-generation-task'
 export type {
+  NewSpaceAppManagedPackageReleaseRow,
+  SpaceAppManagedPackageReleaseRow,
+} from './schema/pg/space-app-registry'
+export type {
   NewSpaceAgentAuditEventRow,
   NewSpaceAgentBindingRow,
   NewSpaceAgentDefinitionRow,
@@ -102,6 +106,7 @@ export { roomUserPreference, spaceFavorite, userPreference } from './schema/prod
 export { block, contact, friendRequest } from './schema/social'
 export { integrationOutbox, matrixIdentity, matrixSessionBinding, userProfile } from './schema/identity'
 export { aiGenerationTask } from './schema/ai-generation-task'
+export { spaceAppManagedPackageRelease } from './schema/space-app-registry'
 export {
   spaceAgentAuditEvent,
   spaceAgentBinding,
@@ -143,6 +148,9 @@ import {
 } from './schema/identity'
 import { aiGenerationTask as _aiGenerationTask } from './schema/ai-generation-task'
 import {
+  spaceAppManagedPackageRelease as _spaceAppManagedPackageRelease,
+} from './schema/space-app-registry'
+import {
   spaceAgentAuditEvent as _spaceAgentAuditEvent,
   spaceAgentBinding as _spaceAgentBinding,
   spaceAgentDefinition as _spaceAgentDefinition,
@@ -167,6 +175,7 @@ const _schema = {
   userProfile: _userProfile, matrixIdentity: _matrixIdentity,
   matrixSessionBinding: _matrixSessionBinding, integrationOutbox: _integrationOutbox,
   aiGenerationTask: _aiGenerationTask,
+  spaceAppManagedPackageRelease: _spaceAppManagedPackageRelease,
   spaceAgentDefinition: _spaceAgentDefinition,
   spaceAgentBinding: _spaceAgentBinding,
   spaceAgentSession: _spaceAgentSession,

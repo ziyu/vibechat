@@ -59,13 +59,31 @@ h1 {
 }
 
 p { color: #c7b6aa; }
-.members { display: flex; flex-wrap: wrap; gap: 8px; }
+.members {
+  --vc-space-color-text: #f8eee4;
+  --vc-space-color-text-muted: #c7b6aa;
+  --vc-space-color-accent: #ff6b42;
+  --vc-space-color-surface: #211c1b;
+  --vc-space-color-surface-raised: #171b20;
+  --vc-space-color-border: #765447;
+  --vc-space-color-positive: #a8f36a;
+  --vc-space-color-warning: #ffc65b;
+  --vc-space-color-neutral: #9e9189;
+  --vc-space-color-focus: #ffd0b5;
+  --vc-space-font-body: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vc-space-radius-control: 12px;
+  display: block;
+  max-block-size: min(32vh, 17rem);
+  margin-block-start: 16px;
+  overflow: auto;
+  scrollbar-color: #765447 transparent;
+}
 
-.member {
-  padding: 7px 12px;
-  border: 1px solid #694d42;
-  border-radius: 999px;
-  color: #f5d8c8;
+.members::part(list) { gap: 4px; }
+.members::part(option):hover { background: #2a201e; }
+.members::part(empty) {
+  border-color: #694d42;
+  color: #c7b6aa;
 }
 
 .live {

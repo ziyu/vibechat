@@ -12,7 +12,7 @@ async function openAppChat(page: Page, timeout = 30_000) {
   const root = frame.locator('#vcc-root')
   await input.waitFor({ state: 'attached', timeout })
   if (await root.getAttribute('data-open') !== 'true') {
-    await frame.getByRole('button', { name: 'Open Space Chat' }).click({ force: true })
+    await frame.getByRole('button', { name: /Open Space Chat|打开 Space 聊天/ }).click({ force: true })
   }
   await expect(root).toHaveAttribute('data-open', 'true')
   await expect(input).toBeInViewport()
@@ -856,7 +856,7 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(created).toMatchObject({
       matrixRoomId: expect.stringMatching(/^!.*:localhost$/),
       spaceId: 'space-campfire',
-      spaceVersionId: 'tplv-space-campfire-0-1-2',
+      spaceVersionId: 'tplv-space-campfire-0-1-6',
       status: 'active',
     })
 
@@ -872,9 +872,9 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     expect(stateResponse.ok(), await stateResponse.text()).toBeTruthy()
     await expect(stateResponse.json()).resolves.toMatchObject({
       templateId: 'space-campfire',
-      templateVersionId: 'tplv-space-campfire-0-1-2',
-      version: '0.1.2',
-      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.2\+sha256\./),
+      templateVersionId: 'tplv-space-campfire-0-1-6',
+      version: '0.1.6',
+      integrity: expect.stringMatching(/^template:space-campfire@0\.1\.6\+sha256\./),
       publisher: {
         id: 'publisher-vibechat',
         verification: 'official',
@@ -928,6 +928,20 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const appResponse = await readyAppResponse
     expect(appResponse.headers()['x-vibechat-space-recovery']).toBeUndefined()
     const chat = await openAppChat(page)
+    await expect(chat.getByRole('heading', { name: '夜航电台' })).toBeVisible()
+    await expect(chat.locator('script[data-vibechat-components="0.10.2"]')).toHaveCount(1)
+    await expect(chat.locator('script[data-vibechat-user-components="0.10.2"]')).toHaveCount(1)
+    const memberList = chat.getByRole('listbox', { name: 'Space 成员' })
+    await expect(memberList).toBeVisible()
+    await expect(memberList.getByRole('option')).toHaveCount(1)
+    await expect(memberList.getByRole('option')).toContainText('Matrix Room E2E')
+    await expect.poll(() => chat.locator('#vcc-shell').evaluate((element) => {
+      const styles = getComputedStyle(element)
+      return {
+        transformed: styles.transform !== 'none',
+        backdropFilter: styles.backdropFilter,
+      }
+    })).toEqual({ transformed: true, backdropFilter: 'blur(26px)' })
 
     const messageText = `真实 Matrix 消息 ${Date.now()}`
     await chat.getByTestId('message-input').fill(messageText)
@@ -936,36 +950,62 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
       () => delayedSend,
       { message: `Matrix send requests: ${matrixSendRequests.join(', ')}` },
     ).toBe(true)
-    const ownMessage = chat.getByTestId('message-body')
-      .filter({ hasText: messageText })
-      .locator('xpath=ancestor::article')
-    await expect(ownMessage).toContainText('发送中…')
+    const sendButton = chat.getByTestId('send-message')
+    await expect(sendButton).toBeDisabled()
+    const ownMessage = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    // The shared controller exposes command pending through the Composer and
+    // only projects messages received from the Host-owned Matrix timeline.
     await expect(ownMessage).toContainText('已发送')
+    await expect(sendButton).toHaveText('发送')
     expect(delayedSend).toBe(true)
 
-    await ownMessage.getByRole('button', { name: '回复' }).click()
+    const ownActionsMenu = ownMessage.getByTestId('message-actions-menu')
+    await ownMessage.getByTestId('message-actions-more').click()
+    await expect(ownActionsMenu).toBeVisible()
+    await expect.poll(() => ownActionsMenu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        open: element.matches(':popover-open'),
+        insideViewport: rect.top >= 0
+          && rect.right <= window.innerWidth
+          && rect.bottom <= window.innerHeight
+          && rect.left >= 0,
+      }
+    })).toEqual({ open: true, insideViewport: true })
+    await ownActionsMenu
+      .getByRole('button', { name: '回复', exact: true })
+      .click()
     await expect(chat.getByTestId('chat-context')).toContainText(messageText)
     const replyText = `标准 Matrix 回复 ${Date.now()}`
     await chat.getByTestId('message-input').fill(replyText)
     await chat.getByTestId('send-message').click()
-    const replyMessage = chat.getByTestId('message-body')
-      .filter({ hasText: replyText })
-      .locator('xpath=ancestor::article')
+    const replyMessage = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
     await expect(replyMessage).toContainText(messageText)
     await expect(replyMessage).toContainText('已发送')
 
     // Resolve fresh locators after the message round-trip so this assertion is
     // independent from App-owned drawer rendering updates.
     const readyChat = await openAppChat(page)
-    const readyOwnMessage = readyChat.getByTestId('message-body')
-      .filter({ hasText: messageText })
-      .locator('xpath=ancestor::article')
-    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
-    await readyOwnMessage.locator('.vcc-reactions').getByRole('button', { name: '🌙 1' }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toHaveCount(0)
-    await readyOwnMessage.getByRole('button', { name: '🌙', exact: true }).click()
-    await expect(readyOwnMessage.locator('.vcc-reactions')).toContainText('🌙')
+    const readyOwnMessage = readyChat.getByTestId('chat-message-entry').filter({
+      has: readyChat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    const readyMoreActions = readyOwnMessage.getByTestId('message-actions-more')
+    const readyActionsMenu = readyOwnMessage.getByTestId('message-actions-menu')
+    await readyMoreActions.click()
+    await expect.poll(() => readyActionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await readyActionsMenu.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toBeVisible()
+    await readyOwnMessage.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toHaveCount(0)
+    await readyMoreActions.click()
+    await readyActionsMenu.getByRole('button', { name: /🌙/ }).click()
+    await expect(readyOwnMessage.getByRole('button', { name: /🌙/ })).toBeVisible()
 
     await page.reload()
     await expect(page.getByTestId('chat-app-shell')).toHaveAttribute('data-ready', 'true')
@@ -973,17 +1013,18 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     const reloadedChat = await openAppChat(page)
     await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
     await expect(
-      reloadedChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: replyText }),
+      }),
     ).toContainText(messageText)
     await expect(
       reloadedChat.getByTestId('message-body').filter({ hasText: 'Transaction retry should appear once' }),
     ).toHaveCount(1)
     await expect(
-      reloadedChat.getByTestId('message-body')
-        .filter({ hasText: messageText })
-        .locator('xpath=ancestor::article')
-        .locator('.vcc-reactions'),
-    ).toContainText('🌙')
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: messageText }),
+      }).getByRole('button', { name: /🌙/ }),
+    ).toBeVisible()
 
     const runtimeUrl = `/v1/spaces/instances/${encodeURIComponent(created.matrixRoomId)}`
     const beforeRestoreResponse = await page.request.get(runtimeUrl)
@@ -1025,18 +1066,540 @@ test.describe('Vibe Chat real Matrix room and timeline', () => {
     )
     const restoredChat = await openAppChat(page)
     await expect(restoredChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
-    await expect(
-      restoredChat.getByTestId('message-body').filter({ hasText: replyText }).locator('xpath=ancestor::article'),
-    ).toContainText(messageText)
-    await expect(
-      restoredChat.getByTestId('message-body')
-        .filter({ hasText: messageText })
-        .locator('xpath=ancestor::article')
-        .locator('.vcc-reactions'),
-    ).toContainText('🌙')
+    const restoredReplyEntry = restoredChat.getByTestId('chat-message-entry').filter({
+      has: restoredChat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
+    await expect(restoredReplyEntry.getByText(messageText, { exact: true })).toBeVisible()
+    const restoredMessageEntry = restoredChat.getByTestId('chat-message-entry').filter({
+      has: restoredChat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(restoredMessageEntry).toHaveCount(1)
+    await expect(restoredMessageEntry.getByRole('button', { name: /🌙/ })).toHaveCount(1)
     await expect(restoredChat.getByText('已恢复 Default Chat App。')).toHaveCount(0)
 
     const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage))
     expect(localStorageDump).not.toContain(bootstrap.matrix.accessToken)
+  })
+
+  test('keeps Default Chat actions stable across refresh and responsive layouts', async ({ page }) => {
+    const email = `e2e-default-actions-${Date.now()}@example.com`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Default Actions E2E',
+      email,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    await expect(bootstrapResponse.json()).resolves.toMatchObject({
+      matrix: { status: 'ready' },
+    })
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-default',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `default-actions-${crypto.randomUUID()}`,
+        name: 'Default Actions E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const chat = await openAppChat(page)
+    await expect(chat.locator('script[data-vibechat-components="0.9.3"]')).toHaveCount(1)
+    const defaultAgentActivity = chat.getByTestId('agent-activity')
+    await expect(defaultAgentActivity).toBeHidden()
+    await expect(defaultAgentActivity).toHaveAttribute('aria-hidden', 'true')
+    await expect(defaultAgentActivity).toHaveAttribute('data-active', 'false')
+    await expect(defaultAgentActivity).toHaveAttribute('role', 'group')
+    await expect(defaultAgentActivity.locator('[part="live"]'))
+      .toHaveAttribute('aria-live', 'polite')
+    const messageText = `Default action menu ${Date.now()}`
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
+    const messageEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(messageEntry).toHaveCount(1)
+    await expect(messageEntry.getByTestId('message-body')).toContainText(messageText)
+
+    const moreActions = messageEntry.getByTestId('message-actions-more')
+    const actionsMenu = messageEntry.getByTestId('message-actions-menu')
+    await moreActions.click()
+    await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => element.matches(':popover-open')))
+      .toBe(true)
+    await expect.poll(() => actionsMenu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        top: rect.top >= 0,
+        right: rect.right <= window.innerWidth,
+        bottom: rect.bottom <= window.innerHeight,
+        left: rect.left >= 0,
+      }
+    })).toEqual({ top: true, right: true, bottom: true, left: true })
+    await page.waitForTimeout(4_500)
+    await expect(actionsMenu).toBeVisible()
+
+    await actionsMenu.getByRole('button', { name: '删除', exact: true }).click()
+    await expect(actionsMenu.getByRole('button', { name: '确认删除', exact: true })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(actionsMenu).toBeHidden()
+    await expect(moreActions).toBeFocused()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await moreActions.click()
+    await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate((element) => ({
+      open: element.matches(':popover-open'),
+      backdrop: getComputedStyle(element, '::backdrop').backgroundColor,
+    }))).toEqual({ open: true, backdrop: 'rgba(0, 0, 0, 0.42)' })
+    await expect(actionsMenu.getByRole('button', { name: '删除', exact: true })).toBeVisible()
+    await expect(actionsMenu.getByRole('button', { name: '确认删除', exact: true })).toHaveCount(0)
+    await expect(messageEntry.locator('[part="backdrop"]')).toBeHidden()
+    await expect.poll(() => actionsMenu.evaluate((element) => ({
+      position: getComputedStyle(element).position,
+      left: Math.round(element.getBoundingClientRect().left),
+      right: Math.round(element.getBoundingClientRect().right),
+      viewport: window.innerWidth,
+    }))).toEqual({ position: 'fixed', left: 12, right: 378, viewport: 390 })
+    const frameBox = await page.getByTestId('space-app-surface').locator('iframe').boundingBox()
+    expect(frameBox).not.toBeNull()
+    await page.mouse.click(frameBox!.x + 2, frameBox!.y + 2)
+    await expect(actionsMenu).toBeHidden()
+    await expect(moreActions).toBeFocused()
+  })
+
+  test('keeps Focus notes and docked Chat stable across refresh and responsive layouts', async ({ page }) => {
+    const email = `e2e-focus-dock-${Date.now()}@example.com`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Focus Dock E2E',
+      email,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    const bootstrap = await bootstrapResponse.json()
+    expect(bootstrap.matrix.status).toBe('ready')
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-focus',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `focus-dock-${crypto.randomUUID()}`,
+        name: 'Focus Dock E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+    expect(created).toMatchObject({
+      spaceId: 'space-focus',
+      spaceVersionId: 'tplv-space-focus-0-2-0',
+      status: 'active',
+    })
+
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const frame = chatFrame(page)
+    const root = frame.locator('#vcc-root')
+    await expect(frame.getByRole('heading', { name: '苔原共创室' }))
+      .toBeVisible({ timeout: 20_000 })
+    await expect(frame.locator('script[data-vibechat-components="0.9.3"]')).toHaveCount(1)
+    await expect(frame.locator('#note')).toBeVisible()
+    await expect(root).toHaveAttribute('data-mode', 'dock')
+    await expect(root).toHaveAttribute('data-open', 'false')
+
+    const noteText = `迁移验收便签 ${Date.now()}`
+    await frame.locator('#note').fill(noteText)
+    await frame.getByRole('button', { name: '贴上桌面' }).click()
+    await expect(frame.locator('#board')).toContainText(noteText)
+
+    const chat = await openAppChat(page)
+    const focusAgentActivity = chat.getByTestId('agent-activity')
+    await expect(focusAgentActivity).toBeHidden()
+    await expect(focusAgentActivity).toHaveAttribute('aria-hidden', 'true')
+    await expect(focusAgentActivity).toHaveAttribute('data-active', 'false')
+    await expect(focusAgentActivity).toHaveAttribute('role', 'group')
+    await expect(focusAgentActivity.locator('[part="live"]'))
+      .toHaveAttribute('aria-live', 'polite')
+    const messageText = `Focus 组件消息 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
+    const messageEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(messageEntry).toHaveCount(1)
+    await expect(messageEntry.getByTestId('message-body')).toContainText(messageText)
+    const focusActionsMenu = messageEntry.getByTestId('message-actions-menu')
+    await messageEntry.getByTestId('message-actions-more').click()
+    await expect(focusActionsMenu).toBeVisible()
+    await expect.poll(() => focusActionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await focusActionsMenu
+      .getByRole('button', { name: '回复', exact: true })
+      .click()
+    const replyText = `Focus 组件回复 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(replyText)
+    await chat.getByTestId('send-message').click()
+    const replyEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
+    await expect(replyEntry).toContainText(messageText)
+    await messageEntry.getByTestId('message-actions-more').click()
+    await messageEntry.getByRole('button', { name: /✨/ }).click()
+    await expect(messageEntry.getByRole('button', { name: /✨/ })).toBeVisible()
+
+    await chat.getByRole('button', { name: /Close Chat|关闭聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'false')
+    const unreadText = `Focus 抽屉未读 ${Date.now()}`
+    const directSend = await page.request.put(
+      `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+        + `/send/m.room.message/${encodeURIComponent(`focus-unread-${crypto.randomUUID()}`)}`,
+      {
+        data: { msgtype: 'm.text', body: unreadText },
+        headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` },
+      },
+    )
+    expect(directSend.ok(), await directSend.text()).toBeTruthy()
+    await expect(frame.locator('#vcc-unread')).toHaveText('1')
+    await frame.getByRole('button', { name: /Open Space Chat|打开 Space 聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'true')
+    await expect(frame.locator('#vcc-unread')).toHaveText('0')
+    await expect(chat.getByTestId('message-body').filter({ hasText: unreadText })).toHaveCount(1)
+
+    await page.reload()
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const reloadedFrame = chatFrame(page)
+    await expect(reloadedFrame.locator('#board')).toContainText(noteText)
+    const reloadedChat = await openAppChat(page)
+    await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: replyText }),
+      }),
+    ).toContainText(messageText)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: messageText }),
+      }).getByRole('button', { name: /✨/ }),
+    ).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect.poll(() => reloadedFrame.locator('#vcc-shell').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        fillsTop: Math.round(rect.top) === 0,
+        fillsRight: Math.round(rect.right) === window.innerWidth,
+        fillsBottom: Math.round(rect.bottom) === window.innerHeight,
+        fillsLeft: Math.round(rect.left) === 0,
+        viewportWidth: window.innerWidth,
+      }
+    })).toEqual({
+      fillsTop: true,
+      fillsRight: true,
+      fillsBottom: true,
+      fillsLeft: true,
+      viewportWidth: 390,
+    })
+    await expect(reloadedChat.getByTestId('message-input')).toBeInViewport()
+    await expect(reloadedFrame.getByRole('button', { name: /Close Chat|关闭聊天/ })).toBeInViewport()
+  })
+
+  test('keeps Arcade badges and shared docked Chat stable across refresh and mobile', async ({ page }) => {
+    const email = `e2e-arcade-dock-${Date.now()}@example.com`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Arcade Dock E2E',
+      email,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    const bootstrap = await bootstrapResponse.json()
+    expect(bootstrap.matrix.status).toBe('ready')
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-arcade',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `arcade-dock-${crypto.randomUUID()}`,
+        name: 'Arcade Dock E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+    expect(created).toMatchObject({
+      spaceId: 'space-arcade',
+      spaceVersionId: 'tplv-space-arcade-0-1-3',
+      status: 'active',
+    })
+
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const frame = chatFrame(page)
+    const root = frame.locator('#vcc-root')
+    await expect(frame.getByRole('heading', { name: '像素星期六' }))
+      .toBeVisible({ timeout: 20_000 })
+    await expect(frame.locator('script[data-vibechat-components="0.7.4"]')).toHaveCount(1)
+    await expect(root).toHaveAttribute('data-mode', 'dock')
+    await expect(root).toHaveAttribute('data-open', 'false')
+
+    await frame.getByRole('button', { name: 'Collect badge' }).click()
+    await expect(frame.locator('#copy')).toContainText('1 枚徽章')
+    await expect(frame.locator('#pixel')).toHaveText('◆')
+
+    const chat = await openAppChat(page)
+    await expect.poll(() => frame.locator('#vcc-shell').evaluate((element) => {
+      const styles = getComputedStyle(element)
+      return {
+        transformed: styles.transform !== 'none',
+        backdropFilter: styles.backdropFilter,
+      }
+    })).toEqual({ transformed: true, backdropFilter: 'blur(26px)' })
+
+    const messageText = `Arcade 组件消息 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
+    const messageEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(messageEntry).toHaveCount(1)
+    const actionsMenu = messageEntry.getByTestId('message-actions-menu')
+    await messageEntry.getByTestId('message-actions-more').click()
+    await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await actionsMenu.getByRole('button', { name: '回复', exact: true }).click()
+
+    const replyText = `Arcade 组件回复 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(replyText)
+    await chat.getByTestId('send-message').click()
+    const replyEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
+    await expect(replyEntry).toContainText(messageText)
+    await messageEntry.getByTestId('message-actions-more').click()
+    await messageEntry.getByRole('button', { name: /✨/ }).click()
+    await expect(messageEntry.getByRole('button', { name: /✨/ })).toBeVisible()
+
+    await chat.getByRole('button', { name: /Close Chat|关闭聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'false')
+    const unreadText = `Arcade 抽屉未读 ${Date.now()}`
+    const directSend = await page.request.put(
+      `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+        + `/send/m.room.message/${encodeURIComponent(`arcade-unread-${crypto.randomUUID()}`)}`,
+      {
+        data: { msgtype: 'm.text', body: unreadText },
+        headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` },
+      },
+    )
+    expect(directSend.ok(), await directSend.text()).toBeTruthy()
+    await expect(frame.locator('#vcc-unread')).toHaveText('1')
+    await frame.getByRole('button', { name: /Open Space Chat|打开 Space 聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'true')
+    await expect(frame.locator('#vcc-unread')).toHaveText('0')
+    await expect(chat.getByTestId('message-body').filter({ hasText: unreadText })).toHaveCount(1)
+
+    await page.reload()
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const reloadedFrame = chatFrame(page)
+    await expect(reloadedFrame.locator('#copy')).toContainText('1 枚徽章')
+    await expect(reloadedFrame.locator('#pixel')).toHaveText('◆')
+    const reloadedChat = await openAppChat(page)
+    await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: replyText }),
+      }),
+    ).toContainText(messageText)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: messageText }),
+      }).getByRole('button', { name: /✨/ }),
+    ).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect.poll(() => reloadedFrame.locator('#vcc-shell').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        fillsTop: Math.round(rect.top) === 0,
+        fillsRight: Math.round(rect.right) === window.innerWidth,
+        fillsBottom: Math.round(rect.bottom) === window.innerHeight,
+        fillsLeft: Math.round(rect.left) === 0,
+        viewportWidth: window.innerWidth,
+      }
+    })).toEqual({
+      fillsTop: true,
+      fillsRight: true,
+      fillsBottom: true,
+      fillsLeft: true,
+      viewportWidth: 390,
+    })
+    await expect(reloadedChat.getByTestId('message-input')).toBeInViewport()
+    await expect(reloadedFrame.getByRole('button', { name: /Close Chat|关闭聊天/ })).toBeInViewport()
+  })
+
+  test('keeps Postcard state and shared docked Chat stable across refresh and mobile', async ({ page }) => {
+    const email = `e2e-postcard-dock-${Date.now()}@example.com`
+    const signUp = await signUpViaAPI(page, {
+      name: 'Postcard Dock E2E',
+      email,
+      password: 'VibeChat-e2e-password-2026!',
+    })
+    expect(signUp.ok(), await signUp.text()).toBeTruthy()
+    await completeChatOnboarding(page)
+
+    const bootstrapResponse = await page.request.get('/v1/session/bootstrap')
+    expect(bootstrapResponse.ok(), await bootstrapResponse.text()).toBeTruthy()
+    const bootstrap = await bootstrapResponse.json()
+    expect(bootstrap.matrix.status).toBe('ready')
+
+    const createdResponse = await page.request.post('/v1/rooms', {
+      data: {
+        spaceId: 'space-postcard',
+        participantUserIds: [],
+        instanceConfig: {},
+        clientRequestId: `postcard-dock-${crypto.randomUUID()}`,
+        name: 'Postcard Dock E2E',
+      },
+    })
+    expect(createdResponse.status(), await createdResponse.text()).toBe(201)
+    const created = await createdResponse.json()
+    expect(created).toMatchObject({
+      spaceId: 'space-postcard',
+      spaceVersionId: 'tplv-space-postcard-0-1-3',
+      status: 'active',
+    })
+
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(`/spaces/${encodeURIComponent(created.matrixRoomId)}`)
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const frame = chatFrame(page)
+    const root = frame.locator('#vcc-root')
+    await expect(frame.getByRole('heading', { name: '明日 明信片', exact: true }))
+      .toBeVisible({ timeout: 20_000 })
+    await expect(frame.locator('script[data-vibechat-components="0.7.4"]')).toHaveCount(1)
+    await expect(root).toHaveAttribute('data-mode', 'dock')
+    await expect(root).toHaveAttribute('data-open', 'false')
+
+    const postcardText = `写给未来 ${Date.now()}`
+    await frame.locator('#message').fill(postcardText)
+    await frame.getByRole('button', { name: '寄出', exact: true }).click()
+    await expect(frame.locator('#count')).toHaveText('1 POSTCARDS')
+    await expect(frame.locator('.card')).toContainText(postcardText)
+
+    const chat = await openAppChat(page)
+    await expect.poll(() => frame.locator('#vcc-shell').evaluate((element) => {
+      const styles = getComputedStyle(element)
+      return {
+        transformed: styles.transform !== 'none',
+        backdropFilter: styles.backdropFilter,
+      }
+    })).toEqual({ transformed: true, backdropFilter: 'blur(26px)' })
+
+    const messageText = `Postcard 组件消息 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(messageText)
+    await chat.getByTestId('send-message').click()
+    const messageEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: messageText }),
+    })
+    await expect(messageEntry).toHaveCount(1)
+    const actionsMenu = messageEntry.getByTestId('message-actions-menu')
+    await messageEntry.getByTestId('message-actions-more').click()
+    await expect(actionsMenu).toBeVisible()
+    await expect.poll(() => actionsMenu.evaluate(
+      (element) => element.matches(':popover-open'),
+    )).toBe(true)
+    await actionsMenu.getByRole('button', { name: '回复', exact: true }).click()
+
+    const replyText = `Postcard 组件回复 ${Date.now()}`
+    await chat.getByTestId('message-input').fill(replyText)
+    await chat.getByTestId('send-message').click()
+    const replyEntry = chat.getByTestId('chat-message-entry').filter({
+      has: chat.getByTestId('message-body').filter({ hasText: replyText }),
+    })
+    await expect(replyEntry).toContainText(messageText)
+    await messageEntry.getByTestId('message-actions-more').click()
+    await messageEntry.getByRole('button', { name: /♥/ }).click()
+    await expect(messageEntry.getByRole('button', { name: /♥/ })).toBeVisible()
+
+    await chat.getByRole('button', { name: /Close Chat|关闭聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'false')
+    const unreadText = `Postcard 抽屉未读 ${Date.now()}`
+    const directSend = await page.request.put(
+      `http://localhost:8008/_matrix/client/v3/rooms/${encodeURIComponent(created.matrixRoomId)}`
+        + `/send/m.room.message/${encodeURIComponent(`postcard-unread-${crypto.randomUUID()}`)}`,
+      {
+        data: { msgtype: 'm.text', body: unreadText },
+        headers: { authorization: `Bearer ${bootstrap.matrix.accessToken}` },
+      },
+    )
+    expect(directSend.ok(), await directSend.text()).toBeTruthy()
+    await expect(frame.locator('#vcc-unread')).toHaveText('1')
+    await frame.getByRole('button', { name: /Open Space Chat|打开 Space 聊天/ }).click()
+    await expect(root).toHaveAttribute('data-open', 'true')
+    await expect(frame.locator('#vcc-unread')).toHaveText('0')
+    await expect(chat.getByTestId('message-body').filter({ hasText: unreadText })).toHaveCount(1)
+
+    await page.reload()
+    await expect(page.getByTestId('chat-app-shell'))
+      .toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+    const reloadedFrame = chatFrame(page)
+    await expect(reloadedFrame.locator('#count')).toHaveText('1 POSTCARDS')
+    await expect(reloadedFrame.locator('.card')).toContainText(postcardText)
+    const reloadedChat = await openAppChat(page)
+    await expect(reloadedChat.getByTestId('message-body').filter({ hasText: messageText })).toHaveCount(1)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: replyText }),
+      }),
+    ).toContainText(messageText)
+    await expect(
+      reloadedChat.getByTestId('chat-message-entry').filter({
+        has: reloadedChat.getByTestId('message-body').filter({ hasText: messageText }),
+      }).getByRole('button', { name: /♥/ }),
+    ).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect.poll(() => reloadedFrame.locator('#vcc-shell').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        fillsTop: Math.round(rect.top) === 0,
+        fillsRight: Math.round(rect.right) === window.innerWidth,
+        fillsBottom: Math.round(rect.bottom) === window.innerHeight,
+        fillsLeft: Math.round(rect.left) === 0,
+        viewportWidth: window.innerWidth,
+      }
+    })).toEqual({
+      fillsTop: true,
+      fillsRight: true,
+      fillsBottom: true,
+      fillsLeft: true,
+      viewportWidth: 390,
+    })
+    await expect(reloadedChat.getByTestId('message-input')).toBeInViewport()
+    await expect(reloadedFrame.getByRole('button', { name: /Close Chat|关闭聊天/ })).toBeInViewport()
   })
 })

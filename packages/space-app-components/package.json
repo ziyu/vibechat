@@ -1,0 +1,72 @@
+{
+  "name": "@vibechat/space-app-components",
+  "version": "0.11.1",
+  "private": false,
+  "description": "Framework-neutral User, Chat, and Agent UI components for VibeChat Space Apps",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./src/browser.ts",
+    "./src/*/browser.ts",
+    "./dist/package/browser.js",
+    "./dist/package/*/browser.js"
+  ],
+  "files": [
+    "dist/package",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./agent": "./src/agent/index.ts",
+    "./chat": "./src/chat/index.ts",
+    "./chat/inline": {
+      "types": "./src/chat/inline.d.ts",
+      "default": "./dist/package/chat/inline.js"
+    },
+    "./core": "./src/core/index.ts",
+    "./foundation": "./src/foundation/index.ts",
+    "./manifest": "./src/manifest.ts",
+    "./node": "./src/node.ts",
+    "./recipes": "./src/recipes/index.ts",
+    "./recipes/inline": {
+      "types": "./src/recipes/inline.d.ts",
+      "default": "./dist/package/recipes/inline.js"
+    },
+    "./register": "./src/browser.ts",
+    "./register/agent": "./src/agent/browser.ts",
+    "./register/chat": "./src/chat/browser.ts",
+    "./register/foundation": "./src/foundation/browser.ts",
+    "./register/user": "./src/user/browser.ts",
+    "./styles": "./src/styles/index.ts",
+    "./user": "./src/user/index.ts",
+    "./user/inline": {
+      "types": "./src/user/inline.d.ts",
+      "default": "./dist/package/user/inline.js"
+    },
+    "./testing": "./src/testing.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs",
+    "check:bundle": "node --import tsx scripts/check-bundle.mjs",
+    "registry:import-prepared": "node --import tsx scripts/import-managed-package-from-prepared.mjs",
+    "registry:publish": "node --env-file-if-exists=../../.env --import tsx scripts/publish-managed-package.mjs",
+    "release:prepare": "tsc -p tsconfig.build.json && node --import tsx scripts/build-bundle.mjs --write-release",
+    "release:pack": "pnpm build && pnpm pack ./dist/package --pack-destination ../releases",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vibechat/space-app-dependencies": "workspace:*",
+    "@vibechat/space-app-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.0",
+    "@vibechat/space-runtime-auth": "workspace:*",
+    "esbuild": "0.25.12",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}

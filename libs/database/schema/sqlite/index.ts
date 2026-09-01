@@ -10,4 +10,5 @@ export * from './pricing-plan';
 export * from './identity';
 export * from './product-state';
 export * from './ai-generation-task';
+export * from './space-app-registry';
 export * from './space-agent';

@@ -8,6 +8,11 @@ export const appMarkup = `
     <div class="eyebrow">VibeChat Space Template</div>
     <h1>夜航电台</h1>
     <p id="copy">正在调入这个 Space 的成员频率…</p>
-    <div id="members" class="members"></div>
+    <vc-space-member-list
+      id="members"
+      class="members"
+      density="compact"
+      locale="zh-CN"
+    ></vc-space-member-list>
   </section>
 </main>`;

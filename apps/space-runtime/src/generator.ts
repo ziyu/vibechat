@@ -18,5 +18,6 @@ export {
   hasModelCredentials,
   piMode,
 } from "./adapters/pi/config.js";
+export { collaborationInstructions } from "./adapters/pi/prompt.js";
 export { loadSeed } from "./adapters/pi/project-workspace.js";
 export { hostPiSessionId } from "./adapters/pi/session.js";

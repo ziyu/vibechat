@@ -1,53 +1,33 @@
-import { escapeHtml } from "../browser/html.js";
 import { renderModuleScript } from "../browser/module-script.js";
-import { bootstrapChat, loadEarlierMessages } from "./client/bootstrap.js";
-import {
-  attachSelectedFile,
-  chooseMention,
-  clearChatContext,
-  handleTimelineAction,
-  setChatError,
-  showChatContext,
-  submitChatMessage,
-  updateComposerMentions,
-} from "./client/composer.js";
+import { spaceRecipesInlineModule } from "@vibechat/space-app-components/recipes/inline";
+import { bootstrapChat } from "./client/bootstrap.js";
 import { getChatCopy } from "./client/copy.js";
-import {
-  closestDataTarget,
-  formatMessageTime,
-  getChatElements,
-  requireElement,
-  resizeComposer,
-} from "./client/dom.js";
-import { findMember, getAllMessages, renderMessageHtml } from "./client/messages.js";
-import { createChatState, renderChat } from "./client/render.js";
+
+const componentSource = JSON.stringify(
+  spaceRecipesInlineModule.source.replace(/<\/script/gi, "<\\/script"),
+);
 
 export const chatClient = renderModuleScript({
-  attributes: ["data-vibechat-default-chat-app"],
+  attributes: [
+    "data-vibechat-default-chat-app",
+    `data-vibechat-components="${spaceRecipesInlineModule.packageVersion}"`,
+    `data-vibechat-components-integrity="${spaceRecipesInlineModule.bundleHash}"`,
+  ],
   imports: ['import { space } from "/v1/space-app-sdk";'],
   functions: [
-    escapeHtml,
     getChatCopy,
-    requireElement,
-    getChatElements,
-    formatMessageTime,
-    closestDataTarget,
-    resizeComposer,
-    findMember,
-    getAllMessages,
-    renderMessageHtml,
-    createChatState,
-    renderChat,
-    setChatError,
-    showChatContext,
-    clearChatContext,
-    handleTimelineAction,
-    submitChatMessage,
-    updateComposerMentions,
-    chooseMention,
-    attachSelectedFile,
-    loadEarlierMessages,
     bootstrapChat,
   ],
-  bootstrap: 'await bootstrapChat(space, "full");',
+  bootstrap: `
+const componentSource = ${componentSource};
+const componentUrl = URL.createObjectURL(
+  new Blob([componentSource], { type: "text/javascript" }),
+);
+try {
+  const components = await import(componentUrl);
+  await bootstrapChat(space, components, "full", () => getChatCopy(space));
+} finally {
+  URL.revokeObjectURL(componentUrl);
+}
+`,
 });

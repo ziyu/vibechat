@@ -5,6 +5,10 @@ import {
   spaceTemplateRequiredProjectPaths,
 } from "@vibechat/space-templates";
 import { loadOfficialSpaceTemplateArtifact } from "@vibechat/space-templates/node";
+import {
+  assertPreparedSpaceAppProject,
+  type PreparedSpaceAppProject,
+} from "@vibechat/space-app-dependencies";
 import { assertAppId } from "./app-id.js";
 import {
   createRemoteProjectStoreFromEnv,
@@ -24,6 +28,8 @@ export interface StoredProject {
   draftId?: string;
   publishedDraftId?: string;
   releaseId?: string;
+  /** Verified, immutable dependency materialization for this exact source tree. */
+  prepared?: PreparedSpaceAppProject & { readonly files: ProjectFiles };
   template?: {
     id: string;
     versionId: string;
@@ -39,6 +45,9 @@ export interface StoredProject {
 const maximumProjectFiles = 128;
 const maximumFileBytes = 256 * 1024;
 const maximumProjectBytes = 2 * 1024 * 1024;
+const maximumPreparedProjectFiles = 256;
+const maximumPreparedFileBytes = 512 * 1024;
+const maximumPreparedProjectBytes = 2_750 * 1024;
 let remoteProjectStore: RemoteProjectStore | null = null;
 
 function projectStore() {
@@ -88,6 +97,66 @@ export function projectFilePaths(files: ProjectFiles) {
   return Object.keys(validateFiles(files));
 }
 
+export function validatePreparedFiles(value: unknown): ProjectFiles {
+  if (!value || typeof value !== "object") {
+    throw new TypeError("prepared Space App must contain a files object");
+  }
+  const source = value as Record<string, unknown>;
+  const paths = Object.keys(source).sort();
+  if (paths.length > maximumPreparedProjectFiles) {
+    throw new RangeError(
+      `prepared Space App exceeds ${maximumPreparedProjectFiles} files`,
+    );
+  }
+  const files: ProjectFiles = {};
+  let totalBytes = 0;
+  for (const path of paths) {
+    if (!isSpaceTemplateProjectFilePath(path)) {
+      throw new TypeError(`prepared Space App contains invalid path ${path}`);
+    }
+    const content = source[path];
+    if (typeof content !== "string") {
+      throw new TypeError(`prepared Space App file ${path} must be text`);
+    }
+    const bytes = Buffer.byteLength(content);
+    if (bytes > maximumPreparedFileBytes) {
+      throw new RangeError(`${path} exceeds ${maximumPreparedFileBytes} bytes`);
+    }
+    totalBytes += bytes;
+    if (totalBytes > maximumPreparedProjectBytes) {
+      throw new RangeError(
+        `prepared Space App exceeds ${maximumPreparedProjectBytes} bytes`,
+      );
+    }
+    files[path] = content;
+  }
+  for (const path of requiredProjectPaths) {
+    if (typeof files[path] !== "string") {
+      throw new TypeError(`prepared Space App is missing ${path}`);
+    }
+  }
+  return files;
+}
+
+export function preparedProjectFilePaths(files: ProjectFiles) {
+  return Object.keys(validatePreparedFiles(files));
+}
+
+export function validatePreparedProject(
+  files: ProjectFiles,
+  prepared: PreparedSpaceAppProject,
+) {
+  const sourceFiles = validateFiles(files);
+  assertPreparedSpaceAppProject(sourceFiles, prepared);
+  const preparedFiles = validatePreparedFiles(prepared.files);
+  return Object.freeze({
+    ...prepared,
+    files: preparedFiles,
+    dependencies: Object.freeze([...prepared.dependencies]),
+    importPaths: Object.freeze({ ...prepared.importPaths }),
+  });
+}
+
 export async function loadProject(appId: string): Promise<StoredProject | null> {
   assertAppId(appId);
   const project = await projectStore().load(appId);
@@ -101,7 +170,10 @@ export async function loadProject(appId: string): Promise<StoredProject | null> 
       sourceHash,
     );
   }
-  return { ...project, files, sourceHash };
+  const prepared = project.prepared
+    ? validatePreparedProject(files, project.prepared)
+    : undefined;
+  return { ...project, files, sourceHash, ...(prepared ? { prepared } : {}) };
 }
 
 export async function loadProjectRevision(
@@ -131,10 +203,14 @@ export async function saveProject(
 ) {
   assertAppId(project.appId);
   const files = validateFiles(project.files);
+  const prepared = project.prepared
+    ? validatePreparedProject(files, project.prepared)
+    : undefined;
   const normalized: StoredProject = {
     ...project,
     files,
     sourceHash: hashSpaceTemplateProjectFiles(files),
+    ...(prepared ? { prepared } : {}),
   };
   return projectStore().save(normalized);
 }

@@ -457,8 +457,8 @@ export class SpaceInstanceServer {
         (item) => (item.toolCallId || item.label) === key,
       );
       if (index >= 0) space.build.activities[index] = event;
-      else space.build.activities.unshift(event);
-      space.build.activities = space.build.activities.slice(0, 4);
+      else space.build.activities.push(event);
+      space.build.activities = space.build.activities.slice(-4);
     } else if (event.type === "workspace") {
       space.build.draftFiles = event.files;
       space.build.stage = event.changedPath

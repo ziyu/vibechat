@@ -105,14 +105,98 @@
       },
       "lock": {
         "schemaVersion": "vibechat.space-template-version-lock/v1",
-        "sourceHash": "sha256:68546cf15329416e61b06ea283b80aa292791c38fa59335b80b0674b7d7bbb3a",
-        "manifestHash": "sha256:8a9b5bb834ac587d79ca17a1a6a110d894f6d4c4b5699f86b5ba3bf47f3c4704"
+        "sourceHash": "sha256:ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627",
+        "manifestHash": "sha256:04e9d65ed6151280c7c941c8118620f524fdc7b0cca83cf8dadb35d3f9655ef4"
       },
       "artifact": {
         "schemaVersion": "vibechat.space-template-artifact/v1",
-        "id": "tpla-68546cf15329416e61b06ea283b80aa292791c38fa59335b80b0674b7d7bbb3a",
+        "id": "tpla-ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627",
         "format": "agentos-app-v1",
-        "sourceHash": "sha256:68546cf15329416e61b06ea283b80aa292791c38fa59335b80b0674b7d7bbb3a"
+        "sourceHash": "sha256:ce92262abad8cea95133bd21e6daf5d20b8ac23d3db306b7833131059f20e627"
+      }
+    },
+    {
+      "status": "development",
+      "manifest": {
+        "schemaVersion": "vibechat.space-template-version/v1",
+        "id": "tplv-space-arcade-0-1-3",
+        "semanticVersion": "0.1.3",
+        "projectFormat": "agentos-app-v1",
+        "compatibility": {
+          "spaceAppSdk": "v1",
+          "runtime": "agentos-apps-0.2"
+        },
+        "capabilities": {
+          "permissions": [
+            "messages.read",
+            "messages.send",
+            "messages.manage-own",
+            "mentions.read",
+            "agents.invoke",
+            "members.read",
+            "interactions.send",
+            "state.shared.write"
+          ],
+          "networkDomains": []
+        },
+        "provenance": {
+          "origin": "repository",
+          "publisherId": "publisher-vibechat",
+          "sourcePath": "packages/space-templates/official/space-arcade/app"
+        }
+      },
+      "lock": {
+        "schemaVersion": "vibechat.space-template-version-lock/v1",
+        "sourceHash": "sha256:6cfd57f84f9972b3f1081817c70dba189ef1e96cdd3fcd899a1ecc5ebb12dd6e",
+        "manifestHash": "sha256:46366ddea6e8e441bd9d25fb5e9252ccfbee9f3b632dbbe7b26e96a96d03cc69"
+      },
+      "artifact": {
+        "schemaVersion": "vibechat.space-template-artifact/v1",
+        "id": "tpla-6cfd57f84f9972b3f1081817c70dba189ef1e96cdd3fcd899a1ecc5ebb12dd6e",
+        "format": "agentos-app-v1",
+        "sourceHash": "sha256:6cfd57f84f9972b3f1081817c70dba189ef1e96cdd3fcd899a1ecc5ebb12dd6e"
+      }
+    },
+    {
+      "status": "development",
+      "manifest": {
+        "schemaVersion": "vibechat.space-template-version/v1",
+        "id": "tplv-space-arcade-0-1-4",
+        "semanticVersion": "0.1.4",
+        "projectFormat": "agentos-app-v1",
+        "compatibility": {
+          "spaceAppSdk": "v1",
+          "runtime": "agentos-apps-0.2"
+        },
+        "capabilities": {
+          "permissions": [
+            "messages.read",
+            "messages.send",
+            "messages.manage-own",
+            "mentions.read",
+            "agents.invoke",
+            "members.read",
+            "interactions.send",
+            "state.shared.write"
+          ],
+          "networkDomains": []
+        },
+        "provenance": {
+          "origin": "repository",
+          "publisherId": "publisher-vibechat",
+          "sourcePath": "packages/space-templates/official/space-arcade/app"
+        }
+      },
+      "lock": {
+        "schemaVersion": "vibechat.space-template-version-lock/v1",
+        "sourceHash": "sha256:cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9",
+        "manifestHash": "sha256:e355f3feef8a131639070d6688ef0badc8e9e0ebc7edb6a5699a0508f147fe49"
+      },
+      "artifact": {
+        "schemaVersion": "vibechat.space-template-artifact/v1",
+        "id": "tpla-cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9",
+        "format": "agentos-app-v1",
+        "sourceHash": "sha256:cb7a4314d55a0a6b86fc869e745d93cc681b410498f80b0325db91354801e5c9"
       }
     }
   ]
