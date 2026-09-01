@@ -95,7 +95,7 @@ PR #11 的首轮 workflow `5760de5c-e448-436f-b54f-4aa78b3c791c` 中，`docs:che
 
 修复保持 `pnpm build` 的全部 filter 与现有 `NODE_OPTIONS=--max-old-space-size=4096`，仅在 CircleCI `Build product applications` 步骤向 Turbo 传入 `--concurrency=2`。这样最多同时运行两个 workspace build，避免多个 Node 构建进程各自接近 heap 上限；不跳过 Backend，不拆除产品门禁，也不把单进程 heap 提高到宿主总内存以上。
 
-完成条件：CircleCI 配置校验和本地参数解析通过，并由 PR #11 的新 workflow 完整通过 `verify`。当前已取得前两项证据；新 workflow URL 与结果在云端复跑后补入本节，在此之前不把本次资源修复写成已验证完成。
+完成证据：CircleCI 配置校验和本地参数解析通过；PR #11 的新 [workflow `6dfa2457-583d-4f7f-9888-ddc7569afa73`](https://app.circleci.com/workflow/6dfa2457-583d-4f7f-9888-ddc7569afa73) 完整运行后，[`verify`](https://app.circleci.com/workflow/6dfa2457-583d-4f7f-9888-ddc7569afa73/job/e2ad8c50-f431-49ba-ba27-5bc6a7805bef) 和 [`docker-build`](https://app.circleci.com/workflow/6dfa2457-583d-4f7f-9888-ddc7569afa73/job/7a246fb5-dfc6-4fa9-b3e7-bcfe5109405e) 均通过。这表明限制构建并发后已消除原 exit 137 失败，且产品构建与 Web 容器门禁均保持完整。
 
 ## 进度更新规则
 
